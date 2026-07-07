@@ -1,0 +1,507 @@
+<div class="mp-plan-wrap">
+
+  <!-- Back to plans -->
+  @if (savedPlansCount() > 1) {
+    <button type="button" class="btn-back-plans" (click)="backClicked.emit()">
+      <i class="fa-solid fa-chevron-right"></i>
+      خططي التسويقية
+    </button>
+  }
+
+  <!-- Plan header -->
+  <div class="mp-plan-hdr">
+    <div class="mp-hdr-left">
+      <div class="d-flex align-items-center gap-3 flex-wrap mb-1">
+        <h4 class="mp-brand">{{ plan().brandName }}</h4>
+        <span class="mp-period-badge">
+          <i class="fa-solid fa-clock"></i>{{ plan().timeframe }}
+        </span>
+      </div>
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        @for (g of plan().goals.slice(0, 3); track g) {
+          <span class="mp-goal-chip">{{ g }}</span>
+        }
+      </div>
+      <p class="mp-sub-line">
+        <i class="fa-solid fa-share-nodes"></i>
+        {{ plan().platforms.join(' · ') }}
+      </p>
+    </div>
+    <div class="mp-hdr-actions">
+      <button type="button" class="btn-mp-remake" (click)="remakeClicked.emit()">
+        <i class="fa-solid fa-rotate"></i> إعادة التوليد
+      </button>
+      @if (!isEditing()) {
+        <button type="button" class="btn-mp-edit" (click)="startEdit()">
+          <i class="fa-solid fa-pen-to-square"></i> تعديل
+        </button>
+        <button type="button" class="btn-mp-approve" (click)="approveClicked.emit()">
+          <i class="fa-solid fa-circle-check"></i> اعتماد الخطة
+        </button>
+      } @else {
+        <button type="button" class="btn-mp-cancel" (click)="cancelEdit()">إلغاء</button>
+        <button type="button" class="btn-mp-save" (click)="saveEdit()">
+          <i class="fa-solid fa-floppy-disk"></i> حفظ التعديلات
+        </button>
+      }
+    </div>
+  </div>
+
+  <!-- Stats row -->
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+      <div class="mp-stat">
+        <div class="mp-stat-ico" style="background:rgba(124,58,237,.1);color:#7C3AED"><i class="fa-solid fa-sack-dollar"></i></div>
+        <div class="mp-stat-val">{{ formatNum(plan().budgetFrom) }}–{{ formatNum(plan().budgetTo) }}</div>
+        <div class="mp-stat-lbl">الميزانية الشهرية (ريال)</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="mp-stat">
+        <div class="mp-stat-ico" style="background:rgba(249,115,22,.1);color:#f97316"><i class="fa-solid fa-calendar-days"></i></div>
+        <div class="mp-stat-val">{{ localPosts().length }}</div>
+        <div class="mp-stat-lbl">منشورات خلال الخطة</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="mp-stat">
+        <div class="mp-stat-ico" style="background:rgba(233,30,140,.1);color:#e91e8c"><i class="fa-solid fa-share-nodes"></i></div>
+        <div class="mp-stat-val">{{ plan().platforms.length }}</div>
+        <div class="mp-stat-lbl">منصات للنشر</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="mp-stat">
+        <div class="mp-stat-ico" style="background:rgba(34,197,94,.1);color:#22c55e"><i class="fa-solid fa-photo-film"></i></div>
+        <div class="mp-stat-val">{{ plan().mediaItems.length }}</div>
+        <div class="mp-stat-lbl">مادة إعلانية جاهزة</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit banner -->
+  @if (isEditing()) {
+    <div class="mp-edit-banner">
+      <i class="fa-solid fa-pen-to-square"></i>
+      <span>وضع التعديل — عدّل البيانات أو اسحب المنشورات لإعادة جدولتها، ثم اضغط "حفظ التعديلات"</span>
+    </div>
+  }
+
+  <!-- Main 2-col layout -->
+  <div class="row g-4">
+
+    <!-- LEFT: calendar + media -->
+    <div class="col-lg-8">
+
+      <!-- Content calendar -->
+      <div class="mp-section mb-4">
+        <div class="mp-sec-hdr">
+          <div class="mp-sec-icon" style="background:rgba(59,130,246,.1);color:#3b82f6">
+            <i class="fa-solid fa-calendar-days"></i>
+          </div>
+          <h6>جدول المحتوى الشهري</h6>
+        </div>
+
+        <div class="cal-toolbar">
+          <div class="cal-nav">
+            <button class="cal-nav-btn" (click)="prevPage()" [disabled]="calPage() === 0">
+              <i class="fa-solid fa-chevron-right"></i>
+            </button>
+            <span class="cal-nav-label">{{ calPageLabel() }}</span>
+            <button class="cal-nav-btn" (click)="nextPage()" [disabled]="calPage() >= calMaxPage()">
+              <i class="fa-solid fa-chevron-left"></i>
+            </button>
+          </div>
+          <div class="cal-view-toggle">
+            <button [class.active]="calView() === 'month'" (click)="switchView('month')">شهري</button>
+            <button [class.active]="calView() === 'week'"  (click)="switchView('week')">أسبوعي</button>
+          </div>
+        </div>
+
+        <div class="cal-grid-wrap">
+          <div class="cal-header-row">
+            @for (d of calDays; track d) {
+              <div class="cal-day-hdr">{{ d }}</div>
+            }
+          </div>
+          @for (row of calendarGrid(); track $index) {
+            <div class="cal-week-row">
+              @for (cell of row; track $index) {
+                <div class="cal-cell"
+                     [class.has-posts]="cell.posts.length > 0"
+                     [class.drop-target]="cell.isDrop"
+                     [class.edit-mode]="isEditing()"
+                     (dragover)="isEditing() ? onDragOver(cell.key, $event) : $event.preventDefault()"
+                     (dragleave)="onDragLeave(cell.key)"
+                     (drop)="isEditing() ? onDrop(cell.key, $event) : null">
+                  <div class="cal-cell-num">{{ cell.dayNum }}</div>
+                  @for (post of cell.posts; track post.id) {
+                    <div class="cal-post-chip"
+                         [draggable]="isEditing()"
+                         [class.dragging]="dragPostId() === post.id"
+                         [class.drag-enabled]="isEditing()"
+                         [style.background]="post.platformColor + '18'"
+                         [style.border-color]="post.platformColor + '55'"
+                         [style.color]="post.platformColor"
+                         (dragstart)="onDragStart(post.id)"
+                         (dragend)="onDragEnd()"
+                         (click)="openPost(post)">
+                      <i class="{{ post.platformIcon }}"></i>
+                      <span>{{ post.type }}</span>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          }
+        </div>
+
+        @if (isEditing()) {
+          <div class="cal-drag-hint">
+            <i class="fa-solid fa-hand-pointer"></i>
+            اسحب أي منشور وأفلته في يوم آخر لإعادة جدولته
+          </div>
+        }
+      </div>
+
+      <!-- Ad media gallery -->
+      @if (plan().mediaItems.length > 0) {
+        <div class="mp-section">
+          <div class="mp-sec-hdr">
+            <div class="mp-sec-icon" style="background:rgba(233,30,140,.1);color:#e91e8c">
+              <i class="fa-solid fa-photo-film"></i>
+            </div>
+            <h6>الإعلانات والمواد المرئية المُنشأة</h6>
+          </div>
+          <div class="row g-3" style="padding:14px">
+            @for (item of plan().mediaItems.slice(0, 8); track item.id) {
+              <div class="col-6 col-md-4 col-lg-3">
+                <div class="mp-media-card" (click)="openMedia(item)" style="cursor:pointer">
+                  <div class="mp-media-thumb">
+                    @if (isImage(item.type, item.thumbnailUrl)) {
+                      <img [src]="item.thumbnailUrl" [alt]="item.title" class="mp-media-img">
+                    } @else if (isVideo(item.type, item.videoUrl)) {
+                      <video [src]="item.videoUrl" autoplay muted loop class="mp-media-img"></video>
+                      <div class="mp-media-play"><i class="fa-solid fa-play"></i></div>
+                    } @else {
+                      <div class="mp-media-text" [style.background]="thumbnailGradient(item.type)">
+                        <i class="{{ typeCfg[item.type].icon }}" [style.color]="typeCfg[item.type].color" style="font-size:1.4rem"></i>
+                      </div>
+                    }
+                    <div class="mp-media-badge" [style.background]="typeCfg[item.type].color">
+                      <i class="{{ typeCfg[item.type].icon }}"></i>
+                    </div>
+                  </div>
+                  <div class="mp-media-info">
+                    <span class="mp-media-title">{{ item.title }}</span>
+                    <span class="mp-media-brand">{{ item.brand }}</span>
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+    </div><!-- /col-lg-8 -->
+
+    <!-- RIGHT: overview + audience + social + KPIs -->
+    <div class="col-lg-4">
+
+      <!-- Overview -->
+      <div class="mp-section mb-3">
+        <div class="mp-sec-hdr">
+          <div class="mp-sec-icon" style="background:rgba(124,58,237,.1);color:#7C3AED"><i class="fa-solid fa-store"></i></div>
+          <h6>نظرة عامة</h6>
+        </div>
+        @if (!isEditing()) {
+          <div class="mp-ov-list">
+            <div class="mp-ov-row">
+              <span class="mp-ov-k">العلامة التجارية</span>
+              <span class="mp-ov-v">{{ plan().brandName }}</span>
+            </div>
+            @if (plan().sector) {
+              <div class="mp-ov-row">
+                <span class="mp-ov-k">القطاع</span>
+                <span class="mp-ov-v">{{ plan().sector }}</span>
+              </div>
+            }
+            <div class="mp-ov-row">
+              <span class="mp-ov-k">المدة</span>
+              <span class="mp-ov-v">{{ plan().timeframe }}</span>
+            </div>
+            <div class="mp-ov-row">
+              <span class="mp-ov-k">الأهداف</span>
+              <span class="mp-ov-v">
+                <div class="d-flex flex-wrap gap-1">
+                  @for (g of plan().goals; track g) {
+                    <span class="mp-mini-chip">{{ g }}</span>
+                  }
+                </div>
+              </span>
+            </div>
+            <div class="mp-ov-row">
+              <span class="mp-ov-k">الميزانية</span>
+              <span class="mp-ov-v fw-bold">{{ formatNum(plan().budgetFrom) }} – {{ formatNum(plan().budgetTo) }} ريال/شهر</span>
+            </div>
+          </div>
+        } @else {
+          <div class="mp-edit-form">
+            <div class="mb-2">
+              <label class="mp-edit-lbl">اسم العلامة التجارية</label>
+              <input type="text" class="form-control form-control-sm"
+                     [value]="editBrand()" (input)="editBrand.set($any($event.target).value)">
+            </div>
+            <div class="mb-2">
+              <label class="mp-edit-lbl">الميزانية من (ريال)</label>
+              <input type="number" class="form-control form-control-sm"
+                     [value]="editBudgetFrom()" (input)="editBudgetFrom.set(+$any($event.target).value)">
+            </div>
+            <div class="mb-3">
+              <label class="mp-edit-lbl">الميزانية إلى (ريال)</label>
+              <input type="number" class="form-control form-control-sm"
+                     [value]="editBudgetTo()" (input)="editBudgetTo.set(+$any($event.target).value)">
+            </div>
+            <div>
+              <label class="mp-edit-lbl">الأهداف</label>
+              <div class="d-flex flex-wrap gap-2 mt-1">
+                @for (g of allGoals; track g) {
+                  <button type="button" class="mp-goal-toggle"
+                          [class.active]="editGoals().includes(g)"
+                          (click)="toggleEditGoal(g)">{{ g }}</button>
+                }
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- Target audience -->
+      <div class="mp-section mb-3">
+        <div class="mp-sec-hdr">
+          <div class="mp-sec-icon" style="background:rgba(249,115,22,.1);color:#f97316"><i class="fa-solid fa-users"></i></div>
+          <h6>الجمهور المستهدف</h6>
+        </div>
+        <div class="mp-ov-list">
+          <div class="mp-ov-row">
+            <span class="mp-ov-k">الفئة العمرية</span>
+            <span class="mp-ov-v">{{ plan().ageFrom }}–{{ plan().ageTo }} سنة</span>
+          </div>
+          <div class="mp-ov-row">
+            <span class="mp-ov-k">الجنس</span>
+            <span class="mp-ov-v">{{ genderLabel(plan().gender) }}</span>
+          </div>
+          @if (plan().interests.length > 0) {
+            <div class="mp-ov-row">
+              <span class="mp-ov-k">الاهتمامات</span>
+              <span class="mp-ov-v">
+                <div class="d-flex flex-wrap gap-1">
+                  @for (i of plan().interests.slice(0,4); track i) {
+                    <span class="mp-mini-chip">{{ i }}</span>
+                  }
+                </div>
+              </span>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Social accounts -->
+      @if (plan().fbConn?.connected || plan().igConn?.connected) {
+        <div class="mp-section mb-3">
+          <div class="mp-sec-hdr">
+            <div class="mp-sec-icon" style="background:rgba(22,163,74,.1);color:#16a34a"><i class="fa-solid fa-link"></i></div>
+            <h6>الحسابات المُربوطة</h6>
+          </div>
+          <div class="mp-social-list">
+            @if (plan().fbConn?.connected) {
+              <div class="mp-social-row">
+                <div class="mp-soc-ico fb"><i class="fa-brands fa-facebook-f"></i></div>
+                <div class="mp-soc-info">
+                  <span class="mp-soc-name">فيسبوك</span>
+                  <span class="mp-soc-account">{{ plan().fbConn?.accountName }}</span>
+                </div>
+                <span class="mp-soc-ok"><i class="fa-solid fa-circle-check"></i> مُربوط</span>
+              </div>
+            }
+            @if (plan().igConn?.connected) {
+              <div class="mp-social-row">
+                <div class="mp-soc-ico ig"><i class="fa-brands fa-instagram"></i></div>
+                <div class="mp-soc-info">
+                  <span class="mp-soc-name">إنستغرام</span>
+                  <span class="mp-soc-account">{{ plan().igConn?.accountName }}</span>
+                </div>
+                <span class="mp-soc-ok"><i class="fa-solid fa-circle-check"></i> مُربوط</span>
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- KPIs -->
+      <div class="mp-section">
+        <div class="mp-sec-hdr">
+          <div class="mp-sec-icon" style="background:rgba(234,179,8,.1);color:#ca8a04"><i class="fa-solid fa-chart-line"></i></div>
+          <h6>المؤشرات المتوقعة</h6>
+        </div>
+        <div class="mp-kpi-list">
+          @for (kpi of plan().kpis; track kpi.label) {
+            <div class="mp-kpi-row">
+              <div class="mp-kpi-ico" [style.background]="kpi.color + '1a'" [style.color]="kpi.color">
+                <i class="{{ kpi.icon }}"></i>
+              </div>
+              <div class="mp-kpi-body">
+                <span class="mp-kpi-lbl">{{ kpi.label }}</span>
+                <span class="mp-kpi-val">{{ kpi.value }} <small>{{ kpi.unit }}</small></span>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+
+    </div><!-- /col-lg-4 -->
+  </div><!-- /row -->
+
+  <!-- Bottom actions -->
+  @if (!isEditing()) {
+    <div class="mp-bottom-actions">
+      <button type="button" class="btn-mp-remake-lg" (click)="remakeClicked.emit()">
+        <i class="fa-solid fa-rotate"></i>
+        إعادة توليد الخطة
+      </button>
+      <button type="button" class="btn-mp-edit-lg" (click)="startEdit()">
+        <i class="fa-solid fa-pen-to-square"></i>
+        تعديل الخطة
+      </button>
+      <button type="button" class="btn-mp-approve-lg" (click)="approveClicked.emit()">
+        <i class="fa-solid fa-circle-check"></i>
+        اعتماد الخطة والبدء
+      </button>
+    </div>
+  }
+
+</div><!-- /mp-plan-wrap -->
+
+<!-- ════════════ POST DETAIL MODAL ════════════ -->
+@if (selectedPost()) {
+  <div class="mp-modal-overlay" (click)="closePost()">
+    <div class="mp-modal mp-modal-post" (click)="$event.stopPropagation()">
+      <button class="mp-modal-close" (click)="closePost()"><i class="fa-solid fa-xmark"></i></button>
+
+      <div class="post-preview-hdr">
+        <div class="post-avatar" [style.background]="selectedPost()!.platformColor + '1a'">
+          <i class="{{ selectedPost()!.platformIcon }}" [style.color]="selectedPost()!.platformColor"></i>
+        </div>
+        <div class="post-hdr-info">
+          <div class="post-brand-name">{{ plan().brandName }}</div>
+          <div class="post-hdr-meta">
+            <span class="post-date-lbl">
+              <i class="fa-solid fa-calendar-day"></i>
+              {{ selectedPost()!.day }} · الشهر {{ selectedPost()!.monthIdx + 1 }} · الأسبوع {{ selectedPost()!.weekRow + 1 }}
+            </span>
+            <span class="post-plat-chip"
+                  [style.background]="selectedPost()!.platformColor + '18'"
+                  [style.color]="selectedPost()!.platformColor">
+              <i class="{{ selectedPost()!.platformIcon }}"></i>
+              {{ selectedPost()!.platform }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      @if (linkedMedia(selectedPost()!); as lm) {
+        <div class="post-preview-media">
+          @if (isImage(lm.type, lm.thumbnailUrl)) {
+            <img [src]="lm.thumbnailUrl" [alt]="lm.title" class="post-preview-img">
+          } @else if (isVideo(lm.type, lm.videoUrl)) {
+            <video [src]="lm.videoUrl" controls muted class="post-preview-img"></video>
+          } @else {
+            <div class="post-preview-placeholder" [style.background]="thumbnailGradient(lm.type)">
+              <i class="{{ typeCfg[lm.type].icon }}" [style.color]="typeCfg[lm.type].color"></i>
+            </div>
+          }
+        </div>
+      }
+
+      <div class="post-caption-wrap">
+        <p class="post-caption-text">
+          <span class="post-brand-mention">{{ plan().brandName }}</span>
+          {{ selectedPost()!.caption }}
+        </p>
+        <div class="post-hashtags">
+          @for (h of selectedPost()!.hashtags; track h) {
+            <span class="post-hashtag">{{ h }}</span>
+          }
+        </div>
+      </div>
+
+      <div class="post-meta-chips">
+        <span class="post-type-chip">
+          <i class="{{ selectedPost()!.typeIcon }}"></i>
+          {{ selectedPost()!.type }}
+        </span>
+        <span class="post-title-chip">
+          <i class="fa-solid fa-file-lines"></i>
+          {{ selectedPost()!.title }}
+        </span>
+      </div>
+
+      <div class="post-engagement">
+        <div class="engage-item"><i class="fa-solid fa-heart"></i><span>{{ formatNum(selectedPost()!.likes) }}</span></div>
+        <div class="engage-sep"></div>
+        <div class="engage-item"><i class="fa-regular fa-comment"></i><span>{{ formatNum(selectedPost()!.comments) }}</span></div>
+        <div class="engage-sep"></div>
+        <div class="engage-item"><i class="fa-solid fa-share-nodes"></i><span>{{ formatNum(selectedPost()!.shares) }}</span></div>
+        <div class="engage-est-label">تفاعل متوقع</div>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ════════════ MEDIA DETAIL MODAL ════════════ -->
+@if (selectedMedia()) {
+  <div class="mp-modal-overlay" (click)="closeMedia()">
+    <div class="mp-modal mp-modal-media" (click)="$event.stopPropagation()">
+      <button class="mp-modal-close" (click)="closeMedia()"><i class="fa-solid fa-xmark"></i></button>
+      <div class="mp-media-modal-thumb">
+        @if (isImage(selectedMedia()!.type, selectedMedia()!.thumbnailUrl)) {
+          <img [src]="selectedMedia()!.thumbnailUrl" [alt]="selectedMedia()!.title" class="mp-media-modal-img">
+        } @else if (isVideo(selectedMedia()!.type, selectedMedia()!.videoUrl)) {
+          <video [src]="selectedMedia()!.videoUrl" controls autoplay muted class="mp-media-modal-img"></video>
+        } @else {
+          <div class="mp-media-modal-text" [style.background]="thumbnailGradient(selectedMedia()!.type)">
+            <i class="{{ typeCfg[selectedMedia()!.type].icon }}"
+               [style.color]="typeCfg[selectedMedia()!.type].color"
+               style="font-size:3rem"></i>
+          </div>
+        }
+      </div>
+      <div class="mp-modal-body">
+        <div class="mp-modal-row">
+          <span class="mp-modal-k"><i class="fa-solid fa-heading"></i> العنوان</span>
+          <span class="mp-modal-v fw-bold">{{ selectedMedia()!.title }}</span>
+        </div>
+        <div class="mp-modal-row">
+          <span class="mp-modal-k"><i class="fa-solid fa-tag"></i> العلامة التجارية</span>
+          <span class="mp-modal-v">{{ selectedMedia()!.brand }}</span>
+        </div>
+        <div class="mp-modal-row">
+          <span class="mp-modal-k"><i class="{{ typeCfg[selectedMedia()!.type].icon }}"></i> النوع</span>
+          <span class="mp-modal-v">
+            <span class="mp-media-type-badge"
+                  [style.background]="typeCfg[selectedMedia()!.type].color + '22'"
+                  [style.color]="typeCfg[selectedMedia()!.type].color">
+              {{ typeCfg[selectedMedia()!.type].label }}
+            </span>
+          </span>
+        </div>
+        @if (selectedMedia()!.description) {
+          <div class="mp-modal-row">
+            <span class="mp-modal-k"><i class="fa-solid fa-align-right"></i> الوصف</span>
+            <span class="mp-modal-v">{{ selectedMedia()!.description }}</span>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+}

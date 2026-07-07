@@ -1,0 +1,183 @@
+<section class="pricing-section">
+  <div class="container position-relative z-1">
+
+    <!-- Title Section -->
+    <div class="text-center section-header" appReveal="fade-up" [revealDuration]="2000">
+      <h2 class="title">خطط الأسعار</h2>
+      <p class="subtitle">اختر الباقة المناسبة لنمو علامتك التجارية وضاعف مبيعاتك وتفاعلك الذكي اليوم</p>
+
+      <!-- Billing Switcher Toggle -->
+      <div class="billing-switcher-wrapper d-inline-flex align-items-center justify-content-center">
+        <div class="billing-switcher" [class.annual-active]="isAnnual">
+          <button class="switcher-btn" [class.active]="!isAnnual" (click)="toggleBilling(false)">شهرياً</button>
+          <button class="switcher-btn" [class.active]="isAnnual" (click)="toggleBilling(true)">
+            سنوياً
+            <span class="discount-tag">خصم 20%</span>
+          </button>
+          <!-- Sliding backdrop overlay background -->
+          <div class="switcher-slider"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pricing Cards Grid -->
+    <div class="pricing-grid row justify-content-center align-items-stretch g-4">
+
+      <!-- Plan 1: Free (الباقة المجانية) -->
+      <div class="col-lg-4 col-md-6 d-flex" appReveal="fade-left-far" [revealDuration]="2000">
+        <div class="pricing-card light-card d-flex flex-column justify-content-between w-100">
+          <div>
+            <div class="card-header-info">
+              <h3 class="plan-name">الباقة المجانية</h3>
+              <p class="plan-desc">استكشف قوة الذكاء الاصطناعي مجاناً</p>
+            </div>
+
+            <div class="price-container">
+              <span class="currency">$</span>
+              <span class="price">0</span>
+              <span class="period">/ شهرياً</span>
+            </div>
+
+            <hr class="divider">
+
+            <ul class="features-list">
+              <li>
+                <i class="fas fa-check-circle check-icon"></i>
+                <span>إنشاء 10 تصميمات إعلانية شهرياً</span>
+              </li>
+              <li>
+                <i class="fas fa-check-circle check-icon"></i>
+                <span>سعة تخزينية 2 جيجابايت</span>
+              </li>
+              <li>
+                <i class="fas fa-check-circle check-icon"></i>
+                <span>دخول أساسي لقوالب التصميم</span>
+              </li>
+              <li>
+                <i class="fas fa-check-circle check-icon"></i>
+                <span>دعم فني عبر البريد الإلكتروني</span>
+              </li>
+            </ul>
+          </div>
+
+          <div class="cta-container">
+            <a href="#" class="btn btn-outline-brand w-100">ابدأ مجاناً</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Plan 2: Professional (الباقة الاحترافية) - FEATURED -->
+      <div class="col-lg-4 col-md-6 d-flex" appReveal="fade-up-far" [revealDuration]="2000">
+        <div class="pricing-card dark-card featured-card d-flex flex-column justify-content-between w-100">
+          <div class="ribbon-container">
+            <span class="ribbon-badge">موصى بها</span>
+          </div>
+
+          <div>
+            <div class="card-header-info">
+              <h3 class="plan-name">الباقة الاحترافية</h3>
+              <p class="plan-desc">الحل المتكامل للعلامات التجارية النشطة</p>
+            </div>
+
+            <div class="price-container">
+              <span class="currency">$</span>
+              <span class="price">
+                @if (isAnnual) { 12 } @else { 15 }
+              </span>
+              <span class="period">
+                @if (isAnnual) { / شهرياً (تدفع سنوياً) } @else { / شهرياً }
+              </span>
+            </div>
+
+            <hr class="divider">
+
+            <ul class="features-list">
+              <li>
+                <i class="fas fa-check-circle check-icon"></i>
+                <span>إنشاء غير محدود للتصميمات الإعلانية</span>
+              </li>
+              <li>
+                <i class="fas fa-check-circle check-icon"></i>
+                <span>سعة تخزينية 10 جيجابايت</span>
+              </li>
+              <li>
+                <i class="fas fa-check-circle check-icon"></i>
+                <span>دخول كامل لكافة القوالب المتقدمة</span>
+              </li>
+              <li>
+                <i class="fas fa-check-circle check-icon"></i>
+                <span>دعم فني فوري ذو أولوية 24/7</span>
+              </li>
+              <li>
+                <i class="fas fa-check-circle check-icon"></i>
+                <span>تحليلات أداء وتفاعل متقدمة</span>
+              </li>
+              <li>
+                <i class="fas fa-check-circle check-icon"></i>
+                <span>مدير حساب مخصص لمساعدتك</span>
+              </li>
+            </ul>
+          </div>
+
+          <div class="cta-container">
+            <a href="#" class="btn btn-brand-primary w-100">ابدأ الآن</a>
+          </div>
+          <div class="card-glow"></div>
+        </div>
+      </div>
+
+      <!-- Plan 3: Enterprise (باقة المؤسسات) -->
+      <div class="col-lg-4 col-md-6 d-flex" appReveal="fade-right-far" [revealDuration]="2000">
+        <div class="pricing-card light-card d-flex flex-column justify-content-between w-100">
+          <div>
+            <div class="card-header-info">
+              <h3 class="plan-name">باقة المؤسسات</h3>
+              <p class="plan-desc">مخصصة للشركات والوكالات الكبرى</p>
+            </div>
+
+            <div class="price-container">
+              <span class="currency">$</span>
+              <span class="price">
+                @if (isAnnual) { 24 } @else { 30 }
+              </span>
+              <span class="period">
+                @if (isAnnual) { / شهرياً (تدفع سنوياً) } @else { / شهرياً }
+              </span>
+            </div>
+
+            <hr class="divider">
+
+            <ul class="features-list">
+              <li>
+                <i class="fas fa-check-circle check-icon"></i>
+                <span>ميزات إعلانية مخصصة لعلامتك</span>
+              </li>
+              <li>
+                <i class="fas fa-check-circle check-icon"></i>
+                <span>سعة تخزينية 30 جيجابايت</span>
+              </li>
+              <li>
+                <i class="fas fa-check-circle check-icon"></i>
+                <span>تقارير تحليلات متكاملة للمبيعات</span>
+              </li>
+              <li>
+                <i class="fas fa-check-circle check-icon"></i>
+                <span>دعم فني VIP عبر الهاتف والبريد</span>
+              </li>
+              <li>
+                <i class="fas fa-check-circle check-icon"></i>
+                <span>صلاحيات ربط برمجية مخصصة API</span>
+              </li>
+            </ul>
+          </div>
+
+          <div class="cta-container">
+            <a href="#" class="btn btn-outline-brand w-100">اتصل بنا</a>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</section>

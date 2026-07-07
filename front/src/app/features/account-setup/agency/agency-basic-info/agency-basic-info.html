@@ -1,0 +1,79 @@
+<form class="step-animate" [formGroup]="form" (ngSubmit)="onNext()">
+  <h2 class="step-title">أخبرنا عن وكالتك</h2>
+  <p class="step-subtitle">سنستخدم هذه المعلومات لتخصيص تجربتك في رواج.</p>
+
+  <div class="setup-field">
+    <label class="setup-label" for="agencyName">
+      <i class="fa-solid fa-building" style="color:var(--color-secondary); margin-left:0.4rem;"></i>
+      اسم الوكالة
+    </label>
+    <input
+      id="agencyName"
+      type="text"
+      class="setup-input"
+      formControlName="agencyName"
+      placeholder="مثال: وكالة سبارك للإبداع"
+      autocomplete="organization" />
+    @if (nameCtrl.invalid && nameCtrl.touched) {
+      <span class="field-error">
+        <i class="fa-solid fa-circle-exclamation"></i>
+        اسم الوكالة مطلوب (٢ أحرف على الأقل).
+      </span>
+    }
+  </div>
+
+  <div class="setup-field">
+    <label class="setup-label" for="agencyPhone">
+      <i class="fa-solid fa-phone" style="color:var(--color-secondary); margin-left:0.4rem;"></i>
+      رقم الهاتف
+    </label>
+    <div class="phone-field">
+      <div class="phone-country-dropdown" [class.open]="countryOpen()">
+        <button type="button" class="country-trigger" (click)="countryOpen.update(v => !v)">
+          <span class="country-flag">{{ selectedCountry().flag }}</span>
+          <span class="country-code">{{ selectedCountry().code }}</span>
+          <i class="fa-solid fa-chevron-down country-arrow"></i>
+        </button>
+        <div class="country-menu">
+          @for (c of countries; track c.code) {
+            <button
+              type="button"
+              class="country-option"
+              [class.selected]="c.code === selectedCountry().code"
+              (click)="selectCountry(c)">
+              <span>{{ c.flag }}</span>
+              <span class="c-country-name">{{ c.name }}</span>
+              <span class="c-code">{{ c.code }}</span>
+            </button>
+          }
+        </div>
+      </div>
+      <input
+        id="agencyPhone"
+        type="tel"
+        class="setup-input phone-input"
+        formControlName="agencyPhone"
+        placeholder="أدخل رقم الهاتف"
+        dir="ltr" />
+    </div>
+    @if (phoneCtrl.invalid && phoneCtrl.touched) {
+      <span class="field-error">
+        <i class="fa-solid fa-circle-exclamation"></i>
+        أدخل رقم هاتف صحيح (٧ إلى ١٥ رقمًا).
+      </span>
+    }
+  </div>
+
+  <div class="step-actions">
+    <div class="start">
+      <button type="button" class="btn-back" (click)="back.emit()">
+        <i class="fa-solid fa-arrow-right"></i>
+        السابق
+      </button>
+    </div>
+    <button type="submit" class="btn-next">
+      التالي
+      <i class="fa-solid fa-arrow-left"></i>
+    </button>
+  </div>
+</form>

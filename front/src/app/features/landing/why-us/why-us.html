@@ -1,0 +1,43 @@
+<section class="why-us-section">
+  <div class="container">
+    <h2 class="why-title text-center" appReveal="fade-up" [revealDuration]="2000">
+      لماذا يجب أن تكون رواج  اختيارك الأول؟
+    </h2>
+
+    <div class="row g-3 g-lg-4">
+      @for (item of whyItems(); track item.id) {
+        <div class="col-12 col-md-6 col-lg-4">
+          <app-why-card
+            [iconClass]="item.iconClass"
+            [title]="item.title"
+            [description]="item.description"
+          ></app-why-card>
+        </div>
+      }
+    </div>
+  </div>
+
+  <p class="brands-title text-center" appReveal="fade-up" [revealDuration]="2000">تستخدمه شركات مثل:</p>
+  <div class="brands-strip" dir="ltr" appReveal="fade-up" [revealDuration]="2000" >
+    <div class="brands-marquee">
+      <div class="brands-track">
+        <div class="brands-set">
+          <img class="brand-item" src="https://placehold.co/120x40/transparent/404D6C?text=Accenture&font=Montserrat" alt="Accenture">
+          <img class="brand-item" src="https://placehold.co/120x40/transparent/404D6C?text=AT%26T&font=Montserrat" alt="AT&T">
+          <img class="brand-item" src="https://placehold.co/120x40/transparent/404D6C?text=Bolt&font=Montserrat" alt="Bolt">
+          <img class="brand-item" src="https://placehold.co/120x40/transparent/404D6C?text=Samsung&font=Montserrat" alt="SAMSUNG">
+          <img class="brand-item" src="https://placehold.co/120x40/transparent/404D6C?text=AWS&font=Montserrat" alt="aws">
+          <img class="brand-item" src="https://placehold.co/120x40/transparent/404D6C?text=Visma&font=Montserrat" alt="VISMA">
+        </div>
+        <div class="brands-set" aria-hidden="true">
+          <img class="brand-item" src="https://placehold.co/120x40/transparent/404D6C?text=Accenture&font=Montserrat" alt="">
+          <img class="brand-item" src="https://placehold.co/120x40/transparent/404D6C?text=AT%26T&font=Montserrat" alt="">
+          <img class="brand-item" src="https://placehold.co/120x40/transparent/404D6C?text=Bolt&font=Montserrat" alt="">
+          <img class="brand-item" src="https://placehold.co/120x40/transparent/404D6C?text=Samsung&font=Montserrat" alt="">
+          <img class="brand-item" src="https://placehold.co/120x40/transparent/404D6C?text=AWS&font=Montserrat" alt="">
+          <img class="brand-item" src="https://placehold.co/120x40/transparent/404D6C?text=Visma&font=Montserrat" alt="">
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

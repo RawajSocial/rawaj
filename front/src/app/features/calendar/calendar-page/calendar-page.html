@@ -1,0 +1,269 @@
+<div class="page-shell">
+
+  <!-- ── Page header ── -->
+  <div class="page-top">
+    <div>
+      <h5 class="page-title">تقويم المنشورات</h5>
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+          <li class="breadcrumb-item"><a routerLink="/dashboard">لوحة التحكم</a></li>
+          <li class="breadcrumb-item active">التقويم</li>
+        </ol>
+      </nav>
+    </div>
+  </div>
+
+  <!-- ── Calendar card ── -->
+  <div class="cal-card">
+
+    <!-- ── Toolbar ── -->
+    <div class="cal-toolbar">
+
+      <!-- Nav group -->
+      <div class="cal-nav-group">
+        <button class="cal-nav-btn" (click)="next()" title="التالي">
+          <i class="fa-solid fa-chevron-right"></i>
+        </button>
+        <button class="cal-today-btn" (click)="goToday()">اليوم</button>
+        <button class="cal-nav-btn" (click)="prev()" title="السابق">
+          <i class="fa-solid fa-chevron-left"></i>
+        </button>
+      </div>
+
+      <!-- Title -->
+      <h2 class="cal-header-title">{{ headerTitle() }}</h2>
+
+      <!-- Campaign filter -->
+      <div class="dropdown cal-dropdown" [class.open]="campaignOpen()" data-dd="campaign">
+        <button type="button" class="dropdown-trigger form-control" (click)="campaignOpen.update(v => !v)">
+          <span class="dropdown-label">
+            <i class="fa-solid fa-filter cal-filter-icon"></i>
+            {{ campaignLabel }}
+          </span>
+          <span class="dropdown-icon"><i class="fa-solid fa-chevron-down"></i></span>
+        </button>
+        <div class="dropdown-menu">
+          <button type="button" class="dropdown-option" [class.active]="campaignFilter() === 'all'" (click)="setCampaign('all')">
+            جميع الحملات
+          </button>
+          @for (c of campaigns; track c.id) {
+            <button type="button" class="dropdown-option" [class.active]="campaignFilter() === c.id" (click)="setCampaign(c.id)">
+              {{ c.name }}
+            </button>
+          }
+        </div>
+      </div>
+
+      <!-- View tabs -->
+      <div class="view-tabs">
+        <button class="view-tab" [class.active]="viewMode() === 'month'" (click)="viewMode.set('month')">شهر</button>
+        <button class="view-tab" [class.active]="viewMode() === 'week'"  (click)="viewMode.set('week')">أسبوع</button>
+        <button class="view-tab" [class.active]="viewMode() === 'day'"   (click)="viewMode.set('day')">يوم</button>
+        <button class="view-tab" [class.active]="viewMode() === 'list'"  (click)="viewMode.set('list')">قائمة</button>
+      </div>
+
+    </div><!-- /toolbar -->
+
+    <!-- ══════════════════════════════════════════
+         MONTH VIEW
+    ══════════════════════════════════════════ -->
+    @if (viewMode() === 'month') {
+
+      <div class="month-grid">
+
+        <!-- Day name header row -->
+        @for (name of dayNames; track name) {
+          <div class="month-day-header">{{ name }}</div>
+        }
+
+        <!-- Day cells -->
+        @for (week of calendarWeeks(); track $index) {
+          @for (day of week; track $index) {
+            <div class="month-day-cell"
+                 [class.other-month]="!isCurrentMonth(day)"
+                 [class.is-today]="isToday(day)">
+
+              <span class="day-num"
+                    [class.today-num]="isToday(day)"
+                    [class.other-num]="!isCurrentMonth(day)"
+                    (click)="goToDay(day)">
+                {{ day.getDate() }}
+              </span>
+
+              <!-- Post pills (max 3) -->
+              @for (post of postsForDay(day).slice(0, 3); track post.id) {
+                <button type="button"
+                        class="month-pill"
+                        [style.background]="platformCfg[post.platform].color"
+                        (click)="openPost(post, $event)">
+                  <i class="{{ platformCfg[post.platform].icon }}"></i>
+                  <span class="pill-text">{{ post.content.substring(0, 16) }}…</span>
+                </button>
+              }
+
+              @if (postsForDay(day).length > 3) {
+                <button type="button" class="more-badge" (click)="goToDay(day)">
+                  +{{ postsForDay(day).length - 3 }} أكثر
+                </button>
+              }
+
+            </div>
+          }
+        }
+
+      </div>
+
+    }
+
+    <!-- ══════════════════════════════════════════
+         WEEK VIEW
+    ══════════════════════════════════════════ -->
+    @else if (viewMode() === 'week') {
+
+      <div class="week-grid">
+
+        <!-- Day headers -->
+        @for (day of weekDays(); track $index) {
+          <div class="week-day-header" [class.week-today]="isToday(day)">
+            <span class="week-day-name">{{ dayNames[day.getDay()] }}</span>
+            <span class="week-day-num" [class.today-badge]="isToday(day)">{{ day.getDate() }}</span>
+          </div>
+        }
+
+        <!-- Day columns -->
+        @for (day of weekDays(); track $index) {
+          <div class="week-day-col" [class.week-today-col]="isToday(day)">
+            @for (post of postsForDay(day); track post.id) {
+              <button type="button"
+                      class="week-post-card"
+                      [style.border-right-color]="platformCfg[post.platform].color"
+                      (click)="openPost(post)">
+                <div class="week-post-top">
+                  <span class="week-post-time">{{ formatTime(post.scheduledAt) }}</span>
+                  <i class="{{ platformCfg[post.platform].icon }}"
+                     [style.color]="platformCfg[post.platform].color"></i>
+                </div>
+                <p class="week-post-text">{{ post.content.substring(0, 40) }}…</p>
+              </button>
+            }
+            @if (postsForDay(day).length === 0) {
+              <div class="week-empty-col"></div>
+            }
+          </div>
+        }
+
+      </div>
+
+    }
+
+    <!-- ══════════════════════════════════════════
+         DAY VIEW
+    ══════════════════════════════════════════ -->
+    @else if (viewMode() === 'day') {
+
+      <div class="day-view">
+
+        <div class="day-view-header">
+          <span class="day-view-weekday">{{ currentDate().toLocaleDateString('ar-SA', { weekday: 'long' }) }}</span>
+          @if (isToday(currentDate())) {
+            <span class="day-today-chip">اليوم</span>
+          }
+        </div>
+
+        @if (postsForDay(currentDate()).length === 0) {
+          <div class="day-empty">
+            <i class="fa-regular fa-calendar-xmark"></i>
+            <p>لا توجد منشورات مجدولة لهذا اليوم</p>
+          </div>
+        } @else {
+          <div class="day-posts-list">
+            @for (post of postsForDay(currentDate()); track post.id) {
+              <button type="button" class="day-post-row" (click)="openPost(post)">
+                <div class="day-post-time">{{ formatTime(post.scheduledAt) }}</div>
+                <div class="day-post-bar" [style.background]="platformCfg[post.platform].color + '18'" [style.border-right-color]="platformCfg[post.platform].color">
+                  <div class="day-post-platform">
+                    <span class="day-platform-chip" [style.background]="platformCfg[post.platform].color">
+                      <i class="{{ platformCfg[post.platform].icon }}"></i>
+                      {{ platformCfg[post.platform].label }}
+                    </span>
+                    <span class="day-post-campaign">{{ post.campaignName }}</span>
+                  </div>
+                  <p class="day-post-content">{{ post.content }}</p>
+                  @if (post.hashtags?.length) {
+                    <div class="day-hashtags">
+                      @for (tag of post.hashtags!.slice(0, 3); track tag) {
+                        <span class="day-hashtag">{{ tag }}</span>
+                      }
+                    </div>
+                  }
+                </div>
+              </button>
+            }
+          </div>
+        }
+
+      </div>
+
+    }
+
+    <!-- ══════════════════════════════════════════
+         LIST VIEW
+    ══════════════════════════════════════════ -->
+    @else {
+
+      <div class="list-view">
+
+        @if (listGroups().length === 0) {
+          <div class="day-empty">
+            <i class="fa-regular fa-calendar-xmark"></i>
+            <p>لا توجد منشورات في هذا الأسبوع</p>
+          </div>
+        }
+
+        @for (group of listGroups(); track group.dateLabel) {
+
+          <!-- Date header -->
+          <div class="list-date-header" [class.list-today-header]="isToday(group.date)">
+            <div class="list-date-dot" [class.list-today-dot]="isToday(group.date)"></div>
+            <span class="list-date-label">{{ group.dateLabel }}</span>
+            @if (isToday(group.date)) {
+              <span class="list-today-tag">اليوم</span>
+            }
+          </div>
+
+          <!-- Posts in this day -->
+          @for (post of group.posts; track post.id) {
+            <button type="button" class="list-post-row" (click)="openPost(post)">
+              <div class="list-time-col">{{ formatTime(post.scheduledAt) }}</div>
+              <div class="list-platform-dot" [style.background]="platformCfg[post.platform].color"></div>
+              <div class="list-post-main">
+                <div class="list-post-meta">
+                  <i class="{{ platformCfg[post.platform].icon }}"
+                     [style.color]="platformCfg[post.platform].color"></i>
+                  <span class="list-platform-name">{{ platformCfg[post.platform].label }}</span>
+                  <span class="list-post-sep">·</span>
+                  <span class="list-campaign-name">{{ post.campaignName }}</span>
+                </div>
+                <p class="list-post-content">{{ post.content }}</p>
+              </div>
+            </button>
+          }
+
+        }
+
+      </div>
+
+    }
+
+  </div><!-- /cal-card -->
+
+</div><!-- /page-shell -->
+
+<!-- ── Post modal ── -->
+@if (selectedPost()) {
+  <app-post-modal
+    [post]="selectedPost()!"
+    (close)="closeModal()"
+    (save)="savePost($event)"
+    (remove)="deletePost($event)" />
+}

@@ -1,0 +1,67 @@
+.reveal {
+  opacity: 0;
+  transform: translate3d(0, 0, 0);
+  transition-property: opacity, transform;
+  transition-duration: var(--reveal-duration, 500ms);
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  transition-delay: var(--reveal-delay, 0ms);
+  will-change: opacity, transform;
+}
+
+.reveal.is-visible {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
+
+.reveal--fade-up {
+  transform: translate3d(0, 50px, 0);
+}
+
+.reveal--fade-down {
+  transform: translate3d(0, -50px, 0);
+}
+
+.reveal--fade-left {
+  transform: translate3d(50px, 0, 0);
+}
+
+.reveal--fade-right {
+  transform: translate3d(-50px, 0, 0);
+}
+
+.reveal--fade-up-far {
+  transform: translate3d(0, 100px, 0);
+}
+
+.reveal--fade-down-far {
+  transform: translate3d(0, -100px, 0);
+}
+
+.reveal--fade-left-far {
+  transform: translate3d(100px, 0, 0);
+}
+
+.reveal--fade-right-far {
+  transform: translate3d(-100px, 0, 0);
+}
+
+.reveal--fade-in {
+  transform: none;
+}
+
+.reveal.reveal--fade-out {
+  opacity: 1;
+  transform: none;
+}
+
+.reveal.reveal--fade-out.is-visible {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}

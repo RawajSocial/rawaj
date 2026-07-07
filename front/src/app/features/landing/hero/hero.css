@@ -1,0 +1,508 @@
+.hero-section {
+  position: relative;
+  padding: 6rem 0rem;
+  min-height: calc(100vh - 80px);
+  display: flex;
+  align-items: center;
+  /* background:url('/home-cosmic.svg') center/cover no-repeat; */
+}
+
+
+.hero-section .container.position-relative {
+  z-index: 2;
+}
+
+/* =========================================================
+   GRID BACKGROUND
+========================================================= */
+
+.hero-grid {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  z-index: 0;
+
+  /* GRID */
+  background-image:
+    linear-gradient(
+      rgba(255,255,255,0.045) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      90deg,
+      rgba(255,255,255,0.045) 1px,
+      transparent 1px
+    );
+
+  background-size: 64px 64px;
+
+  /* FADE EDGES */
+  mask-image:
+    radial-gradient(
+      circle at center,
+      rgba(0,0,0,1) 25%,
+      rgba(0,0,0,.7) 45%,
+      rgba(0,0,0,.25) 70%,
+      transparent 100%
+    );
+
+  -webkit-mask-image:
+    radial-gradient(
+      circle at center,
+      rgba(0,0,0,1) 25%,
+      rgba(0,0,0,.7) 45%,
+      rgba(0,0,0,.25) 70%,
+      transparent 100%
+    );
+}
+
+/* =========================================================
+   ANNOUNCEMENT
+========================================================= */
+
+.announcement-badge {
+  width: fit-content;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.12);
+  color: white;
+  padding: 4px 16px;
+  border-radius: 999px;
+  margin-bottom: 2rem;
+  backdrop-filter: blur(14px);
+  font-size: 13px;
+}
+
+/* =========================================================
+   TITLE
+========================================================= */
+
+.hero-title {
+  font-size: var(--font-size-5xl);
+  line-height: 1.4;
+  color: white;
+  max-width: 1100px;
+  margin: 0 auto 2rem;
+  font-weight: 900;
+}
+
+.hero-title span {
+  background:
+    linear-gradient(
+      90deg,
+      var(--color-accent-hover)
+    );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* =========================================================
+   DESCRIPTION
+========================================================= */
+
+.hero-description {
+  color: rgba(255,255,255,0.7);
+  max-width: 850px;
+  font-size: 1.3rem;
+  line-height: 2.2rem;
+  margin-bottom: 3rem;
+}
+
+/* =========================================================
+   .Buttons
+========================================================= */
+
+.hero-btn-primary {
+  background:
+    linear-gradient(
+      135deg,
+      var(--color-primary),
+      var(--color-secondary)
+    );
+  border: none;
+  padding: 6px 16px;
+  font-weight: 700;
+  font-size: 14px;
+  box-shadow: 0 10px 30px rgba(37, 99, 235, .35);
+}
+
+.hero-btn-secondary {
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.15);
+  color: white;
+  padding: 6px 16px;
+}
+
+
+/* =========================================================
+   RESPONSIVE (Typography & Layout)
+========================================================= */
+
+@media (max-width: 991px) {
+  .hero-section {
+    padding-top: 4rem;
+    padding-bottom: 5rem;
+  }
+  .hero-title {
+    font-size: clamp(2.5rem, 6vw, 4rem);
+  }
+  .hero-description {
+    font-size: 1.2rem;
+  }
+  .dashboard-image-wrapper {
+    margin-top: 4rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .hero-section {
+    padding-top: 2rem;
+    padding-bottom: 4rem;
+  }
+  .hero-title {
+    font-size: 2.2rem;
+  }
+  .hero-description {
+    font-size: 1rem;
+    line-height: 1.8rem;
+    padding: 0 1rem;
+  }
+  .hero-buttons {
+    flex-direction: column !important;
+    width: 100% !important;
+    padding: 0 1.5rem !important;
+  }
+
+  .hero-buttons .btn {
+    width: 100%;
+  }
+  .dashboard-image-wrapper {
+    margin-top: 3rem;
+    padding: 0 1rem;
+  }
+  .announcement-badge {
+    font-size: 0.85rem;
+    padding: 0.6rem 1rem;
+    margin-bottom: 2rem;
+    margin-top: 3rem;
+  }
+  .reviews-wrapper {
+    margin-top: 2rem;
+  }
+}
+
+/* =========================================================
+   DASHBOARD IMAGE
+========================================================= */
+
+.dashboard-image-wrapper {
+  position: relative;
+  margin-top: 6rem;
+  display: flex;
+  justify-content: center;
+  z-index: 2;
+}
+
+/* Dashboard Glow */
+.dashboard-glow {
+  position: absolute;
+  width: 850px;
+  height: 350px;
+  top: 0;
+  background:
+    radial-gradient(
+      circle,
+      color-mix(in srgb, var(--color-primary) 95%, transparent),
+      color-mix(in srgb, var(--color-secondary) 75%, transparent) 45%,
+      transparent 72%
+    );
+  filter: blur(90px);
+  z-index: 0;
+}
+
+/* Main Image */
+.dashboard-image {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 1200px;
+  border-radius: 28px;
+  border: 1px solid rgba(255, 255, 255, .08);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, .45);
+  backdrop-filter: blur(18px);
+}
+
+/* =========================================================
+   ANIMATED GRID LINES
+========================================================= */
+
+.grid-lines {
+  --grid-step: 64px;
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.circuit-line {
+  position: absolute;
+  opacity: 0;
+  filter: drop-shadow(0 0 8px rgba(124, 58, 237, .45));
+  will-change: transform, opacity, clip-path;
+  background:
+    linear-gradient(
+      90deg,
+      rgba(124, 58, 237, 0),
+      rgba(124, 58, 237, .65) 25%,
+      rgba(56, 189, 248, .75) 50%,
+      rgba(124, 58, 237, .65) 75%,
+      rgba(124, 58, 237, 0)
+    );
+}
+
+.h-line {
+  height: 1px;
+}
+
+.v-line {
+  width: 1px;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(124, 58, 237, 0),
+      rgba(124, 58, 237, .55) 30%,
+      rgba(56, 189, 248, .75) 55%,
+      rgba(124, 58, 237, .55) 80%,
+      rgba(124, 58, 237, 0)
+    );
+}
+
+/* DESKTOP LAYOUT (Default) */
+.h-1 {
+  top: 192px;
+  left: 128px;
+  width: 256px;
+  animation: drawHorizontalLR 10s linear infinite;
+  animation-delay: 1s;
+}
+.h-1 .pulse {
+  animation: pulseLR 10s linear infinite;
+  animation-delay: 1s;
+}
+
+.v-1 {
+  left: 384px;
+  top: 192px;
+  height: 256px;
+  animation: drawVerticalTB 10s linear infinite;
+  animation-delay: 3s;
+}
+.v-1 .pulse {
+  animation: pulseTB 10s linear infinite;
+  animation-delay: 3s;
+}
+
+.h-2 {
+  top: 448px;
+  left: 384px;
+  width: 320px;
+  animation: drawHorizontalLR 10s linear infinite;
+  animation-delay: 5s;
+}
+.h-2 .pulse {
+  animation: pulseLR 10s linear infinite;
+  animation-delay: 5s;
+}
+
+.v-2 {
+  left: 704px;
+  top: 448px;
+  height: 192px;
+  animation: drawVerticalTB 10s linear infinite;
+  animation-delay: 7s;
+}
+.v-2 .pulse {
+  animation: pulseTB 10s linear infinite;
+  animation-delay: 7s;
+}
+
+.h-3 {
+  top: 640px;
+  left: 704px;
+  width: 256px;
+  animation: drawHorizontalLR 10s linear infinite;
+  animation-delay: 9s;
+}
+.h-3 .pulse {
+  animation: pulseLR 10s linear infinite;
+  animation-delay: 9s;
+}
+
+/* SECOND SEQUENCE (Starts from Right) */
+.h-4 {
+  top: 128px;
+  right: 128px;
+  width: 256px;
+  animation: drawHorizontalRL 10s linear infinite;
+  animation-delay: 0s;
+}
+.h-4 .pulse {
+  animation: pulseRL 10s linear infinite;
+  animation-delay: 0s;
+}
+
+.v-3 {
+  right: 384px;
+  top: 128px;
+  height: 256px;
+  animation: drawVerticalTB 10s linear infinite;
+  animation-delay: 2s;
+}
+.v-3 .pulse {
+  animation: pulseTB 10s linear infinite;
+  animation-delay: 2s;
+}
+
+.h-5 {
+  top: 384px;
+  right: 384px;
+  width: 320px;
+  animation: drawHorizontalRL 10s linear infinite;
+  animation-delay: 4s;
+}
+.h-5 .pulse {
+  animation: pulseRL 10s linear infinite;
+  animation-delay: 4s;
+}
+
+.v-4 {
+  right: 704px;
+  top: 384px;
+  height: 192px;
+  animation: drawVerticalTB 10s linear infinite;
+  animation-delay: 6s;
+}
+.v-4 .pulse {
+  animation: pulseTB 10s linear infinite;
+  animation-delay: 6s;
+}
+
+.h-6 {
+  top: 576px;
+  right: 704px;
+  width: 256px;
+  animation: drawHorizontalRL 10s linear infinite;
+  animation-delay: 8s;
+}
+.h-6 .pulse {
+  animation: pulseRL 10s linear infinite;
+  animation-delay: 8s;
+}
+
+.pulse {
+  content: "";
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, #ffffff 0%, #60a5fa 36%, #8b5cf6 65%, rgba(139, 92, 246, 0) 80%);
+  box-shadow:
+    0 0 16px rgba(96, 165, 250, .95),
+    0 0 30px rgba(139, 92, 246, .65);
+  opacity: 0;
+}
+
+.h-line .pulse {
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.v-line .pulse {
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* MOBILE LAYOUT & RESPONSIVE ROUTING */
+@media (max-width: 768px) {
+  /* Sequence 1 */
+  .h-1 { top: 128px; left: 64px; width: 128px; }
+  .v-1 { left: 192px; top: 128px; height: 128px; }
+  .h-2 { top: 256px; left: 64px; width: 128px; animation-name: drawHorizontalRL; }
+  .h-2 .pulse { animation-name: pulseRL; }
+  .v-2 { left: 64px; top: 256px; height: 128px; }
+  .h-3 { top: 384px; left: 64px; width: 128px; }
+
+  /* Sequence 2 */
+  .h-4 { top: 64px; right: 32px; width: 128px; }
+  .v-3 { right: 160px; top: 64px; height: 128px; }
+  .h-5 { top: 192px; right: 32px; width: 128px; animation-name: drawHorizontalLR; }
+  .h-5 .pulse { animation-name: pulseLR; }
+  .v-4 { right: 32px; top: 192px; height: 128px; }
+  .h-6 { top: 320px; right: 32px; width: 128px; }
+}
+
+/* =========================================================
+   ANIMATIONS
+========================================================= */
+
+/* Draw Horizontal Left to Right */
+@keyframes drawHorizontalLR {
+  0% { clip-path: inset(0 100% 0 0); opacity: 0; }
+  0.5% { clip-path: inset(0 100% 0 0); opacity: 1; }
+  16% { clip-path: inset(0 0 0 0); opacity: 1; }
+  20% { clip-path: inset(0 0 0 100%); opacity: 0; }
+  20.1% { opacity: 0; }
+  100% { opacity: 0; }
+}
+
+/* Draw Horizontal Right to Left */
+@keyframes drawHorizontalRL {
+  0% { clip-path: inset(0 0 0 100%); opacity: 0; }
+  0.5% { clip-path: inset(0 0 0 100%); opacity: 1; }
+  16% { clip-path: inset(0 0 0 0); opacity: 1; }
+  20% { clip-path: inset(0 100% 0 0); opacity: 0; }
+  20.1% { opacity: 0; }
+  100% { opacity: 0; }
+}
+
+/* Draw Vertical Top to Bottom */
+@keyframes drawVerticalTB {
+  0% { clip-path: inset(0 0 100% 0); opacity: 0; }
+  0.5% { clip-path: inset(0 0 100% 0); opacity: 1; }
+  16% { clip-path: inset(0 0 0 0); opacity: 1; }
+  20% { clip-path: inset(100% 0 0 0); opacity: 0; }
+  20.1% { opacity: 0; }
+  100% { opacity: 0; }
+}
+
+/* Pulse Horizontal Left to Right */
+@keyframes pulseLR {
+  0% { left: 0; opacity: 0; }
+  0.5% { left: 0; opacity: 1; }
+  16% { left: 100%; opacity: 1; }
+  20% { left: 100%; opacity: 0; }
+  20.1% { opacity: 0; }
+  100% { opacity: 0; }
+}
+
+/* Pulse Horizontal Right to Left */
+@keyframes pulseRL {
+  0% { left: 100%; opacity: 0; }
+  0.5% { left: 100%; opacity: 1; }
+  16% { left: 0; opacity: 1; }
+  20% { left: 0; opacity: 0; }
+  20.1% { opacity: 0; }
+  100% { opacity: 0; }
+}
+
+/* Pulse Vertical Top to Bottom */
+@keyframes pulseTB {
+  0% { top: 0; opacity: 0; }
+  0.5% { top: 0; opacity: 1; }
+  16% { top: 100%; opacity: 1; }
+  20% { top: 100%; opacity: 0; }
+  20.1% { opacity: 0; }
+  100% { opacity: 0; }
+}
+

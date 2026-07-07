@@ -1,0 +1,326 @@
+.pricing-section {
+  position: relative;
+  background-color: var(--background-gray);
+  padding: 6rem 0;
+  overflow: hidden;
+  color: var(--color-primary-active);
+}
+
+.section-header {
+  margin-bottom: 4rem;
+  position: relative;
+  z-index: 10;
+}
+
+.section-header .title {
+  font-family: var(--font-serif);
+  font-size: var(--font-size-4xl);
+  font-weight: var(--font-bold);
+  margin-bottom: 1rem;
+  color: var(--color-primary-active);
+}
+
+.section-header .subtitle {
+  color: var(--color-text-secondary) !important;
+  font-size: 1.15rem;
+}
+
+/* Billing Switcher Toggle */
+.billing-switcher-wrapper {
+  margin-top: 2rem;
+}
+
+.billing-switcher {
+  display: inline-flex;
+  background: rgba(11, 15, 25, 0.04);
+  border: 1px solid rgba(11, 15, 25, 0.08);
+  padding: 6px;
+  border-radius: 50px;
+  position: relative;
+  width: max-content;
+  direction: rtl; /* Enforce RTL layout */
+}
+
+.switcher-btn {
+  background: transparent;
+  border: none;
+  color: var(--color-text-secondary);
+  font-size: 0.95rem;
+  font-weight: var(--font-bold);
+  padding: 0.6rem 2.5rem;
+  border-radius: 50px;
+  cursor: pointer;
+  z-index: 2;
+  position: relative;
+  transition: color 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  outline: none;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.switcher-btn.active {
+  color: white !important;
+}
+
+.discount-tag {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: white;
+  font-size: 0.75rem;
+  font-weight: var(--font-bold);
+  padding: 0.2rem 0.5rem;
+  border-radius: 8px;
+}
+
+.switcher-slider {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  bottom: 6px;
+  width: calc(50% - 10px);
+  background: linear-gradient(135deg, var(--color-secondary), var(--color-primary));
+  border-radius: 50px;
+  z-index: 1;
+  transition: right 0.35s cubic-bezier(0.25, 1, 0.5, 1);
+  box-shadow: 0 4px 15px rgba(124, 58, 237, 0.35);
+}
+
+/* Slide left to Annually button using pure right coordinate shifting in RTL */
+.billing-switcher.annual-active .switcher-slider {
+  right: calc(50%);
+}
+
+/* Pricing Grid */
+.pricing-grid {
+  position: relative;
+  z-index: 2;
+}
+
+.pricing-card {
+  position: relative;
+  border-radius: 28px;
+  padding: 3rem 2.25rem;
+  transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1),
+              box-shadow 0.4s ease,
+              border-color 0.4s ease;
+}
+
+.pricing-card:hover {
+  transform: translateY(-8px);
+}
+
+/* Light cards (Free & Enterprise) */
+.light-card {
+  background: var(--color-surface);
+  border: 1px solid rgba(11, 15, 25, 0.08);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.02);
+}
+
+.light-card:hover {
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.06);
+  border-color: rgba(37, 99, 235, 0.2);
+}
+
+.light-card .plan-name {
+  font-size: 1.5rem;
+  font-weight: var(--font-bold);
+  color: var(--color-dark);
+  margin-bottom: 0.5rem;
+}
+
+.light-card .plan-desc {
+  color: var(--color-text-secondary);
+  font-size: 0.95rem;
+  margin-bottom: 1.5rem;
+}
+
+.light-card .price-container {
+  display: flex;
+  align-items: baseline;
+  color: var(--color-dark);
+  margin-bottom: 1.5rem;
+}
+
+/* Dark featured card (Professional) */
+.dark-card {
+  background: linear-gradient(135deg, var(--color-dark) 0%, #171c2c 100%);
+  border: 2px solid rgba(124, 58, 237, 0.45);
+  box-shadow: 0 15px 35px rgba(124, 58, 237, 0.12);
+  color: white;
+}
+
+.dark-card:hover {
+  box-shadow: 0 30px 60px rgba(124, 58, 237, 0.25),
+              0 0 30px rgba(37, 99, 235, 0.15);
+  border-color: rgba(124, 58, 237, 0.7);
+}
+
+.dark-card .plan-name {
+  font-size: 1.55rem;
+  font-weight: var(--font-bold);
+  color: white;
+  margin-bottom: 0.5rem;
+}
+
+.dark-card .plan-desc {
+  color: var(--color-text-on-dark-muted);
+  font-size: 0.95rem;
+  margin-bottom: 1.5rem;
+}
+
+.dark-card .price-container {
+  display: flex;
+  align-items: baseline;
+  color: white;
+  margin-bottom: 1.5rem;
+}
+
+/* Ribbon badge for Recommended */
+.ribbon-container {
+  position: absolute;
+  top: 1.5rem;
+  left: 1.5rem; /* Sit opposite in RTL */
+}
+
+.ribbon-badge {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: white;
+  font-size: 0.8rem;
+  font-weight: var(--font-bold);
+  padding: 0.4rem 1rem;
+  border-radius: 50px;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.35);
+  display: inline-block;
+}
+
+/* Typography */
+.currency {
+  font-size: 1.75rem;
+  font-weight: var(--font-bold);
+  margin-left: 0.25rem;
+}
+
+.price {
+  font-size: 3.5rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.period {
+  font-size: 1rem;
+  margin-right: 0.5rem;
+  opacity: 0.85;
+}
+
+.divider {
+  border: 0;
+  border-top: 1px solid rgba(11, 15, 25, 0.08);
+  margin: 1.5rem 0;
+  opacity: 1;
+}
+
+.dark-card .divider {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Features List */
+.features-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 2.5rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.features-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.light-card .features-list li {
+  color: var(--color-text-secondary);
+}
+
+.dark-card .features-list li {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.features-list .check-icon {
+  font-size: 1.15rem;
+  flex-shrink: 0;
+}
+
+.light-card .check-icon {
+  color: green;
+}
+
+.dark-card .check-icon {
+  color: var(--color-primary);
+}
+
+/* CTA buttons styling */
+.btn {
+  padding: 0.9rem 1.5rem;
+  border-radius: 16px;
+  font-size: 1rem;
+  font-weight: var(--font-bold);
+  transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+  text-decoration: none;
+  display: inline-block;
+  text-align: center;
+}
+
+.btn-outline-brand {
+  border: 1px solid rgba(11, 15, 25, 0.12);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--color-dark);
+}
+
+.btn-outline-brand:hover {
+  background: rgba(11, 15, 25, 0.03);
+  border-color: var(--color-dark);
+  color: var(--color-dark);
+}
+
+.btn-brand-primary {
+  background: linear-gradient(135deg, var(--color-secondary), var(--color-primary));
+  color: white !important;
+  border: none;
+  box-shadow: 0 6px 20px rgba(124, 58, 237, 0.3);
+}
+
+.btn-brand-primary:hover {
+  box-shadow: 0 12px 30px rgba(124, 58, 237, 0.45);
+  transform: translateY(-2px);
+}
+
+.btn-brand-primary:active {
+  transform: translateY(0);
+}
+
+.card-glow {
+  position: absolute;
+  inset: -1px;
+  border-radius: 28px;
+  background: linear-gradient(135deg, var(--color-secondary), var(--color-primary));
+  z-index: -1;
+  opacity: 0.15;
+  filter: blur(20px);
+  pointer-events: none;
+}
+
+@media (max-width: 991px) {
+  .pricing-section {
+    padding: 6rem 0;
+  }
+  .pricing-card {
+    padding: 2.5rem 1.75rem;
+  }
+}

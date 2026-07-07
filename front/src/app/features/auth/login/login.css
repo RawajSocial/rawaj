@@ -1,0 +1,38 @@
+.login-page {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background:
+    url('/home-cosmic.svg') center/cover no-repeat,
+    radial-gradient(circle at top right, rgba(124, 58, 237, 0.15), transparent 35%),
+    radial-gradient(circle at bottom left, rgba(37, 99, 235, 0.15), transparent 35%),
+    var(--color-dark);
+}
+
+.login-wrapper {
+  width: 100%;
+  max-width: 1300px;
+  position: relative;
+  z-index: var(--z-raised);
+}
+
+.login-page::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+}
+
+.bg-pattern {
+  position: absolute;
+  inset: 0;
+  background: transparent;
+  pointer-events: none;
+}

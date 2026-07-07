@@ -1,0 +1,58 @@
+<div class="mp-plans-page">
+
+  <div class="plans-page-hdr">
+    <div>
+      <h2 class="plans-page-title">خططك التسويقية</h2>
+      <p class="plans-page-sub">اختر خطة لعرض تفاصيلها وجدول المحتوى الكامل</p>
+    </div>
+    <button type="button" class="btn-new-plan" (click)="newPlan.emit()">
+      <i class="fa-solid fa-plus"></i>
+      خطة جديدة
+    </button>
+  </div>
+
+  <div class="plans-grid">
+    @for (p of plans(); track p.id) {
+      <div class="plan-card" (click)="planSelected.emit(p.id)">
+        <div class="plan-card-glow"></div>
+        <div class="plan-card-hdr">
+          <div class="plan-card-icon"><i class="fa-solid fa-chart-gantt"></i></div>
+          <div class="plan-card-info">
+            <div class="plan-card-name">{{ p.name }}</div>
+            <div class="plan-card-date">
+              <i class="fa-regular fa-calendar"></i>
+              {{ formatDate(p.createdAt) }}
+            </div>
+          </div>
+          <div class="plan-card-arrow"><i class="fa-solid fa-chevron-left"></i></div>
+        </div>
+
+        @if (p.data.sector) {
+          <div class="plan-card-sector">
+            <i class="fa-solid fa-tag"></i>
+            {{ p.data.sector }}
+          </div>
+        }
+
+        <div class="plan-card-platforms">
+          @for (plat of (p.data.platformRanking ?? p.data.platforms ?? []).slice(0, 4); track plat) {
+            <span class="plan-plat-dot"
+                  [style.background]="platformMeta(plat).color + '18'"
+                  [style.color]="platformMeta(plat).color"
+                  [title]="plat">
+              <i [class]="platformMeta(plat).icon"></i>
+            </span>
+          }
+        </div>
+
+        <div class="plan-card-footer">
+          <span class="plan-card-cta">
+            عرض الخطة
+            <i class="fa-solid fa-arrow-left"></i>
+          </span>
+        </div>
+      </div>
+    }
+  </div>
+
+</div>

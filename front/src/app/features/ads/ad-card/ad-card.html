@@ -1,0 +1,59 @@
+<div class="ad-card">
+  <!-- Thumbnail -->
+  <div class="ad-thumb" [style.background]="ad().thumbnailColor ?? 'var(--color-primary)'">
+    <div class="ad-format-badge">{{ formatLabel }}</div>
+    <div class="ad-platform-icon">
+      <i class="{{ platformIcon }}"></i>
+    </div>
+  </div>
+
+  <!-- Body -->
+  <div class="ad-body">
+    <div class="ad-header-row">
+      <h4 class="ad-name">{{ ad().name }}</h4>
+      <span class="ad-status-dot" [attr.data-status]="ad().status" title="{{ statusLabel }}"></span>
+    </div>
+
+    <div class="ad-campaign-tag">
+      <i class="fa-solid fa-bullhorn"></i>
+      {{ ad().campaignName }}
+    </div>
+
+    <!-- Metrics grid -->
+    <div class="ad-metrics">
+      <div class="ad-metric">
+        <span class="metric-val">{{ formatNumber(ad().impressions) }}</span>
+        <span class="metric-lbl">الظهور</span>
+      </div>
+      <div class="ad-metric">
+        <span class="metric-val">{{ formatNumber(ad().clicks) }}</span>
+        <span class="metric-lbl">النقرات</span>
+      </div>
+      <div class="ad-metric">
+        <span class="metric-val">{{ ad().ctr }}%</span>
+        <span class="metric-lbl">معدل النقر</span>
+      </div>
+      <div class="ad-metric">
+        <span class="metric-val">${{ ad().cpc }}</span>
+        <span class="metric-lbl">تكلفة النقرة</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="ad-foot">
+    <div class="ad-spend">
+      <i class="fa-solid fa-circle-dollar-to-slot"></i>
+      الإنفاق: ${{ formatNumber(ad().spend) }}
+    </div>
+    <div class="ad-foot-actions">
+      <button class="ad-action-btn" (click)="toggle.emit(ad().id)"
+              [title]="ad().status === 'active' ? 'إيقاف' : 'تشغيل'">
+        <i class="fa-solid" [class.fa-pause]="ad().status === 'active'" [class.fa-play]="ad().status !== 'active'"></i>
+      </button>
+      <button class="ad-action-btn view-btn" (click)="view.emit(ad().id)" title="عرض">
+        <i class="fa-solid fa-eye"></i>
+      </button>
+    </div>
+  </div>
+</div>

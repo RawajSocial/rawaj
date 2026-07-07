@@ -1,0 +1,252 @@
+<!-- ═══════════════════════════════════════════════════════
+     LOADING PHASE
+════════════════════════════════════════════════════════ -->
+@if (phase() === 'loading') {
+  <div class="plan-loader" dir="rtl">
+    <div class="loader-orbit">
+      <div class="loader-core">
+        <img src="assets/icons/logo.png" width="54" alt="">
+      </div>
+      <div class="orbit-ring ring-1"></div>
+      <div class="orbit-ring ring-2"></div>
+      <div class="orbit-ring ring-3"></div>
+    </div>
+
+    <div class="loader-text">
+      <h2>رواج AI يبني خطتك...</h2>
+      @if (data()?.brandName) {
+        <p>يحلل <strong>{{ data()?.brandName }}</strong> ويصمم الاستراتيجية المثلى لك</p>
+      } @else {
+        <p>يحلل بياناتك ويصمم الاستراتيجية المثلى</p>
+      }
+    </div>
+
+    <div class="loader-steps">
+      @for (msg of loadingMessages; track msg; let i = $index) {
+        <div class="loader-step" [class.done]="loadingStep() > i" [class.active]="loadingStep() === i">
+          <span class="step-icon">
+            @if (loadingStep() > i) {
+              <i class="fa-solid fa-circle-check"></i>
+            } @else if (loadingStep() === i) {
+              <i class="fa-solid fa-circle-notch fa-spin"></i>
+            } @else {
+              <i class="fa-regular fa-circle"></i>
+            }
+          </span>
+          <span class="step-label">{{ msg }}</span>
+        </div>
+      }
+    </div>
+  </div>
+}
+
+<!-- ═══════════════════════════════════════════════════════
+     PLAN PHASE
+════════════════════════════════════════════════════════ -->
+@if (phase() === 'plan') {
+  <div class="plan-wrap" dir="rtl">
+
+    <!-- ── HERO ── -->
+    <div class="plan-hero">
+      <div class="plan-ai-badge">
+        <i class="fa-brands fa-openai"></i>
+        خطة رواج AI — جاهزة للاعتماد
+      </div>
+      <h1 class="plan-brand-name">{{ plan().brandName }}</h1>
+      <p class="plan-goal">{{ plan().goal }}</p>
+
+      <div class="plan-stats-row">
+        <div class="plan-stat">
+          <span class="stat-num">{{ plan().totalPosts }}</span>
+          <span class="stat-lbl">إجمالي المنشورات</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="plan-stat">
+          <span class="stat-num">{{ plan().postsPerWeek }}</span>
+          <span class="stat-lbl">منشور/أسبوع</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="plan-stat">
+          <span class="stat-num">{{ plan().months }}</span>
+          <span class="stat-lbl">شهر</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="plan-stat">
+          <span class="stat-num">{{ plan().platformStrategy.length }}</span>
+          <span class="stat-lbl">منصة</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── WEEKLY CONTENT CALENDAR ── -->
+    <section class="plan-section">
+      <div class="section-hdr">
+        <div class="section-icon"><i class="fa-solid fa-calendar-week"></i></div>
+        <div>
+          <h3 class="section-title">جدول المحتوى الأسبوعي</h3>
+          <p class="section-sub">توزيع النشر خلال الأسبوع بناءً على أوقات ذروة التفاعل</p>
+        </div>
+      </div>
+
+      <div class="week-scroll">
+        <div class="week-grid">
+          @for (day of plan().weeklySchedule; track day.dayName) {
+            <div class="week-day" [class.rest-day]="day.isRest">
+              <div class="day-name">{{ day.dayShort }}</div>
+              @if (day.isRest) {
+                <div class="rest-label">
+                  <i class="fa-solid fa-moon"></i>
+                  راحة
+                </div>
+              } @else {
+                <div class="day-slots">
+                  @for (slot of day.slots; track slot.topic) {
+                    <div class="content-slot"
+                         [style.background]="slot.platform.lightColor"
+                         [style.border-color]="slot.platform.color + '35'">
+                      <div class="slot-platform" [style.color]="slot.platform.color">
+                        <i [class]="slot.platform.icon"></i>
+                        <span>{{ slot.platform.label }}</span>
+                      </div>
+                      <div class="slot-type" [style.color]="slot.contentType.color">
+                        <i [class]="slot.contentType.icon"></i>
+                        <span>{{ slot.contentType.label }}</span>
+                      </div>
+                      <div class="slot-topic">{{ slot.topic }}</div>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    </section>
+
+    <!-- ── PLATFORM STRATEGY ── -->
+    <section class="plan-section">
+      <div class="section-hdr">
+        <div class="section-icon"><i class="fa-solid fa-share-nodes"></i></div>
+        <div>
+          <h3 class="section-title">استراتيجية المنصات</h3>
+          <p class="section-sub">توصيات مخصصة لكل منصة وسبب اختيارها بالذكاء الاصطناعي</p>
+        </div>
+      </div>
+
+      <div class="platforms-list">
+        @for (p of plan().platformStrategy; track p.key) {
+          <div class="platform-card">
+            <div class="platform-card-head" [style.background]="p.color + '10'">
+              <div class="platform-icon-wrap" [style.background]="p.color">
+                <i [class]="p.icon"></i>
+              </div>
+              <div class="platform-info">
+                <div class="platform-name">{{ p.name }}</div>
+                <div class="platform-meta">
+                  <span class="meta-chip"><i class="fa-solid fa-images"></i> {{ p.postsPerMonth }} منشور/شهر</span>
+                  <span class="meta-chip"><i class="fa-solid fa-clock"></i> {{ p.bestTime }}</span>
+                </div>
+              </div>
+              @if (p.isPrimary) {
+                <span class="primary-badge">المنصة الأساسية</span>
+              }
+            </div>
+            <div class="platform-card-body">
+              <div class="ct-tags">
+                @for (ct of p.contentTypes; track ct) {
+                  <span class="ct-tag" [style.background]="p.color + '15'" [style.color]="p.color">{{ ct }}</span>
+                }
+              </div>
+              <p class="platform-reason">
+                <i class="fa-solid fa-brain"></i>
+                {{ p.reason }}
+              </p>
+            </div>
+          </div>
+        }
+      </div>
+    </section>
+
+    <!-- ── BUDGET BREAKDOWN ── -->
+    <section class="plan-section">
+      <div class="section-hdr">
+        <div class="section-icon"><i class="fa-solid fa-sack-dollar"></i></div>
+        <div>
+          <h3 class="section-title">توزيع الميزانية الشهرية</h3>
+          <p class="section-sub">توزيع مقترح يحقق أعلى عائد على الاستثمار</p>
+        </div>
+      </div>
+
+      <div class="budget-wrap">
+        @for (b of plan().budgetBreakdown; track b.label) {
+          <div class="budget-row">
+            <div class="budget-top">
+              <span class="budget-dot" [style.background]="b.color"></span>
+              <span class="budget-label">{{ b.label }}</span>
+              <span class="budget-desc">{{ b.description }}</span>
+              <span class="budget-amount" [style.color]="b.color">{{ b.amount }}</span>
+            </div>
+            <div class="budget-track">
+              <div class="budget-bar" [style.width]="b.percentage + '%'" [style.background]="b.color"></div>
+              <span class="budget-pct">{{ b.percentage }}%</span>
+            </div>
+          </div>
+        }
+      </div>
+    </section>
+
+    <!-- ── KPI TARGETS ── -->
+    <section class="plan-section">
+      <div class="section-hdr">
+        <div class="section-icon"><i class="fa-solid fa-chart-bar"></i></div>
+        <div>
+          <h3 class="section-title">مؤشرات النجاح المستهدفة</h3>
+          <p class="section-sub">ما نتوقع تحقيقه خلال مدة الحملة</p>
+        </div>
+      </div>
+
+      <div class="kpi-grid">
+        @for (kpi of plan().kpis; track kpi.label) {
+          <div class="kpi-card">
+            <div class="kpi-icon"><i [class]="kpi.icon"></i></div>
+            <div class="kpi-target">{{ kpi.target }}</div>
+            <div class="kpi-label">{{ kpi.label }}</div>
+          </div>
+        }
+      </div>
+    </section>
+
+    <!-- ── AI INSIGHTS ── -->
+    <section class="plan-section">
+      <div class="section-hdr">
+        <div class="section-icon ai-glow"><i class="fa-brands fa-openai"></i></div>
+        <div>
+          <h3 class="section-title">لماذا هذه الخطة؟</h3>
+          <p class="section-sub">رؤى رواج AI خلف كل قرار استراتيجي في هذه الخطة</p>
+        </div>
+      </div>
+
+      <div class="insights-list">
+        @for (insight of plan().insights; track insight.text) {
+          <div class="insight-item">
+            <div class="insight-icon"><i [class]="insight.icon"></i></div>
+            <p class="insight-text">{{ insight.text }}</p>
+          </div>
+        }
+      </div>
+    </section>
+
+    <!-- ── ACTIONS ── -->
+    <div class="plan-actions">
+      <button type="button" class="btn-back" (click)="onBack()">
+        <i class="fa-solid fa-chevron-right"></i>
+        تعديل البيانات
+      </button>
+      <button type="button" class="btn-approve" (click)="onApprove()">
+        <i class="fa-solid fa-wand-magic-sparkles"></i>
+        اعتمد وابدأ توليد المحتوى
+      </button>
+    </div>
+
+  </div>
+}

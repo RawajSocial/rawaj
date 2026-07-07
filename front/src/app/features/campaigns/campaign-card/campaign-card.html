@@ -1,0 +1,71 @@
+<div class="camp-card" [attr.data-status]="campaign().status">
+  <!-- Coloured header band -->
+  <div class="camp-card-head" [style.background]="campaign().coverColor ?? 'var(--color-primary)'">
+    <div class="camp-platforms">
+      @for (icon of platformIcons; track icon) {
+        <span class="platform-icon"><i class="{{ icon }}"></i></span>
+      }
+    </div>
+    <span class="camp-status-badge" [attr.data-status]="campaign().status">{{ statusLabel }}</span>
+  </div>
+
+  <!-- Body -->
+  <div class="camp-card-body">
+    <h3 class="camp-name">{{ campaign().name }}</h3>
+    <p class="camp-objective">
+      <i class="fa-solid fa-bullseye"></i> {{ objectiveLabel }}
+    </p>
+
+    <div class="camp-stats">
+      <div class="camp-stat">
+        <span class="stat-val">{{ formatNumber(campaign().reach) }}</span>
+        <span class="stat-lbl">الوصول</span>
+      </div>
+      <div class="camp-stat">
+        <span class="stat-val">{{ formatNumber(campaign().clicks) }}</span>
+        <span class="stat-lbl">النقرات</span>
+      </div>
+      <div class="camp-stat">
+        <span class="stat-val">{{ campaign().ctr }}%</span>
+        <span class="stat-lbl">معدل النقر</span>
+      </div>
+    </div>
+
+    <!-- Budget progress bar -->
+    <div class="camp-budget">
+      <div class="budget-row">
+        <span class="budget-lbl">الميزانية المُنفقة</span>
+        <span class="budget-val">{{ progressPct }}%</span>
+      </div>
+      <div class="budget-track">
+        <div class="budget-fill" [style.width.%]="progressPct"></div>
+      </div>
+      <div class="budget-amounts">
+        <span>${{ formatNumber(campaign().spent) }}</span>
+        <span>${{ formatNumber(campaign().budget) }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="camp-card-foot">
+    <div class="camp-dates">
+      <i class="fa-regular fa-calendar"></i>
+      {{ campaign().startDate }} — {{ campaign().endDate }}
+    </div>
+    <div class="camp-actions">
+      @if (campaign().status === 'active') {
+        <button class="camp-action-btn pause-btn" (click)="pause.emit(campaign().id)" title="إيقاف">
+          <i class="fa-solid fa-pause"></i>
+        </button>
+      } @else if (campaign().status === 'paused') {
+        <button class="camp-action-btn resume-btn" (click)="resume.emit(campaign().id)" title="استئناف">
+          <i class="fa-solid fa-play"></i>
+        </button>
+      }
+      <button class="camp-action-btn view-btn" (click)="view.emit(campaign().id)" title="عرض التفاصيل">
+        <i class="fa-solid fa-eye"></i>
+      </button>
+    </div>
+  </div>
+</div>

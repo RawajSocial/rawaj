@@ -1,0 +1,42 @@
+<div class="crm-page">
+  <!-- Page Header / Breadcrumb -->
+  <div class="page-header">
+    <h5 class="page-title">لوحة إدارة علاقات العملاء</h5>
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb mb-0">
+        <li class="breadcrumb-item">
+          <a routerLink="/dashboard">لوحة التحكم</a>
+        </li>
+        <li class="breadcrumb-item">
+          <a href="#">إدارة العملاء</a>
+        </li>
+        <li class="breadcrumb-item active" aria-current="page">نظرة عامة</li>
+      </ol>
+    </nav>
+  </div>
+
+  <!-- KPI Row -->
+  <div class="kpi-row">
+    @for (kpi of kpis; track kpi.title) {
+      <app-kpi-card
+        [title]="kpi.title"
+        [value]="kpi.value"
+        [icon]="kpi.icon"
+        [iconBg]="kpi.iconBg"
+        [iconColor]="kpi.iconColor"
+        [change]="kpi.change"
+        [accentColor]="kpi.accentColor"
+      />
+    }
+  </div>
+
+  <!-- Charts Row -->
+  <div class="charts-row">
+    <div class="chart-col-wide">
+      <app-balance-chart />
+    </div>
+    <div class="chart-col-narrow">
+      <app-radar-chart />
+    </div>
+  </div>
+</div>

@@ -1,0 +1,89 @@
+/* ================================================================= */
+/*  CRM Page                                                          */
+/* ================================================================= */
+
+.crm-page {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* ── Page header ── */
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.page-title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-bold);
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+/* Breadcrumb override for light bg */
+.breadcrumb-item a {
+  color: var(--color-primary);
+  text-decoration: none;
+  font-size: var(--font-size-sm);
+}
+
+.breadcrumb-item a:hover { text-decoration: underline; }
+
+.breadcrumb-item.active {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.breadcrumb-item + .breadcrumb-item::before {
+  content: '/';
+  color: var(--color-text-muted);
+  padding: 0 0.35rem;
+}
+
+/* ── KPI row — 4-column grid ── */
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+}
+
+@media (max-width: 1199px) {
+  .kpi-row { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 575px) {
+  .kpi-row { grid-template-columns: 1fr; }
+}
+
+/* ── Charts row ── */
+.charts-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 1rem;
+  align-items: start;
+}
+
+@media (max-width: 991px) {
+  .charts-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.chart-col-wide,
+.chart-col-narrow {
+  min-height: 360px;
+  display: flex;
+  flex-direction: column;
+}
+
+.chart-col-wide app-balance-chart,
+.chart-col-narrow app-radar-chart {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}

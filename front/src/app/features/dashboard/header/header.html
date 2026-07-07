@@ -1,0 +1,105 @@
+<header class="dash-header">
+  <div class="header-start">
+    <button class="header-btn sidebar-toggle-btn" (click)="toggleSidebar.emit()" title="تبديل الشريط الجانبي">
+      <i class="fa-solid fa-bars"></i>
+    </button>
+    <button class="header-btn mobile-menu-btn" (click)="openMobileMenu.emit()" title="القائمة">
+      <i class="fa-solid fa-bars"></i>
+    </button>
+    <div class="header-search">
+      <i class="fa-solid fa-magnifying-glass search-icon"></i>
+      <input
+        type="text"
+        placeholder="بحث..."
+        [value]="searchQuery()"
+        (input)="searchQuery.set($any($event.target).value)"
+      />
+    </div>
+  </div>
+
+  <div class="header-end">
+    <button class="header-btn" (click)="toggleFullscreen()" title="ملء الشاشة">
+      <i class="fa-solid" [class.fa-expand]="!fullscreen()" [class.fa-compress]="fullscreen()"></i>
+    </button>
+
+    <!-- Notifications -->
+    <div class="header-dropdown notif-dropdown" [class.open]="notifOpen()">
+      <button class="header-btn badge-btn" (click)="notifOpen.update(v => !v)">
+        <i class="fa-regular fa-bell"></i>
+        <span class="header-badge">4</span>
+      </button>
+      <div class="dropdown-panel notif-panel">
+        <div class="panel-head">
+          <span class="panel-title">الإشعارات</span>
+          <span class="panel-count">4 جديد</span>
+        </div>
+        <div class="notif-item">
+          <div class="notif-icon notif-icon--primary">
+            <i class="fa-solid fa-user-plus"></i>
+          </div>
+          <div class="notif-body">
+            <p class="notif-text">تم إضافة عميل جديد</p>
+            <span class="notif-time">منذ 5 دقائق</span>
+          </div>
+        </div>
+        <div class="notif-item">
+          <div class="notif-icon notif-icon--success">
+            <i class="fa-solid fa-circle-check"></i>
+          </div>
+          <div class="notif-body">
+            <p class="notif-text">تم إغلاق صفقة بنجاح</p>
+            <span class="notif-time">منذ 30 دقيقة</span>
+          </div>
+        </div>
+        <div class="notif-item">
+          <div class="notif-icon notif-icon--warning">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+          </div>
+          <div class="notif-body">
+            <p class="notif-text">تنبيه: موعد اجتماع قادم</p>
+            <span class="notif-time">منذ ساعة</span>
+          </div>
+        </div>
+        <div class="panel-foot">
+          <a href="#">عرض جميع الإشعارات</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Profile -->
+    <div class="header-dropdown profile-dropdown" [class.open]="profileOpen()">
+      <button class="profile-btn" (click)="profileOpen.update(v => !v)">
+        <div class="profile-avatar-placeholder">
+          <i class="fa-solid fa-user"></i>
+        </div>
+        <span class="profile-name">Admin</span>
+        <i class="fa-solid fa-chevron-down profile-caret"></i>
+      </button>
+      <div class="dropdown-panel profile-panel">
+        <div class="profile-header-info">
+          <div class="profile-avatar-lg">
+            <i class="fa-solid fa-user"></i>
+          </div>
+          <div>
+            <p class="profile-name-lg">Admin123</p>
+            <span class="profile-role">مدير النظام</span>
+          </div>
+        </div>
+        <div class="panel-divider"></div>
+        <a class="profile-menu-item" href="#">
+          <i class="fa-regular fa-user"></i>
+          الملف الشخصي
+        </a>
+        <a class="profile-menu-item" href="#">
+          <i class="fa-solid fa-gear"></i>
+          الإعدادات
+        </a>
+        <div class="panel-divider"></div>
+        <a class="profile-menu-item profile-menu-item--danger" routerLink="/login">
+          <i class="fa-solid fa-right-from-bracket"></i>
+          تسجيل الخروج
+        </a>
+      </div>
+    </div>
+  </div>
+</header>

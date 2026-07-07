@@ -1,0 +1,185 @@
+@if (currentItem(); as ci) {
+  <div class="modal-backdrop" (click)="closed.emit()">
+    <div class="viewer-modal" [class.wide]="isVideo(ci)" (click)="$event.stopPropagation()">
+
+      <!-- Gradient header -->
+      <div class="viewer-header"
+           [style.background]="'linear-gradient(135deg,' + typeCfg[ci.type].color + ' 0%,' + typeCfg[ci.type].color + 'bb 100%)'">
+        <div class="viewer-header-info">
+          <div class="viewer-header-icon">
+            <i class="{{ typeCfg[ci.type].icon }}"></i>
+          </div>
+          <div>
+            <div class="viewer-title-text">{{ ci.title }}</div>
+            <div class="viewer-subtitle-text">{{ typeCfg[ci.type].label }} • ID: {{ ci.id }}</div>
+          </div>
+        </div>
+        <button type="button" class="viewer-close-btn" (click)="closed.emit()">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Body -->
+      <div class="viewer-body">
+
+        <!-- Preview pane -->
+        <div class="viewer-preview">
+          @if (ci.status === 'generating') {
+            <div class="viewer-loading-state" [style.background]="thumbnailGradient(ci.type)">
+              <div class="gen-spinner large"></div>
+              <span>يُنشأ المحتوى...</span>
+              <small>قد يستغرق هذا دقيقة</small>
+            </div>
+          } @else if (ci.status === 'failed') {
+            <div class="viewer-error-state" [style.background]="thumbnailGradient(ci.type)">
+              <i class="fa-solid fa-triangle-exclamation"></i>
+              <span>فشل التوليد</span>
+              <small>حاول مرة أخرى بإعدادات مختلفة</small>
+            </div>
+          } @else if (isImage(ci)) {
+            <img [src]="ci.thumbnailUrl" [alt]="ci.title" class="viewer-img">
+          } @else if (isVideo(ci)) {
+            <video class="viewer-video" [src]="ci.videoUrl" controls autoplay muted></video>
+          } @else {
+            <div class="viewer-text-state" [style.background]="thumbnailGradient(ci.type)">
+              <i class="fa-solid fa-quote-right viewer-quote"></i>
+              <p>{{ ci.textContent ?? ci.description }}</p>
+            </div>
+          }
+        </div>
+
+        <!-- Details pane -->
+        <div class="viewer-details">
+
+          <div class="viewer-meta-top">
+            <span class="viewer-date-text">{{ formatDateTime(ci.createdAt) }}</span>
+            <span class="viewer-brand-pill">{{ ci.brand }}</span>
+          </div>
+
+          @if (!editMode()) {
+
+            <!-- View mode -->
+            <div class="viewer-section">
+              <p class="viewer-section-label">تفاصيل المحتوى</p>
+              <div class="detail-rows">
+                <div class="detail-row">
+                  <span class="dr-key">العلامة التجارية</span>
+                  <span class="dr-val">{{ ci.brand }}</span>
+                </div>
+                @if (ci.description) {
+                  <div class="detail-row">
+                    <span class="dr-key">الوصف</span>
+                    <span class="dr-val">{{ ci.description }}</span>
+                  </div>
+                }
+                @if (ci.tone) {
+                  <div class="detail-row">
+                    <span class="dr-key">النبرة</span>
+                    <span class="dr-val">{{ toneCfg[ci.tone] }}</span>
+                  </div>
+                }
+                @if (ci.size) {
+                  <div class="detail-row">
+                    <span class="dr-key">الحجم</span>
+                    <span class="dr-val">{{ sizeCfg[ci.size].label }}</span>
+                  </div>
+                }
+                <div class="detail-row">
+                  <span class="dr-key">الحالة</span>
+                  <span class="dr-val" [style.color]="statusColor(ci.status)" style="font-weight:700">
+                    {{ statusLabel(ci.status) }}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="viewer-section">
+              <p class="viewer-section-label">الإجراءات</p>
+              <div class="action-btns">
+
+                <button type="button" class="abtn abtn-download">
+                  <i class="fa-solid fa-download"></i>
+                  تنزيل
+                  <i class="fa-solid fa-chevron-down abtn-caret"></i>
+                </button>
+
+                <button type="button" class="abtn abtn-edit" (click)="startEdit()">
+                  <i class="fa-solid fa-wand-magic-sparkles"></i>
+                  تحرير بالذكاء الاصطناعي
+                </button>
+
+                @if (ci.type === 'static-ad') {
+                  <button type="button" class="abtn abtn-resize">
+                    <i class="fa-solid fa-expand"></i>
+                    تغيير الحجم
+                  </button>
+                  <button type="button" class="abtn abtn-convert">
+                    <i class="fa-solid fa-film"></i>
+                    تحويل إلى فيديو
+                  </button>
+                }
+
+                @if (!showDeleteConfirm()) {
+                  <button type="button" class="abtn abtn-delete" (click)="confirmDelete()">
+                    <i class="fa-solid fa-trash"></i>
+                    حذف
+                  </button>
+                } @else {
+                  <div class="delete-confirm">
+                    <span>هل أنت متأكد من الحذف؟</span>
+                    <div class="delete-confirm-row">
+                      <button type="button" class="abtn abtn-delete-yes" (click)="deleteItem()">نعم، احذف</button>
+                      <button type="button" class="abtn abtn-cancel-del" (click)="cancelDelete()">إلغاء</button>
+                    </div>
+                  </div>
+                }
+
+              </div>
+            </div>
+
+          } @else {
+
+            <!-- Edit mode -->
+            <div class="viewer-section edit-section">
+              <p class="viewer-section-label">تحرير المحتوى</p>
+              <div class="edit-fields">
+                <div class="form-group">
+                  <label class="form-label">العلامة التجارية</label>
+                  <input type="text" class="form-control"
+                         [value]="editBrand()"
+                         (input)="editBrand.set($any($event.target).value)">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">الوصف</label>
+                  <textarea class="form-control edit-ta"
+                            [value]="editDesc()"
+                            (input)="editDesc.set($any($event.target).value)"></textarea>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">النبرة</label>
+                  <select class="form-control"
+                          [value]="editTone()"
+                          (change)="editTone.set($any($event.target).value)">
+                    @for (tone of tones; track tone) {
+                      <option [value]="tone">{{ toneCfg[tone] }}</option>
+                    }
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="edit-footer">
+              <button type="button" class="abtn abtn-cancel-edit" (click)="cancelEdit()">إلغاء</button>
+              <button type="button" class="abtn abtn-save" (click)="saveEdit()">حفظ</button>
+            </div>
+
+          }
+
+        </div><!-- /viewer-details -->
+
+      </div><!-- /viewer-body -->
+
+    </div><!-- /viewer-modal -->
+  </div><!-- /modal-backdrop -->
+}

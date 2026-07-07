@@ -1,0 +1,121 @@
+<div class="page-shell">
+  <!-- Page Header -->
+  <div class="page-top">
+    <div>
+      <h5 class="page-title">إعلاناتك</h5>
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+          <li class="breadcrumb-item"><a routerLink="/dashboard">لوحة التحكم</a></li>
+          <li class="breadcrumb-item"><a routerLink="/dashboard/campaigns">الحملات</a></li>
+          <li class="breadcrumb-item active">الإعلانات</li>
+        </ol>
+      </nav>
+    </div>
+    <a routerLink="/on-boarding" class="btn-new-ad">
+      <i class="fa-solid fa-plus"></i>
+      إنشاء إعلان جديد
+    </a>
+  </div>
+
+  <!-- Filters bar -->
+  <div class="filters-bar">
+
+    <!-- Search -->
+    <div class="search-wrap">
+      <i class="fa-solid fa-magnifying-glass search-icon"></i>
+      <input
+        type="text"
+        class="search-input"
+        placeholder="ابحث باسم الإعلان أو الحملة..."
+        [value]="searchQuery()"
+        (input)="searchQuery.set($any($event.target).value)" />
+    </div>
+
+    <!-- Status dropdown -->
+    <div class="dropdown" [class.open]="statusOpen()" data-dd="status">
+      <button type="button" class="dropdown-trigger form-control" (click)="statusOpen.update(v => !v)">
+        <span class="dropdown-label">{{ statusLabel }}</span>
+        <span class="dropdown-icon"><i class="fa-solid fa-chevron-down"></i></span>
+      </button>
+      <div class="dropdown-menu">
+        @for (opt of statusOptions; track opt.value) {
+          <button type="button"
+            class="dropdown-option"
+            [class.active]="statusFilter() === opt.value"
+            (click)="setStatus(opt.value)">
+            {{ opt.label }}
+          </button>
+        }
+      </div>
+    </div>
+
+    <!-- Platform dropdown -->
+    <div class="dropdown" [class.open]="platformOpen()" data-dd="platform">
+      <button type="button" class="dropdown-trigger form-control" (click)="platformOpen.update(v => !v)">
+        <span class="dropdown-label">{{ platformLabel }}</span>
+        <span class="dropdown-icon"><i class="fa-solid fa-chevron-down"></i></span>
+      </button>
+      <div class="dropdown-menu">
+        @for (opt of platformOptions; track opt.value) {
+          <button type="button"
+            class="dropdown-option"
+            [class.active]="platformFilter() === opt.value"
+            (click)="setPlatform(opt.value)">
+            {{ opt.label }}
+          </button>
+        }
+      </div>
+    </div>
+
+    <!-- Format dropdown -->
+    <div class="dropdown" [class.open]="formatOpen()" data-dd="format">
+      <button type="button" class="dropdown-trigger form-control" (click)="formatOpen.update(v => !v)">
+        <span class="dropdown-label">{{ formatLabel }}</span>
+        <span class="dropdown-icon"><i class="fa-solid fa-chevron-down"></i></span>
+      </button>
+      <div class="dropdown-menu">
+        @for (opt of formatOptions; track opt.value) {
+          <button type="button"
+            class="dropdown-option"
+            [class.active]="formatFilter() === opt.value"
+            (click)="setFormat(opt.value)">
+            {{ opt.label }}
+          </button>
+        }
+      </div>
+    </div>
+
+    <span class="results-count">{{ filtered().length }} إعلان</span>
+  </div>
+
+  <!-- Empty state -->
+  @if (filtered().length === 0) {
+    <div class="empty-state">
+      <div class="empty-icon"><i class="fa-solid fa-rectangle-ad"></i></div>
+      <h3>لا توجد إعلانات</h3>
+      <p>
+        @if (searchQuery() || statusFilter() !== 'all' || platformFilter() !== 'all' || formatFilter() !== 'all') {
+          جرّب تغيير معايير البحث أو الفلترة.
+        } @else {
+          لم تُنشئ أي إعلانات بعد. ابدأ بإنشاء حملة أولاً.
+        }
+      </p>
+      @if (!searchQuery() && statusFilter() === 'all' && platformFilter() === 'all' && formatFilter() === 'all') {
+        <a routerLink="/on-boarding" class="btn-new-ad">
+          <i class="fa-solid fa-rocket"></i>
+          ابدأ حملة جديدة
+        </a>
+      }
+    </div>
+
+  } @else {
+    <div class="ads-grid">
+      @for (ad of filtered(); track ad.id) {
+        <app-ad-card
+          [ad]="ad"
+          (toggle)="toggleAd($event)"
+          (view)="null" />
+      }
+    </div>
+  }
+</div>

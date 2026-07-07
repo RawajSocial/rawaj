@@ -1,0 +1,50 @@
+@keyframes pageIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.setup-page {
+  min-height: 100vh;
+  background: var(--color-bg-secondary);
+  display: grid;
+  place-items: start center;
+  padding: 2rem 1rem 4rem;
+  animation: pageIn 0.3s ease both;
+}
+
+.setup-container {
+  width: 100%;
+  max-width: 680px;
+}
+
+.setup-header {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+}
+
+.setup-logo {
+  font-size: 1.5rem;
+  font-weight: var(--font-bold);
+  background: linear-gradient(135deg, var(--color-secondary), var(--color-primary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-decoration: none;
+  letter-spacing: -0.02em;
+}
+
+.setup-card {
+  background: var(--color-surface);
+  border-radius: 20px;
+  padding: 2.2rem 2.4rem 2rem;
+  box-shadow: 0 4px 32px rgba(15, 23, 42, 0.08);
+  border: 1px solid var(--color-border);
+}
+
+@media (max-width: 600px) {
+  .setup-card {
+    padding: 1.6rem 1.2rem 1.4rem;
+    border-radius: 16px;
+  }
+}
