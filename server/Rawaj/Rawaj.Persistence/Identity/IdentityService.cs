@@ -9,6 +9,7 @@ public class IdentityService(UserManager<ApplicationUser> userManager) : IIdenti
 {
     public async Task<IdentityRegisterResult> CreateUserAsync(
         string email,
+        string userName,
         string password,
         string fullName,
         Language preferredLanguage,
@@ -17,7 +18,7 @@ public class IdentityService(UserManager<ApplicationUser> userManager) : IIdenti
         var user = new ApplicationUser
         {
             Id = Guid.NewGuid(),
-            UserName = email,
+            UserName = userName,
             Email = email,
             FullName = fullName,
             PreferredLanguage = preferredLanguage,
@@ -36,6 +37,12 @@ public class IdentityService(UserManager<ApplicationUser> userManager) : IIdenti
     public async Task<ApplicationUserDto?> FindByEmailAsync(string email, CancellationToken cancellationToken)
     {
         var user = await userManager.FindByEmailAsync(email);
+        return user is null ? null : ToDto(user);
+    }
+
+    public async Task<ApplicationUserDto?> FindByUserNameAsync(string userName, CancellationToken cancellationToken)
+    {
+        var user = await userManager.FindByNameAsync(userName);
         return user is null ? null : ToDto(user);
     }
 
@@ -62,6 +69,7 @@ public class IdentityService(UserManager<ApplicationUser> userManager) : IIdenti
     {
         Id = user.Id,
         Email = user.Email!,
+        UserName = user.UserName!,
         FullName = user.FullName,
         PreferredLanguage = user.PreferredLanguage,
         IsActive = user.IsActive

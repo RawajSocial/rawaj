@@ -9,7 +9,8 @@ public class LoginCommandHandler(IIdentityService identityService, IJwtTokenGene
 {
     public async Task<Result<LoginResponse>> Handle(LoginCommand request, CancellationToken cancellationToken)
     {
-        var user = await identityService.FindByEmailAsync(request.Email, cancellationToken);
+        var user = await identityService.FindByEmailAsync(request.EmailOrUserName, cancellationToken)
+            ?? await identityService.FindByUserNameAsync(request.EmailOrUserName, cancellationToken);
         if (user is null || !user.IsActive)
         {
             return Result<LoginResponse>.Failure("Invalid email or password.");
@@ -25,6 +26,6 @@ public class LoginCommandHandler(IIdentityService identityService, IJwtTokenGene
 
         var accessToken = jwtTokenGenerator.GenerateToken(user);
 
-        return Result<LoginResponse>.Success(new LoginResponse(user.Id, user.Email, user.FullName, accessToken));
+        return Result<LoginResponse>.Success(new LoginResponse(user.Id, user.Email, user.UserName, user.FullName, accessToken));
     }
 }

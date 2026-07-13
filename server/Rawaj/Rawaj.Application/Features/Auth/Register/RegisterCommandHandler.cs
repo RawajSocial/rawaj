@@ -15,8 +15,15 @@ public class RegisterCommandHandler(IIdentityService identityService, IJwtTokenG
             return Result<RegisterResponse>.Failure("A user with this email already exists.");
         }
 
+        var existingUserName = await identityService.FindByUserNameAsync(request.UserName, cancellationToken);
+        if (existingUserName is not null)
+        {
+            return Result<RegisterResponse>.Failure("This username is already taken.");
+        }
+
         var registerResult = await identityService.CreateUserAsync(
             request.Email,
+            request.UserName,
             request.Password,
             request.FullName,
             request.PreferredLanguage,
@@ -31,6 +38,7 @@ public class RegisterCommandHandler(IIdentityService identityService, IJwtTokenG
         {
             Id = registerResult.UserId,
             Email = request.Email,
+            UserName = request.UserName,
             FullName = request.FullName,
             PreferredLanguage = request.PreferredLanguage,
             IsActive = true
@@ -38,6 +46,6 @@ public class RegisterCommandHandler(IIdentityService identityService, IJwtTokenG
 
         var accessToken = jwtTokenGenerator.GenerateToken(userDto);
 
-        return Result<RegisterResponse>.Success(new RegisterResponse(userDto.Id, userDto.Email, userDto.FullName, accessToken));
+        return Result<RegisterResponse>.Success(new RegisterResponse(userDto.Id, userDto.Email, userDto.UserName, userDto.FullName, accessToken));
     }
 }
