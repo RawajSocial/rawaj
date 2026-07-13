@@ -25,6 +25,10 @@ export class SignUpForm {
       firstName: ['', [Validators.required]],
       lastName: ['', [Validators.required]],
       email: ['', [Validators.required, Validators.email]],
+      userName: [
+        '',
+        [Validators.required, Validators.minLength(3), Validators.maxLength(50), Validators.pattern(/^[a-zA-Z0-9_.-]+$/)],
+      ],
       businessName: ['', [Validators.required]],
       password: ['', [Validators.required, Validators.minLength(8)]],
       confirmPassword: ['', [Validators.required, Validators.minLength(8)]],
@@ -40,7 +44,10 @@ export class SignUpForm {
     }
 
     const existing = JSON.parse(localStorage.getItem('rawaj.account-setup') ?? '{}');
-    localStorage.setItem('rawaj.account-setup', JSON.stringify({ ...existing, email: this.form.value.email }));
+    localStorage.setItem(
+      'rawaj.account-setup',
+      JSON.stringify({ ...existing, email: this.form.value.email, userName: this.form.value.userName }),
+    );
     this.router.navigate(['/account-setup']);
   }
 
@@ -49,6 +56,7 @@ export class SignUpForm {
       | 'firstName'
       | 'lastName'
       | 'email'
+      | 'userName'
       | 'businessName'
       | 'password'
       | 'confirmPassword'
@@ -62,6 +70,12 @@ export class SignUpForm {
       email: {
         required: 'البريد الإلكتروني مطلوب.',
         email: 'أدخل بريدًا إلكترونيًا صحيحًا.',
+      },
+      userName: {
+        required: 'اسم المستخدم مطلوب.',
+        minlength: 'اسم المستخدم يجب أن يكون 3 أحرف على الأقل.',
+        maxlength: 'اسم المستخدم يجب ألا يتجاوز 50 حرفًا.',
+        pattern: 'اسم المستخدم يمكن أن يحتوي على أحرف وأرقام و . _ - فقط.',
       },
       businessName: { required: 'اسم النشاط التجاري مطلوب.' },
       password: {

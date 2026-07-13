@@ -5,6 +5,8 @@ type ControlErrorMessages = {
   required?: string;
   email?: string;
   minlength?: string;
+  maxlength?: string;
+  pattern?: string;
   requiredTrue?: string;
 };
 
@@ -30,6 +32,15 @@ export class FormErrorsService {
     if (control.errors?.['minlength']) {
       const requiredLength = control.errors['minlength'].requiredLength as number;
       return messages.minlength ?? `يجب إدخال ${requiredLength} أحرف على الأقل.`;
+    }
+
+    if (control.errors?.['maxlength']) {
+      const requiredLength = control.errors['maxlength'].requiredLength as number;
+      return messages.maxlength ?? `يجب ألا يتجاوز ${requiredLength} حرفًا.`;
+    }
+
+    if (control.errors?.['pattern']) {
+      return messages.pattern ?? 'صيغة البيانات المدخلة غير صحيحة.';
     }
 
     if (control.errors?.['requiredTrue']) {
