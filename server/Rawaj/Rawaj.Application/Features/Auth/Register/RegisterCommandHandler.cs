@@ -38,7 +38,6 @@ public class RegisterCommandHandler(IIdentityService identityService, IJwtTokenG
 
         var accessToken = jwtTokenGenerator.GenerateToken(userDto);
 
-        return Result<RegisterResponse>.Success(
-            new RegisterResponse(userDto.Id, userDto.Email, userDto.FullName, accessToken));
+        return Result<RegisterResponse>.Success(new RegisterResponse(userDto.Id, userDto.Email, userDto.FullName, accessToken));
     }
 }
