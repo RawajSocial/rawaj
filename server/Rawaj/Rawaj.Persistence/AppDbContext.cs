@@ -13,9 +13,7 @@ namespace Rawaj.Persistence;
 
 public class AppDbContext : IdentityUserContext<ApplicationUser, Guid>
 {
-    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
-    {
-    }
+    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
     public DbSet<Tenant> Tenants => Set<Tenant>();
     public DbSet<TenantBrandProfile> TenantBrandProfiles => Set<TenantBrandProfile>();
