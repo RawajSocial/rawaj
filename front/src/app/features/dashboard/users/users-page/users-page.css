@@ -1,0 +1,201 @@
+.page-top {
+  align-items: flex-start !important;
+}
+
+.page-top app-page-header {
+  flex: 1;
+  min-width: 220px;
+}
+.page-top ::ng-deep .page-header {
+  margin-bottom: 0;
+}
+
+/* ── Status tabs ── */
+.status-tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--color-bg-secondary);
+  border-radius: 12px;
+  padding: 4px;
+  width: fit-content;
+  margin-bottom: 18px;
+}
+
+.status-tab {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-semibold);
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.status-tab.active {
+  background: var(--color-surface);
+  color: var(--color-dark);
+  box-shadow: var(--shadow-xs);
+}
+
+/* ── Table ── */
+.users-table-wrap {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  overflow: hidden;
+  overflow-x: auto;
+}
+
+.users-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 720px;
+}
+
+.users-table thead th {
+  text-align: start;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-muted);
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg-secondary);
+}
+
+.user-row {
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+}
+
+.user-row:hover {
+  background: var(--color-bg-secondary);
+}
+
+.user-row td {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: middle;
+}
+
+.user-row:last-child td {
+  border-bottom: none;
+}
+
+.user-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-avatar {
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-bold);
+}
+
+.user-cell__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.user-name {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-dark);
+}
+
+.user-email {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.muted-cell {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+/* ── Role badge ── */
+.role-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-semibold);
+}
+
+.role-badge--admin    { background: var(--color-dark);            color: #fff; }
+.role-badge--editor   { background: var(--color-primary-subtle);  color: var(--color-primary-active); }
+.role-badge--moderator{ background: var(--color-accent-light);    color: var(--color-accent-active); }
+.role-badge--viewer   { background: var(--color-bg-secondary);    color: var(--color-text-secondary); }
+
+/* ── Status badge ── */
+.status-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-semibold);
+}
+
+.status-badge--active    { background: var(--color-success-light); color: var(--color-success); }
+.status-badge--pending   { background: var(--color-warning-light); color: var(--color-accent-active); }
+.status-badge--suspended { background: var(--color-danger-light);  color: var(--color-danger); }
+
+/* ── Actions ── */
+.actions-cell {
+  white-space: nowrap;
+  text-align: end;
+}
+
+.row-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.row-action {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.row-action--edit {
+  background: var(--color-primary-subtle);
+  color: var(--color-primary);
+}
+.row-action--edit:hover {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.row-action--danger {
+  background: var(--color-danger-light);
+  color: var(--color-danger);
+}
+.row-action--danger:hover {
+  background: var(--color-danger);
+  color: #fff;
+}
+
+@media (max-width: 768px) {
+  .status-tabs { width: 100%; overflow-x: auto; }
+}

@@ -1,179 +1,117 @@
 <section class="pricing-section">
+
+  <!-- Ambient cosmic glow (reference assets) -->
+  <div class="pricing-shape" aria-hidden="true">
+    <img src="assets/img/shape/pricing-blur01.png" alt="">
+  </div>
+
   <div class="container position-relative z-1">
 
     <!-- Title Section -->
     <div class="text-center section-header" appReveal="fade-up" [revealDuration]="2000">
-      <h2 class="title">خطط الأسعار</h2>
-      <p class="subtitle">اختر الباقة المناسبة لنمو علامتك التجارية وضاعف مبيعاتك وتفاعلك الذكي اليوم</p>
+      <h2 class="title">أسعار قوية تنمو مع نشاطك</h2>
+      <p class="subtitle">ابدأ مجانًا وقم بالترقية مع نمو أعمالك.</p>
 
       <!-- Billing Switcher Toggle -->
       <div class="billing-switcher-wrapper d-inline-flex align-items-center justify-content-center">
-        <div class="billing-switcher" [class.annual-active]="isAnnual">
-          <button class="switcher-btn" [class.active]="!isAnnual" (click)="toggleBilling(false)">شهرياً</button>
-          <button class="switcher-btn" [class.active]="isAnnual" (click)="toggleBilling(true)">
+        <div class="billing-switcher" [class.annual-active]="isAnnual()">
+          <button class="switcher-btn" [class.active]="!isAnnual()" (click)="toggleBilling(false)">شهرياً</button>
+          <button class="switcher-btn" [class.active]="isAnnual()" (click)="toggleBilling(true)">
             سنوياً
             <span class="discount-tag">خصم 20%</span>
           </button>
-          <!-- Sliding backdrop overlay background -->
           <div class="switcher-slider"></div>
         </div>
       </div>
     </div>
 
-    <!-- Pricing Cards Grid -->
-    <div class="pricing-grid row justify-content-center align-items-stretch g-4">
+    <!-- Unified Pricing Panel -->
+    <div class="pricing-panel" appReveal="fade-up" [revealDuration]="2000">
+      <div class="pricing-panel__blur" aria-hidden="true">
+        <img src="assets/img/shape/pricing-blur02.png" alt="">
+      </div>
 
-      <!-- Plan 1: Free (الباقة المجانية) -->
-      <div class="col-lg-4 col-md-6 d-flex" appReveal="fade-left-far" [revealDuration]="2000">
-        <div class="pricing-card light-card d-flex flex-column justify-content-between w-100">
-          <div>
-            <div class="card-header-info">
-              <h3 class="plan-name">الباقة المجانية</h3>
-              <p class="plan-desc">استكشف قوة الذكاء الاصطناعي مجاناً</p>
-            </div>
+      <!-- Plan 1: Free -->
+      <div class="pricing-col">
+        <p class="plan-sub-title">رواج للبداية</p>
+        <div class="plan-price-box">
+          <h3>$0</h3>
+          <p>/ تجربة 14 يوم</p>
+        </div>
+        <p class="plan-text">اشتراك مجاني</p>
 
-            <div class="price-container">
-              <span class="currency">$</span>
-              <span class="price">0</span>
-              <span class="period">/ شهرياً</span>
-            </div>
+        <ul class="plan-list">
+          <li><img src="assets/img/icon/check-icon.svg" alt="">10 تصميمات إعلانية شهرياً</li>
+          <li><img src="assets/img/icon/check-icon.svg" alt="">سعة تخزينية 2 جيجابايت</li>
+          <li><img src="assets/img/icon/check-icon.svg" alt="">دخول أساسي لقوالب التصميم</li>
+          <li><img src="assets/img/icon/check-icon.svg" alt="">مستخدم واحد فقط</li>
+          <li><img src="assets/img/icon/check-icon.svg" alt="">تكاملات أساسية مع التطبيقات</li>
+          <li><img src="assets/img/icon/check-icon.svg" alt="">دعم فني عبر البريد الإلكتروني</li>
+        </ul>
 
-            <hr class="divider">
-
-            <ul class="features-list">
-              <li>
-                <i class="fas fa-check-circle check-icon"></i>
-                <span>إنشاء 10 تصميمات إعلانية شهرياً</span>
-              </li>
-              <li>
-                <i class="fas fa-check-circle check-icon"></i>
-                <span>سعة تخزينية 2 جيجابايت</span>
-              </li>
-              <li>
-                <i class="fas fa-check-circle check-icon"></i>
-                <span>دخول أساسي لقوالب التصميم</span>
-              </li>
-              <li>
-                <i class="fas fa-check-circle check-icon"></i>
-                <span>دعم فني عبر البريد الإلكتروني</span>
-              </li>
-            </ul>
-          </div>
-
-          <div class="cta-container">
-            <a href="#" class="btn btn-outline-brand w-100">ابدأ مجاناً</a>
-          </div>
+        <div class="plan-btn-wrap">
+          <a href="#" class="plan-btn plan-btn--outline">
+            ابدأ الباقة المجانية
+            <img class="plan-btn__star" src="assets/img/icon/multi-star.svg" alt="">
+          </a>
+          <img class="plan-doodle" src="assets/img/shape/cursor-icon02.png" alt="">
         </div>
       </div>
 
-      <!-- Plan 2: Professional (الباقة الاحترافية) - FEATURED -->
-      <div class="col-lg-4 col-md-6 d-flex" appReveal="fade-up-far" [revealDuration]="2000">
-        <div class="pricing-card dark-card featured-card d-flex flex-column justify-content-between w-100">
-          <div class="ribbon-container">
-            <span class="ribbon-badge">موصى بها</span>
-          </div>
+      <!-- Plan 2: Essential -->
+      <div class="pricing-col pricing-col--divider">
+        <p class="plan-sub-title">رواج الأساسية</p>
+        <div class="plan-price-box">
+          <h3>${{ isAnnual() ? 12 : 15 }}</h3>
+          <p>@if (isAnnual()) { شهرياً (تُدفع سنوياً) } @else { / شهرياً }</p>
+        </div>
+        <p class="plan-text">الأكثر شيوعاً بين الشركات الناشئة</p>
 
-          <div>
-            <div class="card-header-info">
-              <h3 class="plan-name">الباقة الاحترافية</h3>
-              <p class="plan-desc">الحل المتكامل للعلامات التجارية النشطة</p>
-            </div>
+        <ul class="plan-list">
+          <li><img src="assets/img/icon/check-icon.svg" alt="">إنشاء غير محدود للتصميمات</li>
+          <li><img src="assets/img/icon/check-icon.svg" alt="">سعة تخزينية 10 جيجابايت</li>
+          <li><img src="assets/img/icon/check-icon.svg" alt="">ترتيب أولويات ذكي للمهام</li>
+          <li><img src="assets/img/icon/check-icon.svg" alt="">إنشاء وإدارة سير عمل آلي</li>
+          <li><img src="assets/img/icon/check-icon.svg" alt="">تكاملات مع أشهر التطبيقات</li>
+          <li><img src="assets/img/icon/check-icon.svg" alt="">لوحة متابعة الأداء</li>
+        </ul>
 
-            <div class="price-container">
-              <span class="currency">$</span>
-              <span class="price">
-                @if (isAnnual) { 12 } @else { 15 }
-              </span>
-              <span class="period">
-                @if (isAnnual) { / شهرياً (تدفع سنوياً) } @else { / شهرياً }
-              </span>
-            </div>
-
-            <hr class="divider">
-
-            <ul class="features-list">
-              <li>
-                <i class="fas fa-check-circle check-icon"></i>
-                <span>إنشاء غير محدود للتصميمات الإعلانية</span>
-              </li>
-              <li>
-                <i class="fas fa-check-circle check-icon"></i>
-                <span>سعة تخزينية 10 جيجابايت</span>
-              </li>
-              <li>
-                <i class="fas fa-check-circle check-icon"></i>
-                <span>دخول كامل لكافة القوالب المتقدمة</span>
-              </li>
-              <li>
-                <i class="fas fa-check-circle check-icon"></i>
-                <span>دعم فني فوري ذو أولوية 24/7</span>
-              </li>
-              <li>
-                <i class="fas fa-check-circle check-icon"></i>
-                <span>تحليلات أداء وتفاعل متقدمة</span>
-              </li>
-              <li>
-                <i class="fas fa-check-circle check-icon"></i>
-                <span>مدير حساب مخصص لمساعدتك</span>
-              </li>
-            </ul>
-          </div>
-
-          <div class="cta-container">
-            <a href="#" class="btn btn-brand-primary w-100">ابدأ الآن</a>
-          </div>
-          <div class="card-glow"></div>
+        <div class="plan-btn-wrap">
+          <a href="#" class="plan-btn plan-btn--outline">
+            ابدأ الباقة الأساسية
+            <img class="plan-btn__star" src="assets/img/icon/multi-star.svg" alt="">
+          </a>
         </div>
       </div>
 
-      <!-- Plan 3: Enterprise (باقة المؤسسات) -->
-      <div class="col-lg-4 col-md-6 d-flex" appReveal="fade-right-far" [revealDuration]="2000">
-        <div class="pricing-card light-card d-flex flex-column justify-content-between w-100">
-          <div>
-            <div class="card-header-info">
-              <h3 class="plan-name">باقة المؤسسات</h3>
-              <p class="plan-desc">مخصصة للشركات والوكالات الكبرى</p>
-            </div>
-
-            <div class="price-container">
-              <span class="currency">$</span>
-              <span class="price">
-                @if (isAnnual) { 24 } @else { 30 }
-              </span>
-              <span class="period">
-                @if (isAnnual) { / شهرياً (تدفع سنوياً) } @else { / شهرياً }
-              </span>
-            </div>
-
-            <hr class="divider">
-
-            <ul class="features-list">
-              <li>
-                <i class="fas fa-check-circle check-icon"></i>
-                <span>ميزات إعلانية مخصصة لعلامتك</span>
-              </li>
-              <li>
-                <i class="fas fa-check-circle check-icon"></i>
-                <span>سعة تخزينية 30 جيجابايت</span>
-              </li>
-              <li>
-                <i class="fas fa-check-circle check-icon"></i>
-                <span>تقارير تحليلات متكاملة للمبيعات</span>
-              </li>
-              <li>
-                <i class="fas fa-check-circle check-icon"></i>
-                <span>دعم فني VIP عبر الهاتف والبريد</span>
-              </li>
-              <li>
-                <i class="fas fa-check-circle check-icon"></i>
-                <span>صلاحيات ربط برمجية مخصصة API</span>
-              </li>
-            </ul>
+      <!-- Plan 3: Enterprise Pro (featured, floats above the panel) -->
+      <div class="pricing-col--pro">
+        <div class="pro-top">
+          <div class="plan-price-box">
+            <h3>$160</h3>
+            <p>/ سنوياً</p>
           </div>
+          <span class="pro-badge">
+            <span class="pro-badge__text">رواج Enterprise Pro</span>
+            <span class="pro-badge__dots" aria-hidden="true">
+              <img src="assets/img/shape/mini-dot.png" alt="">
+              <img src="assets/img/shape/mini-dot.png" alt="">
+            </span>
+          </span>
+        </div>
 
-          <div class="cta-container">
-            <a href="#" class="btn btn-outline-brand w-100">اتصل بنا</a>
-          </div>
+        <p class="pro-tag">مجموعة الأتمتة الأساسية</p>
+
+        <ul class="plan-list plan-list--pro">
+          <li><img src="assets/img/icon/check-icon02.svg" alt="">مشاريع أتمتة غير محدودة</li>
+          <li><img src="assets/img/icon/check-icon02.svg" alt="">لوحة تحليلات وتقارير متقدمة</li>
+          <li><img src="assets/img/icon/check-icon02.svg" alt="">تحسين سير العمل بالذكاء الاصطناعي</li>
+          <li><img src="assets/img/icon/check-icon02.svg" alt="">أدوات مقارنة واختبار متقدمة</li>
+          <li><img src="assets/img/icon/check-icon02.svg" alt="">دعم مجتمعي وأولوية في الدعم الفني</li>
+        </ul>
+
+        <div class="plan-btn-wrap">
+          <a href="#" class="plan-btn plan-btn--white">ابدأ Enterprise Pro</a>
         </div>
       </div>
 

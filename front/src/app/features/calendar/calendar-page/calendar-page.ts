@@ -1,8 +1,8 @@
 import { Component, HostListener, computed, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
 import { ScheduledPost, PostStatus } from '../../../model/scheduled-post.model';
 import { CampaignPlatform } from '../../../model/campaign.model';
 import { PostModal } from '../post-modal/post-modal';
+import { PageHeader } from '../../../shared/components/page-header/page-header';
 
 export type ViewMode = 'month' | 'week' | 'day' | 'list';
 
@@ -66,7 +66,7 @@ const INITIAL_POSTS: ScheduledPost[] = [
 @Component({
   selector: 'app-calendar-page',
   standalone: true,
-  imports: [RouterLink, PostModal],
+  imports: [PostModal, PageHeader],
   templateUrl: './calendar-page.html',
   styleUrls: ['../../../features/on-boarding/onboarding-shared.css', './calendar-page.css'],
 })
@@ -76,6 +76,7 @@ export class CalendarPage {
   readonly campaignFilter = signal<string>('all');
   readonly campaignOpen   = signal(false);
   readonly selectedPost   = signal<ScheduledPost | null>(null);
+  readonly selectedDay    = signal<Date | null>(null);
   readonly posts          = signal<ScheduledPost[]>(INITIAL_POSTS);
 
   readonly platformCfg  = PLATFORM_CFG;
@@ -211,6 +212,30 @@ export class CalendarPage {
   isCurrentMonth(date: Date): boolean {
     return date.getMonth() === this.currentDate().getMonth();
   }
+
+  isSelectedDay(date: Date): boolean {
+    const sel = this.selectedDay();
+    return !!sel
+      && date.getDate() === sel.getDate()
+      && date.getMonth() === sel.getMonth()
+      && date.getFullYear() === sel.getFullYear();
+  }
+
+  selectDay(date: Date): void {
+    this.selectedDay.set(this.isSelectedDay(date) ? null : new Date(date));
+  }
+
+  // ── Side panel (selected day + upcoming) ────────────────────────────────
+
+  readonly selectedDayPosts = computed<ScheduledPost[]>(() => {
+    const day = this.selectedDay();
+    return day ? this.postsForDay(day) : [];
+  });
+
+  readonly selectedDayLabel = computed<string>(() => {
+    const day = this.selectedDay();
+    return day ? day.toLocaleDateString('ar-SA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : '';
+  });
 
   formatTime(iso: string): string {
     return new Date(iso).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit', hour12: true });

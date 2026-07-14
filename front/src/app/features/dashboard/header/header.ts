@@ -1,4 +1,4 @@
-import { Component, HostListener, output, signal } from '@angular/core';
+import { Component, HostListener, input, output, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 @Component({
@@ -9,8 +9,10 @@ import { RouterLink } from '@angular/router';
   styleUrl: './header.css',
 })
 export class Header {
+  mobileMenuOpen = input(false);
+
   toggleSidebar = output<void>();
-  openMobileMenu = output<void>();
+  toggleMobileMenu = output<void>();
 
   searchQuery = signal('');
   notifOpen = signal(false);

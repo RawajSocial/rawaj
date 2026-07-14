@@ -1,23 +1,22 @@
 <div class="crm-page">
-  <!-- Page Header / Breadcrumb -->
-  <div class="page-header">
-    <h5 class="page-title">لوحة إدارة علاقات العملاء</h5>
-    <nav aria-label="breadcrumb">
-      <ol class="breadcrumb mb-0">
-        <li class="breadcrumb-item">
-          <a routerLink="/dashboard">لوحة التحكم</a>
-        </li>
-        <li class="breadcrumb-item">
-          <a href="#">إدارة العملاء</a>
-        </li>
-        <li class="breadcrumb-item active" aria-current="page">نظرة عامة</li>
-      </ol>
-    </nav>
+  <app-page-header
+    title="لوحة التحكم"
+    [breadcrumbs]="[{ label: 'لوحة التحكم', link: '/dashboard' }, { label: 'نظرة عامة' }]"
+    subtitle="نظرة شاملة على أداء حساباتك على مواقع التواصل الاجتماعي." />
+
+  <!-- Social platform filter -->
+  <div class="platform-filter">
+    @for (t of filterTabs; track t.key) {
+      <button type="button" class="platform-chip" [class.active]="platformFilter() === t.key" (click)="setFilter(t.key)">
+        <i class="{{ t.icon }}"></i>
+        <span>{{ t.label }}</span>
+      </button>
+    }
   </div>
 
   <!-- KPI Row -->
   <div class="kpi-row">
-    @for (kpi of kpis; track kpi.title) {
+    @for (kpi of kpis(); track kpi.title) {
       <app-kpi-card
         [title]="kpi.title"
         [value]="kpi.value"
@@ -25,8 +24,7 @@
         [iconBg]="kpi.iconBg"
         [iconColor]="kpi.iconColor"
         [change]="kpi.change"
-        [accentColor]="kpi.accentColor"
-      />
+        [accentColor]="kpi.accentColor" />
     }
   </div>
 
@@ -37,6 +35,61 @@
     </div>
     <div class="chart-col-narrow">
       <app-radar-chart />
+    </div>
+  </div>
+
+  <!-- Platform breakdown + top posts -->
+  <div class="insights-row">
+    <!-- Platform performance -->
+    <div class="insight-card">
+      <div class="insight-head">
+        <h3 class="insight-title">أداء المنصات</h3>
+        <span class="insight-sub">حسب مدى الوصول</span>
+      </div>
+      <div class="platform-list">
+        @for (p of platforms; track p.key) {
+          <div class="platform-row">
+            <span class="platform-badge" [style.background]="p.color"><i class="{{ p.icon }}"></i></span>
+            <div class="platform-info">
+              <div class="platform-info-top">
+                <span class="platform-name">{{ p.label }}</span>
+                <span class="platform-reach">{{ compact(p.reach) }}</span>
+              </div>
+              <div class="platform-bar-track">
+                <div class="platform-bar-fill" [style.width.%]="reachShare(p)" [style.background]="p.color"></div>
+              </div>
+            </div>
+            <span class="platform-change" [class.up]="p.change >= 0" [class.down]="p.change < 0">
+              <i class="fa-solid" [class.fa-arrow-up]="p.change >= 0" [class.fa-arrow-down]="p.change < 0"></i>
+              {{ p.change >= 0 ? p.change : -p.change }}%
+            </span>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Top posts -->
+    <div class="insight-card">
+      <div class="insight-head">
+        <h3 class="insight-title">أفضل المنشورات أداءً</h3>
+        <span class="insight-sub">هذا الشهر</span>
+      </div>
+      <div class="top-posts">
+        @for (post of topPosts; track post.id) {
+          <div class="top-post">
+            <span class="top-post-icon" [style.background]="platformCfg(post.platform).color">
+              <i class="{{ platformCfg(post.platform).icon }}"></i>
+            </span>
+            <div class="top-post-body">
+              <p class="top-post-content">{{ post.content }}</p>
+              <div class="top-post-stats">
+                <span><i class="fa-solid fa-bullseye"></i> {{ compact(post.reach) }}</span>
+                <span><i class="fa-solid fa-heart"></i> {{ compact(post.engagement) }}</span>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
     </div>
   </div>
 </div>

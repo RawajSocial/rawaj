@@ -1,0 +1,112 @@
+<div class="page-shell">
+  <!-- Page Header -->
+  <div class="page-top">
+    <app-page-header
+      title="المستخدمون"
+      [breadcrumbs]="[{ label: 'لوحة التحكم', link: '/dashboard' }, { label: 'المستخدمون' }]"
+      subtitle="إدارة أعضاء فريقك وأدوارهم وصلاحياتهم." />
+    <button type="button" class="btn-new-camp" (click)="openInvite()">
+      <i class="fa-solid fa-user-plus"></i>
+      دعوة عضو جديد
+    </button>
+  </div>
+
+  <!-- Status tabs -->
+  <div class="status-tabs">
+    @for (tab of tabs; track tab.value) {
+      <button
+        type="button"
+        class="status-tab"
+        [class.active]="statusTab() === tab.value"
+        (click)="setTab(tab.value)">
+        {{ tab.label }}
+      </button>
+    }
+  </div>
+
+  <!-- Filters bar -->
+  <div class="filters-bar">
+    <div class="search-wrap">
+      <i class="fa-solid fa-magnifying-glass search-icon"></i>
+      <input
+        type="text"
+        class="search-input"
+        placeholder="ابحث بالاسم أو البريد الإلكتروني..."
+        [value]="searchQuery()"
+        (input)="onSearch($any($event.target).value)" />
+    </div>
+    <span class="results-count">{{ filtered().length }} عضو</span>
+  </div>
+
+  <!-- Empty states -->
+  @if (members().length === 0) {
+    <div class="empty-state">
+      <div class="empty-icon"><i class="fa-solid fa-users"></i></div>
+      <h3>لا يوجد أعضاء بعد</h3>
+      <p>ادعُ أول عضو في فريقك للبدء بالعمل معك على حساب الوكالة.</p>
+      <button type="button" class="btn-new-camp" (click)="openInvite()">
+        <i class="fa-solid fa-user-plus"></i>
+        دعوة عضو جديد
+      </button>
+    </div>
+  } @else if (filtered().length === 0) {
+    <div class="empty-state empty-state-filter">
+      <div class="empty-icon"><i class="fa-solid fa-filter-circle-xmark"></i></div>
+      <h3>لا توجد نتائج</h3>
+      <p>جرّب تغيير كلمة البحث أو التبويب المحدد.</p>
+    </div>
+  } @else {
+    <div class="users-table-wrap">
+      <table class="users-table">
+        <thead>
+          <tr>
+            <th>الاسم</th>
+            <th>الدور</th>
+            <th>القسم</th>
+            <th>الحالة</th>
+            <th>آخر نشاط</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (member of filtered(); track trackById($index, member)) {
+            <tr class="user-row" #row [routerLink]="['/dashboard/users', member.id]">
+              <td>
+                <div class="user-cell">
+                  <span class="user-avatar" [style.background]="member.avatarColor">{{ initials(member.name) }}</span>
+                  <div class="user-cell__text">
+                    <span class="user-name">{{ member.name }}</span>
+                    <span class="user-email">{{ member.email }}</span>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <span class="role-badge" [class]="'role-badge--' + member.role">{{ roleLabels[member.role] }}</span>
+              </td>
+              <td class="muted-cell">{{ member.department }}</td>
+              <td>
+                <span class="status-badge" [class]="'status-badge--' + member.status">{{ statusLabels[member.status] }}</span>
+              </td>
+              <td class="muted-cell">{{ member.lastActiveAt }}</td>
+              <td class="actions-cell">
+                <div class="row-actions">
+                  <a [routerLink]="['/dashboard/users', member.id]" class="row-action row-action--edit" title="عرض الملف" (click)="$event.stopPropagation()">
+                    <i class="fa-solid fa-pen"></i>
+                  </a>
+                  <button type="button" class="row-action row-action--danger" title="إزالة العضو" (click)="removeMember(member.id, $event)">
+                    <i class="fa-solid fa-trash"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>
+
+<app-user-form-modal
+  [open]="inviteModalOpen()"
+  (closed)="inviteModalOpen.set(false)"
+  (save)="onInviteSaved($event)" />

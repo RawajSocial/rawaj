@@ -1,0 +1,106 @@
+<div class="page-shell">
+  <app-page-header
+    title="الفوترة"
+    [breadcrumbs]="[{ label: 'لوحة التحكم', link: '/dashboard' }, { label: 'الفوترة' }]"
+    subtitle="إدارة اشتراكك وطرق الدفع." />
+
+  <div class="billing-grid">
+    <!-- Current plan -->
+    <div class="rw-card plan-card">
+      <div class="plan-head">
+        <div>
+          <h3 class="rw-card__title">الباقة الحالية</h3>
+          <p class="rw-card__hint">أنت مشترك في الباقة الأساسية</p>
+        </div>
+        <span class="rw-pill rw-pill--success">الباقة الأساسية</span>
+      </div>
+
+      <div class="plan-price">
+        <span class="plan-amount">$15</span>
+        <span class="plan-period">/ شهرياً</span>
+      </div>
+
+      <ul class="plan-features">
+        @for (f of planFeatures; track f) {
+          <li><i class="fa-solid fa-check"></i>{{ f }}</li>
+        }
+      </ul>
+
+      <div class="plan-actions">
+        <button type="button" class="rw-btn rw-btn--dark">ترقية الباقة</button>
+        <button type="button" class="rw-btn rw-btn--outline">إلغاء الاشتراك</button>
+      </div>
+    </div>
+
+    <!-- Payment + usage -->
+    <div class="rw-card">
+      <div class="rw-card__header">
+        <h3 class="rw-card__title">طريقة الدفع</h3>
+        <p class="rw-card__hint">إدارة تفاصيل الدفع</p>
+      </div>
+
+      <div class="payment-method">
+        <span class="payment-icon"><i class="fa-solid fa-credit-card"></i></span>
+        <div>
+          <span class="payment-card">فيزا تنتهي بـ 4242</span>
+          <span class="payment-exp">تنتهي 12/2028</span>
+        </div>
+      </div>
+      <button type="button" class="rw-btn rw-btn--outline payment-update">تحديث طريقة الدفع</button>
+
+      <div class="usage-block">
+        <h4 class="usage-title">الاستهلاك</h4>
+        @for (m of usage(); track m.label) {
+          <div class="usage-row">
+            <div class="usage-row-head">
+              <span class="usage-label">{{ m.label }}</span>
+              <span class="usage-value">{{ m.used }} / {{ m.limit }} {{ m.unit }}</span>
+            </div>
+            <div class="usage-track">
+              <div class="usage-fill" [class.warn]="percent(m) >= 80" [style.width.%]="percent(m)"></div>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+
+  <!-- Invoices -->
+  <div class="rw-card">
+    <div class="rw-card__header">
+      <h3 class="rw-card__title">سجل الفواتير</h3>
+      <p class="rw-card__hint">فواتيرك ومدفوعاتك الأخيرة</p>
+    </div>
+
+    <div class="invoice-table-wrap">
+      <table class="invoice-table">
+        <thead>
+          <tr>
+            <th>التاريخ</th>
+            <th>الوصف</th>
+            <th>الحالة</th>
+            <th>المبلغ</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (inv of invoices(); track inv.date) {
+            <tr>
+              <td class="muted-cell">{{ inv.date }}</td>
+              <td>{{ inv.desc }}</td>
+              <td>
+                <span class="rw-pill" [class.rw-pill--success]="inv.status === 'paid'" [class.rw-pill--warning]="inv.status === 'pending'">
+                  {{ inv.status === 'paid' ? 'مدفوعة' : 'معلّقة' }}
+                </span>
+              </td>
+              <td class="amount-cell">{{ inv.amount }}</td>
+              <td class="invoice-dl">
+                <button type="button" class="dl-btn" title="تحميل الفاتورة"><i class="fa-solid fa-download"></i></button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

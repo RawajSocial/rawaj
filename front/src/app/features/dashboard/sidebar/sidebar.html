@@ -14,22 +14,37 @@
     <nav class="sidebar-nav">
       @for (section of navSections; track section.heading) {
         <div class="nav-section">
-          <span class="nav-heading">{{ section.heading }}</span>
+          <button type="button" class="nav-heading" (click)="toggleSection(section.heading)">
+            <span>{{ section.heading }}</span>
+            <i class="fa-solid fa-chevron-down nav-heading-arrow" [class.collapsed]="isSectionCollapsed(section.heading)"></i>
+          </button>
 
-          @for (item of section.items; track item.id) {
-            <a class="nav-item"
-               routerLinkActive="active"
-               [routerLinkActiveOptions]="{ exact: item.exact ?? false }"
-               [routerLink]="item.route!">
-              <i class="fa-solid {{ item.icon }} nav-item-icon"></i>
-              <span class="nav-item-label">{{ item.label }}</span>
-              @if (item.badge) {
-                <span class="nav-badge">{{ item.badge }}</span>
+          <div class="nav-section-items" [class.collapsed]="isSectionCollapsed(section.heading)">
+            <div class="nav-section-items-inner">
+              @for (item of section.items; track item.id) {
+                <a class="nav-item"
+                   routerLinkActive="active"
+                   [routerLinkActiveOptions]="{ exact: item.exact ?? false }"
+                   [routerLink]="item.route!"
+                   (click)="mobileClose.emit()">
+                  <i class="fa-solid {{ item.icon }} nav-item-icon"></i>
+                  <span class="nav-item-label">{{ item.label }}</span>
+                  @if (item.badge) {
+                    <span class="nav-badge">{{ item.badge }}</span>
+                  }
+                </a>
               }
-            </a>
-          }
+            </div>
+          </div>
         </div>
       }
     </nav>
+
+    <div class="sidebar-footer">
+      <a class="sidebar-logout" routerLink="/login" (click)="mobileClose.emit()">
+        <i class="fa-solid fa-right-from-bracket"></i>
+        <span>تسجيل الخروج</span>
+      </a>
+    </div>
   </div>
 </aside>

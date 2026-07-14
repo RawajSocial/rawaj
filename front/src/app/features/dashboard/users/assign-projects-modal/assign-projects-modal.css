@@ -1,0 +1,56 @@
+.project-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.project-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1.5px solid var(--color-border);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.project-option:hover {
+  border-color: var(--color-secondary-light);
+}
+
+.project-option.checked {
+  border-color: var(--color-secondary);
+  background: var(--color-secondary-subtle);
+}
+
+.project-option input {
+  display: none;
+}
+
+.project-check {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  border: 1.5px solid var(--color-border);
+  color: transparent;
+  font-size: .65rem;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.project-option.checked .project-check {
+  background: var(--color-secondary);
+  border-color: var(--color-secondary);
+  color: #fff;
+}
+
+.project-name {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-dark);
+}

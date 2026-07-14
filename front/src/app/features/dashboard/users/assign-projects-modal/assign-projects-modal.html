@@ -1,0 +1,37 @@
+@if (open()) {
+  <div class="rw-modal-backdrop" #backdrop (click)="requestClose()">
+    <div class="rw-modal-panel" #panel (click)="$event.stopPropagation()">
+      <div class="rw-modal-header">
+        <h3>تعيين المشاريع</h3>
+        <button type="button" class="rw-modal-close" (click)="requestClose()" aria-label="إغلاق">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="rw-modal-body">
+        <p class="form-hint">
+          <i class="fa-solid fa-diagram-project"></i>
+          اختر المشاريع التي يمكن لـ {{ member()?.name }} العمل عليها. يمكن تعيين أكثر من مشروع واحد.
+        </p>
+
+        <div class="project-list">
+          @for (project of projects(); track project.id) {
+            <label class="project-option" [class.checked]="selectedIds().has(project.id)">
+              <input
+                type="checkbox"
+                [checked]="selectedIds().has(project.id)"
+                (change)="toggle(project.id)">
+              <span class="project-check"><i class="fa-solid fa-check"></i></span>
+              <span class="project-name">{{ project.name }}</span>
+            </label>
+          }
+        </div>
+
+        <div class="rw-modal-footer">
+          <button type="button" class="btn-outline" (click)="requestClose()">إلغاء</button>
+          <button type="button" class="btn-brand" (click)="submit()">حفظ التعيينات</button>
+        </div>
+      </div>
+    </div>
+  </div>
+}

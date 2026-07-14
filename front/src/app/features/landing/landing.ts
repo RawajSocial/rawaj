@@ -1,6 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { Navbar } from './navbar/navbar';
 import { Hero } from './hero/hero';
+import { Problems } from './problems/problems';
+import { Solutions } from './solutions/solutions';
 import { WhyUs } from './why-us/why-us';
 import { HowItWorks } from './how-it-works/how-it-works';
 import { Gallery } from './gallery/gallery';
@@ -12,7 +14,7 @@ import { SeoService } from '../../services/seo.service';
 
 @Component({
   selector: 'app-landing',
-  imports: [Navbar, Hero, WhyUs, HowItWorks, Gallery, Posts, Pricing, Cta, Footer],
+  imports: [Navbar, Hero, Problems, Solutions, WhyUs, HowItWorks, Gallery, Posts, Pricing, Cta, Footer],
   templateUrl: './landing.html',
   styleUrl: './landing.css',
 })

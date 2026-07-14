@@ -3,8 +3,8 @@
     <button class="header-btn sidebar-toggle-btn" (click)="toggleSidebar.emit()" title="تبديل الشريط الجانبي">
       <i class="fa-solid fa-bars"></i>
     </button>
-    <button class="header-btn mobile-menu-btn" (click)="openMobileMenu.emit()" title="القائمة">
-      <i class="fa-solid fa-bars"></i>
+    <button class="header-btn mobile-menu-btn" (click)="toggleMobileMenu.emit()" title="القائمة">
+      <i class="fa-solid" [class.fa-bars]="!mobileMenuOpen()" [class.fa-xmark]="mobileMenuOpen()"></i>
     </button>
     <div class="header-search">
       <i class="fa-solid fa-magnifying-glass search-icon"></i>
@@ -61,7 +61,7 @@
           </div>
         </div>
         <div class="panel-foot">
-          <a href="#">عرض جميع الإشعارات</a>
+          <a routerLink="/dashboard/notifications" (click)="notifOpen.set(false)">عرض جميع الإشعارات</a>
         </div>
       </div>
     </div>
@@ -86,16 +86,20 @@
           </div>
         </div>
         <div class="panel-divider"></div>
-        <a class="profile-menu-item" href="#">
+        <a class="profile-menu-item" routerLink="/dashboard/settings" (click)="profileOpen.set(false)">
           <i class="fa-regular fa-user"></i>
           الملف الشخصي
         </a>
-        <a class="profile-menu-item" href="#">
+        <a class="profile-menu-item" routerLink="/dashboard/settings" (click)="profileOpen.set(false)">
           <i class="fa-solid fa-gear"></i>
           الإعدادات
         </a>
+        <a class="profile-menu-item" routerLink="/dashboard/billing" (click)="profileOpen.set(false)">
+          <i class="fa-solid fa-credit-card"></i>
+          الفوترة
+        </a>
         <div class="panel-divider"></div>
-        <a class="profile-menu-item profile-menu-item--danger" routerLink="/login">
+        <a class="profile-menu-item profile-menu-item--danger" routerLink="/login" (click)="profileOpen.set(false)">
           <i class="fa-solid fa-right-from-bracket"></i>
           تسجيل الخروج
         </a>

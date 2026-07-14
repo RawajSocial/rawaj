@@ -1,0 +1,104 @@
+<div class="workflow-visual" aria-hidden="true">
+
+  <!-- Step 1: understand the user's business -->
+  <div class="gen-card gen-card--input gen-card--standalone">
+    <div class="gen-card__header">
+      <span class="gen-card__icon"><i [class]="inputCard.iconClass"></i></span>
+      <span class="gen-card__label">{{ inputCard.label }}</span>
+    </div>
+    <div class="gen-preview gen-preview--input">
+      <div class="input-line" style="width: 90%"></div>
+      <div class="input-line" style="width: 65%"></div>
+      <div class="input-line" style="width: 80%"></div>
+      <i class="fa-solid fa-magnifying-glass search-scan"></i>
+    </div>
+    <div class="gen-card__status">
+      <span class="status-dot"></span>
+      {{ inputCard.statusLabel }}
+    </div>
+  </div>
+
+  <div class="workflow-connector"></div>
+
+  <!-- Step 2: content generation -->
+  <div class="generation-row">
+    @for (card of generationCards(); track card.id) {
+      <div class="gen-card" [class]="'gen-card--' + card.kind">
+        <div class="gen-card__header">
+          <span class="gen-card__icon"><i [class]="card.iconClass"></i></span>
+          <span class="gen-card__label">{{ card.label }}</span>
+        </div>
+
+        @switch (card.kind) {
+          @case ('image') {
+            <div class="gen-preview">
+              <div class="shimmer-block"></div>
+            </div>
+          }
+          @case ('video') {
+            <div class="gen-preview">
+              <div class="video-frame">
+                <i class="fa-solid fa-play"></i>
+              </div>
+              <div class="progress-track"><div class="progress-fill"></div></div>
+            </div>
+          }
+          @case ('text-image') {
+            <div class="gen-preview">
+              <div class="shimmer-block shimmer-block--small"></div>
+              <div class="type-line type-line--1"></div>
+              <div class="type-line type-line--2"></div>
+            </div>
+          }
+        }
+
+        <div class="gen-card__status">
+          <span class="status-dot"></span>
+          {{ card.statusLabel }}
+        </div>
+      </div>
+    }
+  </div>
+
+  <div class="workflow-connector"></div>
+
+  <!-- Step 3: Rawaj hub -->
+  <div class="workflow-hub">
+    <div class="hub-core-wrap">
+      <div class="hub-ring"></div>
+      <div class="hub-core">
+        <img src="assets/icons/logo.png" alt="Rawaj">
+      </div>
+    </div>
+    <span class="hub-label">رواج</span>
+  </div>
+
+  <div class="workflow-connector"></div>
+
+  <!-- Distribution bar: Rawaj splits out to every platform -->
+  <div class="platform-bar">
+    <span class="platform-bar__segment platform-bar__segment--a"></span>
+    <span class="platform-bar__segment platform-bar__segment--b"></span>
+  </div>
+
+  <div class="platform-stubs">
+    @for (platform of platforms(); track platform.id) {
+      <span class="platform-stub" [style.left.%]="platform.x">
+        <span class="platform-stub__dot" [style.animation-delay.s]="platform.id * 0.2"></span>
+      </span>
+    }
+  </div>
+
+  <!-- Step 4: social media platforms Rawaj publishes to -->
+  <div class="workflow-platforms">
+    @for (platform of platforms(); track platform.id) {
+      <div class="platform-chip">
+        <span class="platform-chip__icon" [class]="'platform-chip__icon--' + platform.key">
+          <i [class]="platform.iconClass"></i>
+        </span>
+        <span class="platform-chip__label">{{ platform.label }}</span>
+      </div>
+    }
+  </div>
+
+</div>
