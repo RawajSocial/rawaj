@@ -17,6 +17,8 @@ public interface IIdentityService
 
     Task<ApplicationUserDto?> FindByUserNameAsync(string userName, CancellationToken cancellationToken);
 
+    Task<ApplicationUserDto?> FindByIdAsync(Guid userId, CancellationToken cancellationToken);
+
     Task<bool> CheckPasswordAsync(Guid userId, string password, CancellationToken cancellationToken);
 
     Task UpdateLastLoginAsync(Guid userId, CancellationToken cancellationToken);

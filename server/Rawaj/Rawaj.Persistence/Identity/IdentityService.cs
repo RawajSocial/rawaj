@@ -46,6 +46,12 @@ public class IdentityService(UserManager<ApplicationUser> userManager) : IIdenti
         return user is null ? null : ToDto(user);
     }
 
+    public async Task<ApplicationUserDto?> FindByIdAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var user = await userManager.FindByIdAsync(userId.ToString());
+        return user is null ? null : ToDto(user);
+    }
+
     public async Task<bool> CheckPasswordAsync(Guid userId, string password, CancellationToken cancellationToken)
     {
         var user = await userManager.FindByIdAsync(userId.ToString());

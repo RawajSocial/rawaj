@@ -3,7 +3,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Rawaj.Application.Common.Interfaces;
+using Rawaj.Persistence.Common;
 using Rawaj.Persistence.Identity;
+using Rawaj.Persistence.Tenants;
 
 namespace Rawaj.Persistence;
 
@@ -24,6 +26,8 @@ public static class DependencyInjection
             .AddDefaultTokenProviders();
 
         services.AddScoped<IIdentityService, IdentityService>();
+        services.AddScoped<ITenantProvisioningService, TenantProvisioningService>();
+        services.AddScoped<IUnitOfWork, UnitOfWork>();
 
         return services;
     }

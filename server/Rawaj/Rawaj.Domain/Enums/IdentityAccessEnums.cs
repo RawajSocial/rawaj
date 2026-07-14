@@ -31,7 +31,7 @@ public enum BrandProfileStatus
 
 public enum TenantMemberRole
 {
-    Owner,
+    Owner,  
     Admin,
     Editor,
     Viewer
