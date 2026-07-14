@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Rawaj.Persistence.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class Initial : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -221,8 +221,8 @@ namespace Rawaj.Persistence.Migrations
                     OwnerUserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     SubscriptionId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     IsActive = table.Column<bool>(type: "bit", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -252,8 +252,8 @@ namespace Rawaj.Persistence.Migrations
                     BrandVoice = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
                     Status = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
                     BrandInfo = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -262,6 +262,36 @@ namespace Rawaj.Persistence.Migrations
                         name: "FK_tenant_brand_profiles_tenants_TenantId",
                         column: x => x.TenantId,
                         principalTable: "tenants",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "tenant_invitations",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    TenantId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Email = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
+                    Role = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
+                    InvitedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Status = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
+                    RespondedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_tenant_invitations", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_tenant_invitations_tenants_TenantId",
+                        column: x => x.TenantId,
+                        principalTable: "tenants",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_tenant_invitations_users_InvitedBy",
+                        column: x => x.InvitedBy,
+                        principalTable: "users",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
@@ -381,8 +411,8 @@ namespace Rawaj.Persistence.Migrations
                     Status = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
                     AiPlanJson = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     AiGeneratedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -436,7 +466,8 @@ namespace Rawaj.Persistence.Migrations
                 {
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     TenantMemberId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    BrandProfileId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
+                    BrandProfileId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -507,8 +538,8 @@ namespace Rawaj.Persistence.Migrations
                     Status = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
                     ReviewedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
                     ReviewedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -639,8 +670,8 @@ namespace Rawaj.Persistence.Migrations
                     PublishedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     ErrorMessage = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     RetryCount = table.Column<int>(type: "int", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -681,7 +712,8 @@ namespace Rawaj.Persistence.Migrations
                     Saves = table.Column<int>(type: "int", nullable: true),
                     Clicks = table.Column<int>(type: "int", nullable: true),
                     EngagementRate = table.Column<decimal>(type: "decimal(5,4)", nullable: true),
-                    RawData = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    RawData = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -693,6 +725,11 @@ namespace Rawaj.Persistence.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
+
+            migrationBuilder.InsertData(
+                table: "subscription_plans",
+                columns: new[] { "Id", "BillingCycle", "Cost", "CreatedAt", "Currency", "Features", "IsActive", "MaxAiCreditsMonthly", "MaxBrands", "MaxCampaignsMonthly", "MaxScheduledPosts", "MaxSocialAccounts", "MaxUsers", "Name" },
+                values: new object[] { new Guid("00000000-0000-0000-0000-000000000001"), "Monthly", 0m, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), "USD", "[]", true, 50, 1, 5, 10, 1, 1, "Free" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_ai_jobs_BrandProfileId",
@@ -826,6 +863,23 @@ namespace Rawaj.Persistence.Migrations
                 column: "TenantId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_tenant_invitations_Email",
+                table: "tenant_invitations",
+                column: "Email");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_tenant_invitations_InvitedBy",
+                table: "tenant_invitations",
+                column: "InvitedBy");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_tenant_invitations_TenantId_Email",
+                table: "tenant_invitations",
+                columns: new[] { "TenantId", "Email" },
+                unique: true,
+                filter: "[Status] = 'Pending'");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_tenant_member_brand_access_BrandProfileId",
                 table: "tenant_member_brand_access",
                 column: "BrandProfileId");
@@ -930,6 +984,9 @@ namespace Rawaj.Persistence.Migrations
 
             migrationBuilder.DropTable(
                 name: "rag_documents");
+
+            migrationBuilder.DropTable(
+                name: "tenant_invitations");
 
             migrationBuilder.DropTable(
                 name: "tenant_member_brand_access");

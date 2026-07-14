@@ -14,7 +14,6 @@ public class Subscription : BaseEntity
     public DateTime CurrentPeriodEnd { get; set; }
     public DateTime? TrialEndsAt { get; set; }
     public DateTime? CancelledAt { get; set; }
-    public DateTime CreatedAt { get; set; }
 
     public SubscriptionPlan SubscriptionPlan { get; set; } = null!;
 }

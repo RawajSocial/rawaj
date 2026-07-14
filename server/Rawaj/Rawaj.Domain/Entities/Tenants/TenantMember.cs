@@ -11,7 +11,6 @@ public class TenantMember : BaseEntity
     public Guid? InvitedBy { get; set; }
     public InvitationStatus InvitationStatus { get; set; }
     public DateTime? JoinedAt { get; set; }
-    public DateTime CreatedAt { get; set; }
 
     public Tenant Tenant { get; set; } = null!;
     public ICollection<TenantMemberBrandAccess> BrandAccesses { get; set; } = [];

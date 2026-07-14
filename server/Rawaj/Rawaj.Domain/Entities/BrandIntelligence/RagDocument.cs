@@ -13,7 +13,6 @@ public class RagDocument : BaseEntity
     public string? VectorId { get; set; }
     public string? CompetitorsData { get; set; }
     public DateTime? IndexedAt { get; set; }
-    public DateTime CreatedAt { get; set; }
 
     public Competitor? Competitor { get; set; }
     public TenantBrandProfile? BrandProfile { get; set; }

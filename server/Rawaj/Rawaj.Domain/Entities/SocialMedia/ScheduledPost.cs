@@ -16,7 +16,6 @@ public class ScheduledPost : BaseEntity
     public DateTime? PublishedAt { get; set; }
     public string? ErrorMessage { get; set; }
     public int RetryCount { get; set; }
-    public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 
     public ContentItem ContentItem { get; set; } = null!;

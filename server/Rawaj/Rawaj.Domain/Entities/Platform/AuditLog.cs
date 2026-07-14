@@ -13,5 +13,4 @@ public class AuditLog : BaseEntity
     public string? IpAddress { get; set; }
     public string? UserAgent { get; set; }
     public string? Metadata { get; set; }
-    public DateTime CreatedAt { get; set; }
 }

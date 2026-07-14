@@ -19,7 +19,6 @@ public class VisualAsset : BaseEntity
     public string? Format { get; set; }
     public bool IsApproved { get; set; }
     public Guid? VersionOf { get; set; }
-    public DateTime CreatedAt { get; set; }
 
     public ContentItem? ContentItem { get; set; }
     public MarketingCampaign? Campaign { get; set; }

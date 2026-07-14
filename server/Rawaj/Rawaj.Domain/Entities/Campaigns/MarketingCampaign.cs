@@ -18,7 +18,6 @@ public class MarketingCampaign : BaseEntity
     public CampaignStatus Status { get; set; }
     public string? AiPlanJson { get; set; }
     public DateTime? AiGeneratedAt { get; set; }
-    public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 
     public TenantBrandProfile BrandProfile { get; set; } = null!;

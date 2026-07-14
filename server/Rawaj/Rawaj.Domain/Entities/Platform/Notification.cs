@@ -15,5 +15,4 @@ public class Notification : BaseEntity
     public string? RefType { get; set; }
     public bool IsRead { get; set; }
     public DateTime? ReadAt { get; set; }
-    public DateTime CreatedAt { get; set; }
 }

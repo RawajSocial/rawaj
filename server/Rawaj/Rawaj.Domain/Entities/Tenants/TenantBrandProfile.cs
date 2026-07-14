@@ -12,7 +12,6 @@ public class TenantBrandProfile : BaseEntity
     public BrandVoice? BrandVoice { get; set; }
     public BrandProfileStatus Status { get; set; }
     public BrandInfo? BrandInfo { get; set; }
-    public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 
     public Tenant Tenant { get; set; } = null!;

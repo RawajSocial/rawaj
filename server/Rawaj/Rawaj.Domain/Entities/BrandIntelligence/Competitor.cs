@@ -14,7 +14,6 @@ public class Competitor : BaseEntity
     public bool Ragged { get; set; }
     public CompetitorStatus Status { get; set; }
     public DateTime? LastScrapedAt { get; set; }
-    public DateTime CreatedAt { get; set; }
 
     public TenantBrandProfile BrandProfile { get; set; } = null!;
     public ICollection<RagDocument> RagDocuments { get; set; } = [];

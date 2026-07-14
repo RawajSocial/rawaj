@@ -17,7 +17,6 @@ public class SocialAccount : BaseEntity
     public List<string> Scopes { get; set; } = [];
     public bool IsActive { get; set; }
     public DateTime? LastVerifiedAt { get; set; }
-    public DateTime CreatedAt { get; set; }
 
     public TenantBrandProfile BrandProfile { get; set; } = null!;
     public ICollection<ScheduledPost> ScheduledPosts { get; set; } = [];

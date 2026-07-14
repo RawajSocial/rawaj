@@ -18,7 +18,6 @@ public class AiJob : BaseEntity
     public string? ErrorMessage { get; set; }
     public DateTime? StartedAt { get; set; }
     public DateTime? CompletedAt { get; set; }
-    public DateTime CreatedAt { get; set; }
 
     public TenantBrandProfile BrandProfile { get; set; } = null!;
 }

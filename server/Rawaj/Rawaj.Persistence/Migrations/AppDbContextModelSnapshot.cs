@@ -252,6 +252,25 @@ namespace Rawaj.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("subscription_plans", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("00000000-0000-0000-0000-000000000001"),
+                            BillingCycle = "Monthly",
+                            Cost = 0m,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Currency = "USD",
+                            Features = "[]",
+                            IsActive = true,
+                            MaxAiCreditsMonthly = 50,
+                            MaxBrands = 1,
+                            MaxCampaignsMonthly = 5,
+                            MaxScheduledPosts = 10,
+                            MaxSocialAccounts = 1,
+                            MaxUsers = 1,
+                            Name = "Free"
+                        });
                 });
 
             modelBuilder.Entity("Rawaj.Domain.Entities.BrandIntelligence.Competitor", b =>
@@ -712,6 +731,9 @@ namespace Rawaj.Persistence.Migrations
                     b.Property<int?>("Comments")
                         .HasColumnType("int");
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<decimal?>("EngagementRate")
                         .HasColumnType("decimal(5,4)");
 
@@ -955,6 +977,52 @@ namespace Rawaj.Persistence.Migrations
                     b.ToTable("tenant_brand_profiles", (string)null);
                 });
 
+            modelBuilder.Entity("Rawaj.Domain.Entities.Tenants.TenantInvitation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<Guid>("InvitedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("RespondedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Email");
+
+                    b.HasIndex("InvitedBy");
+
+                    b.HasIndex("TenantId", "Email")
+                        .IsUnique()
+                        .HasFilter("[Status] = 'Pending'");
+
+                    b.ToTable("tenant_invitations", (string)null);
+                });
+
             modelBuilder.Entity("Rawaj.Domain.Entities.Tenants.TenantMember", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1006,6 +1074,9 @@ namespace Rawaj.Persistence.Migrations
 
                     b.Property<Guid>("BrandProfileId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<Guid>("TenantMemberId")
                         .HasColumnType("uniqueidentifier");
@@ -1377,6 +1448,23 @@ namespace Rawaj.Persistence.Migrations
                 {
                     b.HasOne("Rawaj.Domain.Entities.Tenants.Tenant", "Tenant")
                         .WithMany("BrandProfiles")
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("Rawaj.Domain.Entities.Tenants.TenantInvitation", b =>
+                {
+                    b.HasOne("Rawaj.Persistence.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("InvitedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Rawaj.Domain.Entities.Tenants.Tenant", "Tenant")
+                        .WithMany()
                         .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();

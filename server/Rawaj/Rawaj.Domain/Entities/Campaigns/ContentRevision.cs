@@ -10,7 +10,6 @@ public class ContentRevision : BaseEntity
     public string Previous { get; set; } = null!;
     public string Current { get; set; } = null!;
     public int RevisionNumber { get; set; }
-    public DateTime CreatedAt { get; set; }
 
     public ContentItem ContentItem { get; set; } = null!;
 }

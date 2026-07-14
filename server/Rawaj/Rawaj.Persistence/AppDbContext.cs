@@ -19,6 +19,7 @@ public class AppDbContext : IdentityUserContext<ApplicationUser, Guid>
     public DbSet<TenantBrandProfile> TenantBrandProfiles => Set<TenantBrandProfile>();
     public DbSet<TenantMember> TenantMembers => Set<TenantMember>();
     public DbSet<TenantMemberBrandAccess> TenantMemberBrandAccesses => Set<TenantMemberBrandAccess>();
+    public DbSet<TenantInvitation> TenantInvitations => Set<TenantInvitation>();
 
     public DbSet<Competitor> Competitors => Set<Competitor>();
     public DbSet<RagDocument> RagDocuments => Set<RagDocument>();

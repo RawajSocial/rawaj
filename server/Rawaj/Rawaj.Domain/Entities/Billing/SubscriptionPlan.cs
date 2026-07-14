@@ -17,7 +17,6 @@ public class SubscriptionPlan : BaseEntity
     public int MaxSocialAccounts { get; set; }
     public List<string> Features { get; set; } = [];
     public bool IsActive { get; set; }
-    public DateTime CreatedAt { get; set; }
 
     public ICollection<Subscription> Subscriptions { get; set; } = [];
 }
