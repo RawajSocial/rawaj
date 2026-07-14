@@ -19,7 +19,7 @@ export class LoginForm {
     private readonly formErrorsService: FormErrorsService,
   ) {
     this.form = this.fb.nonNullable.group({
-      email: ['', [Validators.required, Validators.email]],
+      emailOrUserName: ['', [Validators.required]],
       password: ['', [Validators.required, Validators.minLength(8)]],
       rememberMe: [false],
     });
@@ -35,11 +35,10 @@ export class LoginForm {
     console.log('Login payload', this.form.getRawValue());
   }
 
-  protected errorMessage(controlName: 'email' | 'password'): string | null {
-    if (controlName === 'email') {
-      return this.formErrorsService.getControlErrorMessage(this.form.controls.email, this.submitted, {
-        required: 'البريد الإلكتروني مطلوب.',
-        email: 'أدخل بريدًا إلكترونيًا صحيحًا.',
+  protected errorMessage(controlName: 'emailOrUserName' | 'password'): string | null {
+    if (controlName === 'emailOrUserName') {
+      return this.formErrorsService.getControlErrorMessage(this.form.controls.emailOrUserName, this.submitted, {
+        required: 'البريد الإلكتروني أو اسم المستخدم مطلوب.',
       });
     }
 

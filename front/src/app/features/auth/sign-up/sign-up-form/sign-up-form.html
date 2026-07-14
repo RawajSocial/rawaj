@@ -47,6 +47,18 @@
       }
     </div>
 
+    <div class="mb-3">
+      <label class="form-label" for="userName">اسم المستخدم</label>
+      <input
+        id="userName"
+        type="text"
+        class="form-control"
+        placeholder="mohamed_ahmed"
+        formControlName="userName" />
+      @if (errorMessage('userName'); as userNameError) {
+        <small class="text-danger d-block mt-2 validation-msg">{{ userNameError }}</small>
+      }
+    </div>
 
     <div class="mb-3">
       <label class="form-label" for="password">كلمة المرور</label>
