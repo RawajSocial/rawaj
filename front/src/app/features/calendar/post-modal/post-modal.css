@@ -1,45 +1,11 @@
-/* ── Backdrop ── */
-.modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.45);
-  z-index: 9998;
-  animation: bd-in 0.18s ease;
-}
-
-/* ── Panel ── */
-.modal-panel {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 9999;
-  background: #fff;
-  border-radius: 16px;
-  width: min(520px, calc(100vw - 2rem));
-  max-height: 88vh;
-  overflow-y: auto;
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.22);
-  animation: panel-in 0.22s ease;
-  direction: rtl;
-}
-
-@keyframes bd-in    { from { opacity: 0 } to { opacity: 1 } }
-@keyframes panel-in {
-  from { opacity: 0; transform: translate(-50%, calc(-50% + 14px)); }
-  to   { opacity: 1; transform: translate(-50%, -50%); }
-}
-
-/* ── Header ── */
-.modal-header {
+/* ── Header slot (platform icon + title) ── */
+.pm-header {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 20px 20px 16px;
-  border-bottom: 1px solid #f0f0f5;
 }
 
-.modal-platform-icon {
+.pm-platform-icon {
   width: 42px;
   height: 42px;
   border-radius: 12px;
@@ -51,40 +17,21 @@
   flex-shrink: 0;
 }
 
-.modal-platform-icon i { color: inherit; }
+.pm-platform-icon i { color: inherit; }
 
-.modal-header-text { flex: 1; }
+.pm-header-text { min-width: 0; }
 
-.modal-title {
+.pm-title {
   font-size: 1rem;
   font-weight: 700;
   color: #1a1a2e;
   margin: 0 0 2px;
 }
 
-.modal-campaign-name {
+.pm-campaign-name {
   font-size: 0.78rem;
   color: #6b7280;
 }
-
-.modal-close-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  border: none;
-  background: #f4f4f8;
-  color: #6b7280;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.15s, color 0.15s;
-}
-
-.modal-close-btn:hover { background: #ebebf2; color: #374151; }
-
-/* ── Body ── */
-.modal-body { padding: 16px 20px; }
 
 /* ── Detail grid ── */
 .detail-grid { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
@@ -158,7 +105,8 @@
 
 /* ── Footer ── */
 .modal-footer {
-  padding: 14px 20px 18px;
+  flex-shrink: 0;
+  padding: 14px 22px 18px;
   border-top: 1px solid #f0f0f5;
   display: flex;
   align-items: center;
@@ -307,10 +255,5 @@
 .btn-save:hover { opacity: 0.88; }
 
 @media (max-width: 480px) {
-  .modal-panel { border-radius: 12px 12px 0 0; top: auto; bottom: 0; left: 0; transform: none; width: 100%; }
-  @keyframes panel-in {
-    from { opacity: 0; transform: translateY(20px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
   .form-row-2 { grid-template-columns: 1fr; }
 }

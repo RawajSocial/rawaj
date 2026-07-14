@@ -1,15 +1,18 @@
-import { Component, HostListener, input, output, signal } from '@angular/core';
+import { Component, input, output, signal } from '@angular/core';
 import { ScheduledPost, PostStatus } from '../../../model/scheduled-post.model';
 import { CampaignPlatform } from '../../../model/campaign.model';
+import { ModalShell } from '../../../shared/components/modal-shell/modal-shell';
 
 @Component({
   selector: 'app-post-modal',
   standalone: true,
+  imports: [ModalShell],
   templateUrl: './post-modal.html',
   styleUrl: './post-modal.css',
 })
 export class PostModal {
   post   = input.required<ScheduledPost>();
+  open   = input(true);
   close  = output<void>();
   save   = output<ScheduledPost>();
   remove = output<string>();
@@ -81,9 +84,4 @@ export class PostModal {
   }
 
   confirmDelete(): void { this.remove.emit(this.post().id); }
-
-  @HostListener('document:keydown.escape')
-  onEsc(): void {
-    if (this.editMode()) { this.cancelEdit(); } else { this.close.emit(); }
-  }
 }

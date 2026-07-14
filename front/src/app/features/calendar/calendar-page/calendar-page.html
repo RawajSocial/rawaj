@@ -1,19 +1,13 @@
 <div class="page-shell">
 
   <!-- ── Page header ── -->
-  <div class="page-top">
-    <div>
-      <h5 class="page-title">تقويم المنشورات</h5>
-      <nav aria-label="breadcrumb">
-        <ol class="breadcrumb">
-          <li class="breadcrumb-item"><a routerLink="/dashboard">لوحة التحكم</a></li>
-          <li class="breadcrumb-item active">التقويم</li>
-        </ol>
-      </nav>
-    </div>
-  </div>
+  <app-page-header
+    title="تقويم المنشورات"
+    [breadcrumbs]="[{ label: 'لوحة التحكم', link: '/dashboard' }, { label: 'التقويم' }]" />
 
-  <!-- ── Calendar card ── -->
+
+  <!-- ── Calendar + side panel ── -->
+  <div class="cal-layout">
   <div class="cal-card">
 
     <!-- ── Toolbar ── -->
@@ -69,6 +63,7 @@
     ══════════════════════════════════════════ -->
     @if (viewMode() === 'month') {
 
+      <div class="month-view-scroll">
       <div class="month-grid">
 
         <!-- Day name header row -->
@@ -81,12 +76,13 @@
           @for (day of week; track $index) {
             <div class="month-day-cell"
                  [class.other-month]="!isCurrentMonth(day)"
-                 [class.is-today]="isToday(day)">
+                 [class.is-today]="isToday(day)"
+                 [class.is-selected]="isSelectedDay(day)"
+                 (click)="selectDay(day)">
 
               <span class="day-num"
                     [class.today-num]="isToday(day)"
-                    [class.other-num]="!isCurrentMonth(day)"
-                    (click)="goToDay(day)">
+                    [class.other-num]="!isCurrentMonth(day)">
                 {{ day.getDate() }}
               </span>
 
@@ -112,6 +108,7 @@
         }
 
       </div>
+      </div>
 
     }
 
@@ -120,6 +117,7 @@
     ══════════════════════════════════════════ -->
     @else if (viewMode() === 'week') {
 
+      <div class="week-view-scroll">
       <div class="week-grid">
 
         <!-- Day headers -->
@@ -152,6 +150,7 @@
           </div>
         }
 
+      </div>
       </div>
 
     }
@@ -256,6 +255,59 @@
     }
 
   </div><!-- /cal-card -->
+
+  <!-- ── Side panel: selected day + upcoming ── -->
+  <aside class="cal-side-panel">
+
+    @if (selectedDay(); as day) {
+      <div class="side-panel-card">
+        <div class="side-panel-header">
+          <div>
+            <h3 class="side-panel-title">{{ selectedDayLabel() }}</h3>
+            <span class="side-panel-count">
+              {{ selectedDayPosts().length }} {{ selectedDayPosts().length === 1 ? 'منشور' : 'منشورات' }}
+            </span>
+          </div>
+          <div class="side-panel-actions">
+            <button type="button" class="side-add-btn" (click)="goToDay(day)">
+              <i class="fa-solid fa-plus"></i>
+              إضافة
+            </button>
+            <button type="button" class="side-close-btn" (click)="selectedDay.set(null)" title="إغلاق">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+        </div>
+
+        @if (selectedDayPosts().length === 0) {
+          <p class="side-empty">لا توجد منشورات مجدولة لهذا اليوم.</p>
+        } @else {
+          <div class="side-events-list">
+            @for (post of selectedDayPosts(); track post.id) {
+              <button type="button" class="side-event-card" (click)="openPost(post)">
+                <span class="side-event-dot" [style.background]="platformCfg[post.platform].color"></span>
+                <div class="side-event-body">
+                  <p class="side-event-title">{{ post.content.substring(0, 60) }}</p>
+                  <span class="side-event-time">
+                    <i class="fa-regular fa-clock"></i>
+                    {{ formatTime(post.scheduledAt) }}
+                  </span>
+                </div>
+              </button>
+            }
+          </div>
+        }
+      </div>
+    } @else {
+      <div class="side-panel-card side-placeholder">
+        <i class="fa-regular fa-calendar"></i>
+        <p>اختر يومًا من التقويم لعرض منشوراته هنا</p>
+      </div>
+    }
+
+  </aside>
+
+  </div><!-- /cal-layout -->
 
 </div><!-- /page-shell -->
 

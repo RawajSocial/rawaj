@@ -14,8 +14,6 @@
 }
 
 .brands-strip {
-  width: 100vw;
-  margin: 0;
   padding: 1.25rem 0;
   border-top: 1px solid rgba(64, 77, 108, .2);
   border-bottom: 1px solid rgba(64, 77, 108, .2);
@@ -29,46 +27,47 @@
   letter-spacing: .06em;
 }
 
-.brands-marquee {
-  overflow: hidden;
-}
-
-.brands-track {
-  display: flex;
-  align-items: center;
-  width: max-content;
-  animation: brandsLoopRtl 24s linear infinite;
-}
-
 .brands-set {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 2.8rem;
-  padding-right: 2.8rem;
 }
 
 .brand-item {
   height: 40px;
   width: auto;
-  opacity: .95;
-  filter: grayscale(1) saturate(0.2);
-  transform: scale(1);
-  transition: transform var(--transition-base), filter var(--transition-base), opacity var(--transition-base);
 }
 
-.brands-marquee:hover .brands-track {
-  animation-play-state: paused;
+/* ── Invite marketers ── */
+.why-invite {
+  margin-top: 4rem;
 }
 
-.brand-item:hover {
-  opacity: 1;
-  filter: grayscale(0) saturate(1);
-  transform: scale(1.08);
+.why-invite__text h3 {
+  font-family: var(--font-serif);
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-bold);
+  color: var(--color-primary-active);
+  margin-bottom: .75rem;
+}
+
+.why-invite__text p {
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
+  line-height: var(--leading-base);
+  margin: 0;
 }
 
 @media (max-width: 992px) {
   .why-us-section {
     padding-top: 5rem;
+  }
+}
+
+@media (max-width: 991px) {
+  .why-invite__text {
+    text-align: center;
   }
 }
 
@@ -79,22 +78,9 @@
 
   .brands-set {
     gap: 1.8rem;
-    padding-right: 1.8rem;
-  }
-  .brands-track {
-    animation-duration: 18s;
   }
 
   .brand-item {
     height: 30px;
-  }
-}
-
-@keyframes brandsLoopRtl {
-  0% {
-    transform: translateX(0);
-  }
-  100% {
-    transform: translateX(-50%);
   }
 }

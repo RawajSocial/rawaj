@@ -7,7 +7,7 @@
 
     <div class="row align-items-center g-5 section-content">
       <!-- Timeline (Right side in RTL) -->
-      <div class="col-12 col-lg-6">
+      <div class="col-12 col-lg-5">
         <div class="timeline-container" #timelineContainer>
 
           <!-- Step 1 -->
@@ -69,11 +69,11 @@
         </div>
       </div>
 
-      <!-- Image Content (Left side in RTL) -->
-      <div class="col-12 col-lg-6" appReveal="fade-right-far" [revealDuration]="2000">
+      <!-- Content -> Rawaj -> Platforms visual (Left side in RTL) -->
+      <div class="col-12 col-lg-7" appReveal="fade-right-far" [revealDuration]="2000">
         <div class="image-wrapper">
           <div class="image-glow"></div>
-          <img src="t.png" alt="Dashboard Preview" class="dashboard-img">
+          <app-workflow-visual></app-workflow-visual>
         </div>
       </div>
     </div>

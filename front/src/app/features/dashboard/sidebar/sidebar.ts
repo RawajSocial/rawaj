@@ -31,6 +31,21 @@ export class Sidebar {
 
   activeRoute = signal('dashboard-home');
 
+  private readonly collapsedSections = signal<Set<string>>(new Set());
+
+  isSectionCollapsed(heading: string): boolean {
+    return this.collapsedSections().has(heading);
+  }
+
+  toggleSection(heading: string): void {
+    this.collapsedSections.update(current => {
+      const next = new Set(current);
+      if (next.has(heading)) next.delete(heading);
+      else next.add(heading);
+      return next;
+    });
+  }
+
   navSections: NavSection[] = [
     {
       heading: 'الرئيسية',
@@ -47,6 +62,21 @@ export class Sidebar {
         { id: 'my-media',       label: 'إعلاناتي',          icon: 'fa-photo-film',          route: '/dashboard/my-media' },
         { id: 'marketing-plan', label: 'خطتي التسويقية',   icon: 'fa-chart-gantt',         route: '/dashboard/marketing-plan' },
         { id: 'calendar',       label: 'تقويم المنشورات',  icon: 'fa-calendar-days',        route: '/dashboard/calendar' },
+      ],
+    },
+    {
+      heading: 'الفريق',
+      items: [
+        { id: 'users', label: 'المستخدمون', icon: 'fa-users-gear', route: '/dashboard/users' },
+      ],
+    },
+    {
+      heading: 'الحساب',
+      items: [
+        { id: 'notifications', label: 'الإشعارات',        icon: 'fa-bell',            route: '/dashboard/notifications' },
+        { id: 'billing',       label: 'الفوترة',          icon: 'fa-credit-card',     route: '/dashboard/billing' },
+        { id: 'settings',      label: 'الإعدادات',        icon: 'fa-gear',            route: '/dashboard/settings' },
+        { id: 'help',          label: 'المساعدة والدعم',  icon: 'fa-circle-question', route: '/dashboard/help' },
       ],
     },
   ];

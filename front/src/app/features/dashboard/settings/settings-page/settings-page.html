@@ -1,0 +1,112 @@
+<div class="page-shell">
+  <app-page-header
+    title="الإعدادات"
+    [breadcrumbs]="[{ label: 'لوحة التحكم', link: '/dashboard' }, { label: 'الإعدادات' }]"
+    subtitle="إدارة إعدادات حسابك وتفضيلاتك." />
+
+  <div class="rw-tabs">
+    <button type="button" class="rw-tab" [class.active]="tab() === 'profile'" (click)="setTab('profile')">الملف الشخصي</button>
+    <button type="button" class="rw-tab" [class.active]="tab() === 'preferences'" (click)="setTab('preferences')">التفضيلات</button>
+    <button type="button" class="rw-tab" [class.active]="tab() === 'appearance'" (click)="setTab('appearance')">المظهر</button>
+  </div>
+
+  <!-- ── Profile ── -->
+  @if (tab() === 'profile') {
+    <div class="rw-card">
+      <div class="rw-card__header">
+        <h3 class="rw-card__title">الملف الشخصي</h3>
+        <p class="rw-card__hint">حدّث معلوماتك الشخصية</p>
+      </div>
+
+      <div class="avatar-row">
+        <span class="settings-avatar">{{ initials() }}</span>
+        <div>
+          <button type="button" class="rw-btn rw-btn--outline">تغيير الصورة</button>
+          <p class="avatar-hint">JPG أو PNG أو GIF. بحد أقصى 2 ميجابايت.</p>
+        </div>
+      </div>
+
+      <form [formGroup]="profileForm" (ngSubmit)="saveProfile()" class="settings-form">
+        <div class="form-grid">
+          <div class="rw-field">
+            <label for="firstName">الاسم الأول</label>
+            <input id="firstName" type="text" formControlName="firstName">
+          </div>
+          <div class="rw-field">
+            <label for="lastName">الاسم الأخير</label>
+            <input id="lastName" type="text" formControlName="lastName">
+          </div>
+        </div>
+
+        <div class="rw-field">
+          <label for="email">البريد الإلكتروني</label>
+          <input id="email" type="email" formControlName="email">
+        </div>
+
+        <div class="rw-field">
+          <label for="bio">نبذة تعريفية</label>
+          <textarea id="bio" formControlName="bio"></textarea>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="rw-btn rw-btn--dark">حفظ التغييرات</button>
+        </div>
+      </form>
+    </div>
+  }
+
+  <!-- ── Preferences ── -->
+  @if (tab() === 'preferences') {
+    <div class="rw-card">
+      <div class="rw-card__header">
+        <h3 class="rw-card__title">التفضيلات</h3>
+        <p class="rw-card__hint">إدارة تفضيلات الإشعارات والتواصل</p>
+      </div>
+
+      <div class="pref-list">
+        @for (p of preferences(); track p.key) {
+          <div class="pref-row">
+            <div class="pref-text">
+              <span class="pref-title">{{ p.title }}</span>
+              <span class="pref-desc">{{ p.desc }}</span>
+            </div>
+            <button type="button" class="rw-switch" [class.on]="p.enabled"
+              (click)="togglePreference(p.key)" [attr.aria-pressed]="p.enabled" [attr.aria-label]="p.title"></button>
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- ── Appearance ── -->
+  @if (tab() === 'appearance') {
+    <div class="rw-card">
+      <div class="rw-card__header">
+        <h3 class="rw-card__title">المظهر</h3>
+        <p class="rw-card__hint">خصّص شكل لوحة التحكم</p>
+      </div>
+
+      <div class="appearance-section">
+        <span class="appearance-label">السمة</span>
+        <div class="theme-grid">
+          @for (t of themes; track t.value) {
+            <button type="button" class="theme-card" [class.active]="activeTheme() === t.value" (click)="activeTheme.set(t.value)">
+              <i class="fa-solid {{ t.icon }}"></i>
+              <span>{{ t.label }}</span>
+            </button>
+          }
+        </div>
+      </div>
+
+      <div class="appearance-section">
+        <span class="appearance-label">اللون المميّز</span>
+        <div class="accent-row">
+          @for (c of accents; track c) {
+            <button type="button" class="accent-dot" [class.active]="activeAccent() === c"
+              [style.background]="c" (click)="activeAccent.set(c)" [attr.aria-label]="c"></button>
+          }
+        </div>
+      </div>
+    </div>
+  }
+</div>

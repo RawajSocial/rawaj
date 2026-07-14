@@ -9,6 +9,15 @@
 @import url('./styles/custom.button.css');
 @import url('./styles/auth.checkbox.css');
 @import url('./styles/reveal.css');
+
+html {
+  scroll-behavior: smooth;
+}
+
+body.no-scroll {
+  overflow: hidden;
+}
+
 /* ================================================================= */
 /*  ROOT VARIABLES                                                    */
 /* ================================================================= */

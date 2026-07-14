@@ -1,0 +1,23 @@
+@if (open()) {
+  <div class="rw-modal-backdrop" #backdrop (click)="requestClose()">
+    <div class="rw-modal-panel" #panel [style.max-width.px]="maxWidth()" (click)="$event.stopPropagation()">
+      <div class="rw-modal-header">
+        <div class="rw-modal-header-slot">
+          @if (title()) {
+            <h3 class="rw-modal-title">{{ title() }}</h3>
+          }
+          <ng-content select="[modal-header]"></ng-content>
+        </div>
+        <button type="button" class="rw-modal-close" (click)="requestClose()" aria-label="إغلاق">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="rw-modal-body">
+        <ng-content></ng-content>
+      </div>
+
+      <ng-content select="[modal-footer]"></ng-content>
+    </div>
+  </div>
+}

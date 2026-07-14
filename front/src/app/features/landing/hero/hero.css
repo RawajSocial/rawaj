@@ -4,6 +4,7 @@
   min-height: calc(100vh - 80px);
   display: flex;
   align-items: center;
+  overflow: hidden;
   /* background:url('/home-cosmic.svg') center/cover no-repeat; */
 }
 
@@ -13,63 +14,69 @@
 }
 
 /* =========================================================
-   GRID BACKGROUND
-========================================================= */
-
-.hero-grid {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  z-index: 0;
-
-  /* GRID */
-  background-image:
-    linear-gradient(
-      rgba(255,255,255,0.045) 1px,
-      transparent 1px
-    ),
-    linear-gradient(
-      90deg,
-      rgba(255,255,255,0.045) 1px,
-      transparent 1px
-    );
-
-  background-size: 64px 64px;
-
-  /* FADE EDGES */
-  mask-image:
-    radial-gradient(
-      circle at center,
-      rgba(0,0,0,1) 25%,
-      rgba(0,0,0,.7) 45%,
-      rgba(0,0,0,.25) 70%,
-      transparent 100%
-    );
-
-  -webkit-mask-image:
-    radial-gradient(
-      circle at center,
-      rgba(0,0,0,1) 25%,
-      rgba(0,0,0,.7) 45%,
-      rgba(0,0,0,.25) 70%,
-      transparent 100%
-    );
-}
-
-/* =========================================================
    ANNOUNCEMENT
 ========================================================= */
 
 .announcement-badge {
   width: fit-content;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   background: rgba(255,255,255,0.08);
   border: 1px solid rgba(255,255,255,0.12);
   color: white;
   padding: 4px 16px;
   border-radius: 999px;
-  margin-bottom: 2rem;
+  margin: 2.5rem 0rem  1.5rem 0rem;
   backdrop-filter: blur(14px);
   font-size: 13px;
+}
+
+.badge-flags {
+  display: inline-flex;
+  align-items: center;
+}
+
+.badge-flag {
+  position: relative;
+  display: inline-flex;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  overflow: hidden;
+  margin-inline-start: -6px;
+}
+
+.badge-flag:first-child {
+  margin-inline-start: 0;
+}
+
+.badge-flag img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Egypt stays on top of the overlapping stack */
+.badge-flag--eg { z-index: 3; }
+.badge-flag--sa { z-index: 2; }
+.badge-flag--ae { z-index: 1; }
+
+.badge-dot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 0 rgba(34, 197, 94, .6);
+  animation: badgeDotPulse 2s infinite;
+}
+
+@keyframes badgeDotPulse {
+  0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, .6); }
+  70% { box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
 }
 
 /* =========================================================
@@ -81,7 +88,7 @@
   line-height: 1.4;
   color: white;
   max-width: 1100px;
-  margin: 0 auto 2rem;
+  margin: 0 auto 1.5rem;
   font-weight: 900;
 }
 
@@ -89,7 +96,7 @@
   background:
     linear-gradient(
       90deg,
-      var(--color-accent-hover)
+      var(--color-accent)
     );
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -104,7 +111,7 @@
   max-width: 850px;
   font-size: 1.3rem;
   line-height: 2.2rem;
-  margin-bottom: 3rem;
+  margin-bottom: 2.5rem;
 }
 
 /* =========================================================
@@ -132,6 +139,10 @@
   padding: 6px 16px;
 }
 
+.hero-buttons {
+  margin-bottom: 4rem;
+}
+
 
 /* =========================================================
    RESPONSIVE (Typography & Layout)
@@ -142,14 +153,22 @@
     padding-top: 4rem;
     padding-bottom: 5rem;
   }
+  .announcement-badge {
+    margin-bottom: 1.25rem;
+  }
   .hero-title {
     font-size: clamp(2.5rem, 6vw, 4rem);
+    margin-bottom: 1.25rem;
   }
   .hero-description {
     font-size: 1.2rem;
+    margin-bottom: 2rem;
+  }
+  .hero-buttons {
+    margin-bottom: 3rem;
   }
   .dashboard-image-wrapper {
-    margin-top: 4rem;
+    margin-top: 1.5rem;
   }
 }
 
@@ -158,32 +177,36 @@
     padding-top: 2rem;
     padding-bottom: 4rem;
   }
+  .announcement-badge {
+    font-size: 0.85rem;
+    padding: 0.6rem 1rem;
+    margin-bottom: 1.25rem;
+    margin-top: 3rem;
+  }
   .hero-title {
     font-size: 2.2rem;
+    margin-bottom: 1rem;
   }
   .hero-description {
     font-size: 1rem;
     line-height: 1.8rem;
     padding: 0 1rem;
+    margin-bottom: 1.75rem;
   }
   .hero-buttons {
     flex-direction: column !important;
     width: 100% !important;
     padding: 0 1.5rem !important;
+    gap: 0.75rem !important;
+    margin-bottom: 2rem;
   }
 
   .hero-buttons .btn {
     width: 100%;
   }
   .dashboard-image-wrapper {
-    margin-top: 3rem;
+    margin-top: 1rem;
     padding: 0 1rem;
-  }
-  .announcement-badge {
-    font-size: 0.85rem;
-    padding: 0.6rem 1rem;
-    margin-bottom: 2rem;
-    margin-top: 3rem;
   }
   .reviews-wrapper {
     margin-top: 2rem;
@@ -196,7 +219,7 @@
 
 .dashboard-image-wrapper {
   position: relative;
-  margin-top: 6rem;
+  margin-top: 2rem;
   display: flex;
   justify-content: center;
   z-index: 2;
@@ -232,277 +255,166 @@
 }
 
 /* =========================================================
-   ANIMATED GRID LINES
+   AS-HERO-SHAPE (ported from Sastik theme: top light, rising
+   particles, orbit circle)
 ========================================================= */
 
-.grid-lines {
-  --grid-step: 64px;
+.as-hero-shape {
   position: absolute;
   inset: 0;
-  pointer-events: none;
-  z-index: 1;
   overflow: hidden;
+  pointer-events: none;
 }
 
-.circuit-line {
+.as-hero-shape .shape {
   position: absolute;
-  opacity: 0;
-  filter: drop-shadow(0 0 8px rgba(124, 58, 237, .45));
-  will-change: transform, opacity, clip-path;
-  background:
-    linear-gradient(
-      90deg,
-      rgba(124, 58, 237, 0),
-      rgba(124, 58, 237, .65) 25%,
-      rgba(56, 189, 248, .75) 50%,
-      rgba(124, 58, 237, .65) 75%,
-      rgba(124, 58, 237, 0)
-    );
 }
 
-.h-line {
-  height: 1px;
+/* Soft top light wash */
+.as-hero-shape .shape--1 {
+  top: -60px;
+  right: 5%;
+  width: 640px;
+  opacity: .18;
+  z-index: -3;
 }
 
-.v-line {
-  width: 1px;
-  background:
-    linear-gradient(
-      180deg,
-      rgba(124, 58, 237, 0),
-      rgba(124, 58, 237, .55) 30%,
-      rgba(56, 189, 248, .75) 55%,
-      rgba(124, 58, 237, .55) 80%,
-      rgba(124, 58, 237, 0)
-    );
+/* Vivid violet beam from top */
+.as-hero-shape .shape--2 {
+  top: -120px;
+  right: 18%;
+  width: 620px;
+  opacity: .8;
+  z-index: -2;
 }
 
-/* DESKTOP LAYOUT (Default) */
-.h-1 {
-  top: 192px;
-  left: 128px;
-  width: 256px;
-  animation: drawHorizontalLR 10s linear infinite;
-  animation-delay: 1s;
-}
-.h-1 .pulse {
-  animation: pulseLR 10s linear infinite;
-  animation-delay: 1s;
+/* Rising particle columns (centered) */
+.as-hero-shape .shape--3 {
+  top: -40px;
+  width: 260px;
+  height: 640px;
+  overflow: hidden;
+  opacity: .85;
+  z-index: 1;
 }
 
-.v-1 {
-  left: 384px;
-  top: 192px;
-  height: 256px;
-  animation: drawVerticalTB 10s linear infinite;
-  animation-delay: 3s;
-}
-.v-1 .pulse {
-  animation: pulseTB 10s linear infinite;
-  animation-delay: 3s;
+.as-hero-shape .shape--3a { left: 50%; transform: translateX(-260px); }
+.as-hero-shape .shape--3b { left: 50%; transform: translateX(-50%); }
+.as-hero-shape .shape--3c { left: 50%; transform: translateX(160px); }
+
+.as-hero-shape .shape--3 .img {
+  display: flex;
+  flex-direction: column;
+  animation: heroMarquee 15s linear infinite;
 }
 
-.h-2 {
-  top: 448px;
-  left: 384px;
-  width: 320px;
-  animation: drawHorizontalLR 10s linear infinite;
-  animation-delay: 5s;
-}
-.h-2 .pulse {
-  animation: pulseLR 10s linear infinite;
-  animation-delay: 5s;
+.as-hero-shape .shape--3b .img {
+  animation-duration: 19s;
 }
 
-.v-2 {
-  left: 704px;
-  top: 448px;
-  height: 192px;
-  animation: drawVerticalTB 10s linear infinite;
-  animation-delay: 7s;
-}
-.v-2 .pulse {
-  animation: pulseTB 10s linear infinite;
-  animation-delay: 7s;
+.as-hero-shape .shape--3c .img {
+  animation-duration: 12s;
 }
 
-.h-3 {
-  top: 640px;
-  left: 704px;
-  width: 256px;
-  animation: drawHorizontalLR 10s linear infinite;
-  animation-delay: 9s;
-}
-.h-3 .pulse {
-  animation: pulseLR 10s linear infinite;
-  animation-delay: 9s;
+.as-hero-shape .shape--3 .img img {
+  width: 260px;
+  flex-shrink: 0;
+  display: block;
 }
 
-/* SECOND SEQUENCE (Starts from Right) */
-.h-4 {
-  top: 128px;
-  right: 128px;
-  width: 256px;
-  animation: drawHorizontalRL 10s linear infinite;
-  animation-delay: 0s;
-}
-.h-4 .pulse {
-  animation: pulseRL 10s linear infinite;
-  animation-delay: 0s;
+/* Orbit rings, each with an independently-timed traveling point */
+.as-hero-shape .shape--4 {
+  top: -50px;
+  right: 50%;
+  transform: translateX(50%);
+  width: 1200px;
+  height: 1200px;
+  opacity: .55;
+  z-index: 0;
 }
 
-.v-3 {
-  right: 384px;
-  top: 128px;
-  height: 256px;
-  animation: drawVerticalTB 10s linear infinite;
-  animation-delay: 2s;
-}
-.v-3 .pulse {
-  animation: pulseTB 10s linear infinite;
-  animation-delay: 2s;
-}
-
-.h-5 {
-  top: 384px;
-  right: 384px;
-  width: 320px;
-  animation: drawHorizontalRL 10s linear infinite;
-  animation-delay: 4s;
-}
-.h-5 .pulse {
-  animation: pulseRL 10s linear infinite;
-  animation-delay: 4s;
-}
-
-.v-4 {
-  right: 704px;
-  top: 384px;
-  height: 192px;
-  animation: drawVerticalTB 10s linear infinite;
-  animation-delay: 6s;
-}
-.v-4 .pulse {
-  animation: pulseTB 10s linear infinite;
-  animation-delay: 6s;
-}
-
-.h-6 {
-  top: 576px;
-  right: 704px;
-  width: 256px;
-  animation: drawHorizontalRL 10s linear infinite;
-  animation-delay: 8s;
-}
-.h-6 .pulse {
-  animation: pulseRL 10s linear infinite;
-  animation-delay: 8s;
-}
-
-.pulse {
-  content: "";
+.orbit {
   position: absolute;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background:
-    radial-gradient(circle, #ffffff 0%, #60a5fa 36%, #8b5cf6 65%, rgba(139, 92, 246, 0) 80%);
-  box-shadow:
-    0 0 16px rgba(96, 165, 250, .95),
-    0 0 30px rgba(139, 92, 246, .65);
-  opacity: 0;
-}
-
-.h-line .pulse {
   top: 50%;
-  transform: translateY(-50%);
-}
-
-.v-line .pulse {
   left: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.062);
+  border-radius: 50%;
+}
+
+.orbit--outer {
+  width: 1200px;
+  height: 1200px;
+  margin: -600px 0 0 -600px;
+  animation: orbitSpin 15s linear infinite;
+}
+
+.orbit--inner {
+  width: 1000px;
+  height: 1000px;
+  margin: -500px 0 0 -500px;
+  animation: orbitSpin 20s linear infinite;
+  animation-delay: -7s;
+}
+
+.orbit-dot {
+  position: absolute;
+  top: -3px;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
   transform: translateX(-50%);
+  background: var(--color-secondary);
+  box-shadow: 0 0 10px 2px var(--color-secondary);
 }
 
-/* MOBILE LAYOUT & RESPONSIVE ROUTING */
+@keyframes orbitSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Ambient violet glow blob */
+.as-hero-shape .shape--5 {
+  top: -220px;
+  left: 50%;
+  width: 760px;
+  height: 760px;
+  border-radius: 100%;
+  background: #28035d;
+  filter: blur(220px);
+  opacity: .7;
+  transform: translateX(-50%) rotate(35deg);
+  z-index: -1;
+}
+
+@keyframes heroMarquee {
+  from { transform: translateY(0); }
+  to { transform: translateY(-50%); }
+}
+
+@media (max-width: 991px) {
+  .as-hero-shape .shape--1 { width: 460px; right: -10%; }
+  .as-hero-shape .shape--2 { width: 440px; right: -5%; }
+  .as-hero-shape .shape--3 { width: 180px; }
+  .as-hero-shape .shape--3 .img img { width: 180px; }
+  .as-hero-shape .shape--3a { transform: translateX(-190px); }
+  .as-hero-shape .shape--3c { transform: translateX(100px); }
+  .as-hero-shape .shape--4 { width: 800px; height: 800px; top: -400px; }
+  .orbit--outer { width: 800px; height: 800px; margin: -400px 0 0 -400px; }
+  .orbit--inner { width: 660px; height: 660px; margin: -330px 0 0 -330px; }
+  .as-hero-shape .shape--5 { width: 560px; height: 560px; }
+}
+
 @media (max-width: 768px) {
-  /* Sequence 1 */
-  .h-1 { top: 128px; left: 64px; width: 128px; }
-  .v-1 { left: 192px; top: 128px; height: 128px; }
-  .h-2 { top: 256px; left: 64px; width: 128px; animation-name: drawHorizontalRL; }
-  .h-2 .pulse { animation-name: pulseRL; }
-  .v-2 { left: 64px; top: 256px; height: 128px; }
-  .h-3 { top: 384px; left: 64px; width: 128px; }
-
-  /* Sequence 2 */
-  .h-4 { top: 64px; right: 32px; width: 128px; }
-  .v-3 { right: 160px; top: 64px; height: 128px; }
-  .h-5 { top: 192px; right: 32px; width: 128px; animation-name: drawHorizontalLR; }
-  .h-5 .pulse { animation-name: pulseLR; }
-  .v-4 { right: 32px; top: 192px; height: 128px; }
-  .h-6 { top: 320px; right: 32px; width: 128px; }
-}
-
-/* =========================================================
-   ANIMATIONS
-========================================================= */
-
-/* Draw Horizontal Left to Right */
-@keyframes drawHorizontalLR {
-  0% { clip-path: inset(0 100% 0 0); opacity: 0; }
-  0.5% { clip-path: inset(0 100% 0 0); opacity: 1; }
-  16% { clip-path: inset(0 0 0 0); opacity: 1; }
-  20% { clip-path: inset(0 0 0 100%); opacity: 0; }
-  20.1% { opacity: 0; }
-  100% { opacity: 0; }
-}
-
-/* Draw Horizontal Right to Left */
-@keyframes drawHorizontalRL {
-  0% { clip-path: inset(0 0 0 100%); opacity: 0; }
-  0.5% { clip-path: inset(0 0 0 100%); opacity: 1; }
-  16% { clip-path: inset(0 0 0 0); opacity: 1; }
-  20% { clip-path: inset(0 100% 0 0); opacity: 0; }
-  20.1% { opacity: 0; }
-  100% { opacity: 0; }
-}
-
-/* Draw Vertical Top to Bottom */
-@keyframes drawVerticalTB {
-  0% { clip-path: inset(0 0 100% 0); opacity: 0; }
-  0.5% { clip-path: inset(0 0 100% 0); opacity: 1; }
-  16% { clip-path: inset(0 0 0 0); opacity: 1; }
-  20% { clip-path: inset(100% 0 0 0); opacity: 0; }
-  20.1% { opacity: 0; }
-  100% { opacity: 0; }
-}
-
-/* Pulse Horizontal Left to Right */
-@keyframes pulseLR {
-  0% { left: 0; opacity: 0; }
-  0.5% { left: 0; opacity: 1; }
-  16% { left: 100%; opacity: 1; }
-  20% { left: 100%; opacity: 0; }
-  20.1% { opacity: 0; }
-  100% { opacity: 0; }
-}
-
-/* Pulse Horizontal Right to Left */
-@keyframes pulseRL {
-  0% { left: 100%; opacity: 0; }
-  0.5% { left: 100%; opacity: 1; }
-  16% { left: 0; opacity: 1; }
-  20% { left: 0; opacity: 0; }
-  20.1% { opacity: 0; }
-  100% { opacity: 0; }
-}
-
-/* Pulse Vertical Top to Bottom */
-@keyframes pulseTB {
-  0% { top: 0; opacity: 0; }
-  0.5% { top: 0; opacity: 1; }
-  16% { top: 100%; opacity: 1; }
-  20% { top: 100%; opacity: 0; }
-  20.1% { opacity: 0; }
-  100% { opacity: 0; }
+  .as-hero-shape .shape--1 { width: 320px; }
+  .as-hero-shape .shape--2 { width: 300px; }
+  .as-hero-shape .shape--3 { width: 130px; height: 460px; }
+  .as-hero-shape .shape--3 .img img { width: 130px; }
+  .as-hero-shape .shape--3a { transform: translateX(-140px); }
+  .as-hero-shape .shape--3c { transform: translateX(70px); }
+  .as-hero-shape .shape--4 { width: 560px; height: 560px; top: -280px; }
+  .orbit--outer { width: 560px; height: 560px; margin: -280px 0 0 -280px; }
+  .orbit--inner { width: 460px; height: 460px; margin: -230px 0 0 -230px; }
+  .as-hero-shape .shape--5 { width: 400px; height: 400px; }
 }
 

@@ -8,8 +8,9 @@
   />
   <div class="dash-main">
     <app-header
+      [mobileMenuOpen]="mobileOverlayOpen()"
       (toggleSidebar)="toggleSidebar()"
-      (openMobileMenu)="openMobileMenu()"
+      (toggleMobileMenu)="toggleMobileMenu()"
     />
     <main class="dash-content">
       <router-outlet />

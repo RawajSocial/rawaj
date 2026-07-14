@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
 import { RevealDirective } from '../../../shared/directives/reveal.directive';
 
 @Component({
@@ -6,11 +6,12 @@ import { RevealDirective } from '../../../shared/directives/reveal.directive';
   imports: [RevealDirective],
   templateUrl: './pricing.html',
   styleUrl: './pricing.css',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Pricing {
-  isAnnual = false;
+  readonly isAnnual = signal(false);
 
-  toggleBilling(value: boolean) {
-    this.isAnnual = value;
+  toggleBilling(value: boolean): void {
+    this.isAnnual.set(value);
   }
 }

@@ -62,6 +62,36 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/marketing-plan/marketing-plan-page/marketing-plan-page').then((m) => m.MarketingPlanPage),
       },
+      {
+        path: 'users',
+        loadComponent: () =>
+          import('./features/dashboard/users/users-page/users-page').then((m) => m.UsersPage),
+      },
+      {
+        path: 'users/:id',
+        loadComponent: () =>
+          import('./features/dashboard/users/user-profile-page/user-profile-page').then((m) => m.UserProfilePage),
+      },
+      {
+        path: 'notifications',
+        loadComponent: () =>
+          import('./features/dashboard/notifications/notifications-page/notifications-page').then((m) => m.NotificationsPage),
+      },
+      {
+        path: 'settings',
+        loadComponent: () =>
+          import('./features/dashboard/settings/settings-page/settings-page').then((m) => m.SettingsPage),
+      },
+      {
+        path: 'billing',
+        loadComponent: () =>
+          import('./features/dashboard/billing/billing-page/billing-page').then((m) => m.BillingPage),
+      },
+      {
+        path: 'help',
+        loadComponent: () =>
+          import('./features/dashboard/help-support/help-support-page/help-support-page').then((m) => m.HelpSupportPage),
+      },
     ],
   },
 ];

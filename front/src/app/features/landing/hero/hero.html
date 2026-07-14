@@ -1,28 +1,50 @@
 <!-- HERO -->
 <section class="hero-section">
 
-  <div class="hero-grid"></div>
-  <div class="grid-lines" aria-hidden="true">
-    <!-- Sequence 1 (Starts Left) -->
-    <span class="circuit-line h-line h-1"><span class="pulse"></span></span>
-    <span class="circuit-line v-line v-1"><span class="pulse"></span></span>
-    <span class="circuit-line h-line h-2"><span class="pulse"></span></span>
-    <span class="circuit-line v-line v-2"><span class="pulse"></span></span>
-    <span class="circuit-line h-line h-3"><span class="pulse"></span></span>
-
-    <!-- Sequence 2 (Starts Right) -->
-    <span class="circuit-line h-line h-4"><span class="pulse"></span></span>
-    <span class="circuit-line v-line v-3"><span class="pulse"></span></span>
-    <span class="circuit-line h-line h-5"><span class="pulse"></span></span>
-    <span class="circuit-line v-line v-4"><span class="pulse"></span></span>
-    <span class="circuit-line h-line h-6"><span class="pulse"></span></span>
+  <!-- Sastik-style hero shapes: top light, rising particles, orbit circle -->
+  <div class="as-hero-shape" aria-hidden="true">
+    <div class="shape shape--1"><img src="assets/img/shape/hero-light-effect01.png" alt=""></div>
+    <div class="shape shape--2"><img src="assets/img/shape/hero-light-effect02.png" alt=""></div>
+    <div class="shape shape--3 shape--3a">
+      <div class="img marquee-2">
+        <img src="assets/img/shape/particals-dot.png" alt="">
+        <img src="assets/img/shape/particals-dot.png" alt="">
+      </div>
+    </div>
+    <div class="shape shape--3 shape--3b">
+      <div class="img marquee-2">
+        <img src="assets/img/shape/particals-dot.png" alt="">
+        <img src="assets/img/shape/particals-dot.png" alt="">
+      </div>
+    </div>
+    <div class="shape shape--3 shape--3c">
+      <div class="img marquee-2">
+        <img src="assets/img/shape/particals-dot.png" alt="">
+        <img src="assets/img/shape/particals-dot.png" alt="">
+      </div>
+    </div>
+    <div class="shape shape--4">
+      <div class="orbit orbit--outer">
+        <span class="orbit-dot"></span>
+      </div>
+      <div class="orbit orbit--inner">
+        <span class="orbit-dot"></span>
+      </div>
+    </div>
+    <div class="shape shape--5"></div>
   </div>
 
   <div class="container position-relative">
 
     <!-- Announcement -->
     <div class="announcement-badge mx-auto text-center" appReveal="fade-up" [revealDuration]="1500">
-      منصة تسويق ذكية مدعومة بالذكاء الاصطناعي
+      <span class="badge-flags" aria-hidden="true">
+        <span class="badge-flag badge-flag--eg"><img src="assets/icons/flags/egypt.png" alt=""></span>
+        <span class="badge-flag badge-flag--sa"><img src="assets/icons/flags/Saudi Arabia.png" alt=""></span>
+        <span class="badge-flag badge-flag--ae"><img src="assets/icons/flags/UAE.png" alt=""></span>
+      </span>
+      منصة تسويق ذكية مدعومة بالذكاء الاصطناعي موجهة لدول الشرق الأوسط
+      <span class="badge-dot" aria-hidden="true"></span>
     </div>
 
     <!-- Main Title -->

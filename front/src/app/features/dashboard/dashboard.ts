@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, effect, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { SeoService } from '../../services/seo.service';
 import { Header } from './header/header';
@@ -15,7 +15,11 @@ export class Dashboard implements OnInit {
   sidebarOpen = signal(true);
   mobileOverlayOpen = signal(false);
 
-  constructor(private readonly seo: SeoService) {}
+  constructor(private readonly seo: SeoService) {
+    effect(() => {
+      document.body.classList.toggle('no-scroll', this.mobileOverlayOpen());
+    });
+  }
 
   ngOnInit(): void {
     this.seo.setPageSeo({
@@ -34,8 +38,8 @@ export class Dashboard implements OnInit {
     this.sidebarOpen.update(v => !v);
   }
 
-  openMobileMenu(): void {
-    this.mobileOverlayOpen.set(true);
+  toggleMobileMenu(): void {
+    this.mobileOverlayOpen.update(v => !v);
   }
 
   closeMobileMenu(): void {
