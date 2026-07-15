@@ -1,0 +1,117 @@
+<form class="step-animate" [formGroup]="form" (ngSubmit)="onNext()">
+  <h2 class="step-title">أخبرنا عن نشاطك التجاري</h2>
+  <p class="step-subtitle">سنستخدم هذه المعلومات لإنشاء تجربة مخصصة لك.</p>
+
+  <div class="setup-field">
+    <label class="setup-label" for="businessName">
+      <i class="fa-solid fa-store" style="color:var(--color-secondary); margin-left:0.4rem;"></i>
+      اسم النشاط التجاري
+    </label>
+    <input
+      id="businessName"
+      type="text"
+      class="setup-input"
+      formControlName="businessName"
+      placeholder="مثال: كافيه النيل"
+      autocomplete="organization" />
+    @if (nameCtrl.invalid && nameCtrl.touched) {
+      <span class="field-error">
+        <i class="fa-solid fa-circle-exclamation"></i>
+        اسم النشاط مطلوب (٢ أحرف على الأقل).
+      </span>
+    }
+  </div>
+
+  <div class="setup-field">
+    <label class="setup-label">
+      <i class="fa-solid fa-phone" style="color:var(--color-secondary); margin-left:0.4rem;"></i>
+      رقم الهاتف
+    </label>
+    <div class="phone-field">
+      <div class="phone-country-dropdown" [class.open]="countryOpen()">
+        <button type="button" class="country-trigger" (click)="countryOpen.update(v => !v)">
+          <span class="country-flag">{{ selectedCountry().flag }}</span>
+          <span class="country-code">{{ selectedCountry().code }}</span>
+          <i class="fa-solid fa-chevron-down country-arrow"></i>
+        </button>
+        <div class="country-menu">
+          @for (c of countries; track c.code) {
+            <button
+              type="button"
+              class="country-option"
+              [class.selected]="c.code === selectedCountry().code"
+              (click)="selectCountry(c)">
+              <span>{{ c.flag }}</span>
+              <span class="c-country-name">{{ c.name }}</span>
+              <span class="c-code">{{ c.code }}</span>
+            </button>
+          }
+        </div>
+      </div>
+      <input
+        id="businessPhone"
+        type="tel"
+        class="setup-input phone-input"
+        formControlName="businessPhone"
+        placeholder="أدخل رقم الهاتف"
+        dir="ltr" />
+    </div>
+    @if (phoneCtrl.invalid && phoneCtrl.touched) {
+      <span class="field-error">
+        <i class="fa-solid fa-circle-exclamation"></i>
+        أدخل رقم هاتف صحيح (٧ إلى ١٥ رقمًا).
+      </span>
+    }
+  </div>
+
+  <div class="setup-field">
+    <label class="setup-label">
+      <i class="fa-solid fa-briefcase" style="color:var(--color-secondary); margin-left:0.4rem;"></i>
+      القطاع
+    </label>
+    <div class="setup-dropdown" [class.open]="industryOpen()">
+      <button
+        type="button"
+        class="setup-dropdown-trigger"
+        [class.empty]="!industryCtrl.value"
+        (click)="industryOpen.update(v => !v)">
+        @if (industryCtrl.value) {
+          <i class="{{ selectedIndustryIcon }} setup-dropdown-icon"></i>
+        }
+        <span class="setup-dropdown-label">{{ industryCtrl.value || 'اختر قطاع نشاطك' }}</span>
+        <i class="fa-solid fa-chevron-down setup-dropdown-arrow"></i>
+      </button>
+      <div class="setup-dropdown-menu">
+        @for (ind of industries; track ind.label) {
+          <button
+            type="button"
+            class="setup-dropdown-option"
+            [class.selected]="industryCtrl.value === ind.label"
+            (click)="selectIndustry(ind.label)">
+            <i class="{{ ind.icon }}"></i>
+            {{ ind.label }}
+          </button>
+        }
+      </div>
+    </div>
+    @if (industryCtrl.invalid && industryCtrl.touched) {
+      <span class="field-error">
+        <i class="fa-solid fa-circle-exclamation"></i>
+        يرجى اختيار قطاع نشاطك.
+      </span>
+    }
+  </div>
+
+  <div class="step-actions">
+    <div class="start">
+      <button type="button" class="btn-back" (click)="back.emit()">
+        <i class="fa-solid fa-arrow-right"></i>
+        السابق
+      </button>
+    </div>
+    <button type="submit" class="btn-next">
+      التالي
+      <i class="fa-solid fa-arrow-left"></i>
+    </button>
+  </div>
+</form>

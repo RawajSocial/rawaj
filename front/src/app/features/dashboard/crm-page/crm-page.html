@@ -1,0 +1,84 @@
+<div class="crm-page">
+  <app-page-header
+    title="لوحة التحكم"
+    [breadcrumbs]="[{ label: 'لوحة التحكم', link: '/dashboard' }, { label: 'نظرة عامة' }]"
+    subtitle="نظرة شاملة على أداء حساباتك على مواقع التواصل الاجتماعي." />
+
+  @if (loading()) {
+    <div class="text-center py-5">
+      <div class="spinner-border text-primary" role="status"></div>
+    </div>
+  } @else if (loadError(); as error) {
+    <div class="alert alert-danger">{{ error }}</div>
+  } @else if (!hasData()) {
+    <div class="empty-state">
+      <div class="empty-icon"><i class="fa-solid fa-chart-line"></i></div>
+      <h3>لا توجد بيانات أداء بعد</h3>
+      <p>بمجرد نشر منشوراتك المجدولة على حساباتك الاجتماعية، ستظهر هنا إحصاءات حقيقية عن الوصول والتفاعل.</p>
+    </div>
+  } @else {
+    <!-- KPI Row -->
+    <div class="kpi-row">
+      @for (kpi of kpis(); track kpi.title) {
+        <app-kpi-card
+          [title]="kpi.title"
+          [value]="kpi.value"
+          [icon]="kpi.icon"
+          [iconBg]="kpi.iconBg"
+          [iconColor]="kpi.iconColor"
+          [accentColor]="kpi.accentColor" />
+      }
+    </div>
+
+    <!-- Platform breakdown + top posts -->
+    <div class="insights-row">
+      <!-- Platform performance -->
+      <div class="insight-card">
+        <div class="insight-head">
+          <h3 class="insight-title">أداء المنصات</h3>
+          <span class="insight-sub">حسب مدى الوصول</span>
+        </div>
+        <div class="platform-list">
+          @for (p of overview()!.platformBreakdown; track p.platform) {
+            <div class="platform-row">
+              <span class="platform-badge" [style.background]="platformCfg(p.platform).color"><i class="{{ platformCfg(p.platform).icon }}"></i></span>
+              <div class="platform-info">
+                <div class="platform-info-top">
+                  <span class="platform-name">{{ platformCfg(p.platform).label }}</span>
+                  <span class="platform-reach">{{ compact(p.reach) }}</span>
+                </div>
+                <div class="platform-bar-track">
+                  <div class="platform-bar-fill" [style.width.%]="reachShare(p.reach)" [style.background]="platformCfg(p.platform).color"></div>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Top posts -->
+      <div class="insight-card">
+        <div class="insight-head">
+          <h3 class="insight-title">أفضل المنشورات أداءً</h3>
+          <span class="insight-sub">حسب مدى الوصول</span>
+        </div>
+        <div class="top-posts">
+          @for (post of overview()!.topPosts; track post.scheduledPostId) {
+            <div class="top-post">
+              <span class="top-post-icon" [style.background]="platformCfg(post.platform).color">
+                <i class="{{ platformCfg(post.platform).icon }}"></i>
+              </span>
+              <div class="top-post-body">
+                <p class="top-post-content">{{ post.title ?? post.content }}</p>
+                <div class="top-post-stats">
+                  <span><i class="fa-solid fa-bullseye"></i> {{ compact(post.reach) }}</span>
+                  <span><i class="fa-solid fa-heart"></i> {{ compact(post.likes) }}</span>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  }
+</div>

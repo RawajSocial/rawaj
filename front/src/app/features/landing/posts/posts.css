@@ -1,0 +1,237 @@
+.posts-section {
+  --card-width: 300px;
+  --card-gap: 50px;
+  --active-index: 0;
+  --middle-index: 2.5;
+  position: relative;
+  background-color: var(--background-gray );
+  padding-top: 6rem;
+  overflow: hidden;
+  color: var(--color-dark);
+}
+
+
+.section-header {
+  margin-bottom: 1rem;
+  position: relative;
+  z-index: 10;
+}
+
+.section-header .title {
+  font-family: var(--font-serif);
+  font-size: var(--font-size-4xl);
+  font-weight: var(--font-bold);
+
+  margin-bottom: 1rem;
+  color: var(--color-primary-active)
+}
+
+.section-header .subtitle {
+  color: var(--color-text-secondary) !important;
+  font-size: var(--font-size-base);
+}
+
+/* Carousel Layout Container */
+.carousel-container {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  display: flex;
+  justify-content: center; /* Center active item by default */
+  padding: 3rem 0;
+  z-index: 2;
+}
+
+/* Soft Faded Edge Gradients (Left and Right) */
+.carousel-container::before,
+.carousel-container::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 25%; /* Spans 20% of the viewport on each side */
+  z-index: 5;
+  pointer-events: none;
+}
+
+
+.carousel-container::before {
+  left: 0;
+  background: linear-gradient(to right, var(--background-gray) 30%, rgba(248, 249, 250, 0) 100%);
+}
+
+.carousel-container::after {
+  right: 0;
+  background: linear-gradient(to left, var(--background-gray) 30%, rgba(248, 249, 250, 0) 100%);
+}
+
+.carousel-track {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  gap: var(--card-gap);
+  width: max-content;
+  transform: translateX(calc( (var(--active-index) - var(--middle-index)) * (var(--card-width) + var(--card-gap)) ));
+  transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+  will-change: transform;
+}
+
+.carousel-card {
+  width: var(--card-width);
+  height: 480px; /* Vertical card */
+  flex-shrink: 0;
+  transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1),
+              opacity 0.6s ease,
+              filter 0.6s ease;
+  position: relative;
+}
+
+.card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 24px;
+  overflow: hidden;
+  border: 1px solid rgba(11, 15, 25, 0.06);
+  background : transparent;
+  transition: border-color 0.4s ease, box-shadow 0.4s ease;
+}
+
+.phone-frame {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border: 4px solid #0b0f19;
+  border-radius: 26px;
+  background: var(--color-bg-secondary);
+  overflow: hidden;
+
+}
+
+.phone-notch {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 88px;
+  height: 8px;
+  background: #0b0f19;
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+  z-index: 2;
+}
+
+.phone-button {
+  position: absolute;
+  right: -8px;
+  width: 10px;
+  border: 4px solid #0b0f19;
+  border-radius: 8px;
+  background: transparent;
+  z-index: 2;
+}
+
+.phone-button-top {
+  top: 56px;
+  height: 26px;
+}
+
+.phone-button-bottom {
+  top: 150px;
+  height: 36px;
+}
+
+.post-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+
+
+
+/* Faded adjacent cards */
+.carousel-card.faded {
+  opacity: 0.35;
+  transform: scale(0.88);
+  filter: blur(2px); /* Soft focus fade */
+  pointer-events: none;
+}
+
+/* Active card styles */
+.carousel-card.active {
+  opacity: 1;
+  transform: scale(1.03);
+  z-index: 2;
+}
+
+.carousel-card.active .card-inner {
+
+box-shadow: rgba(0, 0, 0, 0.19) 0px 10px 20px, rgba(0, 0, 0, 0.23) 0px 6px 6px;
+}
+
+.carousel-card.active .card-overlay {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.carousel-card.active .card-glow {
+  opacity: 0.3; /* Subtle backing glow in light mode */
+}
+
+/* Controls */
+.carousel-controls {
+  margin-top: 2.5rem;
+  position: relative;
+  z-index: 10;
+}
+
+.control-btn {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--color-surface);
+  border: 1px solid rgba(11, 15, 25, 0.08);
+  color: var(--color-dark);
+  font-size: 1.15rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
+  transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.control-btn:hover {
+  background: linear-gradient(135deg, var(--color-secondary), var(--color-primary));
+  border-color: transparent;
+  color: white;
+  box-shadow: 0 10px 25px rgba(124, 58, 237, 0.25);
+  transform: translateY(-2px);
+}
+
+.control-btn:active {
+  transform: translateY(0);
+}
+
+/* Mobile & Tablet Responsive Adjustments */
+@media (max-width: 768px) {
+  .posts-section {
+    --card-width: 260px;
+    --card-gap: 16px;
+    padding: 5rem 0;
+  }
+  .carousel-card {
+    height: 390px; /* Scaled down height */
+  }
+  .control-btn {
+    width: 48px;
+    height: 48px;
+    font-size: 1rem;
+  }
+  .carousel-container::before,
+  .carousel-container::after {
+    width: 15%; /* Reduced fading space on mobile */
+  }
+}

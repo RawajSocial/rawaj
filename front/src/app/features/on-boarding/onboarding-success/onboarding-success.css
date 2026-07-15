@@ -1,0 +1,67 @@
+.success-wrap {
+  width: min(760px, 100%);
+  margin: 0 auto;
+  padding: 2rem 0;
+}
+
+.success {
+  text-align: center;
+  background: var(--color-surface);
+  border-radius: 20px;
+  padding: 2.5rem 2rem;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
+}
+
+.success-ico {
+  width: 82px;
+  height: 82px;
+  border-radius: 50%;
+  margin: 0 auto 1.4rem;
+  display: grid;
+  place-items: center;
+  font-size: 2rem;
+  color: var(--color-text-inverse);
+  box-shadow: rgba(50, 50, 93, 0.25) 0px 13px 27px -5px, rgba(0, 0, 0, 0.3) 0px 8px 16px -8px;
+  background: linear-gradient(135deg, var(--color-secondary), var(--color-primary));
+}
+
+.success h2 {
+  margin: 0 0 0.75rem;
+  font-size: clamp(1.6rem, 2.8vw, 2.2rem);
+  color: var(--color-dark);
+}
+
+.success p {
+  margin: 0 auto 1.6rem;
+  max-width: 520px;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-lg);
+  line-height: 1.7;
+}
+
+.success-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  justify-content: center;
+  margin-bottom: 1.8rem;
+}
+
+.s-pill {
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-secondary);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.btn-dash {
+  border: 0;
+  border-radius: 14px;
+  padding: 0.85rem 2.2rem;
+  color: var(--color-text-inverse);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-semibold);
+  background: linear-gradient(135deg, var(--color-secondary), var(--color-primary));
+}

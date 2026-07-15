@@ -1,0 +1,29 @@
+<div class="kpi-card">
+  <div class="kpi-body">
+    <div class="kpi-icon" [style.background]="iconBg()" [style.color]="iconColor()">
+      <i class="fa-solid {{ icon() }}"></i>
+    </div>
+    <div class="kpi-info">
+      <p class="kpi-title">{{ title() }}</p>
+      <h3 class="kpi-value">{{ value() }}</h3>
+    </div>
+  </div>
+  @if (change(); as change) {
+    <div class="kpi-footer">
+      <span class="kpi-vs">مقارنة بالشهر الماضي</span>
+      <span
+        class="kpi-change"
+        [class.positive]="change > 0"
+        [class.negative]="change < 0"
+      >
+        {{ change > 0 ? '+' : '' }}{{ change }}%
+        <i
+          class="fa-solid"
+          [class.fa-arrow-trend-up]="change > 0"
+          [class.fa-arrow-trend-down]="change < 0"
+        ></i>
+      </span>
+    </div>
+  }
+  <div class="kpi-accent-bar" [style.background]="accentColor()"></div>
+</div>

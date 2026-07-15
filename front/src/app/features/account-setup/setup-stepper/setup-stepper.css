@@ -1,0 +1,84 @@
+.stepper {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 2.4rem;
+  padding-bottom: 1.6rem;
+  border-bottom: 1px solid var(--color-border);
+  direction: rtl;
+  overflow: visible;
+}
+
+.stepper-step {
+  /* Fixed to dot width — label overflows centered below */
+  flex: 0 0 36px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.45rem;
+  overflow: visible;
+}
+
+.step-dot {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-bold);
+  border: 2px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.stepper-step.active .step-dot {
+  border-color: var(--color-secondary);
+  color: var(--color-secondary);
+  background: var(--color-secondary-subtle);
+  box-shadow: 0 0 0 5px rgba(124, 58, 237, 0.1);
+  transform: scale(1.08);
+}
+
+.stepper-step.completed .step-dot {
+  border-color: transparent;
+  color: #fff;
+  background: linear-gradient(135deg, var(--color-secondary), var(--color-primary));
+  box-shadow: 0 3px 10px rgba(124, 58, 237, 0.35);
+}
+
+.step-label {
+  font-size: 0.67rem;
+  color: var(--color-text-muted);
+  font-weight: var(--font-medium);
+  text-align: center;
+  /* Centered on the dot — overflows the 36px step evenly on both sides */
+  width: 72px;
+  margin-inline: -18px;
+  line-height: 1.3;
+  white-space: normal;
+  transition: color 0.2s;
+}
+
+.stepper-step.active .step-label {
+  color: var(--color-secondary);
+  font-weight: var(--font-semibold);
+}
+
+.stepper-step.completed .step-label {
+  color: var(--color-text-secondary);
+}
+
+.stepper-line {
+  flex: 1;
+  height: 2px;
+  background: var(--color-border);
+  margin-top: 17px; /* align to dot center (36px / 2 - 1px) */
+  border-radius: 999px;
+  transition: background 0.4s ease;
+  min-width: 12px;
+}
+
+.stepper-line.done {
+  background: linear-gradient(to left, var(--color-secondary), var(--color-primary));
+}

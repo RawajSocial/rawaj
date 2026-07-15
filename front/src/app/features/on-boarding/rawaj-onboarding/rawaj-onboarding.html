@@ -1,0 +1,100 @@
+<main class="onboarding-page" dir="rtl">
+  <div class="onboarding-layout">
+    <app-onboarding-sidebar [currentStep]="currentStep()" class="d-lg-block d-none" [totalSteps]="totalSteps" />
+    <section class="onboarding-main">
+      @switch (currentStep()) {
+
+        @case (1) {
+          <app-onboarding-step-one
+            [currentStep]="currentStep()"
+            [totalSteps]="totalSteps"
+            [data]="onboardingData()"
+            (dataChange)="updateOnboardingData($event)"
+            (next)="goToNextStep()" />
+        }
+
+        @case (2) {
+          <app-onboarding-step-campaign-brief
+            [currentStep]="currentStep()"
+            [totalSteps]="totalSteps"
+            [data]="onboardingData()"
+            (dataChange)="updateOnboardingData($event)"
+            (next)="goToNextStep()"
+            (back)="goToPreviousStep()" />
+        }
+
+        @case (3) {
+          <app-onboarding-step-three
+            [currentStep]="currentStep()"
+            [totalSteps]="totalSteps"
+            [data]="onboardingData()"
+            (dataChange)="updateOnboardingData($event)"
+            (next)="goToNextStep()"
+            (back)="goToPreviousStep()" />
+        }
+
+        @case (4) {
+          <app-onboarding-step-four
+            [currentStep]="currentStep()"
+            [totalSteps]="totalSteps"
+            [data]="onboardingData()"
+            (dataChange)="updateOnboardingData($event)"
+            (next)="goToNextStep()"
+            (back)="goToPreviousStep()" />
+        }
+
+        @case (5) {
+          <app-onboarding-step-five
+            [currentStep]="currentStep()"
+            [totalSteps]="totalSteps"
+            [data]="onboardingData()"
+            (dataChange)="updateOnboardingData($event)"
+            (next)="goToNextStep()"
+            (back)="goToPreviousStep()" />
+        }
+
+        @case (6) {
+          <app-onboarding-step-six
+            [currentStep]="currentStep()"
+            [totalSteps]="totalSteps"
+            [data]="onboardingData()"
+            (dataChange)="updateOnboardingData($event)"
+            (next)="goToNextStep()"
+            (back)="goToPreviousStep()" />
+        }
+
+        @case (7) {
+          <app-onboarding-step-seven
+            [currentStep]="currentStep()"
+            [totalSteps]="totalSteps"
+            [data]="onboardingData()"
+            (dataChange)="updateOnboardingData($event)"
+            (finish)="finishOnboarding()"
+            (back)="goToPreviousStep()" />
+        }
+
+        @case (8) {
+          @if (submitting()) {
+            <div class="onboarding-submitting text-center py-5">
+              <div class="spinner-border text-primary" role="status"></div>
+              <p class="mt-3">جاري إنشاء حملتك...</p>
+            </div>
+          } @else {
+            @if (submitError(); as error) {
+              <div class="alert alert-danger" role="alert">{{ error }}</div>
+            }
+            <app-onboarding-plan-approval
+              [data]="onboardingData()"
+              (approve)="approvePlan()"
+              (back)="goToPreviousStep()" />
+          }
+        }
+
+        @default {
+          <app-onboarding-success />
+        }
+
+      }
+    </section>
+  </div>
+</main>

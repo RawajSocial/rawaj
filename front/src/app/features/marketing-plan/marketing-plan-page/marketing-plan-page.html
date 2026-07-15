@@ -1,0 +1,184 @@
+<div class="mp-shell" dir="rtl">
+  @switch (phase()) {
+    @case ('list') {
+      <div class="mp-list-page">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <div>
+            <h2 class="mb-1">الخطط التسويقية</h2>
+            <p class="text-muted mb-0">اختر حملة لعرض خطتها، أو ابدأ حملة جديدة.</p>
+          </div>
+          <button class="btn btn-primary" type="button" (click)="goToNewCampaign()">
+            <i class="fa-solid fa-plus me-2"></i>حملة جديدة
+          </button>
+        </div>
+
+        @if (loadingCampaigns()) {
+          <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+          </div>
+        } @else if (loadError(); as error) {
+          <div class="alert alert-danger">{{ error }}</div>
+        } @else if (campaigns().length === 0) {
+          <div class="mp-empty text-center py-5">
+            <i class="fa-solid fa-bullseye fa-3x text-primary mb-3"></i>
+            <h4>لا توجد حملات بعد</h4>
+            <p class="text-muted">ابدأ أول حملة تسويقية مدعومة بالذكاء الاصطناعي.</p>
+            <button class="btn btn-primary" type="button" (click)="goToNewCampaign()">ابدأ حملة جديدة</button>
+          </div>
+        } @else {
+          <div class="row g-3">
+            @for (campaign of campaigns(); track campaign.campaignId) {
+              <div class="col-md-6 col-lg-4">
+                <button class="mp-campaign-card card w-100 text-start" type="button" (click)="openCampaign(campaign.campaignId)">
+                  <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                      <h5 class="card-title mb-0">{{ campaign.name }}</h5>
+                      <span class="badge mp-status-badge" [attr.data-status]="campaign.status">{{ campaign.status }}</span>
+                    </div>
+                    @if (campaign.startDate) {
+                      <p class="text-muted small mb-0">
+                        <i class="fa-regular fa-calendar me-1"></i>
+                        {{ campaign.startDate }} @if (campaign.endDate) { — {{ campaign.endDate }} }
+                      </p>
+                    }
+                  </div>
+                </button>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    }
+
+    @case ('detail') {
+      <div class="mp-detail-page">
+        <button class="btn btn-link ps-0 mb-3" type="button" (click)="backToList()">
+          <i class="fa-solid fa-arrow-right me-1"></i>الرجوع للحملات
+        </button>
+
+        @if (loadingDetail()) {
+          <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+          </div>
+        } @else if (selectedCampaign(); as campaign) {
+          <div class="card mb-4">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                <div>
+                  <h3 class="mb-1">{{ campaign.name }}</h3>
+                  @if (campaign.objective) {
+                    <p class="text-muted mb-2">{{ campaign.objective }}</p>
+                  }
+                  <div class="d-flex gap-2 flex-wrap">
+                    @for (platform of campaign.targetPlatforms; track platform) {
+                      <span class="badge text-bg-light">{{ platform }}</span>
+                    }
+                  </div>
+                </div>
+                <div class="text-end">
+                  <span class="badge mp-status-badge" [attr.data-status]="campaign.status">{{ campaign.status }}</span>
+                  @if (campaign.budgetAmount) {
+                    <p class="mb-0 mt-2 fw-semibold">{{ campaign.budgetAmount }} {{ campaign.budgetCurrency }}</p>
+                  }
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="mb-0"><i class="fa-solid fa-wand-magic-sparkles text-primary me-2"></i>الخطة التسويقية بالذكاء الاصطناعي</h4>
+                <button class="btn btn-outline-primary btn-sm" type="button" [disabled]="generating()" (click)="generatePlan()">
+                  @if (generating()) {
+                    <span class="spinner-border spinner-border-sm me-1" role="status"></span>جاري التوليد...
+                  } @else if (parsedPlan() || selectedCampaign()?.aiPlanJson) {
+                    <i class="fa-solid fa-rotate me-1"></i>إعادة التوليد
+                  } @else {
+                    <i class="fa-solid fa-sparkles me-1"></i>توليد الخطة
+                  }
+                </button>
+              </div>
+
+              @if (generateError(); as error) {
+                <div class="alert alert-warning">
+                  {{ error }}
+                  <div class="small text-muted mt-1">قد يكون هذا بسبب استنفاد حصة مزود الذكاء الاصطناعي مؤقتًا - حاول مرة أخرى بعد قليل.</div>
+                </div>
+              }
+
+              @if (!campaign.aiPlanJson && !generating()) {
+                <div class="text-center py-4 text-muted">
+                  <i class="fa-solid fa-lightbulb fa-2x mb-2"></i>
+                  <p>لم يتم توليد خطة تسويقية لهذه الحملة بعد.</p>
+                </div>
+              } @else if (parsedPlan(); as plan) {
+                <div class="mp-plan-content">
+                  @if (plan.summary) {
+                    <p class="lead">{{ plan.summary }}</p>
+                  }
+
+                  @if (plan.pillars?.length) {
+                    <h6 class="mt-3">محاور المحتوى</h6>
+                    <div class="d-flex flex-wrap gap-2">
+                      @for (pillar of plan.pillars; track pillar) {
+                        <span class="badge text-bg-primary-subtle text-primary-emphasis">{{ pillar }}</span>
+                      }
+                    </div>
+                  }
+
+                  @if (plan.keyThemes?.length) {
+                    <h6 class="mt-3">المواضيع الرئيسية</h6>
+                    <ul>
+                      @for (theme of plan.keyThemes; track theme) {
+                        <li>{{ theme }}</li>
+                      }
+                    </ul>
+                  }
+
+                  @if (plan.recommendedPlatforms?.length) {
+                    <h6 class="mt-3">المنصات الموصى بها</h6>
+                    <div class="d-flex flex-wrap gap-2">
+                      @for (platform of plan.recommendedPlatforms; track platform) {
+                        <span class="badge text-bg-light">{{ platform }}</span>
+                      }
+                    </div>
+                  }
+
+                  @if (objectiveEntries(plan.postingCadence).length) {
+                    <h6 class="mt-3">وتيرة النشر</h6>
+                    <ul class="list-unstyled">
+                      @for (entry of objectiveEntries(plan.postingCadence); track entry[0]) {
+                        <li><strong>{{ entry[0] }}:</strong> {{ entry[1] }}</li>
+                      }
+                    </ul>
+                  }
+
+                  @if (objectiveEntries(plan.contentMix).length) {
+                    <h6 class="mt-3">توزيع أنواع المحتوى</h6>
+                    <ul class="list-unstyled">
+                      @for (entry of objectiveEntries(plan.contentMix); track entry[0]) {
+                        <li><strong>{{ entry[0] }}:</strong> {{ entry[1] }}</li>
+                      }
+                    </ul>
+                  }
+                </div>
+              } @else if (campaign.aiPlanJson) {
+                <pre class="mp-raw-plan">{{ campaign.aiPlanJson }}</pre>
+              }
+
+              <div class="d-flex gap-2 mt-4 flex-wrap">
+                <button class="btn btn-primary" type="button" (click)="goToContentGen()">
+                  <i class="fa-solid fa-pen-nib me-1"></i>توليد محتوى لهذه الحملة
+                </button>
+                <button class="btn btn-outline-secondary" type="button" (click)="goToCalendar()">
+                  <i class="fa-regular fa-calendar me-1"></i>عرض جدول النشر
+                </button>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    }
+  }
+</div>

@@ -1,0 +1,460 @@
+<div class="page-shell">
+
+  <!-- Page header -->
+  <div class="d-flex align-items-start justify-content-between mb-4 flex-wrap gap-3">
+    <div>
+      <h5 class="page-title">توليد المحتوى</h5>
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0">
+          <li class="breadcrumb-item"><a routerLink="/dashboard">لوحة التحكم</a></li>
+          <li class="breadcrumb-item active">توليد المحتوى</li>
+        </ol>
+      </nav>
+    </div>
+    <a routerLink="/dashboard/my-media" class="btn-all-media">
+      <i class="fa-solid fa-photo-film"></i>
+      جميع إعلاناتي
+    </a>
+  </div>
+
+  <!-- Campaign selector -->
+  <div class="mb-3">
+    <label class="form-label small text-muted" for="campaignSelect">الحملة</label>
+    <select id="campaignSelect" class="form-select w-auto" [ngModel]="media.selectedCampaignId()" (ngModelChange)="media.selectedCampaignId.set($event)">
+      @if (media.campaigns().length === 0) {
+        <option [ngValue]="null">لا توجد حملات - أنشئ حملة أولاً</option>
+      }
+      @for (campaign of media.campaigns(); track campaign.campaignId) {
+        <option [ngValue]="campaign.campaignId">{{ campaign.name }}</option>
+      }
+    </select>
+  </div>
+
+  @if (generateError(); as error) {
+    <div class="alert alert-danger">{{ error }}</div>
+  }
+
+  <!-- Success banner -->
+  @if (showSuccess()) {
+    <div class="success-banner mb-3">
+      <div class="d-flex align-items-center gap-2">
+        <i class="fa-solid fa-circle-check text-success"></i>
+        <span>تم بدء التوليد! سيظهر في قسم الوسائط خلال لحظات</span>
+      </div>
+      <button type="button" class="success-close" (click)="showSuccess.set(false)">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+  }
+
+  <!-- ══ Bootstrap 2-column layout ══ -->
+  <div class="row g-4 align-items-start">
+
+    <!-- ═══ COL LEFT: FORM ═══ -->
+    <div class="col-xl-4 col-lg-5">
+      <div class="form-panel">
+
+        <!-- Panel header -->
+        <div class="form-panel-hdr">
+          <div class="form-panel-icon">
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+          </div>
+          <div>
+            <span class="form-panel-title">توليد</span>
+            <span class="form-panel-sub">أنشئ محتوى بالذكاء الاصطناعي</span>
+          </div>
+        </div>
+
+        <div class="p-3">
+
+          <!-- نوع المحتوى -->
+          <div class="mb-3">
+            <label class="form-label-sm">نوع المحتوى <span class="req">*</span></label>
+            <div class="dropdown" [class.open]="typeOpen()" data-dd="type">
+              <button type="button" class="dropdown-trigger form-control type-trigger" (click)="typeOpen.update(v => !v)">
+                <span class="d-flex align-items-center gap-2 flex-1">
+                  <span class="type-icon-sm" [style.background]="typeCfg[genType()].color + '22'">
+                    <i class="{{ typeCfg[genType()].icon }}" [style.color]="typeCfg[genType()].color"></i>
+                  </span>
+                  <span class="dropdown-label">{{ typeLabel() }}</span>
+                </span>
+                <span class="dropdown-icon"><i class="fa-solid fa-chevron-down"></i></span>
+              </button>
+              <div class="dropdown-menu type-menu">
+                @for (t of genTypes; track t) {
+                  <button type="button" class="dropdown-option type-opt" [class.active]="genType() === t"
+                          (click)="genType.set(t); typeOpen.set(false)">
+                    <span class="type-icon-sm" [style.background]="typeCfg[t].color + '22'">
+                      <i class="{{ typeCfg[t].icon }}" [style.color]="typeCfg[t].color"></i>
+                    </span>
+                    <span>
+                      <span class="d-block fw-semibold" style="font-size:.83rem;color:#1a1a2e">{{ typeCfg[t].label }}</span>
+                      <span class="d-block" style="font-size:.68rem;color:#9ca3af;line-height:1.3">{{ typeCfg[t].desc }}</span>
+                    </span>
+                  </button>
+                }
+              </div>
+            </div>
+          </div>
+
+          <!-- اسم العلامة التجارية -->
+          <div class="mb-3">
+            <label class="form-label-sm">اسم العلامة التجارية <span class="req">*</span></label>
+            <input type="text" class="form-control form-control-sm"
+                   placeholder="مثال: تاون تيم"
+                   [value]="formBrand()"
+                   (input)="formBrand.set($any($event.target).value)">
+          </div>
+
+          <!-- وصف المحتوى -->
+          <div class="mb-3">
+            <label class="form-label-sm">وصف المحتوى <span class="req">*</span></label>
+            <textarea class="form-control form-control-sm gen-textarea"
+                      placeholder="صف المحتوى المطلوب بتفاصيل..."
+                      [value]="formDesc()"
+                      (input)="formDesc.set($any($event.target).value)"></textarea>
+          </div>
+
+          <!-- Row: نبرة + منصة -->
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label-sm">نبرة المحتوى</label>
+              <div class="dropdown" [class.open]="toneOpen()" data-dd="tone">
+                <button type="button" class="dropdown-trigger form-control form-control-sm" (click)="toneOpen.update(v => !v)">
+                  <span class="dropdown-label">{{ toneLabel() }}</span>
+                  <span class="dropdown-icon"><i class="fa-solid fa-chevron-down"></i></span>
+                </button>
+                <div class="dropdown-menu">
+                  @for (tone of tones; track tone) {
+                    <button type="button" class="dropdown-option" [class.active]="formTone() === tone"
+                            (click)="formTone.set(tone); toneOpen.set(false)">{{ toneCfg[tone] }}</button>
+                  }
+                </div>
+              </div>
+            </div>
+            <div class="col-6">
+              <label class="form-label-sm">المنصة</label>
+              <div class="dropdown" [class.open]="platformOpen()" data-dd="platform">
+                <button type="button" class="dropdown-trigger form-control form-control-sm" (click)="platformOpen.update(v => !v)">
+                  <span class="d-flex align-items-center gap-1 flex-1">
+                    @for (p of platforms; track p.value) {
+                      @if (p.value === formPlatform()) {
+                        <i class="{{ p.icon }}" [style.color]="p.color" style="font-size:.85rem"></i>
+                      }
+                    }
+                    <span class="dropdown-label">{{ platformLabel() }}</span>
+                  </span>
+                  <span class="dropdown-icon"><i class="fa-solid fa-chevron-down"></i></span>
+                </button>
+                <div class="dropdown-menu">
+                  @for (p of platforms; track p.value) {
+                    <button type="button" class="dropdown-option" [class.active]="formPlatform() === p.value"
+                            (click)="formPlatform.set(p.value); platformOpen.set(false)">
+                      <i class="{{ p.icon }}" [style.color]="p.color" style="font-size:.85rem;width:16px;text-align:center"></i>
+                      {{ p.label }}
+                    </button>
+                  }
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Row: لغة + جودة -->
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label-sm">اللغة</label>
+              <div class="dropdown" [class.open]="langOpen()" data-dd="lang">
+                <button type="button" class="dropdown-trigger form-control form-control-sm" (click)="langOpen.update(v => !v)">
+                  <span class="dropdown-label">{{ langLabel() }}</span>
+                  <span class="dropdown-icon"><i class="fa-solid fa-chevron-down"></i></span>
+                </button>
+                <div class="dropdown-menu">
+                  <button type="button" class="dropdown-option" [class.active]="formLang()==='ar'"    (click)="formLang.set('ar'); langOpen.set(false)">عربي</button>
+                  <button type="button" class="dropdown-option" [class.active]="formLang()==='ar-eg'" (click)="formLang.set('ar-eg'); langOpen.set(false)">عربي مصري</button>
+                  <button type="button" class="dropdown-option" [class.active]="formLang()==='en'"    (click)="formLang.set('en'); langOpen.set(false)">English</button>
+                </div>
+              </div>
+            </div>
+            <div class="col-6">
+              <label class="form-label-sm">الجودة</label>
+              <div class="dropdown" [class.open]="qualityOpen()" data-dd="quality">
+                <button type="button" class="dropdown-trigger form-control form-control-sm" (click)="qualityOpen.update(v => !v)">
+                  <span class="dropdown-label">{{ qualityLabel() }}</span>
+                  <span class="dropdown-icon"><i class="fa-solid fa-chevron-down"></i></span>
+                </button>
+                <div class="dropdown-menu">
+                  @for (q of qualities; track q.value) {
+                    <button type="button" class="dropdown-option quality-opt" [class.active]="formQuality()===q.value"
+                            (click)="formQuality.set(q.value); qualityOpen.set(false)">
+                      <span class="d-block fw-semibold" style="font-size:.82rem">{{ q.label }}</span>
+                      <span class="d-block" style="font-size:.68rem;color:#9ca3af">{{ q.desc }}</span>
+                    </button>
+                  }
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- حجم الإعلان (static-ad) -->
+          @if (genType() === 'static-ad') {
+            <div class="mb-3">
+              <label class="form-label-sm">حجم الإعلان</label>
+              <div class="row g-2">
+                @for (s of sizes; track s) {
+                  <div class="col-6">
+                    <button type="button" class="size-chip w-100" [class.active]="formSize() === s" (click)="formSize.set(s)">
+                      <span class="size-chip-label">{{ sizeCfg[s].label }}</span>
+                      <span class="size-chip-ratio">{{ sizeCfg[s].ratio }}</span>
+                    </button>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+
+          <!-- نوع النص (text) -->
+          @if (genType() === 'text') {
+            <div class="mb-3">
+              <label class="form-label-sm">نوع النص</label>
+              <div class="dropdown" [class.open]="textTypeOpen()" data-dd="texttype">
+                <button type="button" class="dropdown-trigger form-control form-control-sm" (click)="textTypeOpen.update(v => !v)">
+                  <span class="dropdown-label">{{ textTypeLabel() }}</span>
+                  <span class="dropdown-icon"><i class="fa-solid fa-chevron-down"></i></span>
+                </button>
+                <div class="dropdown-menu">
+                  @for (tt of textTypes; track tt) {
+                    <button type="button" class="dropdown-option" [class.active]="formTextType()===tt"
+                            (click)="formTextType.set(tt); textTypeOpen.set(false)">{{ textTypeCfg[tt] }}</button>
+                  }
+                </div>
+              </div>
+            </div>
+          }
+
+          <!-- مدة الفيديو (video) -->
+          @if (genType() === 'video') {
+            <div class="mb-3">
+              <label class="form-label-sm">مدة الفيديو</label>
+              <div class="d-flex gap-2">
+                <button type="button" class="duration-chip active flex-fill">15 ث</button>
+                <button type="button" class="duration-chip flex-fill">30 ث</button>
+                <button type="button" class="duration-chip flex-fill">60 ث</button>
+              </div>
+            </div>
+          }
+
+          <!-- Generate button -->
+          <button type="button" class="btn-generate w-100 mt-2"
+                  [disabled]="!canGenerate()" (click)="generate()">
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+            توليد المحتوى الآن
+          </button>
+
+        </div><!-- /p-3 -->
+      </div><!-- /form-panel -->
+    </div>
+
+    <!-- ═══ COL RIGHT: GENERATED MEDIA ═══ -->
+    <div class="col-xl-8 col-lg-7">
+      <div class="gallery-panel">
+
+        <!-- Gallery header -->
+        <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+          <div class="d-flex align-items-center gap-2">
+            <h6 class="gallery-title mb-0">الوسائط المُنشأة</h6>
+            <span class="gallery-count">{{ filteredItems().length }} عنصر</span>
+          </div>
+          <!-- Filter tabs -->
+          <div class="d-flex gap-1 flex-wrap">
+            <button type="button" class="ftab" [class.active]="filterType()==='all'"       (click)="filterType.set('all')">الكل <span class="ftab-cnt">{{ counts().all }}</span></button>
+            <button type="button" class="ftab" [class.active]="filterType()==='static-ad'" (click)="filterType.set('static-ad')"><i class="{{ typeCfg['static-ad'].icon }}"></i> <span class="ftab-cnt">{{ counts()['static-ad'] }}</span></button>
+            <button type="button" class="ftab" [class.active]="filterType()==='video'"     (click)="filterType.set('video')"><i class="{{ typeCfg['video'].icon }}"></i> <span class="ftab-cnt">{{ counts().video }}</span></button>
+            <button type="button" class="ftab" [class.active]="filterType()==='text'"      (click)="filterType.set('text')"><i class="{{ typeCfg['text'].icon }}"></i> <span class="ftab-cnt">{{ counts().text }}</span></button>
+          </div>
+        </div>
+
+        <!-- Empty state -->
+        @if (filteredItems().length === 0) {
+          <div class="gallery-empty">
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+            <p>لا يوجد محتوى بعد</p>
+            <span>استخدم النموذج لتوليد محتوى جديد</span>
+          </div>
+        }
+
+        <!-- Cards grid using Bootstrap row -->
+        @if (filteredItems().length > 0) {
+          <div class="row g-3">
+            @for (item of filteredItems(); track item.id) {
+              <div class="col-xl-4 col-lg-6 col-md-6 col-6">
+                <div class="media-card" [class.is-generating]="item.status==='generating'" (click)="openItem(item)">
+
+                  <div class="media-thumb">
+                    @if (item.status === 'generating') {
+                      <div class="thumb-state" [style.background]="thumbnailGradient(item.type)">
+                        <div class="gen-spinner"></div>
+                        <span>يُنشأ المحتوى...</span>
+                        <small>معالجة عالية الجودة</small>
+                      </div>
+                    } @else if (item.status === 'failed') {
+                      <div class="thumb-state" [style.background]="thumbnailGradient(item.type)">
+                        <i class="fa-solid fa-triangle-exclamation" style="font-size:1.8rem;color:#ef4444;opacity:.7"></i>
+                      </div>
+                    } @else if (isImage(item)) {
+                      <img [src]="item.thumbnailUrl" [alt]="item.title" class="thumb-img">
+                    } @else if (isVideo(item)) {
+                      <video class="thumb-img" [src]="item.videoUrl" muted loop autoplay playsinline preload="metadata"></video>
+                      <div class="thumb-play-overlay"><div class="thumb-play-btn"><i class="fa-solid fa-play"></i></div></div>
+                    } @else {
+                      <div class="thumb-state" [style.background]="thumbnailGradient(item.type)">
+                        <p class="thumb-text-p">{{ item.textContent ?? item.description }}</p>
+                      </div>
+                    }
+                    <div class="media-badge" [style.background]="typeCfg[item.type].color">
+                      <i class="{{ typeCfg[item.type].icon }}"></i>
+                    </div>
+                    @if (item.status !== 'generated') {
+                      <div class="status-badge" [style.background]="statusColor(item.status)">{{ statusLabel(item.status) }}</div>
+                    }
+                  </div>
+
+                  <div class="media-info">
+                    <span class="media-title">{{ item.title }}</span>
+                    <div class="d-flex align-items-center justify-content-between gap-1">
+                      <span class="media-brand">{{ item.brand }}</span>
+                      <span class="media-date">{{ formatDate(item.createdAt) }}</span>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+            }
+          </div>
+        }
+
+      </div>
+    </div>
+
+  </div><!-- /row -->
+</div><!-- /page-shell -->
+
+
+<!-- ═══ VIEWER / EDIT MODAL ═══ -->
+@if (selectedItem()) {
+  <div class="modal-backdrop" (click)="closeModal()">
+    <div class="viewer-modal" [class.wide]="isVideo(selectedItem()!)" (click)="$event.stopPropagation()">
+
+      <div class="viewer-header"
+           [style.background]="'linear-gradient(135deg,' + typeCfg[selectedItem()!.type].color + ' 0%,' + typeCfg[selectedItem()!.type].color + 'bb 100%)'">
+        <div class="d-flex align-items-center gap-3">
+          <div class="viewer-hdr-icon"><i class="{{ typeCfg[selectedItem()!.type].icon }}"></i></div>
+          <div>
+            <div class="viewer-hdr-title">{{ selectedItem()!.title }}</div>
+            <div class="viewer-hdr-sub">{{ typeCfg[selectedItem()!.type].label }} · {{ selectedItem()!.brand }}</div>
+          </div>
+        </div>
+        <button type="button" class="viewer-close" (click)="closeModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="viewer-body">
+        <div class="viewer-preview">
+          @if (selectedItem()!.status === 'generating') {
+            <div class="viewer-state" [style.background]="thumbnailGradient(selectedItem()!.type)">
+              <div class="gen-spinner large"></div><span>يُنشأ المحتوى...</span>
+            </div>
+          } @else if (isImage(selectedItem()!)) {
+            <img [src]="selectedItem()!.thumbnailUrl" [alt]="selectedItem()!.title" class="viewer-img">
+          } @else if (isVideo(selectedItem()!)) {
+            <video class="viewer-video" [src]="selectedItem()!.videoUrl" controls autoplay muted></video>
+          } @else {
+            <div class="viewer-state" [style.background]="thumbnailGradient(selectedItem()!.type)">
+              <i class="fa-solid fa-quote-right viewer-quote"></i>
+              <p class="viewer-text-p">{{ selectedItem()!.textContent ?? selectedItem()!.description }}</p>
+            </div>
+          }
+        </div>
+
+        <div class="viewer-details">
+          <div class="vd-meta-top">
+            <span class="viewer-date">{{ formatDateTime(selectedItem()!.createdAt) }}</span>
+            <span class="viewer-brand-pill">{{ selectedItem()!.brand }}</span>
+          </div>
+
+          @if (!editMode()) {
+            <div class="viewer-section">
+              <p class="vsec-label">تفاصيل المحتوى</p>
+              <div class="d-flex flex-column gap-2">
+                <div class="dr"><span class="dr-k">العلامة التجارية</span><span class="dr-v">{{ selectedItem()!.brand }}</span></div>
+                @if (selectedItem()!.description) {
+                  <div class="dr"><span class="dr-k">الوصف</span><span class="dr-v">{{ selectedItem()!.description }}</span></div>
+                }
+                @if (selectedItem()!.tone) {
+                  <div class="dr"><span class="dr-k">النبرة</span><span class="dr-v">{{ toneCfg[selectedItem()!.tone!] }}</span></div>
+                }
+                @if (selectedItem()!.size) {
+                  <div class="dr"><span class="dr-k">الحجم</span><span class="dr-v">{{ sizeCfg[selectedItem()!.size!].label }}</span></div>
+                }
+                <div class="dr">
+                  <span class="dr-k">الحالة</span>
+                  <span class="dr-v fw-bold" [style.color]="statusColor(selectedItem()!.status)">{{ statusLabel(selectedItem()!.status) }}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="viewer-section">
+              <p class="vsec-label">الإجراءات</p>
+              <div class="d-flex flex-column gap-2">
+                <button type="button" class="abtn abtn-download"><i class="fa-solid fa-download"></i> تنزيل <i class="fa-solid fa-chevron-down ms-auto" style="font-size:.7rem;opacity:.6"></i></button>
+                <button type="button" class="abtn abtn-edit" (click)="startEdit()"><i class="fa-solid fa-wand-magic-sparkles"></i> تحرير بالذكاء الاصطناعي</button>
+                @if (selectedItem()!.type === 'static-ad') {
+                  <button type="button" class="abtn abtn-resize"><i class="fa-solid fa-expand"></i> تغيير الحجم</button>
+                  <button type="button" class="abtn abtn-convert"><i class="fa-solid fa-film"></i> تحويل إلى فيديو</button>
+                }
+                @if (!showDeleteConfirm()) {
+                  <button type="button" class="abtn abtn-delete" (click)="confirmDelete()"><i class="fa-solid fa-trash"></i> حذف</button>
+                } @else {
+                  <div class="delete-confirm">
+                    <span class="d-block mb-2" style="font-size:.8rem;font-weight:600;color:#b91c1c">هل أنت متأكد من الحذف؟</span>
+                    <div class="d-flex gap-2">
+                      <button type="button" class="abtn abtn-del-yes flex-fill justify-content-center" (click)="deleteItem()">نعم، احذف</button>
+                      <button type="button" class="abtn abtn-cancel-del flex-fill justify-content-center" (click)="cancelDelete()">إلغاء</button>
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+
+          } @else {
+
+            <div class="viewer-section flex-grow-1">
+              <p class="vsec-label">تحرير المحتوى</p>
+              <div class="d-flex flex-column gap-3">
+                <div>
+                  <label class="form-label-sm">العلامة التجارية</label>
+                  <input type="text" class="form-control form-control-sm" [value]="editBrand()" (input)="editBrand.set($any($event.target).value)">
+                </div>
+                <div>
+                  <label class="form-label-sm">الوصف</label>
+                  <textarea class="form-control form-control-sm edit-ta" [value]="editDesc()" (input)="editDesc.set($any($event.target).value)"></textarea>
+                </div>
+                <div>
+                  <label class="form-label-sm">النبرة</label>
+                  <select class="form-control form-control-sm" [value]="editTone()" (change)="editTone.set($any($event.target).value)">
+                    @for (tone of tones; track tone) { <option [value]="tone">{{ toneCfg[tone] }}</option> }
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="edit-footer">
+              <button type="button" class="abtn abtn-cancel-edit flex-fill justify-content-center" (click)="cancelEdit()">إلغاء</button>
+              <button type="button" class="abtn abtn-save flex-fill justify-content-center" (click)="saveEdit()">حفظ</button>
+            </div>
+
+          }
+        </div>
+      </div>
+
+    </div>
+  </div>
+}

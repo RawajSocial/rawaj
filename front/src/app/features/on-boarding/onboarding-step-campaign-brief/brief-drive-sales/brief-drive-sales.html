@@ -1,0 +1,52 @@
+<div class="brief-block" appReveal="fade-up-far" [revealDuration]="900">
+  <div class="brief-block-title">
+    <i class="fa-solid fa-chart-line"></i>
+    <span>تفاصيل حملة المبيعات</span>
+  </div>
+  <div class="form-grid">
+    <div class="form-row full">
+      <label>ما الذي تريد تسويقه؟</label>
+      <div class="chips">
+        <button type="button" class="chip" [class.active]="data()?.salesScope === 'specific'"
+          (click)="emit({ salesScope: 'specific' })">
+          <i class="fa-solid fa-tag"></i> منتج محدد
+        </button>
+        <button type="button" class="chip" [class.active]="data()?.salesScope === 'catalogue'"
+          (click)="emit({ salesScope: 'catalogue' })">
+          <i class="fa-solid fa-store"></i> الكتالوج كاملًا
+        </button>
+        <button type="button" class="chip" [class.active]="data()?.salesScope === 'service'"
+          (click)="emit({ salesScope: 'service' })">
+          <i class="fa-solid fa-handshake"></i> خدمة معينة
+        </button>
+      </div>
+    </div>
+    <div class="form-row full">
+      <label>هل هناك خصم أو عرض مرتبط بالحملة؟</label>
+      <div class="chips">
+        <button type="button" class="chip" [class.active]="data()?.hasOffer === 'yes'"
+          (click)="emit({ hasOffer: 'yes' })">
+          <i class="fa-solid fa-percent"></i> نعم
+        </button>
+        <button type="button" class="chip" [class.active]="data()?.hasOffer === 'no'"
+          (click)="emit({ hasOffer: 'no' })">
+          <i class="fa-solid fa-xmark"></i> لا
+        </button>
+      </div>
+    </div>
+    @if (data()?.hasOffer === 'yes') {
+      <div class="form-row full sub-reveal">
+        <label>اشرح العرض أو الخصم</label>
+        <input type="text" class="form-control" placeholder="مثال: خصم 30% على الكولكشن الجديد"
+          [value]="data()?.offerDetails || ''"
+          (input)="emit({ offerDetails: $any($event.target).value })" />
+      </div>
+    }
+    <div class="form-row full">
+      <label>الفترة الزمنية المستهدفة للمبيعات <span>(اختياري)</span></label>
+      <input type="text" class="form-control" placeholder="مثال: من 1 إلى 15 يناير"
+        [value]="data()?.salesPeriod || ''"
+        (input)="emit({ salesPeriod: $any($event.target).value })" />
+    </div>
+  </div>
+</div>

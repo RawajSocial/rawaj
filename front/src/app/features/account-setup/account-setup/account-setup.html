@@ -1,0 +1,100 @@
+<main class="setup-page">
+  <div class="setup-container">
+
+    <header class="setup-header">
+      <a class="setup-logo" routerLink="/">رواج</a>
+    </header>
+
+    @if (step() === 0) {
+      <app-setup-type-selector (typeSelected)="selectType($event)" />
+    } @else {
+      <div class="setup-card">
+        <app-setup-stepper
+          [currentStep]="step()"
+          [totalSteps]="totalSteps()"
+          [steps]="steps()" />
+
+        @if (submitError(); as error) {
+          <div class="alert alert-danger" role="alert">{{ error }}</div>
+        }
+
+        @if (submitting()) {
+          <div class="setup-submitting text-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-3">جاري إنشاء مساحة عملك...</p>
+          </div>
+        } @else if (data().accountType === 'agency') {
+          @switch (step()) {
+            @case (1) {
+              <app-agency-basic-info
+                [data]="data()"
+                (dataChange)="updateData($event)"
+                (next)="next()"
+                (back)="back()" />
+            }
+            @case (2) {
+              <app-agency-size-clients
+                [data]="data()"
+                (dataChange)="updateData($event)"
+                (next)="next()"
+                (back)="back()" />
+            }
+            @case (3) {
+              <app-agency-services
+                [data]="data()"
+                (dataChange)="updateData($event)"
+                (next)="next()"
+                (back)="back()" />
+            }
+            @case (4) {
+              <app-agency-location
+                [data]="data()"
+                (dataChange)="updateData($event)"
+                (next)="next()"
+                (back)="back()" />
+            }
+            @case (5) {
+              <app-agency-social-links
+                [data]="data()"
+                (dataChange)="updateData($event)"
+                (next)="next()"
+                (back)="back()" />
+            }
+          }
+        } @else {
+          @switch (step()) {
+            @case (1) {
+              <app-business-basic-info
+                [data]="data()"
+                (dataChange)="updateData($event)"
+                (next)="next()"
+                (back)="back()" />
+            }
+            @case (2) {
+              <app-business-details
+                [data]="data()"
+                (dataChange)="updateData($event)"
+                (next)="next()"
+                (back)="back()" />
+            }
+            @case (3) {
+              <app-business-location
+                [data]="data()"
+                (dataChange)="updateData($event)"
+                (next)="next()"
+                (back)="back()" />
+            }
+            @case (4) {
+              <app-business-social-links
+                [data]="data()"
+                (dataChange)="updateData($event)"
+                (next)="next()"
+                (back)="back()" />
+            }
+          }
+        }
+      </div>
+    }
+
+  </div>
+</main>

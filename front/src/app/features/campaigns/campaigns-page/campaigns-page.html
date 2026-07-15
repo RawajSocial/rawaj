@@ -1,0 +1,112 @@
+<div class="page-shell">
+  <!-- Page Header -->
+  <div class="page-top">
+    <div>
+      <h5 class="page-title">حملاتك التسويقية</h5>
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+          <li class="breadcrumb-item"><a routerLink="/dashboard">لوحة التحكم</a></li>
+          <li class="breadcrumb-item active">الحملات</li>
+        </ol>
+      </nav>
+    </div>
+    <a routerLink="/on-boarding" class="btn-new-camp">
+      <i class="fa-solid fa-plus"></i>
+      ابدأ حملة جديدة
+    </a>
+  </div>
+
+  <!-- Filters bar -->
+  <div class="filters-bar">
+
+    <!-- Search -->
+    <div class="search-wrap">
+      <i class="fa-solid fa-magnifying-glass search-icon"></i>
+      <input
+        type="text"
+        class="search-input"
+        placeholder="ابحث عن حملة..."
+        [value]="searchQuery()"
+        (input)="searchQuery.set($any($event.target).value)" />
+    </div>
+
+    <!-- Status dropdown (onboarding-shared pattern) -->
+    <div class="dropdown" [class.open]="statusOpen()" data-dd="status">
+      <button type="button" class="dropdown-trigger form-control" (click)="statusOpen.update(v => !v)">
+        <span class="dropdown-label">{{ statusLabel }}</span>
+        <span class="dropdown-icon"><i class="fa-solid fa-chevron-down"></i></span>
+      </button>
+      <div class="dropdown-menu">
+        @for (opt of statusOptions; track opt.value) {
+          <button type="button"
+            class="dropdown-option"
+            [class.active]="statusFilter() === opt.value"
+            (click)="setStatus(opt.value)">
+            {{ opt.label }}
+          </button>
+        }
+      </div>
+    </div>
+
+    <!-- Platform dropdown -->
+    <div class="dropdown" [class.open]="platformOpen()" data-dd="platform">
+      <button type="button" class="dropdown-trigger form-control" (click)="platformOpen.update(v => !v)">
+        <span class="dropdown-label">{{ platformLabel }}</span>
+        <span class="dropdown-icon"><i class="fa-solid fa-chevron-down"></i></span>
+      </button>
+      <div class="dropdown-menu">
+        @for (opt of platformOptions; track opt.value) {
+          <button type="button"
+            class="dropdown-option"
+            [class.active]="platformFilter() === opt.value"
+            (click)="setPlatform(opt.value)">
+            {{ opt.label }}
+          </button>
+        }
+      </div>
+    </div>
+
+    <span class="results-count">{{ filtered().length }} حملة</span>
+  </div>
+
+  @if (loading()) {
+    <div class="text-center py-5">
+      <div class="spinner-border text-primary" role="status"></div>
+    </div>
+  } @else if (loadError(); as error) {
+    <div class="alert alert-danger">{{ error }}</div>
+  } @else if (campaigns().length === 0) {
+    <div class="empty-state">
+      <div class="empty-icon"><i class="fa-solid fa-bullhorn"></i></div>
+      <h3>لا توجد حملات بعد</h3>
+      <p>ابدأ حملتك التسويقية الأولى وابدأ في الوصول لجمهورك المستهدف.</p>
+      <a routerLink="/on-boarding" class="btn-new-camp">
+        <i class="fa-solid fa-rocket"></i>
+        ابدأ حملتك الأولى
+      </a>
+    </div>
+
+  } @else if (filtered().length === 0) {
+    <div class="empty-state empty-state-filter">
+      <div class="empty-icon"><i class="fa-solid fa-filter-circle-xmark"></i></div>
+      <h3>لا توجد نتائج</h3>
+      <p>جرّب تغيير معايير البحث أو الفلترة.</p>
+    </div>
+
+  } @else {
+    <div class="camps-grid">
+      <!-- Start new campaign card (always first) -->
+      <a routerLink="/on-boarding" class="new-camp-card">
+        <div class="new-camp-icon"><i class="fa-solid fa-plus"></i></div>
+        <span class="new-camp-label">ابدأ حملة جديدة</span>
+        <span class="new-camp-sub">أنشئ حملة احترافية بخطوات بسيطة</span>
+      </a>
+
+      @for (camp of filtered(); track camp.id) {
+        <app-campaign-card
+          [campaign]="camp"
+          (view)="viewCampaign($event)" />
+      }
+    </div>
+  }
+</div>

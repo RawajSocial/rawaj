@@ -1,0 +1,58 @@
+<div class="media-card" [class.is-generating]="item().status === 'generating'" (click)="cardClick.emit(item())">
+
+  <!-- Thumbnail -->
+  <div class="media-card-thumb">
+
+    @if (item().status === 'generating') {
+      <div class="thumb-loading" [style.background]="thumbnailGradient(item().type)">
+        <div class="gen-spinner"></div>
+        <span>يُنشأ المحتوى...</span>
+      </div>
+    } @else if (item().status === 'failed') {
+      <div class="thumb-error" [style.background]="thumbnailGradient(item().type)">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <span>فشل التوليد</span>
+      </div>
+    } @else if (isImage(item())) {
+      <img [src]="item().thumbnailUrl" [alt]="item().title" class="thumb-img">
+    } @else if (isVideo(item())) {
+      <video class="thumb-video" [src]="item().videoUrl" muted loop autoplay playsinline preload="metadata"></video>
+      <div class="thumb-play-overlay">
+        <div class="thumb-play-btn">
+          <i class="fa-solid fa-play"></i>
+        </div>
+      </div>
+    } @else {
+      <div class="thumb-text" [style.background]="thumbnailGradient(item().type)">
+        <p>{{ item().textContent ?? item().description }}</p>
+      </div>
+    }
+
+    <!-- Type badge -->
+    <div class="media-type-badge" [style.background]="typeCfg[item().type].color">
+      <i class="{{ typeCfg[item().type].icon }}"></i>
+      {{ typeCfg[item().type].label }}
+    </div>
+
+    <!-- Status badge (only non-generated) -->
+    @if (item().status !== 'generated') {
+      <div class="media-status-badge" [style.background]="statusColor(item().status)">
+        {{ statusLabel(item().status) }}
+      </div>
+    }
+
+  </div>
+
+  <!-- Card info -->
+  <div class="media-card-info">
+    <h6 class="media-card-title">{{ item().title }}</h6>
+    <div class="media-card-meta">
+      <span class="media-card-brand">
+        <i class="fa-solid fa-store"></i>
+        {{ item().brand }}
+      </span>
+      <span class="media-card-date">{{ formatDate(item().createdAt) }}</span>
+    </div>
+  </div>
+
+</div>

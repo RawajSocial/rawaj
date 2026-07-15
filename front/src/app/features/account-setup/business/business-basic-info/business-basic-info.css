@@ -1,0 +1,6 @@
+/* Component-specific overrides — shared styles from account-setup-shared.css */
+.phone-country-dropdown .country-menu {
+  top: unset;
+  bottom: calc(100% + 6px);
+  box-shadow: 0 -8px 28px rgba(22, 27, 45, 0.12);
+}

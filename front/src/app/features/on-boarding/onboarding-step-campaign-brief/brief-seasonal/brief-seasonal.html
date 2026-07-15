@@ -1,0 +1,29 @@
+<div class="brief-block" appReveal="fade-up-far" [revealDuration]="900">
+  <div class="brief-block-title">
+    <i class="fa-solid fa-calendar-days"></i>
+    <span>تفاصيل الحملة الموسمية</span>
+  </div>
+  <div class="form-grid">
+    <div class="form-row full">
+      <label>اختر المناسبة</label>
+      <div class="chips">
+        @for (o of occasions; track o) {
+          <button type="button" class="chip" [class.active]="data()?.occasion === o"
+            (click)="emit({ occasion: o })">{{ o }}</button>
+        }
+      </div>
+    </div>
+    <div class="form-row">
+      <label>بداية الموسم</label>
+      <input type="date" class="form-control"
+        [value]="data()?.seasonStart || ''"
+        (input)="emit({ seasonStart: $any($event.target).value })" />
+    </div>
+    <div class="form-row">
+      <label>نهاية الموسم</label>
+      <input type="date" class="form-control"
+        [value]="data()?.seasonEnd || ''"
+        (input)="emit({ seasonEnd: $any($event.target).value })" />
+    </div>
+  </div>
+</div>

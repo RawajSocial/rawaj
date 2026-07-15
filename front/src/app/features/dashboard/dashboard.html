@@ -1,0 +1,19 @@
+<div class="dash-layout"
+     [class.sidebar-collapsed]="!sidebarOpen()"
+     [class.mobile-sidebar-open]="mobileOverlayOpen()">
+  <app-sidebar
+    [isOpen]="sidebarOpen()"
+    [mobileOpen]="mobileOverlayOpen()"
+    (mobileClose)="closeMobileMenu()"
+  />
+  <div class="dash-main">
+    <app-header
+      [mobileMenuOpen]="mobileOverlayOpen()"
+      (toggleSidebar)="toggleSidebar()"
+      (toggleMobileMenu)="toggleMobileMenu()"
+    />
+    <main class="dash-content">
+      <router-outlet />
+    </main>
+  </div>
+</div>

@@ -1,0 +1,30 @@
+<section class="problems-section">
+  <div class="container">
+    <div class="section-header text-center" appReveal="fade-up" [revealDuration]="2000">
+      <p class="section-badge-wrap">
+        <img src="assets/img/shape/sub-vactor.png" alt="" aria-hidden="true">
+        <span class="section-badge">المشكلة</span>
+        <img src="assets/img/shape/sub-vactor02.png" alt="" aria-hidden="true">
+      </p>
+      <h2 class="section-title">ما الذي يعيق نمو نشاطك التجاري؟</h2>
+    </div>
+
+    <div class="row g-3 g-lg-4">
+      @for (problem of problems(); track problem.id) {
+        <div class="col-12 col-md-6 col-lg-4">
+          <article class="problem-card h-100" appReveal="fade-up" [revealDuration]="1500">
+            <h3 class="problem-card__title">{{ problem.title }}</h3>
+            <ul class="problem-card__list list-unstyled">
+              @for (point of problem.points; track point) {
+                <li>
+                  <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+                  <span>{{ point }}</span>
+                </li>
+              }
+            </ul>
+          </article>
+        </div>
+      }
+    </div>
+  </div>
+</section>

@@ -1,0 +1,124 @@
+﻿<div class="login-card">
+
+  <div class="text-center">
+      <h2>إنشاء حساب جديد</h2>
+  <p class="login-subtitle">ابدأ رحلتك مع Rawaj اليوم</p>
+  </div>
+
+  @if (serverError(); as error) {
+    <div class="alert alert-danger" role="alert">{{ error }}</div>
+  }
+
+  <form [formGroup]="form" (ngSubmit)="onSubmit()">
+    <div class="name-row mb-3">
+      <div>
+        <label class="form-label" for="firstName">الاسم الأول</label>
+        <input
+          id="firstName"
+          type="text"
+          class="form-control"
+          placeholder="محمد"
+          formControlName="firstName" />
+        @if (errorMessage('firstName'); as firstNameError) {
+          <small class="text-danger d-block mt-2 validation-msg">{{ firstNameError }}</small>
+        }
+      </div>
+
+      <div>
+        <label class="form-label" for="lastName">الاسم الأخير</label>
+        <input
+          id="lastName"
+          type="text"
+          class="form-control"
+          placeholder="أحمد"
+          formControlName="lastName" />
+        @if (errorMessage('lastName'); as lastNameError) {
+          <small class="text-danger d-block mt-2 validation-msg">{{ lastNameError }}</small>
+        }
+      </div>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label" for="email">البريد الإلكتروني</label>
+      <input
+        id="email"
+        type="email"
+        class="form-control"
+        placeholder="example@email.com"
+        formControlName="email" />
+      @if (errorMessage('email'); as emailError) {
+        <small class="text-danger d-block mt-2 validation-msg">{{ emailError }}</small>
+      }
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label" for="businessName">اسم النشاط التجاري</label>
+      <input
+        id="businessName"
+        type="text"
+        class="form-control"
+        placeholder="اسم شركتك أو نشاطك التجاري"
+        formControlName="businessName" />
+      @if (errorMessage('businessName'); as businessNameError) {
+        <small class="text-danger d-block mt-2 validation-msg">{{ businessNameError }}</small>
+      }
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label" for="password">كلمة المرور</label>
+      <input
+        id="password"
+        type="password"
+        class="form-control"
+        placeholder="••••••••"
+        formControlName="password" />
+      @if (errorMessage('password'); as passwordError) {
+        <small class="text-danger d-block mt-2 validation-msg">{{ passwordError }}</small>
+      }
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label" for="confirmPassword">تأكيد كلمة المرور</label>
+      <input
+        id="confirmPassword"
+        type="password"
+        class="form-control"
+        placeholder="••••••••"
+        formControlName="confirmPassword" />
+      @if (errorMessage('confirmPassword'); as confirmPasswordError) {
+        <small class="text-danger d-block mt-2 validation-msg">{{ confirmPasswordError }}</small>
+      }
+      @if (passwordsMismatchMessage(); as passwordMismatchError) {
+        <small class="text-danger d-block mt-2 validation-msg">{{ passwordMismatchError }}</small>
+      }
+    </div>
+
+    <div class="checkbox-wrapper-46 mb-4 terms-row">
+      <input id="termsAccepted" class="inp-cbx" type="checkbox" formControlName="termsAccepted" />
+      <label for="termsAccepted" class="cbx">
+        <span>
+          <svg viewBox="0 0 12 10" height="10px" width="12px">
+            <polyline points="1.5 6 4.5 9 10.5 1"></polyline>
+          </svg>
+        </span>
+        <span class="policy">أوافق على الشروط والأحكام وسياسة الخصوصية</span>
+      </label>
+    </div>
+    @if (errorMessage('termsAccepted'); as termsAcceptedError) {
+      <small class="text-danger d-block mt-2 mb-3 validation-msg">{{ termsAcceptedError }}</small>
+    }
+
+    <button class="btn login-btn w-100" type="submit" [disabled]="submitting()">
+      @if (submitting()) {
+        جاري إنشاء الحساب...
+      } @else {
+        إنشاء الحساب
+      }
+    </button>
+  </form>
+
+  <div class="text-center mt-4 login-switch-text">
+    لديك حساب بالفعل؟
+    <a routerLink="/login" class="signup-link">تسجيل الدخول</a>
+  </div>
+</div>

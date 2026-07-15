@@ -1,0 +1,9 @@
+<header class="step-head">
+  <div class="step-meta">
+    <span>{{ title() }}</span>
+    <span class="step-meta-steps">الخطوة {{ currentStep() }} من {{ totalSteps() }}</span>
+  </div>
+  <div class="step-progress">
+    <span class="active-progress" [style.width.%]="progressPercent()"></span>
+  </div>
+</header>

@@ -1,0 +1,45 @@
+<section class="why-us-section">
+  <div class="container">
+    <h2 class="why-title text-center" appReveal="fade-up" [revealDuration]="2000">
+      لماذا يجب أن تكون رواج  اختيارك الأول؟
+    </h2>
+
+    <div class="row g-3 g-lg-4">
+      @for (item of whyItems(); track item.id) {
+        <div class="col-12 col-md-6 col-lg-4">
+          <app-why-card
+            [iconClass]="item.iconClass"
+            [title]="item.title"
+            [description]="item.description"
+          ></app-why-card>
+        </div>
+      }
+    </div>
+  </div>
+
+  <p class="brands-title text-center" appReveal="fade-up" [revealDuration]="2000">بدعم ومشاركة من:</p>
+  <div class="brands-strip" appReveal="fade-up" [revealDuration]="2000">
+    <div class="brands-set">
+      <img class="brand-item" src="assets/logos/iti.png" alt="ITI">
+      <img class="brand-item" src="assets/logos/qabilah5.svg" alt="Qabiliah">
+    </div>
+  </div>
+
+
+  <!-- Invite marketers -->
+  <div class="container">
+    <div class="row align-items-center gy-4 why-invite" appReveal="fade-up" [revealDuration]="2000">
+      <div class="col-12 col-lg-5 why-invite__text">
+        <h3>وسّع فريقك داخل رواج</h3>
+        <p>
+          يمكنك دعوة مسوّقين للانضمام إلى وكالتك والعمل معك مباشرة على حساب رواج،
+          وتوزيع المهام والمشاريع عليهم بكل سهولة.
+        </p>
+      </div>
+      <div class="col-12 col-lg-7 why-invite__visual">
+        <img src="assets/animations/Share.svg" alt="دعوة مسوّقين للعمل معك على رواج" class="img-fluid">
+      </div>
+    </div>
+  </div>
+
+</section>

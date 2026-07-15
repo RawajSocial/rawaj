@@ -1,0 +1,59 @@
+.mp-shell {
+  padding: 24px 28px;
+}
+
+.mp-campaign-card {
+  border: 1.5px solid #f0f0f5;
+  border-radius: 14px;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+  background: #fff;
+}
+
+.mp-campaign-card:hover {
+  border-color: #c4b5fd;
+  box-shadow: 0 6px 24px rgba(124, 58, 237, 0.1);
+  transform: translateY(-2px);
+}
+
+.mp-status-badge {
+  text-transform: capitalize;
+  background: #f4f4f8;
+  color: #374151;
+}
+
+.mp-status-badge[data-status='Active'] {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.mp-status-badge[data-status='Paused'] {
+  background: #fef9c3;
+  color: #92400e;
+}
+
+.mp-status-badge[data-status='Completed'],
+.mp-status-badge[data-status='Archived'] {
+  background: #e5e7eb;
+  color: #4b5563;
+}
+
+.mp-raw-plan {
+  white-space: pre-wrap;
+  background: #f8f8ff;
+  border-radius: 10px;
+  padding: 1rem;
+  font-size: 0.8rem;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.mp-plan-content h6 {
+  font-weight: 700;
+  color: #1e1b4b;
+}
+
+@media (max-width: 768px) {
+  .mp-shell {
+    padding: 16px;
+  }
+}

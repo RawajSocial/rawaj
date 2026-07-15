@@ -1,0 +1,50 @@
+@if (open()) {
+  <div class="rw-modal-backdrop" #backdrop (click)="requestClose()">
+    <div class="rw-modal-panel" #panel (click)="$event.stopPropagation()">
+      <div class="rw-modal-header">
+        <h3>دعوة عضو جديد</h3>
+        <button type="button" class="rw-modal-close" (click)="requestClose()" aria-label="إغلاق">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <form [formGroup]="form" (ngSubmit)="submit()" class="rw-modal-body">
+        @if (serverError(); as error) {
+          <div class="alert alert-danger">{{ error }}</div>
+        }
+
+        <div class="form-field">
+          <label for="member-email">البريد الإلكتروني</label>
+          <input id="member-email" type="email" class="form-control" formControlName="email" placeholder="name@agency.com">
+          @if (form.controls.email.touched && form.controls.email.invalid) {
+            <span class="field-error">الرجاء إدخال بريد إلكتروني صحيح</span>
+          }
+        </div>
+
+        <div class="form-field">
+          <label for="member-role">الدور</label>
+          <select id="member-role" class="form-control" formControlName="role">
+            @for (opt of roleOptions; track opt.value) {
+              <option [value]="opt.value">{{ opt.label }}</option>
+            }
+          </select>
+        </div>
+
+        <p class="form-hint">
+          <i class="fa-solid fa-circle-info"></i>
+          يجب أن يكون لدى العضو حساب مسجّل بالفعل على رواج بنفس البريد الإلكتروني.
+        </p>
+
+        <div class="rw-modal-footer">
+          <button type="button" class="btn-outline" (click)="requestClose()">إلغاء</button>
+          <button type="submit" class="btn-brand" [disabled]="submitting()">
+            @if (submitting()) {
+              <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+            }
+            إضافة العضو
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}

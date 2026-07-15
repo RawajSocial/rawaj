@@ -1,0 +1,50 @@
+<aside class="app-sidebar" [class.mobile-open]="mobileOpen()">
+  <div class="sidebar-overlay" (click)="mobileClose.emit()"></div>
+
+  <div class="sidebar-inner">
+    <div class="sidebar-logo">
+      <a routerLink="/" class="sidebar-logo-link">
+        <div class="sidebar-logo-icon">
+          <img src="assets/icons/logo.png" width="36" alt="">
+        </div>
+        <span class="sidebar-logo-text">رواج</span>
+      </a>
+    </div>
+
+    <nav class="sidebar-nav">
+      @for (section of navSections; track section.heading) {
+        <div class="nav-section">
+          <button type="button" class="nav-heading" (click)="toggleSection(section.heading)">
+            <span>{{ section.heading }}</span>
+            <i class="fa-solid fa-chevron-down nav-heading-arrow" [class.collapsed]="isSectionCollapsed(section.heading)"></i>
+          </button>
+
+          <div class="nav-section-items" [class.collapsed]="isSectionCollapsed(section.heading)">
+            <div class="nav-section-items-inner">
+              @for (item of section.items; track item.id) {
+                <a class="nav-item"
+                   routerLinkActive="active"
+                   [routerLinkActiveOptions]="{ exact: item.exact ?? false }"
+                   [routerLink]="item.route!"
+                   (click)="mobileClose.emit()">
+                  <i class="fa-solid {{ item.icon }} nav-item-icon"></i>
+                  <span class="nav-item-label">{{ item.label }}</span>
+                  @if (item.badge) {
+                    <span class="nav-badge">{{ item.badge }}</span>
+                  }
+                </a>
+              }
+            </div>
+          </div>
+        </div>
+      }
+    </nav>
+
+    <div class="sidebar-footer">
+      <a class="sidebar-logout" routerLink="/login" (click)="mobileClose.emit()">
+        <i class="fa-solid fa-right-from-bracket"></i>
+        <span>تسجيل الخروج</span>
+      </a>
+    </div>
+  </div>
+</aside>

@@ -1,0 +1,45 @@
+<div class="camp-card" [attr.data-status]="campaign().status">
+  <!-- Coloured header band -->
+  <div class="camp-card-head">
+    <div class="camp-platforms">
+      @for (icon of platformIcons; track icon) {
+        <span class="platform-icon"><i class="{{ icon }}"></i></span>
+      }
+    </div>
+    <span class="camp-status-badge" [attr.data-status]="campaign().status">{{ statusLabel }}</span>
+  </div>
+
+  <!-- Body -->
+  <div class="camp-card-body">
+    <h3 class="camp-name">{{ campaign().name }}</h3>
+    @if (campaign().objective) {
+      <p class="camp-objective">
+        <i class="fa-solid fa-bullseye"></i> {{ campaign().objective }}
+      </p>
+    }
+
+    @if (campaign().budgetAmount) {
+      <div class="camp-budget-simple">
+        <i class="fa-solid fa-sack-dollar"></i>
+        {{ campaign().budgetAmount }} {{ campaign().budgetCurrency }}
+      </div>
+    }
+  </div>
+
+  <!-- Footer -->
+  <div class="camp-card-foot">
+    <div class="camp-dates">
+      <i class="fa-regular fa-calendar"></i>
+      @if (campaign().startDate) {
+        {{ campaign().startDate }} @if (campaign().endDate) { — {{ campaign().endDate }} }
+      } @else {
+        بلا تواريخ محددة
+      }
+    </div>
+    <div class="camp-actions">
+      <button class="camp-action-btn view-btn" (click)="view.emit(campaign().id)" title="عرض التفاصيل">
+        <i class="fa-solid fa-eye"></i>
+      </button>
+    </div>
+  </div>
+</div>
