@@ -1,6 +1,7 @@
-import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { PageHeader } from '../../../../shared/components/page-header/page-header';
+import { SeoService } from '../../../../services/seo.service';
 
 type SettingsTab = 'profile' | 'preferences' | 'appearance';
 
@@ -19,6 +20,20 @@ interface Preference {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SettingsPage {
+  private readonly seo = inject(SeoService);
+
+  constructor() {
+    this.seo.setPageSeo({
+      title: 'الإعدادات | رواج',
+      description: 'تحكم في إعدادات حسابك وتفضيلاتك ومظهر لوحة التحكم.',
+      keywords: 'رواج, الإعدادات, تفضيلات الحساب, المظهر',
+      path: '/dashboard/settings',
+      image: '/home-hero-light.png',
+      type: 'website',
+      noIndex: true,
+    });
+  }
+
   protected readonly tab = signal<SettingsTab>('profile');
 
   private readonly fb = new FormBuilder();

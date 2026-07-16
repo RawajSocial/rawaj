@@ -173,6 +173,33 @@
   transform: translateX(-20px);
 }
 
+/* ── Insight card (dashboard overview widgets) ── */
+.insight-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  padding: 22px;
+}
+
+.insight-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.insight-title {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-bold);
+  color: var(--color-dark);
+  margin: 0;
+}
+
+.insight-sub {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
 /* ── Status pill ── */
 .rw-pill {
   display: inline-block;

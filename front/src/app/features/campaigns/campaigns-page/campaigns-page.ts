@@ -1,72 +1,36 @@
-import { Component, HostListener, computed, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Component, HostListener, computed, inject, signal } from '@angular/core';
+import { Router, RouterLink } from '@angular/router';
 import { CampaignCard } from '../campaign-card/campaign-card';
-import { Campaign, CampaignStatus, CampaignPlatform } from '../../../model/campaign.model';
-
-const MOCK_CAMPAIGNS: Campaign[] = [
-  {
-    id: '1',
-    name: 'حملة رمضان الكريم ٢٠٢٥',
-    status: 'active',
-    platforms: ['instagram', 'facebook', 'tiktok'],
-    objective: 'sales',
-    industry: 'retail',
-    budget: 15000,
-    spent: 9300,
-    reach: 480000,
-    clicks: 12400,
-    ctr: 2.58,
-    startDate: '٢٠٢٥/٠٣/٠١',
-    endDate: '٢٠٢٥/٠٣/٣١',
-    createdAt: '2025-02-20',
-    adCount: 6,
-    coverColor: 'linear-gradient(135deg, #7C3AED, #2563EB)',
-  },
-  {
-    id: '2',
-    name: 'إطلاق منتج العيد',
-    status: 'paused',
-    platforms: ['instagram', 'snapchat'],
-    objective: 'awareness',
-    budget: 8000,
-    spent: 3200,
-    reach: 220000,
-    clicks: 5600,
-    ctr: 2.54,
-    startDate: '٢٠٢٥/٠٤/١٠',
-    endDate: '٢٠٢٥/٠٤/٣٠',
-    createdAt: '2025-04-05',
-    adCount: 3,
-    coverColor: 'linear-gradient(135deg, #FACC15, #F97316)',
-  },
-  {
-    id: '3',
-    name: 'حملة الصيف — التوعية',
-    status: 'draft',
-    platforms: ['youtube', 'facebook'],
-    objective: 'engagement',
-    budget: 5000,
-    spent: 0,
-    reach: 0,
-    clicks: 0,
-    ctr: 0,
-    startDate: '٢٠٢٥/٠٦/٠١',
-    endDate: '٢٠٢٥/٠٨/٣١',
-    createdAt: '2025-05-15',
-    adCount: 0,
-    coverColor: 'linear-gradient(135deg, #0EA5E9, #06B6D4)',
-  },
-];
+import { CampaignStatus, CampaignPlatform } from '../../../model/campaign.model';
+import { SeoService } from '../../../services/seo.service';
+import { CampaignService } from '../../../services/campaign.service';
+import { Breadcrumb } from '../../../shared/components/breadcrumb/breadcrumb';
 
 @Component({
   selector: 'app-campaigns-page',
   standalone: true,
-  imports: [RouterLink, CampaignCard],
+  imports: [RouterLink, CampaignCard, Breadcrumb],
   templateUrl: './campaigns-page.html',
   styleUrls: ['../../../features/on-boarding/onboarding-shared.css', './campaigns-page.css'],
 })
 export class CampaignsPage {
-  protected readonly campaigns = signal<Campaign[]>(MOCK_CAMPAIGNS);
+  private readonly seo = inject(SeoService);
+  private readonly campaignService = inject(CampaignService);
+  private readonly router = inject(Router);
+
+  constructor() {
+    this.seo.setPageSeo({
+      title: 'الحملات التسويقية | رواج',
+      description: 'أنشئ حملاتك التسويقية وتابع أداءها وميزانيتها في مكان واحد.',
+      keywords: 'رواج, حملات تسويقية, إدارة حملات, ميزانية إعلانية',
+      path: '/dashboard/campaigns',
+      image: '/home-hero-light.png',
+      type: 'website',
+      noIndex: true,
+    });
+  }
+
+  protected readonly campaigns = this.campaignService.campaigns;
   protected readonly searchQuery    = signal('');
   protected readonly statusFilter   = signal<CampaignStatus | 'all'>('all');
   protected readonly platformFilter = signal<CampaignPlatform | 'all'>('all');
@@ -118,14 +82,14 @@ export class CampaignsPage {
   protected get platformLabel(): string { return this.platformOptions.find(o => o.value === this.platformFilter())?.label ?? ''; }
 
   protected pauseCampaign(id: string): void {
-    this.campaigns.update(list =>
-      list.map(c => c.id === id ? { ...c, status: 'paused' as CampaignStatus } : c)
-    );
+    this.campaignService.pause(id);
   }
 
   protected resumeCampaign(id: string): void {
-    this.campaigns.update(list =>
-      list.map(c => c.id === id ? { ...c, status: 'active' as CampaignStatus } : c)
-    );
+    this.campaignService.resume(id);
+  }
+
+  protected viewCampaign(id: string): void {
+    this.router.navigate(['/dashboard/campaigns', id]);
   }
 }

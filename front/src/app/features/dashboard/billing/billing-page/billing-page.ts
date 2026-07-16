@@ -1,5 +1,6 @@
-import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { PageHeader } from '../../../../shared/components/page-header/page-header';
+import { SeoService } from '../../../../services/seo.service';
 
 interface UsageMetric {
   label: string;
@@ -23,6 +24,20 @@ interface Invoice {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BillingPage {
+  private readonly seo = inject(SeoService);
+
+  constructor() {
+    this.seo.setPageSeo({
+      title: 'الفوترة والاشتراك | رواج',
+      description: 'تابع باقتك واستهلاكك وفواتيرك السابقة.',
+      keywords: 'رواج, الفوترة, الاشتراك, الباقات, الفواتير',
+      path: '/dashboard/billing',
+      image: '/home-hero-light.png',
+      type: 'website',
+      noIndex: true,
+    });
+  }
+
   protected readonly planFeatures = [
     'إنشاء غير محدود للتصميمات',
     'ربط جميع منصات التواصل',

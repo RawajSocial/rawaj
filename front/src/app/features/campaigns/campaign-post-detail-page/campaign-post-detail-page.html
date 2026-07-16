@@ -1,0 +1,81 @@
+<div class="page-shell">
+  @if (campaign(); as c) {
+    @if (post(); as p) {
+      <app-page-header
+        title="تفاصيل المنشور"
+        [breadcrumbs]="[
+          { label: 'نظرة عامة', link: '/dashboard' },
+          { label: 'الحملات', link: '/dashboard/campaigns' },
+          { label: c.name, link: '/dashboard/campaigns/' + campaignId },
+          { label: 'التقويم', link: '/dashboard/campaigns/' + campaignId + '/calendar' },
+          { label: 'تفاصيل المنشور' }
+        ]" />
+
+      <div class="rw-card post-detail-card">
+        <div class="post-detail-head">
+          <span class="platform-chip" [style.background]="platformMeta[p.platform].color">
+            <i class="{{ platformMeta[p.platform].icon }}"></i>
+            {{ platformMeta[p.platform].label }}
+          </span>
+          <span class="status-chip" [style.color]="statusMeta[p.status].color" [style.border-color]="statusMeta[p.status].color">
+            {{ statusMeta[p.status].label }}
+          </span>
+        </div>
+
+        <p class="post-detail-content">{{ p.content }}</p>
+
+        @if (p.hashtags?.length) {
+          <div class="post-detail-hashtags">
+            @for (tag of p.hashtags!; track tag) {
+              <span class="hashtag">{{ tag }}</span>
+            }
+          </div>
+        }
+
+        <div class="post-detail-meta">
+          <div class="meta-item">
+            <span class="meta-label">موعد النشر</span>
+            <span class="meta-value">{{ formatDateTime(p.scheduledAt) }}</span>
+          </div>
+          @if (p.mediaType) {
+            <div class="meta-item">
+              <span class="meta-label">نوع الوسائط</span>
+              <span class="meta-value">{{ mediaTypeLabels[p.mediaType] }}</span>
+            </div>
+          }
+          @if (p.estimatedReach) {
+            <div class="meta-item">
+              <span class="meta-label">الوصول التقديري</span>
+              <span class="meta-value">{{ p.estimatedReach.toLocaleString('ar-SA') }}</span>
+            </div>
+          }
+          <div class="meta-item">
+            <span class="meta-label">الحملة</span>
+            <span class="meta-value">{{ p.campaignName }}</span>
+          </div>
+        </div>
+
+        <div class="post-detail-actions">
+          <a class="rw-btn rw-btn--outline" [routerLink]="['/dashboard/campaigns', campaignId, 'calendar']">
+            <i class="fa-solid fa-arrow-right"></i>
+            العودة إلى التقويم
+          </a>
+          <button type="button" class="rw-btn rw-btn--outline delete-btn" (click)="deletePost()">
+            <i class="fa-solid fa-trash"></i>
+            حذف المنشور
+          </button>
+        </div>
+      </div>
+    } @else {
+      <div class="not-found">
+        <h3>المنشور غير موجود</h3>
+        <a [routerLink]="['/dashboard/campaigns', campaignId, 'calendar']">العودة إلى التقويم</a>
+      </div>
+    }
+  } @else {
+    <div class="not-found">
+      <h3>الحملة غير موجودة</h3>
+      <a routerLink="/dashboard/campaigns">العودة إلى الحملات</a>
+    </div>
+  }
+</div>

@@ -4,7 +4,7 @@ import { OnboardingStepHeader } from '../onboarding-step-header/onboarding-step-
 import { OnboardingStepActions } from '../onboarding-step-actions/onboarding-step-actions';
 import { StepBadge } from '../../../shared/components/step-badge/step-badge';
 import { StepHeading } from '../../../shared/components/step-heading/step-heading';
-import { RevealDirective } from '../../../shared/directives/reveal.directive';
+import { GsapRevealDirective } from '../../../shared/directives/gsap-reveal.directive';
 
 type CampaignType = {
   id: string;
@@ -16,7 +16,7 @@ type CampaignType = {
 
 @Component({
   selector: 'app-onboarding-step-one',
-  imports: [CommonModule, RevealDirective, OnboardingStepHeader, OnboardingStepActions, StepBadge, StepHeading],
+  imports: [CommonModule, GsapRevealDirective, OnboardingStepHeader, OnboardingStepActions, StepBadge, StepHeading],
   templateUrl: './onboarding-step-one.html',
   styleUrl: './onboarding-step-one.css',
 })

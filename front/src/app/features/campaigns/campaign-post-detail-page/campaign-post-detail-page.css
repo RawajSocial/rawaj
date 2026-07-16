@@ -1,0 +1,130 @@
+.page-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.post-detail-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 720px;
+}
+
+.post-detail-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.platform-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: var(--radius-full);
+  color: #fff;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-semibold);
+}
+
+.status-chip {
+  padding: 5px 12px;
+  border: 1.5px solid;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-semibold);
+}
+
+.post-detail-content {
+  margin: 0;
+  font-size: var(--font-size-base);
+  color: var(--color-dark);
+  line-height: 1.8;
+  white-space: pre-line;
+}
+
+.post-detail-hashtags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.hashtag {
+  font-size: var(--font-size-xs);
+  color: var(--color-secondary);
+  background: var(--color-secondary-subtle);
+  border-radius: var(--radius-full);
+  padding: 4px 10px;
+}
+
+.post-detail-meta {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--color-border);
+}
+
+@media (max-width: 575px) {
+  .post-detail-meta { grid-template-columns: 1fr; }
+}
+
+.meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.meta-label {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.meta-value {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-dark);
+}
+
+.post-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding-top: 6px;
+}
+
+.delete-btn {
+  color: var(--color-danger);
+  border-color: var(--color-danger-light);
+}
+
+.delete-btn:hover {
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}
+
+/* ── Not found ── */
+.not-found {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 4rem 2rem;
+  text-align: center;
+}
+
+.not-found h3 {
+  margin: 0;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-bold);
+  color: var(--color-dark);
+}
+
+.not-found a {
+  color: var(--color-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-semibold);
+}

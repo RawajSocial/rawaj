@@ -8,7 +8,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;900&family=Noto+Kufi+Arabic:wght@300;400;500;600;700;900&display=swap');
 @import url('./styles/custom.button.css');
 @import url('./styles/auth.checkbox.css');
-@import url('./styles/reveal.css');
 
 html {
   scroll-behavior: smooth;
@@ -196,6 +195,24 @@ body.no-scroll {
   --color-info-light:       var(--color-blue-50);
 
   /* --------------------------------------------------------------- */
+  /* SOCIAL MEDIA BRAND COLORS                                        */
+  /* Reused everywhere a platform icon/badge/chip needs its real      */
+  /* brand color instead of a hardcoded hex per component.            */
+  /* --------------------------------------------------------------- */
+
+  --color-instagram: #E1306C;
+  --color-facebook:   #1877F2;
+  --color-tiktok:     #000000;
+  --color-youtube:    #FF0000;
+  --color-snapchat:   #FFFC00;
+  --color-linkedin:   #0A66C2;
+  --color-x:          #14171A;
+  --color-whatsapp:   #25D366;
+
+  --gradient-instagram: linear-gradient(45deg, #F58529, #DD2A7B 40%, #8134AF 70%, #515BD4);
+  --gradient-tiktok:    linear-gradient(45deg, #25F4EE, #FE2C55);
+
+  /* --------------------------------------------------------------- */
   /* SPACING                                                          */
   /* --------------------------------------------------------------- */
 
@@ -364,6 +381,7 @@ textarea.form-control {
 html {
   direction: rtl;
   overflow-x: hidden;
+  background: var(--color-brand-dark);
 }
 
 body {
@@ -389,7 +407,7 @@ body {
 /* ================================================================= */
 
 html {
-  scrollbar-color: var(--color-primary) rgba(255, 255, 255, 0.15);
+  scrollbar-color: var(--color-secondary) var(--color-brand-dark);
   scrollbar-width: thin;
 }
 
@@ -399,17 +417,21 @@ html {
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--color-brand-dark);
 }
 
 ::-webkit-scrollbar-thumb {
   background: linear-gradient(180deg, var(--color-primary), var(--color-secondary));
   border-radius: 999px;
-  border: 2px solid rgba(255, 255, 255, 0.08);
+  border: 2px solid var(--color-brand-dark);
 }
 
 ::-webkit-scrollbar-thumb:hover {
   background: linear-gradient(180deg, var(--color-primary-hover), var(--color-secondary));
+}
+
+::-webkit-scrollbar-corner {
+  background: var(--color-brand-dark);
 }
 
 

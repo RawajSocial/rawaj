@@ -3,11 +3,11 @@ import { OnboardingStepHeader } from '../onboarding-step-header/onboarding-step-
 import { OnboardingStepActions } from '../onboarding-step-actions/onboarding-step-actions';
 import { StepBadge } from '../../../shared/components/step-badge/step-badge';
 import { StepHeading } from '../../../shared/components/step-heading/step-heading';
-import { RevealDirective } from '../../../shared/directives/reveal.directive';
+import { GsapRevealDirective } from '../../../shared/directives/gsap-reveal.directive';
 
 @Component({
   selector: 'app-onboarding-step-four',
-  imports: [RevealDirective, OnboardingStepHeader, OnboardingStepActions, StepBadge, StepHeading],
+  imports: [GsapRevealDirective, OnboardingStepHeader, OnboardingStepActions, StepBadge, StepHeading],
   templateUrl: './onboarding-step-four.html',
   styleUrl: './onboarding-step-four.css',
 })

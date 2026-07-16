@@ -1,5 +1,6 @@
-import { ChangeDetectionStrategy, Component, computed, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { PageHeader } from '../../../../shared/components/page-header/page-header';
+import { SeoService } from '../../../../services/seo.service';
 
 type NotifType = 'campaign' | 'content' | 'team' | 'billing' | 'system';
 type NotifTab = 'all' | 'unread' | 'read';
@@ -29,6 +30,20 @@ const TYPE_CFG: Record<NotifType, { icon: string; bg: string; color: string }> =
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class NotificationsPage {
+  private readonly seo = inject(SeoService);
+
+  constructor() {
+    this.seo.setPageSeo({
+      title: 'الإشعارات | رواج',
+      description: 'تابع كل التحديثات المتعلقة بحملاتك ومحتواك وفريقك.',
+      keywords: 'رواج, إشعارات, تنبيهات الحملات, تحديثات',
+      path: '/dashboard/notifications',
+      image: '/home-hero-light.png',
+      type: 'website',
+      noIndex: true,
+    });
+  }
+
   protected readonly typeCfg = TYPE_CFG;
 
   protected readonly notifications = signal<AppNotification[]>([

@@ -8,14 +8,14 @@ const SLUG_TO_AR: Record<string, string> = {
 };
 
 const PLATFORM_META: Record<string, { icon: string; color: string }> = {
-  'إنستغرام':   { icon: 'fa-brands fa-instagram',  color: '#E1306C' },
-  'فيسبوك':     { icon: 'fa-brands fa-facebook-f', color: '#1877F2' },
-  'تيك توك':    { icon: 'fa-brands fa-tiktok',     color: '#222'    },
-  'سناب شات':   { icon: 'fa-brands fa-snapchat',   color: '#b8960c' },
-  'تويتر / X':  { icon: 'fa-brands fa-x-twitter',  color: '#14171A' },
-  'يوتيوب':     { icon: 'fa-brands fa-youtube',    color: '#FF0000' },
-  'لينكدإن':    { icon: 'fa-brands fa-linkedin',   color: '#0077B5' },
-  'واتساب':     { icon: 'fa-brands fa-whatsapp',   color: '#25D366' },
+  'إنستغرام':   { icon: 'fa-brands fa-instagram',  color: 'var(--color-instagram)' },
+  'فيسبوك':     { icon: 'fa-brands fa-facebook-f', color: 'var(--color-facebook)' },
+  'تيك توك':    { icon: 'fa-brands fa-tiktok',     color: 'var(--color-tiktok)'    },
+  'سناب شات':   { icon: 'fa-brands fa-snapchat',   color: 'var(--color-snapchat)' },
+  'تويتر / X':  { icon: 'fa-brands fa-x-twitter',  color: 'var(--color-x)' },
+  'يوتيوب':     { icon: 'fa-brands fa-youtube',    color: 'var(--color-youtube)' },
+  'لينكدإن':    { icon: 'fa-brands fa-linkedin',   color: 'var(--color-linkedin)' },
+  'واتساب':     { icon: 'fa-brands fa-whatsapp',   color: 'var(--color-whatsapp)' },
 };
 
 @Component({

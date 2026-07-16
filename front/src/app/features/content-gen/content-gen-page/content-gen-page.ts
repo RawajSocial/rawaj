@@ -1,19 +1,21 @@
-import { Component, HostListener, computed, signal } from '@angular/core';
+import { Component, HostListener, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { MediaService } from '../../../services/media.service';
+import { SeoService } from '../../../services/seo.service';
+import { Breadcrumb } from '../../../shared/components/breadcrumb/breadcrumb';
 import {
   GeneratedItem, GenType, AdSize, ContentTone, TextType,
   TYPE_CFG, SIZE_CFG, TONE_CFG, TEXT_TYPE_CFG,
 } from '../../../model/generated-item.model';
 
 const PLATFORM_OPTS = [
-  { value: 'instagram', label: 'إنستغرام',  icon: 'fa-brands fa-instagram',  color: '#E1306C' },
-  { value: 'facebook',  label: 'فيسبوك',    icon: 'fa-brands fa-facebook-f', color: '#1877F2' },
-  { value: 'tiktok',    label: 'تيك توك',   icon: 'fa-brands fa-tiktok',     color: '#222' },
-  { value: 'x',         label: 'إكس',        icon: 'fa-brands fa-x-twitter',  color: '#14171A' },
-  { value: 'snapchat',  label: 'سناب شات',  icon: 'fa-brands fa-snapchat',   color: '#FDD835' },
-  { value: 'youtube',   label: 'يوتيوب',    icon: 'fa-brands fa-youtube',    color: '#FF0000' },
-  { value: 'linkedin',  label: 'لينكد إن',  icon: 'fa-brands fa-linkedin-in',color: '#0A66C2' },
+  { value: 'instagram', label: 'إنستغرام',  icon: 'fa-brands fa-instagram',  color: 'var(--color-instagram)' },
+  { value: 'facebook',  label: 'فيسبوك',    icon: 'fa-brands fa-facebook-f', color: 'var(--color-facebook)' },
+  { value: 'tiktok',    label: 'تيك توك',   icon: 'fa-brands fa-tiktok',     color: 'var(--color-tiktok)' },
+  { value: 'x',         label: 'إكس',        icon: 'fa-brands fa-x-twitter',  color: 'var(--color-x)' },
+  { value: 'snapchat',  label: 'سناب شات',  icon: 'fa-brands fa-snapchat',   color: 'var(--color-snapchat)' },
+  { value: 'youtube',   label: 'يوتيوب',    icon: 'fa-brands fa-youtube',    color: 'var(--color-youtube)' },
+  { value: 'linkedin',  label: 'لينكد إن',  icon: 'fa-brands fa-linkedin-in',color: 'var(--color-linkedin)' },
 ];
 
 const QUALITY_OPTS = [
@@ -25,7 +27,7 @@ const QUALITY_OPTS = [
 @Component({
   selector: 'app-content-gen-page',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, Breadcrumb],
   templateUrl: './content-gen-page.html',
   styleUrls: [
     '../../../features/on-boarding/onboarding-shared.css',
@@ -101,7 +103,19 @@ export class ContentGenPage {
     text:        this.media.items().filter(i => i.type === 'text').length,
   }));
 
-  constructor(readonly media: MediaService) {}
+  private readonly seo = inject(SeoService);
+
+  constructor(readonly media: MediaService) {
+    this.seo.setPageSeo({
+      title: 'توليد المحتوى بالذكاء الاصطناعي | رواج',
+      description: 'أنشئ صورًا وفيديوهات وكابشنز احترافية بالذكاء الاصطناعي خلال ثوانٍ.',
+      keywords: 'رواج, توليد محتوى, ذكاء اصطناعي, تصميم إعلانات',
+      path: '/dashboard/content-gen',
+      image: '/home-hero-light.png',
+      type: 'website',
+      noIndex: true,
+    });
+  }
 
   @HostListener('document:click', ['$event'])
   onDocClick(e: MouseEvent): void {

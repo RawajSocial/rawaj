@@ -26,7 +26,7 @@
 .custom-navbar {
   --bs-navbar-bg: transparent;
   --bs-bg-opacity: 1;
-  background: rgba(0, 0, 0, 0.44) !important;
+  background: rgba(0, 0, 0, 0.25) !important;
   background-image: none !important;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
@@ -37,11 +37,18 @@
 
 /* Solid style once scrolled past the hero (not transparent-over-hero anymore) */
 :host(.navbar--scrolled) .custom-navbar {
-  background: rgba(11, 4, 32, 0.92) !important;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+    --bs-navbar-bg: var(--color-dark);
+    --bs-bg-opacity: 0;
+    background: var(--color-dark) !important;
+    background-color: var(--color-dark) !important;
+    background-image: none !important;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border-bottom: none;
+    box-shadow: none;
 }
+
+
 
 .first-letter{
   color: var(--color-accent);

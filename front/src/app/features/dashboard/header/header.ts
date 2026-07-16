@@ -1,4 +1,4 @@
-import { Component, HostListener, input, output, signal } from '@angular/core';
+import { Component, HostListener, computed, input, output, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 @Component({
@@ -18,6 +18,10 @@ export class Header {
   notifOpen = signal(false);
   profileOpen = signal(false);
   fullscreen = signal(false);
+
+  // TODO: replace with the real balance once a billing/credits service exists.
+  private readonly creditBalance = signal(2450);
+  protected readonly creditBalanceLabel = computed(() => this.creditBalance().toLocaleString('ar-SA'));
 
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {

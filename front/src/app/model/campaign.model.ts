@@ -18,5 +18,7 @@ export interface Campaign {
   endDate: string;
   createdAt: string;
   adCount?: number;
-  coverColor?: string;
+  /** Per-campaign brand logo shown on the card banner. Falls back to the
+   *  Rawaj logo (see CampaignCard) when not set. */
+  logoUrl?: string;
 }

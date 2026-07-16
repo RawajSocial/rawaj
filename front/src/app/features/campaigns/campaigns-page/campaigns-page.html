@@ -3,12 +3,7 @@
   <div class="page-top">
     <div>
       <h5 class="page-title">حملاتك التسويقية</h5>
-      <nav aria-label="breadcrumb">
-        <ol class="breadcrumb">
-          <li class="breadcrumb-item"><a routerLink="/dashboard">لوحة التحكم</a></li>
-          <li class="breadcrumb-item active">الحملات</li>
-        </ol>
-      </nav>
+      <app-breadcrumb [items]="[{ label: 'نظرة عامة', link: '/dashboard' }, { label: 'الحملات' }]" />
     </div>
     <a routerLink="/on-boarding" class="btn-new-camp">
       <i class="fa-solid fa-plus"></i>
@@ -102,7 +97,7 @@
           [campaign]="camp"
           (pause)="pauseCampaign($event)"
           (resume)="resumeCampaign($event)"
-          (view)="null" />
+          (view)="viewCampaign($event)" />
       }
     </div>
   }

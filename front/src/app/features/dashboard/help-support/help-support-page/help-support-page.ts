@@ -1,6 +1,7 @@
-import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { PageHeader } from '../../../../shared/components/page-header/page-header';
+import { SeoService } from '../../../../services/seo.service';
 
 interface Faq {
   q: string;
@@ -15,6 +16,20 @@ interface Faq {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class HelpSupportPage {
+  private readonly seo = inject(SeoService);
+
+  constructor() {
+    this.seo.setPageSeo({
+      title: 'المساعدة والدعم | رواج',
+      description: 'أسئلة شائعة وتواصل مباشر مع فريق الدعم الفني في رواج.',
+      keywords: 'رواج, المساعدة, الدعم الفني, الأسئلة الشائعة',
+      path: '/dashboard/help',
+      image: '/home-hero-light.png',
+      type: 'website',
+      noIndex: true,
+    });
+  }
+
   protected readonly faqs = signal<Faq[]>([
     { q: 'كيف أبدأ أول حملة تسويقية؟', a: 'ابدأ من خطوة "ابدأ حملة جديدة"، أدخل بيانات نشاطك، وسيقوم رواج بتوليد خطة تسويقية ومحتوى جاهز للنشر.' },
     { q: 'كيف أربط حساباتي على مواقع التواصل؟', a: 'من صفحة الإعدادات يمكنك ربط حسابات إنستغرام وفيسبوك وتيك توك وسناب شات ولينكدإن لنشر المحتوى تلقائيًا.' },

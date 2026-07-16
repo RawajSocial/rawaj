@@ -1,10 +1,10 @@
 import { Component, ElementRef, OnDestroy, ViewChild, AfterViewInit } from '@angular/core';
-import { RevealDirective } from '../../../shared/directives/reveal.directive';
+import { GsapRevealDirective } from '../../../shared/directives/gsap-reveal.directive';
 import { WorkflowVisual } from './workflow-visual/workflow-visual';
 
 @Component({
   selector: 'app-how-it-works',
-  imports: [RevealDirective, WorkflowVisual],
+  imports: [GsapRevealDirective, WorkflowVisual],
   templateUrl: './how-it-works.html',
   styleUrl: './how-it-works.css',
 })

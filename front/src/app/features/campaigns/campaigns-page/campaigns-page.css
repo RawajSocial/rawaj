@@ -17,17 +17,6 @@
   margin: 0 0 4px;
 }
 
-.breadcrumb {
-  background: none;
-  padding: 0;
-  margin: 0;
-  font-size: var(--font-size-sm);
-}
-
-.breadcrumb-item a { color: var(--color-text-secondary); text-decoration: none; }
-.breadcrumb-item.active { color: var(--color-text-muted); }
-.breadcrumb-item + .breadcrumb-item::before { color: var(--color-text-muted); }
-
 /* ── Dropdown overrides for filter bar context ── */
 .filters-bar .dropdown { min-width: 160px; }
 .filters-bar .dropdown-trigger { padding: 8px 12px; font-size: var(--font-size-sm); }

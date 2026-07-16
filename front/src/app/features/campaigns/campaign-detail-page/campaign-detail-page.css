@@ -1,0 +1,234 @@
+.page-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* ── Header + "view calendar" CTA ── */
+.detail-header-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.detail-header-row app-page-header {
+  flex: 1;
+  min-width: 0;
+}
+
+.detail-header-row .rw-btn {
+  flex-shrink: 0;
+}
+
+/* ── Overview card ── */
+.overview-card {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+}
+
+.overview-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.overview-platforms {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.platform-icon {
+  font-size: 1.05rem;
+}
+
+.overview-meta {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+}
+
+@media (max-width: 767px) {
+  .overview-meta { grid-template-columns: repeat(2, 1fr); }
+}
+
+.meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.meta-label {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.meta-value {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-dark);
+}
+
+.budget-track {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--color-bg-secondary);
+  overflow: hidden;
+}
+
+.budget-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--color-secondary), var(--color-primary));
+  transition: width var(--transition-slow);
+}
+
+/* ── KPI row ── */
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+}
+
+@media (max-width: 1199px) {
+  .kpi-row { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 575px) {
+  .kpi-row { grid-template-columns: 1fr; }
+}
+
+/* ── Performance + posts row ── */
+.detail-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 1rem;
+  align-items: start;
+}
+
+@media (max-width: 991px) {
+  .detail-row { grid-template-columns: 1fr; }
+}
+
+.performance-svg {
+  width: 100%;
+  height: 220px;
+  display: block;
+}
+
+/* ── Upcoming posts ── */
+.post-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.post-filter .rw-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.no-posts {
+  margin: 0;
+  padding: 1.5rem 0;
+  text-align: center;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.posts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.post-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  border-radius: 12px;
+  text-decoration: none;
+  color: inherit;
+  transition: background-color var(--transition-fast);
+}
+
+.post-row:hover {
+  background: var(--color-bg-secondary);
+  color: inherit;
+}
+
+.post-arrow {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+}
+
+.post-icon {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  color: #fff;
+  font-size: 0.85rem;
+}
+
+.post-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.post-content {
+  margin: 0 0 4px;
+  font-size: var(--font-size-sm);
+  color: var(--color-dark);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.post-date {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.post-date i {
+  margin-inline-end: 4px;
+}
+
+/* ── Not found ── */
+.not-found {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 4rem 2rem;
+  text-align: center;
+}
+
+.not-found h3 {
+  margin: 0;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-bold);
+  color: var(--color-dark);
+}
+
+.not-found a {
+  color: var(--color-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-semibold);
+}

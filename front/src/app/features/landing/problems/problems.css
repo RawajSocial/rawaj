@@ -1,5 +1,6 @@
 .problems-section {
   position: relative;
+  scroll-margin-top: 110px;
   background: var(--color-bg-secondary);
   padding: 5.5rem 0;
 }
@@ -36,7 +37,15 @@
   font-size: var(--font-size-4xl);
   font-weight: var(--font-bold);
   color: var(--color-dark);
-  margin: 0;
+  margin: 0 0 1rem;
+}
+
+.section-subtitle {
+  max-width: 620px;
+  margin: 0 auto;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-md);
+  line-height: 1.8;
 }
 
 .problem-card {

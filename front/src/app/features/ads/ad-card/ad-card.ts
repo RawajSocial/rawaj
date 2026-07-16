@@ -1,6 +1,36 @@
 import { Component, input, output } from '@angular/core';
 import { Ad } from '../../../model/ad.model';
 
+const POST_TYPE_LABELS: Record<string, string> = {
+  text: 'منشور نصي', image: 'منشور بصورة', video: 'منشور فيديو',
+  carousel: 'منشور كاروسيل', story: 'ستوري', reel: 'ريلز',
+};
+
+const PLATFORM_ICONS: Record<string, string> = {
+  instagram: 'fa-brands fa-instagram',
+  facebook:  'fa-brands fa-facebook-f',
+  tiktok:    'fa-brands fa-tiktok',
+  youtube:   'fa-brands fa-youtube',
+  x:         'fa-brands fa-x-twitter',
+  snapchat:  'fa-brands fa-snapchat',
+  linkedin:  'fa-brands fa-linkedin-in',
+};
+
+const PLATFORM_COLORS: Record<string, string> = {
+  instagram: 'var(--color-instagram)',
+  facebook:  'var(--color-facebook)',
+  tiktok:    'var(--color-tiktok)',
+  youtube:   'var(--color-youtube)',
+  x:         'var(--color-x)',
+  snapchat:  'var(--color-snapchat)',
+  linkedin:  'var(--color-linkedin)',
+};
+
+const PLATFORM_LABELS: Record<string, string> = {
+  instagram: 'إنستغرام', facebook: 'فيسبوك', tiktok: 'تيك توك',
+  youtube: 'يوتيوب', x: 'إكس', snapchat: 'سناب شات', linkedin: 'لينكد إن',
+};
+
 @Component({
   selector: 'app-ad-card',
   standalone: true,
@@ -9,29 +39,37 @@ import { Ad } from '../../../model/ad.model';
   styleUrl: './ad-card.css',
 })
 export class AdCard {
-  readonly ad     = input.required<Ad>();
-  readonly toggle = output<string>();
-  readonly view   = output<string>();
+  readonly ad   = input.required<Ad>();
+  readonly view = output<string>();
 
-  protected get platformIcon(): string {
-    const m: Record<string, string> = {
-      instagram: 'fa-brands fa-instagram',
-      facebook:  'fa-brands fa-facebook-f',
-      tiktok:    'fa-brands fa-tiktok',
-      youtube:   'fa-brands fa-youtube',
-      x:         'fa-brands fa-x-twitter',
-      snapchat:  'fa-brands fa-snapchat',
-      linkedin:  'fa-brands fa-linkedin-in',
-    };
-    return m[this.ad().platform] ?? 'fa-solid fa-globe';
+  /** Real image for 'image' posts, the static text-post.png for 'text'
+   *  posts, or null (→ generic placeholder) for video/carousel/story/reel
+   *  since we don't extract real video frames here. */
+  protected get mediaSrc(): string | null {
+    const a = this.ad();
+    if (a.format === 'text') return '/text-post.png';
+    if (a.format === 'image') return a.imageUrl ?? null;
+    return null;
   }
 
-  protected get platformLabel(): string {
-    const m: Record<string, string> = {
-      instagram: 'إنستغرام', facebook: 'فيسبوك', tiktok: 'تيك توك',
-      youtube: 'يوتيوب', x: 'إكس', snapchat: 'سناب شات', linkedin: 'لينكد إن',
-    };
-    return m[this.ad().platform] ?? this.ad().platform;
+  protected get postTypeLabel(): string {
+    return POST_TYPE_LABELS[this.ad().format] ?? '';
+  }
+
+  protected platformIcon(p: string): string {
+    return PLATFORM_ICONS[p] ?? 'fa-solid fa-globe';
+  }
+
+  protected platformColor(p: string): string {
+    return PLATFORM_COLORS[p] ?? 'var(--color-text-muted)';
+  }
+
+  protected platformLabel(p: string): string {
+    return PLATFORM_LABELS[p] ?? p;
+  }
+
+  protected get platformNames(): string {
+    return this.ad().platforms.map(p => this.platformLabel(p)).join('، ');
   }
 
   protected get statusLabel(): string {
@@ -41,16 +79,17 @@ export class AdCard {
     return m[this.ad().status] ?? '';
   }
 
-  protected get formatLabel(): string {
-    const m: Record<string, string> = {
-      image: 'صورة', video: 'فيديو', carousel: 'كاروسيل', story: 'ستوري', reel: 'ريلز',
-    };
-    return m[this.ad().format] ?? '';
-  }
-
   protected formatNumber(n: number): string {
     if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M';
     if (n >= 1_000)     return (n / 1_000).toFixed(1) + 'K';
     return n.toString();
+  }
+
+  protected formatDate(iso: string): string {
+    return new Date(iso).toLocaleDateString('ar-SA', { day: 'numeric', month: 'long', year: 'numeric' });
+  }
+
+  protected formatTime(iso: string): string {
+    return new Date(iso).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit', hour12: true });
   }
 }

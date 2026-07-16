@@ -9,16 +9,10 @@
   margin-bottom: 28px;
 }
 
-.breadcrumb {
-  background: none;
-  padding: 0;
-  margin: 0 0 8px;
-  font-size: var(--font-size-sm);
+app-breadcrumb {
+  display: block;
+  margin: 6px 0 8px;
 }
-
-.breadcrumb-item a { color: var(--color-text-secondary); text-decoration: none; }
-.breadcrumb-item.active { color: var(--color-text-muted); }
-.breadcrumb-item + .breadcrumb-item::before { color: var(--color-text-muted); }
 
 .page-title {
   font-size: var(--font-size-xl);

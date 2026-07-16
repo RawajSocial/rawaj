@@ -4,12 +4,7 @@
   <div class="d-flex align-items-start justify-content-between mb-4 flex-wrap gap-3">
     <div>
       <h5 class="page-title">توليد المحتوى</h5>
-      <nav aria-label="breadcrumb">
-        <ol class="breadcrumb mb-0">
-          <li class="breadcrumb-item"><a routerLink="/dashboard">لوحة التحكم</a></li>
-          <li class="breadcrumb-item active">توليد المحتوى</li>
-        </ol>
-      </nav>
+      <app-breadcrumb [items]="[{ label: 'نظرة عامة', link: '/dashboard' }, { label: 'توليد المحتوى' }]" />
     </div>
     <a routerLink="/dashboard/my-media" class="btn-all-media">
       <i class="fa-solid fa-photo-film"></i>

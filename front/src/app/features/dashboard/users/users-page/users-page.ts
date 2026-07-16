@@ -14,6 +14,7 @@ import { TeamMemberService } from '../../../../services/team-member.service';
 import { ROLE_LABELS, STATUS_LABELS, TeamMember, TeamMemberStatus } from '../../../../model/team-member.model';
 import { UserFormModal, UserFormValue } from '../user-form-modal/user-form-modal';
 import { PageHeader } from '../../../../shared/components/page-header/page-header';
+import { SeoService } from '../../../../services/seo.service';
 
 type StatusTab = 'all' | TeamMemberStatus;
 
@@ -26,6 +27,7 @@ type StatusTab = 'all' | TeamMemberStatus;
 })
 export class UsersPage {
   private readonly teamMemberService = inject(TeamMemberService);
+  private readonly seo = inject(SeoService);
 
   protected readonly roleLabels = ROLE_LABELS;
   protected readonly statusLabels = STATUS_LABELS;
@@ -55,6 +57,15 @@ export class UsersPage {
   private readonly rowRefs = viewChildren<ElementRef<HTMLElement>>('row');
 
   constructor() {
+    this.seo.setPageSeo({
+      title: 'المستخدمون | رواج',
+      description: 'ادعُ أعضاء فريقك، وزّع المهام، وتابع صلاحياتهم من مكان واحد.',
+      keywords: 'رواج, المستخدمون, إدارة الفريق, صلاحيات',
+      path: '/dashboard/users',
+      image: '/home-hero-light.png',
+      type: 'website',
+      noIndex: true,
+    });
     afterNextRender(() => this.animateRows());
   }
 

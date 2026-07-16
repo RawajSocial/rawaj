@@ -1,5 +1,6 @@
 .how-it-works-section {
   position: relative;
+  scroll-margin-top: 110px;
   background-color: var(--color-dark);
   padding: 8rem 0;
   overflow: hidden;

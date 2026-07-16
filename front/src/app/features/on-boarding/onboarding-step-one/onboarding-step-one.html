@@ -5,14 +5,14 @@
     title="نوع الحملة"
   />
 
-  <app-step-badge icon="fa-solid fa-flag" text="الخطوة الأولى" appReveal="fade-up-far" [revealDuration]="1200" />
+  <app-step-badge icon="fa-solid fa-flag" text="الخطوة الأولى" appGsapReveal="fade-up-far" [gsapDuration]="1200" />
   <app-step-heading
     title="ما نوع الحملة التي تريدها؟"
     lead="اختر نوع حملتك وسنوجّهك خطوة بخطوة لبناء استراتيجية محكمة ومخصصة لك."
-    appReveal="fade-up-far" [revealDuration]="1200"
+    appGsapReveal="fade-up-far" [gsapDuration]="1200"
   />
 
-  <div class="campaign-grid" appReveal="fade-up-far" [revealDuration]="1200">
+  <div class="campaign-grid" appGsapReveal="fade-up-far" [gsapDuration]="1200">
     @for (type of campaignTypes; track type.id) {
       <article
         class="campaign-card"

@@ -1,9 +1,10 @@
 import { Component } from '@angular/core';
-import { RevealDirective } from '../../../shared/directives/reveal.directive';
+import { RouterLink } from '@angular/router';
+import { GsapRevealDirective } from '../../../shared/directives/gsap-reveal.directive';
 
 @Component({
   selector: 'app-cta',
-  imports: [RevealDirective],
+  imports: [GsapRevealDirective, RouterLink],
   templateUrl: './cta.html',
   styleUrl: './cta.css',
 })

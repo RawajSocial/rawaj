@@ -1,9 +1,9 @@
 import { Component, Input } from '@angular/core';
-import { RevealDirective } from '../../../../shared/directives/reveal.directive';
+import { GsapRevealDirective } from '../../../../shared/directives/gsap-reveal.directive';
 
 @Component({
   selector: 'app-why-card',
-  imports: [RevealDirective],
+  imports: [GsapRevealDirective],
   templateUrl: './why-card.html',
   styleUrl: './why-card.css',
 })

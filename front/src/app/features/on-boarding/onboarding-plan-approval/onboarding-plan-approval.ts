@@ -2,14 +2,14 @@ import { Component, DestroyRef, inject, input, OnInit, output, signal, computed 
 
 // ──── Platform & content metadata ─────────────────────────────────────────
 const PLATFORM_META: Record<string, { icon: string; color: string; lightColor: string; label: string }> = {
-  instagram: { icon: 'fa-brands fa-instagram',  color: '#E1306C', lightColor: '#fce7f3',  label: 'Instagram'   },
-  facebook:  { icon: 'fa-brands fa-facebook-f', color: '#1877F2', lightColor: '#dbeafe',  label: 'Facebook'    },
-  tiktok:    { icon: 'fa-brands fa-tiktok',     color: '#2d2d2d', lightColor: '#f3f4f6',  label: 'TikTok'      },
-  snapchat:  { icon: 'fa-brands fa-snapchat',   color: '#b8960c', lightColor: '#fef9c3',  label: 'Snapchat'    },
-  twitter:   { icon: 'fa-brands fa-x-twitter',  color: '#14171A', lightColor: '#f3f4f6',  label: 'X / Twitter' },
-  youtube:   { icon: 'fa-brands fa-youtube',    color: '#FF0000', lightColor: '#fee2e2',  label: 'YouTube'     },
-  linkedin:  { icon: 'fa-brands fa-linkedin',   color: '#0077B5', lightColor: '#dbeafe',  label: 'LinkedIn'    },
-  whatsapp:  { icon: 'fa-brands fa-whatsapp',   color: '#25D366', lightColor: '#dcfce7',  label: 'WhatsApp'    },
+  instagram: { icon: 'fa-brands fa-instagram',  color: 'var(--color-instagram)', lightColor: '#fce7f3',  label: 'Instagram'   },
+  facebook:  { icon: 'fa-brands fa-facebook-f', color: 'var(--color-facebook)',  lightColor: '#dbeafe',  label: 'Facebook'    },
+  tiktok:    { icon: 'fa-brands fa-tiktok',     color: 'var(--color-tiktok)',    lightColor: '#f3f4f6',  label: 'TikTok'      },
+  snapchat:  { icon: 'fa-brands fa-snapchat',   color: 'var(--color-snapchat)',  lightColor: '#fef9c3',  label: 'Snapchat'    },
+  twitter:   { icon: 'fa-brands fa-x-twitter',  color: 'var(--color-x)',         lightColor: '#f3f4f6',  label: 'X / Twitter' },
+  youtube:   { icon: 'fa-brands fa-youtube',    color: 'var(--color-youtube)',   lightColor: '#fee2e2',  label: 'YouTube'     },
+  linkedin:  { icon: 'fa-brands fa-linkedin',   color: 'var(--color-linkedin)',  lightColor: '#dbeafe',  label: 'LinkedIn'    },
+  whatsapp:  { icon: 'fa-brands fa-whatsapp',   color: 'var(--color-whatsapp)',  lightColor: '#dcfce7',  label: 'WhatsApp'    },
 };
 
 const CONTENT_TYPES = {

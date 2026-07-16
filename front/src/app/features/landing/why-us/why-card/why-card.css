@@ -6,8 +6,8 @@
 box-shadow: rgba(0, 0, 0, 0.1) 0px 0px 5px 0px, rgba(0, 0, 0, 0.1) 0px 0px 1px 0px;}
 
 .why-icon {
-  width: 74px;
-  height: 74px;
+  width: 52px;
+  height: 52px;
   margin: 0 auto 1rem;
   border-radius: 50%;
   display: grid;
@@ -17,12 +17,12 @@ box-shadow: rgba(0, 0, 0, 0.1) 0px 0px 5px 0px, rgba(0, 0, 0, 0.1) 0px 0px 1px 0
 }
 
 .why-icon i {
-  font-size: 2rem;
+  font-size: 1rem;
 }
 
 .why-card h3 {
   font-family: var(--font-serif);
-  font-size: var(--font-size-2xl);
+  font-size: var(--font-size-xl);
   color: var(--color-primary-active);
   margin-bottom: 0.65rem;
 }

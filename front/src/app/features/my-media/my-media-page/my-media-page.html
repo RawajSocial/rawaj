@@ -4,12 +4,7 @@
   <div class="page-top">
     <div>
       <h5 class="page-title">إعلاناتي</h5>
-      <nav aria-label="breadcrumb">
-        <ol class="breadcrumb">
-          <li class="breadcrumb-item"><a routerLink="/dashboard">لوحة التحكم</a></li>
-          <li class="breadcrumb-item active">إعلاناتي</li>
-        </ol>
-      </nav>
+      <app-breadcrumb [items]="[{ label: 'نظرة عامة', link: '/dashboard' }, { label: 'إعلاناتي' }]" />
     </div>
     <a routerLink="/dashboard/content-gen" class="btn-new-gen">
       <i class="fa-solid fa-wand-magic-sparkles"></i>

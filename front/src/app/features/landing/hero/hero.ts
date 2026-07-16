@@ -1,10 +1,10 @@
 import { Component } from '@angular/core';
-import { RevealDirective } from '../../../shared/directives/reveal.directive';
-import { ɵInternalFormsSharedModule } from "@angular/forms";
+import { RouterLink } from '@angular/router';
+import { GsapRevealDirective } from '../../../shared/directives/gsap-reveal.directive';
 
 @Component({
   selector: 'app-hero',
-  imports: [RevealDirective, ɵInternalFormsSharedModule],
+  imports: [GsapRevealDirective, RouterLink],
   templateUrl: './hero.html',
   styleUrl: './hero.css',
 })

@@ -32,7 +32,6 @@
 .kpi-icon {
   width: 52px;
   height: 52px;
-  border-radius: var(--radius-lg);
   display: flex;
   align-items: center;
   justify-content: center;

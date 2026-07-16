@@ -1,5 +1,5 @@
 import { Component, input, output } from '@angular/core';
-import { RevealDirective } from '../../../../shared/directives/reveal.directive';
+import { GsapRevealDirective } from '../../../../shared/directives/gsap-reveal.directive';
 
 type OnboardingData = {
   productName?: string;
@@ -10,7 +10,7 @@ type OnboardingData = {
 
 @Component({
   selector: 'app-brief-new-product',
-  imports: [RevealDirective],
+  imports: [GsapRevealDirective],
   templateUrl: './brief-new-product.html',
   styleUrls: ['../../onboarding-shared.css', '../brief-shared.css'],
 })

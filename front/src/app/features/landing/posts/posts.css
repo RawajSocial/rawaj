@@ -1,15 +1,14 @@
 .posts-section {
   --card-width: 300px;
-  --card-gap: 50px;
-  --active-index: 0;
-  --middle-index: 2.5;
+  --card-height: 480px;
+  --peek-offset: 190px;
+  --peek-offset-2: 350px;
   position: relative;
-  background-color: var(--background-gray );
-  padding-top: 6rem;
+  background-color: var(--background-gray);
+  padding: 6rem 0rem;
   overflow: hidden;
   color: var(--color-dark);
 }
-
 
 .section-header {
   margin-bottom: 1rem;
@@ -31,114 +30,158 @@
   font-size: var(--font-size-base);
 }
 
-/* Carousel Layout Container */
+/* Carousel viewport — the active card is centered; posts.ts positions the
+   two immediate neighbors as dimmed/blurred peeks on either side, and
+   hides everything beyond that. */
 .carousel-container {
   position: relative;
   width: 100%;
-  overflow: hidden;
   display: flex;
-  justify-content: center; /* Center active item by default */
+  justify-content: center;
   padding: 3rem 0;
   z-index: 2;
+  touch-action: pan-y;
 }
 
-/* Soft Faded Edge Gradients (Left and Right) */
+
+
 .carousel-container::before,
 .carousel-container::after {
   content: '';
   position: absolute;
   top: 0;
   bottom: 0;
-  width: 25%; /* Spans 20% of the viewport on each side */
+  width: 12%;
   z-index: 5;
   pointer-events: none;
 }
 
-
 .carousel-container::before {
   left: 0;
-  background: linear-gradient(to right, var(--background-gray) 30%, rgba(248, 249, 250, 0) 100%);
+  background: linear-gradient(to right, var(--background-gray) 20%, rgba(248, 249, 250, 0) 100%);
 }
 
 .carousel-container::after {
   right: 0;
-  background: linear-gradient(to left, var(--background-gray) 30%, rgba(248, 249, 250, 0) 100%);
+  background: linear-gradient(to left, var(--background-gray) 20%, rgba(248, 249, 250, 0) 100%);
 }
 
-.carousel-track {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: nowrap;
-  gap: var(--card-gap);
-  width: max-content;
-  transform: translateX(calc( (var(--active-index) - var(--middle-index)) * (var(--card-width) + var(--card-gap)) ));
-  transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1);
-  will-change: transform;
-}
-
-.carousel-card {
-  width: var(--card-width);
-  height: 480px; /* Vertical card */
-  flex-shrink: 0;
-  transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1),
-              opacity 0.6s ease,
-              filter 0.6s ease;
+.carousel-stage {
   position: relative;
+  width: var(--card-width);
+  height: var(--card-height);
+}
+
+/* Every card is centered on the same anchor point; posts.ts uses GSAP to
+   offset/scale/fade each one based on its distance from the active index. */
+.carousel-card {
+  position: absolute;
+  inset: 0;
+  will-change: transform, opacity, filter;
 }
 
 .card-inner {
   position: relative;
   width: 100%;
   height: 100%;
-  border-radius: 24px;
+  border-radius: 34px;
   overflow: hidden;
-  border: 1px solid rgba(11, 15, 25, 0.06);
-  background : transparent;
-  transition: border-color 0.4s ease, box-shadow 0.4s ease;
 }
+
+/* ── Realistic phone mockup ─────────────────────────────────────────── */
 
 .phone-frame {
   position: relative;
   width: 100%;
   height: 100%;
-  border: 4px solid #0b0f19;
-  border-radius: 26px;
-  background: var(--color-bg-secondary);
-  overflow: hidden;
-
+  padding: 10px;
+  border-radius: 34px;
+  background: linear-gradient(160deg, #262c3d 0%, #05070c 65%);
+  box-shadow:
+    0 25px 45px rgba(0, 0, 0, 0.28),
+    0 8px 18px rgba(0, 0, 0, 0.18),
+    inset 0 0 0 1.5px rgba(255, 255, 255, 0.08),
+    inset 0 1px 3px rgba(255, 255, 255, 0.1);
 }
 
-.phone-notch {
+.phone-screen {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 25px;
+  overflow: hidden;
+  background: #000;
+}
+
+.dynamic-island {
   position: absolute;
-  top: 0;
+  top: 14px;
   left: 50%;
   transform: translateX(-50%);
-  width: 88px;
-  height: 8px;
-  background: #0b0f19;
-  border-bottom-left-radius: 12px;
-  border-bottom-right-radius: 12px;
-  z-index: 2;
+  width: 74px;
+  height: 20px;
+  background: #05070c;
+  border-radius: 999px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-inline-end: 7px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
 }
 
-.phone-button {
+.camera-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #4a5578, #0b0f19 70%);
+}
+
+.side-btn {
   position: absolute;
-  right: -8px;
-  width: 10px;
-  border: 4px solid #0b0f19;
-  border-radius: 8px;
-  background: transparent;
+  width: 3px;
+  background: linear-gradient(180deg, #2f3648, #0b0f19);
+}
+
+.side-btn-mute {
+  top: 78px;
+  left: -2px;
+  height: 20px;
+  border-radius: 0 4px 4px 0;
+}
+
+.side-btn-vol-up {
+  top: 112px;
+  left: -2px;
+  height: 30px;
+  border-radius: 0 4px 4px 0;
+}
+
+.side-btn-vol-down {
+  top: 148px;
+  left: -2px;
+  height: 30px;
+  border-radius: 0 4px 4px 0;
+}
+
+.side-btn-power {
+  top: 118px;
+  right: -2px;
+  height: 44px;
+  border-radius: 4px 0 0 4px;
+}
+
+.screen-glare {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    115deg,
+    rgba(255, 255, 255, 0.18) 0%,
+    rgba(255, 255, 255, 0.05) 16%,
+    rgba(255, 255, 255, 0) 30%
+  );
+  pointer-events: none;
   z-index: 2;
-}
-
-.phone-button-top {
-  top: 56px;
-  height: 26px;
-}
-
-.phone-button-bottom {
-  top: 150px;
-  height: 36px;
 }
 
 .post-img {
@@ -148,36 +191,19 @@
   display: block;
 }
 
-
-
-
-/* Faded adjacent cards */
-.carousel-card.faded {
-  opacity: 0.35;
-  transform: scale(0.88);
-  filter: blur(2px); /* Soft focus fade */
+.card-glow {
+  position: absolute;
+  inset: -10%;
+  z-index: -1;
+  background: radial-gradient(circle, var(--color-primary) 0%, transparent 70%);
+  opacity: 0;
+  filter: blur(40px);
   pointer-events: none;
-}
-
-/* Active card styles */
-.carousel-card.active {
-  opacity: 1;
-  transform: scale(1.03);
-  z-index: 2;
-}
-
-.carousel-card.active .card-inner {
-
-box-shadow: rgba(0, 0, 0, 0.19) 0px 10px 20px, rgba(0, 0, 0, 0.23) 0px 6px 6px;
-}
-
-.carousel-card.active .card-overlay {
-  opacity: 1;
-  transform: translateY(0);
+  transition: opacity 0.4s ease;
 }
 
 .carousel-card.active .card-glow {
-  opacity: 0.3; /* Subtle backing glow in light mode */
+  opacity: 0.22;
 }
 
 /* Controls */
@@ -219,11 +245,10 @@ box-shadow: rgba(0, 0, 0, 0.19) 0px 10px 20px, rgba(0, 0, 0, 0.23) 0px 6px 6px;
 @media (max-width: 768px) {
   .posts-section {
     --card-width: 260px;
-    --card-gap: 16px;
+    --card-height: 390px;
+    --peek-offset: 95px;
+    --peek-offset-2: 165px;
     padding: 5rem 0;
-  }
-  .carousel-card {
-    height: 390px; /* Scaled down height */
   }
   .control-btn {
     width: 48px;
@@ -232,6 +257,6 @@ box-shadow: rgba(0, 0, 0, 0.19) 0px 10px 20px, rgba(0, 0, 0, 0.23) 0px 6px 6px;
   }
   .carousel-container::before,
   .carousel-container::after {
-    width: 15%; /* Reduced fading space on mobile */
+    width: 8%;
   }
 }

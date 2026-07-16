@@ -1,27 +1,37 @@
-import { Component, HostListener, computed, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Component, HostListener, computed, inject, signal } from '@angular/core';
+import { Router, RouterLink } from '@angular/router';
 import { AdCard } from '../ad-card/ad-card';
-import { Ad, AdStatus, AdFormat } from '../../../model/ad.model';
+import { AdStatus, AdFormat } from '../../../model/ad.model';
 import { CampaignPlatform } from '../../../model/campaign.model';
-
-const MOCK_ADS: Ad[] = [
-  { id: 'a1', name: 'إعلان الشريحة الرئيسية — رمضان',   campaignId: '1', campaignName: 'حملة رمضان الكريم ٢٠٢٥',   platform: 'instagram', status: 'active',    format: 'carousel', impressions: 184000, clicks: 4700,  ctr: 2.55, spend: 3200, cpc: 0.68, createdAt: '2025-03-01', thumbnailColor: 'linear-gradient(135deg,#7C3AED,#2563EB)' },
-  { id: 'a2', name: 'فيديو قصير — منتج العيد',            campaignId: '1', campaignName: 'حملة رمضان الكريم ٢٠٢٥',   platform: 'tiktok',    status: 'active',    format: 'reel',     impressions: 210000, clicks: 5800,  ctr: 2.76, spend: 2800, cpc: 0.48, createdAt: '2025-03-05', thumbnailColor: 'linear-gradient(135deg,#010101,#3B3B3B)' },
-  { id: 'a3', name: 'ستوري الخصم ٣٠٪',                   campaignId: '1', campaignName: 'حملة رمضان الكريم ٢٠٢٥',   platform: 'instagram', status: 'paused',    format: 'story',    impressions: 86000,  clicks: 1900,  ctr: 2.21, spend: 1300, cpc: 0.68, createdAt: '2025-03-10', thumbnailColor: 'linear-gradient(135deg,#E1306C,#833AB4)' },
-  { id: 'a4', name: 'إعلان منتج العيد — فيسبوك',          campaignId: '2', campaignName: 'إطلاق منتج العيد',          platform: 'facebook',  status: 'paused',    format: 'image',    impressions: 120000, clicks: 3100,  ctr: 2.58, spend: 1800, cpc: 0.58, createdAt: '2025-04-10', thumbnailColor: 'linear-gradient(135deg,#1877F2,#0D4FA0)' },
-  { id: 'a5', name: 'فيديو تعريفي — سناب شات',            campaignId: '2', campaignName: 'إطلاق منتج العيد',          platform: 'snapchat',  status: 'pending',   format: 'video',    impressions: 100000, clicks: 2500,  ctr: 2.50, spend: 1400, cpc: 0.56, createdAt: '2025-04-12', thumbnailColor: 'linear-gradient(135deg,#FFFC00,#F0B800)' },
-  { id: 'a6', name: 'إعلان الوعي — يوتيوب',               campaignId: '3', campaignName: 'حملة الصيف — التوعية',      platform: 'youtube',   status: 'pending',   format: 'video',    impressions: 0,      clicks: 0,     ctr: 0,    spend: 0,    cpc: 0,    createdAt: '2025-05-15', thumbnailColor: 'linear-gradient(135deg,#FF0000,#CC0000)' },
-];
+import { SeoService } from '../../../services/seo.service';
+import { AdService } from '../../../services/ad.service';
+import { Breadcrumb } from '../../../shared/components/breadcrumb/breadcrumb';
 
 @Component({
   selector: 'app-ads-page',
   standalone: true,
-  imports: [RouterLink, AdCard],
+  imports: [RouterLink, AdCard, Breadcrumb],
   templateUrl: './ads-page.html',
   styleUrls: ['../../../features/on-boarding/onboarding-shared.css', './ads-page.css'],
 })
 export class AdsPage {
-  protected readonly ads            = signal<Ad[]>(MOCK_ADS);
+  private readonly seo = inject(SeoService);
+  private readonly adService = inject(AdService);
+  private readonly router = inject(Router);
+
+  constructor() {
+    this.seo.setPageSeo({
+      title: 'منشوراتك | رواج',
+      description: 'إدارة منشوراتك عبر جميع المنصات ومتابعة أدائها وتفعيلها أو إيقافها.',
+      keywords: 'رواج, منشورات, إدارة المنشورات, أداء المنشورات',
+      path: '/dashboard/ads',
+      image: '/home-hero-light.png',
+      type: 'website',
+      noIndex: true,
+    });
+  }
+
+  protected readonly ads            = this.adService.ads;
   protected readonly searchQuery    = signal('');
   protected readonly statusFilter   = signal<AdStatus | 'all'>('all');
   protected readonly platformFilter = signal<CampaignPlatform | 'all'>('all');
@@ -61,7 +71,7 @@ export class AdsPage {
   ];
 
   protected readonly formatOptions: { value: AdFormat | 'all'; label: string }[] = [
-    { value: 'all', label: 'جميع الأشكال' }, { value: 'image', label: 'صورة' },
+    { value: 'all', label: 'جميع الأشكال' }, { value: 'text', label: 'نصي' }, { value: 'image', label: 'صورة' },
     { value: 'video', label: 'فيديو' }, { value: 'carousel', label: 'كاروسيل' },
     { value: 'story', label: 'ستوري' }, { value: 'reel', label: 'ريلز' },
   ];
@@ -74,18 +84,13 @@ export class AdsPage {
     return this.ads().filter(a => {
       if (q  && !a.name.toLowerCase().includes(q) && !a.campaignName.toLowerCase().includes(q)) return false;
       if (st !== 'all' && a.status   !== st) return false;
-      if (pl !== 'all' && a.platform !== pl) return false;
+      if (pl !== 'all' && !a.platforms.includes(pl)) return false;
       if (fm !== 'all' && a.format   !== fm) return false;
       return true;
     });
   });
 
-  protected toggleAd(id: string): void {
-    this.ads.update(list =>
-      list.map(a => a.id === id
-        ? { ...a, status: (a.status === 'active' ? 'paused' : 'active') as AdStatus }
-        : a
-      )
-    );
+  protected viewAd(id: string): void {
+    this.router.navigate(['/dashboard/ads', id]);
   }
 }

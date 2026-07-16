@@ -1,30 +1,59 @@
 .camp-card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 14px;
+  border-radius: 20px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  transition: box-shadow 0.2s, transform 0.2s;
+  cursor: pointer;
+  transition: box-shadow 0.2s;
   box-shadow: 0 1px 6px rgba(11, 15, 25, 0.06);
 }
 
 .camp-card:hover {
   box-shadow: 0 6px 24px rgba(11, 15, 25, 0.12);
-  transform: translateY(-2px);
 }
 
-/* ── Coloured header ── */
-.camp-card-head {
-  height: 80px;
-  padding: 12px 14px;
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
+.camp-card:focus-visible {
+  outline: 2px solid var(--color-secondary);
+  outline-offset: 2px;
+}
+
+/* ── Banner — one consistent brand style for every card, with a curved
+   cutout at the bottom and the campaign's own logo centered on top ── */
+.camp-card-banner {
+  height: 168px;
+  padding: 14px;
   position: relative;
+  overflow: hidden;
+  background: linear-gradient(160deg, var(--color-dark), var(--color-secondary-active));
+}
+
+.camp-card-dome {
+  position: absolute;
+  left: -12%;
+  right: -12%;
+  bottom: -1px;
+  height: 34px;
+  background: var(--color-surface);
+  border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+}
+
+.camp-card-logo {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.25));
 }
 
 .camp-platforms {
+  position: absolute;
+  top: 14px;
+  right: 14px;
   display: flex;
   gap: 6px;
 }
@@ -32,34 +61,44 @@
 .platform-icon {
   width: 28px;
   height: 28px;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(4px);
+  border-radius: 50%;
+  background: #fff;
   display: grid;
   place-items: center;
-  color: #fff;
   font-size: 0.85rem;
+}
+
+/* Snapchat's brand yellow has almost no contrast on a white circle — the
+   solid ghost glyph would look hollow, showing only its inner detail
+   lines. Use a dark glyph here instead. */
+.platform-icon--snapchat {
+  color: #111 !important;
 }
 
 /* ── Status badge ── */
 .camp-status-badge {
-  padding: 3px 10px;
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
   border-radius: 999px;
-  font-size: 0.7rem;
-  font-weight: 600;
-  background: rgba(255, 255, 255, 0.25);
-  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: #fff;
+  color: var(--color-dark);
 }
 
-[data-status="active"]    .camp-status-badge,
-.camp-status-badge[data-status="active"]    { background: rgba(22,163,74,0.2); color: #fff; }
-.camp-status-badge[data-status="paused"]    { background: rgba(250,204,21,0.3); color: #fff; }
-.camp-status-badge[data-status="completed"] { background: rgba(37,99,235,0.2); color: #fff; }
-.camp-status-badge[data-status="draft"]     { background: rgba(255,255,255,0.2); color: #fff; }
+.camp-status-badge[data-status="active"]    i { color: var(--color-success); }
+.camp-status-badge[data-status="paused"]    i { color: var(--color-danger); }
+.camp-status-badge[data-status="completed"] i { color: var(--color-primary); }
+.camp-status-badge[data-status="draft"]     i { color: var(--color-accent-active); }
 
 /* ── Body ── */
 .camp-card-body {
-  padding: 16px;
+  padding: 4px 16px 16px;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -67,11 +106,12 @@
 }
 
 .camp-name {
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-lg);
   font-weight: var(--font-bold);
   color: var(--color-dark);
   margin: 0;
   line-height: 1.4;
+  text-align: center;
 }
 
 .camp-objective {
@@ -80,6 +120,7 @@
   margin: 0;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
 }
 
@@ -89,17 +130,31 @@
 .camp-stats {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  border: 1px solid var(--color-border);
-  border-radius: 10px;
-  padding: 10px 8px;
+  padding: 10px 0;
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .camp-stat {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
+  gap: 6px;
+}
+
+.camp-stat:not(:last-child) {
+  border-left: 1px solid var(--color-border);
+}
+
+.stat-icon {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--color-secondary-subtle);
+  color: var(--color-secondary);
+  font-size: 0.95rem;
 }
 
 .stat-val {
@@ -114,16 +169,64 @@
 }
 
 /* ── Budget ── */
-.camp-budget { display: flex; flex-direction: column; gap: 5px; }
-
-.budget-row {
+.camp-budget {
   display: flex;
-  justify-content: space-between;
-  font-size: var(--font-size-sm);
+  align-items: center;
+  gap: 14px;
 }
 
-.budget-lbl { color: var(--color-text-secondary); }
-.budget-val { font-weight: var(--font-semibold); color: var(--color-dark); }
+.budget-ring {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  flex-shrink: 0;
+}
+
+.ring-svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.ring-track {
+  fill: none;
+  stroke: var(--color-bg-secondary);
+  stroke-width: 9;
+}
+
+.ring-fill {
+  fill: none;
+  stroke: var(--color-secondary);
+  stroke-width: 9;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.6s ease;
+}
+
+.ring-label {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-bold);
+  color: var(--color-dark);
+}
+
+.budget-details {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.budget-lbl {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
 
 .budget-track {
   height: 6px;
@@ -142,7 +245,21 @@
 .budget-amounts {
   display: flex;
   justify-content: space-between;
-  font-size: 0.72rem;
+}
+
+.amount-block {
+  display: flex;
+  flex-direction: column;
+}
+
+.amount-block strong {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-bold);
+  color: var(--color-dark);
+}
+
+.amount-block small {
+  font-size: 0.66rem;
   color: var(--color-text-muted);
 }
 
@@ -163,8 +280,6 @@
   gap: 5px;
 }
 
-.camp-actions { display: flex; gap: 6px; }
-
 .camp-action-btn {
   width: 30px;
   height: 30px;
@@ -179,6 +294,11 @@
   transition: all 0.15s;
 }
 
+.camp-action-btn--spacer {
+  visibility: hidden;
+}
+
 .camp-action-btn:hover    { border-color: var(--color-secondary); color: var(--color-secondary); }
 .pause-btn:hover          { border-color: var(--color-accent); color: var(--color-accent); }
 .resume-btn:hover         { border-color: var(--color-success); color: var(--color-success); }
+.view-btn:hover           { border-color: var(--color-secondary); color: var(--color-secondary); }

@@ -14,6 +14,11 @@ export const routes: Routes = [
     loadComponent: () => import('./features/auth/sign-up/sign-up').then((m) => m.SignUp),
   },
   {
+    path: 'invite',
+    loadComponent: () =>
+      import('./features/auth/invite-login/invite-login').then((m) => m.InviteLogin),
+  },
+  {
     path: 'account-setup',
     loadComponent: () =>
       import('./features/account-setup/account-setup/account-setup').then((m) => m.AccountSetup),
@@ -38,9 +43,29 @@ export const routes: Routes = [
           import('./features/campaigns/campaigns-page/campaigns-page').then((m) => m.CampaignsPage),
       },
       {
+        path: 'campaigns/:id',
+        loadComponent: () =>
+          import('./features/campaigns/campaign-detail-page/campaign-detail-page').then((m) => m.CampaignDetailPage),
+      },
+      {
+        path: 'campaigns/:id/calendar',
+        loadComponent: () =>
+          import('./features/campaigns/campaign-calendar-page/campaign-calendar-page').then((m) => m.CampaignCalendarPage),
+      },
+      {
+        path: 'campaigns/:id/posts/:postId',
+        loadComponent: () =>
+          import('./features/campaigns/campaign-post-detail-page/campaign-post-detail-page').then((m) => m.CampaignPostDetailPage),
+      },
+      {
         path: 'ads',
         loadComponent: () =>
           import('./features/ads/ads-page/ads-page').then((m) => m.AdsPage),
+      },
+      {
+        path: 'ads/:id',
+        loadComponent: () =>
+          import('./features/ads/ad-detail-page/ad-detail-page').then((m) => m.AdDetailPage),
       },
       {
         path: 'calendar',
@@ -61,6 +86,11 @@ export const routes: Routes = [
         path: 'marketing-plan',
         loadComponent: () =>
           import('./features/marketing-plan/marketing-plan-page/marketing-plan-page').then((m) => m.MarketingPlanPage),
+      },
+      {
+        path: 'my-projects',
+        loadComponent: () =>
+          import('./features/dashboard/my-projects/my-projects-page/my-projects-page').then((m) => m.MyProjectsPage),
       },
       {
         path: 'users',

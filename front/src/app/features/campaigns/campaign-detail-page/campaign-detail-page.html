@@ -1,0 +1,132 @@
+<div class="page-shell">
+  @if (campaign(); as c) {
+    <div class="detail-header-row">
+      <app-page-header
+        [title]="c.name"
+        [breadcrumbs]="[
+          { label: 'نظرة عامة', link: '/dashboard' },
+          { label: 'الحملات', link: '/dashboard/campaigns' },
+          { label: c.name }
+        ]"
+        [subtitle]="objectiveLabels[c.objective]" />
+      <a class="rw-btn rw-btn--primary" [routerLink]="['/dashboard/campaigns', campaignId, 'calendar']">
+        <i class="fa-regular fa-calendar-days"></i>
+        عرض التقويم
+      </a>
+    </div>
+
+    <!-- Campaign overview / data card -->
+    <div class="rw-card overview-card">
+      <div class="overview-head">
+        <span class="rw-pill"
+              [class.rw-pill--success]="c.status === 'active'"
+              [class.rw-pill--warning]="c.status === 'paused'"
+              [class.rw-pill--info]="c.status === 'draft'"
+              [class.rw-pill--danger]="c.status === 'completed'">
+          {{ statusLabels[c.status] }}
+        </span>
+        <div class="overview-platforms">
+          @for (p of c.platforms; track p) {
+            <span class="platform-icon" [style.color]="platformMeta(p).color" [title]="platformMeta(p).label">
+              <i class="{{ platformMeta(p).icon }}"></i>
+            </span>
+          }
+        </div>
+      </div>
+
+      <div class="overview-meta">
+        <div class="meta-item">
+          <span class="meta-label">فترة الحملة</span>
+          <span class="meta-value">{{ c.startDate }} — {{ c.endDate }}</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">الميزانية</span>
+          <span class="meta-value">${{ c.spent }} / ${{ c.budget }}</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">الهدف</span>
+          <span class="meta-value">{{ objectiveLabels[c.objective] }}</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">عدد الإعلانات</span>
+          <span class="meta-value">{{ c.adCount ?? 0 }}</span>
+        </div>
+      </div>
+
+      <div class="budget-track">
+        <div class="budget-fill" [style.width.%]="budgetPct()"></div>
+      </div>
+    </div>
+
+    <!-- KPIs -->
+    <div class="kpi-row">
+      <app-kpi-card title="مدى الوصول" [value]="compact(c.reach)" icon="fa-bullseye" iconBg="rgba(37,99,235,.12)" iconColor="#2563EB" [change]="8.4" accentColor="#2563EB" />
+      <app-kpi-card title="النقرات" [value]="compact(c.clicks)" icon="fa-arrow-pointer" iconBg="rgba(124,58,237,.12)" iconColor="#7C3AED" [change]="5.1" accentColor="#7C3AED" />
+      <app-kpi-card title="معدل النقر" [value]="c.ctr + '%'" icon="fa-chart-line" iconBg="rgba(236,72,153,.12)" iconColor="#EC4899" [change]="1.2" accentColor="#EC4899" />
+      <app-kpi-card title="الإنفاق" [value]="'$' + compact(c.spent)" icon="fa-sack-dollar" iconBg="rgba(22,163,74,.12)" iconColor="#16A34A" [change]="-2.3" accentColor="#16A34A" />
+    </div>
+
+    <!-- Performance + upcoming posts -->
+    <div class="detail-row">
+      <div class="rw-card performance-card">
+        <div class="rw-card__header">
+          <h3 class="rw-card__title">أداء الوصول اليومي</h3>
+          <p class="rw-card__hint">آخر 14 يومًا</p>
+        </div>
+        <svg viewBox="0 0 600 200" class="performance-svg" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="perfGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="var(--color-primary)" stop-opacity="0.28" />
+              <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0" />
+            </linearGradient>
+          </defs>
+          <path [attr.d]="performanceAreaPath()" fill="url(#perfGradient)" />
+          <path [attr.d]="performanceLinePath()" fill="none" stroke="var(--color-primary)" stroke-width="2.5" />
+        </svg>
+      </div>
+
+      <div class="rw-card posts-card">
+        <div class="rw-card__header">
+          <h3 class="rw-card__title">المنشورات القادمة</h3>
+          <p class="rw-card__hint">{{ upcomingPosts().length }} منشور مجدول</p>
+        </div>
+
+        <div class="post-filter">
+          <button type="button" class="rw-tab" [class.active]="platformFilter() === 'all'" (click)="setPlatformFilter('all')">
+            الكل
+          </button>
+          @for (p of c.platforms; track p) {
+            <button type="button" class="rw-tab" [class.active]="platformFilter() === p" (click)="setPlatformFilter(p)">
+              <i class="{{ platformMeta(p).icon }}" [style.color]="platformMeta(p).color"></i>
+              {{ platformMeta(p).label }}
+            </button>
+          }
+        </div>
+
+        @if (upcomingPosts().length === 0) {
+          <p class="no-posts">لا توجد منشورات مجدولة لهذه الحملة حاليًا.</p>
+        } @else {
+          <div class="posts-list">
+            @for (post of upcomingPosts(); track post.id) {
+              <a class="post-row" [routerLink]="['/dashboard/campaigns', campaignId, 'posts', post.id]">
+                <span class="post-icon" [style.background]="platformMeta(post.platform).color">
+                  <i class="{{ platformMeta(post.platform).icon }}"></i>
+                </span>
+                <div class="post-body">
+                  <p class="post-content">{{ post.content }}</p>
+                  <span class="post-date"><i class="fa-regular fa-clock"></i> {{ formatDateTime(post.scheduledAt) }}</span>
+                </div>
+                <i class="fa-solid fa-chevron-left post-arrow"></i>
+              </a>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  } @else {
+    <div class="not-found">
+      <h3>الحملة غير موجودة</h3>
+      <a routerLink="/dashboard/campaigns">العودة إلى الحملات</a>
+    </div>
+  }
+</div>

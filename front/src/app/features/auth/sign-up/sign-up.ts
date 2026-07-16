@@ -2,11 +2,11 @@ import { Component, OnInit } from '@angular/core';
 import { SignUpForm } from './sign-up-form/sign-up-form';
 import { SignUpFormDescription } from './sign-up-form-description/sign-up-form-description';
 import { SeoService } from '../../../services/seo.service';
-import { RevealDirective } from '../../../shared/directives/reveal.directive';
+import { GsapRevealDirective } from '../../../shared/directives/gsap-reveal.directive';
 
 @Component({
   selector: 'app-sign-up',
-  imports: [SignUpFormDescription, SignUpForm,RevealDirective],
+  imports: [SignUpFormDescription, SignUpForm,GsapRevealDirective],
   templateUrl: './sign-up.html',
   styleUrl: './sign-up.css',
 })
@@ -15,10 +15,10 @@ export class SignUp implements OnInit {
 
   ngOnInit(): void {
     this.seo.setPageSeo({
-      title: 'انشاء حساب | Rawaj',
+      title: 'إنشاء حساب | رواج',
       description:
-        'Create your Rawaj account and start building AI-powered marketing content, campaigns, and performance workflows.',
-      keywords: 'Rawaj sign up, create account, AI marketing platform, register',
+        'أنشئ حسابك في رواج وابدأ في بناء حملاتك التسويقية وتوليد المحتوى بالذكاء الاصطناعي مجانًا.',
+      keywords: 'رواج, إنشاء حساب, تسجيل, منصة تسويق بالذكاء الاصطناعي',
       path: '/sign-up',
       image: '/home-hero-light.png',
       type: 'website',

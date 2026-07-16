@@ -2,7 +2,7 @@
 <nav class="navbar navbar-expand-lg navbar-dark custom-navbar">
   <div class="container">
 
-    <a class="navbar-brand d-flex align-items-center gap-2" href="#">
+    <a class="navbar-brand d-flex align-items-center gap-2" href="#hero">
       <img class="logo-box" src="assets/icons/logo.png"/>
       <span><span class="first-letter">ر</span>واج</span>
     </a>
@@ -20,20 +20,17 @@
     <div class="collapse navbar-collapse" id="navMenu">
 
       <ul class="navbar-nav mx-auto gap-2">
-        <li class="nav-item">
-          <a class="nav-link active" href="#">الخدمات</a>
-        </li>
-
-        <li class="nav-item">
-          <a class="nav-link" href="#">المميزات</a>
-        </li>
-
-        <li class="nav-item">
-          <a class="nav-link" href="#">الأسعار</a>
-        </li>
+        @for (item of navItems; track item.id) {
+          <li class="nav-item">
+            <a class="nav-link"
+               [class.active]="activeSection() === item.id"
+               [href]="'#' + item.id"
+               (click)="closeMobileMenu()">{{ item.label }}</a>
+          </li>
+        }
       </ul>
 
-      <a class="xb-header-btn" href="#">
+      <a class="xb-header-btn" routerLink="/sign-up">
         <span class="inner">
           <span class="text">ابدأ الآن</span>
           <span class="btn-icon"><i class="fa-solid fa-arrow-left"></i></span>

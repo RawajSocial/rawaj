@@ -410,13 +410,13 @@
 }
 
 .sib-website   { background: linear-gradient(135deg, var(--color-secondary), var(--color-primary)); }
-.sib-facebook  { background: #1877f2; }
-.sib-instagram { background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%); }
-.sib-youtube   { background: #ff0000; }
-.sib-tiktok    { background: #010101; }
-.sib-linkedin  { background: #0a66c2; }
-.sib-x         { background: #000000; }
-.sib-snapchat  { background: #fffc00; color: #000; }
+.sib-facebook  { background: var(--color-facebook); }
+.sib-instagram { background: var(--gradient-instagram); }
+.sib-youtube   { background: var(--color-youtube); }
+.sib-tiktok    { background: var(--gradient-tiktok); }
+.sib-linkedin  { background: var(--color-linkedin); }
+.sib-x         { background: var(--color-x); }
+.sib-snapchat  { background: var(--color-snapchat); color: #000; }
 
 /* ── Actions bar ── */
 .step-actions {

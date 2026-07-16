@@ -1,9 +1,9 @@
 import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
-import { RevealDirective } from '../../../shared/directives/reveal.directive';
+import { GsapRevealDirective } from '../../../shared/directives/gsap-reveal.directive';
 
 @Component({
   selector: 'app-pricing',
-  imports: [RevealDirective],
+  imports: [GsapRevealDirective],
   templateUrl: './pricing.html',
   styleUrl: './pricing.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
