@@ -1,9 +1,9 @@
 import { AfterViewInit, Component, ElementRef } from '@angular/core';
-import { RevealDirective } from '../../../shared/directives/reveal.directive';
+import { GsapRevealDirective } from '../../../shared/directives/gsap-reveal.directive';
 
 @Component({
   selector: 'app-gallery',
-  imports: [RevealDirective],
+  imports: [GsapRevealDirective],
   templateUrl: './gallery.html',
   styleUrl: './gallery.css',
 })

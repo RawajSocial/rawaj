@@ -3,7 +3,7 @@ import { OnboardingStepHeader } from '../onboarding-step-header/onboarding-step-
 import { OnboardingStepActions } from '../onboarding-step-actions/onboarding-step-actions';
 import { StepBadge } from '../../../shared/components/step-badge/step-badge';
 import { StepHeading } from '../../../shared/components/step-heading/step-heading';
-import { RevealDirective } from '../../../shared/directives/reveal.directive';
+import { GsapRevealDirective } from '../../../shared/directives/gsap-reveal.directive';
 import { BriefNewBusiness } from './brief-new-business/brief-new-business';
 import { BriefNewProduct } from './brief-new-product/brief-new-product';
 import { BriefDriveSales } from './brief-drive-sales/brief-drive-sales';
@@ -18,7 +18,7 @@ type CampaignMeta = { id: string; title: string; icon: string };
 @Component({
   selector: 'app-onboarding-step-campaign-brief',
   imports: [
-    RevealDirective,
+    GsapRevealDirective,
     OnboardingStepHeader,
     OnboardingStepActions,
     StepBadge,

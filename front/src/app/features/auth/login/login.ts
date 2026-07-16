@@ -2,11 +2,11 @@ import { Component, OnInit } from '@angular/core';
 import { BrandDescription } from './brand-description/brand-description';
 import { LoginForm } from './login-form/login-form';
 import { SeoService } from '../../../services/seo.service';
-import { RevealDirective } from '../../../shared/directives/reveal.directive';
+import { GsapRevealDirective } from '../../../shared/directives/gsap-reveal.directive';
 
 @Component({
   selector: 'app-login',
-  imports: [BrandDescription, LoginForm,RevealDirective],
+  imports: [BrandDescription, LoginForm,GsapRevealDirective],
   templateUrl: './login.html',
   styleUrl: './login.css',
 })
@@ -15,9 +15,9 @@ export class Login implements OnInit {
 
   ngOnInit(): void {
     this.seo.setPageSeo({
-      title: 'تسجيل الدخول | Rawaj',
-      description: 'Sign in to your Rawaj account to manage your AI-powered marketing campaigns and content.',
-      keywords: 'Rawaj login, sign in, marketing dashboard, AI campaigns',
+      title: 'تسجيل الدخول | رواج',
+      description: 'سجّل الدخول إلى حسابك في رواج لإدارة حملاتك التسويقية ومحتواك المُولَّد بالذكاء الاصطناعي.',
+      keywords: 'رواج, تسجيل الدخول, لوحة التحكم, حملات تسويقية',
       path: '/login',
       image: '/home-hero-light.png',
       type: 'website',

@@ -42,10 +42,10 @@ export class RawajOnboarding {
     this.currentStep = signal(this.loadSavedStep());
     this.onboardingData.set(this.loadOnboardingData());
     this.seo.setPageSeo({
-      title: 'Rawaj Onboarding | Step 1',
-      description: 'ابدأ إعداد حسابك في Rawaj عبر خطوات Onboarding مخصصة لنوع نشاطك.',
-      keywords: 'Rawaj onboarding, إعداد الحساب, نوع الحساب, التسويق الذكي',
-      path: '/rawaj-onboarding',
+      title: 'إعداد الحساب | رواج',
+      description: 'ابدأ إعداد حسابك في رواج عبر خطوات مخصصة لنوع نشاطك التجاري.',
+      keywords: 'رواج, إعداد الحساب, نوع الحساب, التسويق الذكي',
+      path: '/on-boarding',
       image: '/home-hero-light.png',
       type: 'website',
       noIndex: true,

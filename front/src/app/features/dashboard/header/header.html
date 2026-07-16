@@ -18,6 +18,11 @@
   </div>
 
   <div class="header-end">
+    <a class="credit-chip" routerLink="/dashboard/billing" title="الرصيد والباقات">
+      <img src="/coin.png" alt="" class="credit-chip__coin" />
+      <span class="credit-chip__amount">{{ creditBalanceLabel() }}</span>
+    </a>
+
     <button class="header-btn" (click)="toggleFullscreen()" title="ملء الشاشة">
       <i class="fa-solid" [class.fa-expand]="!fullscreen()" [class.fa-compress]="fullscreen()"></i>
     </button>

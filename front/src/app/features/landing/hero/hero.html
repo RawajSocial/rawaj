@@ -1,5 +1,5 @@
 <!-- HERO -->
-<section class="hero-section">
+<section class="hero-section" id="hero">
 
   <!-- Sastik-style hero shapes: top light, rising particles, orbit circle -->
   <div class="as-hero-shape" aria-hidden="true">
@@ -37,7 +37,7 @@
   <div class="container position-relative">
 
     <!-- Announcement -->
-    <div class="announcement-badge mx-auto text-center" appReveal="fade-up" [revealDuration]="1500">
+    <div class="announcement-badge mx-auto text-center" appGsapReveal="fade-in" [gsapDuration]="1500">
       <span class="badge-flags" aria-hidden="true">
         <span class="badge-flag badge-flag--eg"><img src="assets/icons/flags/egypt.png" alt=""></span>
         <span class="badge-flag badge-flag--sa"><img src="assets/icons/flags/Saudi Arabia.png" alt=""></span>
@@ -48,23 +48,23 @@
     </div>
 
     <!-- Main Title -->
-    <h1 class="hero-title text-center" appReveal="fade-up" [revealDuration]="1500">
+    <h1 class="hero-title text-center" appGsapReveal="fade-left" [gsapDuration]="1500">
   تسويق أذكى يساعدك على بناء حضور أقوى
       <span>نتائج أسرع ونمو أقوى</span>
     </h1>
 
     <!-- Subtitle -->
-    <p class="hero-description text-center mx-auto" appReveal="fade-up" [revealDuration]="1500">
+    <p class="hero-description text-center mx-auto" appGsapReveal="fade-left-far" [gsapDuration]="1500">
       منصة متطورة تساعدك على بناء وإدارة حملاتك التسويقية
       بتصميم عصري وتجربة استخدام احترافية.
     </p>
 
     <!-- Buttons -->
-    <div class="hero-buttons d-flex justify-content-center gap-3 flex-wrap"appReveal="fade-up" [revealDuration]="1500">
+    <div class="hero-buttons d-flex justify-content-center gap-3 flex-wrap"appGsapReveal="fade-in" [gsapDuration]="1500">
 
       <!-- From Uiverse.io by MuhammadHasann -->
-<button class="cta-btn" >
-  لوحة التحكم
+<a routerLink="/sign-up" class="cta-btn text-decoration-none d-inline-flex align-items-center justify-content-center">
+  ابدأ مجانًا الآن
   <div class="star-1">
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -161,18 +161,18 @@
     </svg>
   </div>
 
-</button>
+</a>
 
-      <button class="btn hero-btn-secondary">
-        المكونات
-      </button>
+      <a href="#how-it-works" class="btn hero-btn-secondary">
+        شاهد كيف يعمل
+      </a>
 
 
 
 
     </div>
 
-    <div class="dashboard-image-wrapper" appReveal="fade-up" [revealDuration]="1500">
+    <div class="dashboard-image-wrapper" >
       <div class="dashboard-glow"></div>
       <img
         src="home-hero-light.png"

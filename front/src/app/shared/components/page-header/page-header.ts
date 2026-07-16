@@ -1,14 +1,11 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Breadcrumb, Crumb } from '../breadcrumb/breadcrumb';
 
-export interface Crumb {
-  label: string;
-  link?: string;
-}
+export type { Crumb };
 
 @Component({
   selector: 'app-page-header',
-  imports: [RouterLink],
+  imports: [Breadcrumb],
   templateUrl: './page-header.html',
   styleUrl: './page-header.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

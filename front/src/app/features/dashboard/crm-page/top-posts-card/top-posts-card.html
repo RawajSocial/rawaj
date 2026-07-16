@@ -1,0 +1,23 @@
+<div class="insight-card d-flex flex-column h-100">
+  <div class="insight-head">
+    <h3 class="insight-title">أفضل المنشورات أداءً</h3>
+    <span class="insight-sub">هذا الشهر</span>
+  </div>
+  <div class="top-posts d-flex flex-column">
+    @for (post of posts(); track post.id) {
+      <div class="top-post d-flex align-items-start">
+        <span class="top-post-icon rounded-circle flex-shrink-0 text-white d-flex align-items-center justify-content-center"
+              [style.background]="post.color">
+          <i class="{{ post.icon }}"></i>
+        </span>
+        <div class="top-post-body flex-grow-1">
+          <p class="top-post-content">{{ post.content }}</p>
+          <div class="top-post-stats d-flex gap-3">
+            <span><i class="fa-solid fa-bullseye"></i> {{ compact(post.reach) }}</span>
+            <span><i class="fa-solid fa-heart"></i> {{ compact(post.engagement) }}</span>
+          </div>
+        </div>
+      </div>
+    }
+  </div>
+</div>

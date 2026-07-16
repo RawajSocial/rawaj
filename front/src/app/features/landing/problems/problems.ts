@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
-import { RevealDirective } from '../../../shared/directives/reveal.directive';
+import { GsapRevealDirective } from '../../../shared/directives/gsap-reveal.directive';
 
 interface ProblemItem {
   id: number;
@@ -9,7 +9,7 @@ interface ProblemItem {
 
 @Component({
   selector: 'app-problems',
-  imports: [RevealDirective],
+  imports: [GsapRevealDirective],
   templateUrl: './problems.html',
   styleUrl: './problems.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -6,6 +6,7 @@ import { MpEmptyState } from '../mp-empty-state/mp-empty-state';
 import { MpGenerating } from '../mp-generating/mp-generating';
 import { MpPlansList } from '../mp-plans-list/mp-plans-list';
 import { MpPlanDetail } from '../mp-plan-detail/mp-plan-detail';
+import { SeoService } from '../../../services/seo.service';
 
 // ──── Loading stages ────────────────────────────────────────────────────────
 export interface Stage {
@@ -38,14 +39,14 @@ const METRICS_AR: Record<string, string> = {
 };
 
 const PLATFORM_META: Record<string, { icon: string; color: string }> = {
-  'إنستغرام':   { icon: 'fa-brands fa-instagram',  color: '#E1306C' },
-  'فيسبوك':     { icon: 'fa-brands fa-facebook-f', color: '#1877F2' },
-  'تيك توك':    { icon: 'fa-brands fa-tiktok',     color: '#222'    },
-  'سناب شات':   { icon: 'fa-brands fa-snapchat',   color: '#b8960c' },
-  'تويتر / X':  { icon: 'fa-brands fa-x-twitter',  color: '#14171A' },
-  'يوتيوب':     { icon: 'fa-brands fa-youtube',    color: '#FF0000' },
-  'لينكدإن':    { icon: 'fa-brands fa-linkedin',   color: '#0077B5' },
-  'واتساب':     { icon: 'fa-brands fa-whatsapp',   color: '#25D366' },
+  'إنستغرام':   { icon: 'fa-brands fa-instagram',  color: 'var(--color-instagram)' },
+  'فيسبوك':     { icon: 'fa-brands fa-facebook-f', color: 'var(--color-facebook)' },
+  'تيك توك':    { icon: 'fa-brands fa-tiktok',     color: 'var(--color-tiktok)'    },
+  'سناب شات':   { icon: 'fa-brands fa-snapchat',   color: 'var(--color-snapchat)' },
+  'تويتر / X':  { icon: 'fa-brands fa-x-twitter',  color: 'var(--color-x)' },
+  'يوتيوب':     { icon: 'fa-brands fa-youtube',    color: 'var(--color-youtube)' },
+  'لينكدإن':    { icon: 'fa-brands fa-linkedin',   color: 'var(--color-linkedin)' },
+  'واتساب':     { icon: 'fa-brands fa-whatsapp',   color: 'var(--color-whatsapp)' },
 };
 
 const CONTENT_TYPES = [
@@ -219,6 +220,7 @@ export class MarketingPlanPage {
   private readonly router     = inject(Router);
   private readonly media      = inject(MediaService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly seo        = inject(SeoService);
 
   readonly stages = STAGES;
 
@@ -268,6 +270,16 @@ export class MarketingPlanPage {
 
   // ──── Constructor ──────────────────────────────────────────────────────────
   constructor() {
+    this.seo.setPageSeo({
+      title: 'الخطة التسويقية | رواج',
+      description: 'خطتك التسويقية الكاملة مبنية على بيانات نشاطك، جاهزة للتنفيذ.',
+      keywords: 'رواج, خطة تسويقية, تحليل الجمهور, توزيع الميزانية',
+      path: '/dashboard/marketing-plan',
+      image: '/home-hero-light.png',
+      type: 'website',
+      noIndex: true,
+    });
+
     const plans = this.loadAllPlans();
     this.savedPlans.set(plans);
 

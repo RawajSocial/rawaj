@@ -1,0 +1,122 @@
+.page-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* ── Invite status banner ── */
+.invite-banner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 22px;
+}
+
+.invite-banner-icon {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--color-secondary-subtle);
+  color: var(--color-secondary);
+  font-size: 1.1rem;
+}
+
+.invite-banner-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.invite-banner-title {
+  margin: 0 0 2px;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-bold);
+  color: var(--color-dark);
+}
+
+/* ── Empty state ── */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 10px;
+  padding: 4rem 2rem;
+  background: var(--color-surface);
+  border: 1px dashed var(--color-border);
+  border-radius: 16px;
+}
+
+.empty-icon {
+  width: 56px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-bg-secondary);
+  color: var(--color-text-muted);
+  font-size: 1.4rem;
+}
+
+.empty-state h3 {
+  margin: 0;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-bold);
+  color: var(--color-dark);
+}
+
+.empty-state p {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  max-width: 320px;
+}
+
+/* ── Projects grid ── */
+.projects-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1rem;
+}
+
+.project-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.project-icon {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--color-primary-subtle);
+  color: var(--color-primary);
+  font-size: 1rem;
+}
+
+.project-name {
+  margin: 0;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-bold);
+  color: var(--color-dark);
+}
+
+.project-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: auto;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-secondary);
+  text-decoration: none;
+}
+
+.project-link:hover {
+  color: var(--color-primary);
+}

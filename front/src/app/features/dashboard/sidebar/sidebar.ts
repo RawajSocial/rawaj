@@ -52,7 +52,7 @@ export class Sidebar {
       items: [
         { id: 'dashboard-home', label: 'لوحة التحكم',  icon: 'fa-gauge',        route: '/dashboard',           exact: true },
         { id: 'campaigns',      label: 'حملاتك',        icon: 'fa-bullhorn',     route: '/dashboard/campaigns' },
-        { id: 'ads',            label: 'إعلاناتك',      icon: 'fa-rectangle-ad', route: '/dashboard/ads' },
+        { id: 'ads',            label: 'منشوراتك',      icon: 'fa-rectangle-ad', route: '/dashboard/ads' },
       ],
     },
     {
@@ -67,7 +67,8 @@ export class Sidebar {
     {
       heading: 'الفريق',
       items: [
-        { id: 'users', label: 'المستخدمون', icon: 'fa-users-gear', route: '/dashboard/users' },
+        { id: 'my-projects', label: 'مشاريعي',      icon: 'fa-diagram-project', route: '/dashboard/my-projects' },
+        { id: 'users',       label: 'المستخدمون',   icon: 'fa-users-gear',      route: '/dashboard/users' },
       ],
     },
     {

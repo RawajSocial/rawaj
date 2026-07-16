@@ -109,7 +109,7 @@
   background: linear-gradient(
     100deg,
     color-mix(in srgb, var(--color-secondary) 35%, transparent) 20%,
-    color-mix(in srgb, var(--color-accent) 45%, transparent) 40%,
+    color-mix(in srgb, var(--color-primary) 45%, transparent) 40%,
     color-mix(in srgb, var(--color-primary) 35%, transparent) 60%
   );
   background-size: 250% 100%;
@@ -150,7 +150,7 @@
   height: 100%;
   width: 40%;
   border-radius: 999px;
-  background: linear-gradient(90deg, var(--color-accent), var(--color-secondary));
+  background: linear-gradient(90deg, var(--color-primary), var(--color-secondary));
   animation: genProgress 2.2s ease-in-out infinite;
 }
 
@@ -168,7 +168,7 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, var(--color-accent), var(--color-secondary));
+  background: linear-gradient(90deg, var(--color-primary), var(--color-secondary));
   transform-origin: right center;
   animation: genTyping 2.6s ease-in-out infinite;
 }
@@ -290,7 +290,6 @@
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: linear-gradient(135deg, var(--color-secondary), var(--color-primary));
   box-shadow: 0 0 0 6px rgba(124, 58, 237, .18), 0 10px 26px rgba(124, 58, 237, .4);
 }
 
@@ -311,11 +310,7 @@
   to { transform: rotate(360deg); }
 }
 
-/* =========================================================
-   DISTRIBUTION LINES — Rawaj splits out to every platform
-   (vertical stub per platform + shared horizontal bar,
-   styled after the icon-row / track-line reference)
-========================================================= */
+
 
 .platform-bar {
   position: relative;
@@ -432,21 +427,21 @@
 }
 
 .platform-chip__icon--facebook {
-  background: #1877F2;
+  background: var(--color-facebook);
 }
 
 .platform-chip__icon--snapchat {
-  background: #FFFC00;
+  background: var(--color-snapchat);
   color: #111;
 }
 
 .platform-chip__icon--tiktok {
-  background: #010101;
+  background: var(--gradient-tiktok);
   box-shadow: 0 0 0 1px #25F4EE, 0 6px 16px rgba(0, 0, 0, .3);
 }
 
 .platform-chip__icon--linkedin {
-  background: #0A66C2;
+  background: var(--color-linkedin);
 }
 
 @media (max-width: 576px) {

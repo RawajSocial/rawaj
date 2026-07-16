@@ -1,5 +1,6 @@
 .solutions-section {
   position: relative;
+  scroll-margin-top: 110px;
   background: var(--color-bg);
   padding: 5.5rem 0;
   overflow: hidden;
@@ -53,9 +54,16 @@
   font-size: var(--font-size-4xl);
   font-weight: var(--font-bold);
   color: var(--color-dark);
-  margin: 0;
+  margin: 0 auto 1rem;
   max-width: 700px;
-  margin-inline: auto;
+}
+
+.section-subtitle {
+  max-width: 620px;
+  margin: 0 auto;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-md);
+  line-height: 1.8;
 }
 
 .solutions-grid {
@@ -101,23 +109,22 @@
 }
 
 .solution-card__icon {
-  width: 56px;
-  height: 56px;
+  width: 30px;
+  height: 30px;
   display: grid;
   place-items: center;
   border-radius: 50%;
   margin-bottom: 1.1rem;
-  background: linear-gradient(135deg, var(--color-secondary), var(--color-primary));
-  color: var(--color-on-primary);
-  font-size: 1.35rem;
+  background: #efe5fd;
+  color: #9451f5;
+  font-size: 1rem;
   box-shadow: 0 10px 20px rgba(124, 58, 237, .25);
   transition: transform var(--transition-base), background-color var(--transition-base), color var(--transition-base), box-shadow var(--transition-base);
 }
 
 .solution-card:hover .solution-card__icon {
-  transform: scale(1.08);
+  /* transform: scale(1.08); */
   background: var(--color-bg);
-  color: var(--color-secondary-active);
   box-shadow: 0 6px 16px rgba(124, 58, 237, .2);
 }
 

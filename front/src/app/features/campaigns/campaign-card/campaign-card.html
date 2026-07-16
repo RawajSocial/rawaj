@@ -1,12 +1,28 @@
-<div class="camp-card" [attr.data-status]="campaign().status">
-  <!-- Coloured header band -->
-  <div class="camp-card-head" [style.background]="campaign().coverColor ?? 'var(--color-primary)'">
+<div class="camp-card"
+     [attr.data-status]="campaign().status"
+     role="button"
+     tabindex="0"
+     (click)="view.emit(campaign().id)"
+     (keydown.enter)="view.emit(campaign().id)"
+     (keydown.space)="view.emit(campaign().id); $event.preventDefault()">
+
+  <!-- Banner -->
+  <div class="camp-card-banner">
+    <span class="camp-status-badge" [attr.data-status]="campaign().status">
+      <i class="{{ statusIcon }}"></i> {{ statusLabel }}
+    </span>
+
     <div class="camp-platforms">
-      @for (icon of platformIcons; track icon) {
-        <span class="platform-icon"><i class="{{ icon }}"></i></span>
+      @for (p of platformIcons; track p.key) {
+        <span class="platform-icon" [class.platform-icon--snapchat]="p.key === 'snapchat'" [style.color]="p.color">
+          <i class="{{ p.icon }}"></i>
+        </span>
       }
     </div>
-    <span class="camp-status-badge" [attr.data-status]="campaign().status">{{ statusLabel }}</span>
+
+    <img [src]="logoUrl" class="camp-card-logo" alt="">
+
+    <span class="camp-card-dome"></span>
   </div>
 
   <!-- Body -->
@@ -18,54 +34,74 @@
 
     <div class="camp-stats">
       <div class="camp-stat">
-        <span class="stat-val">{{ formatNumber(campaign().reach) }}</span>
-        <span class="stat-lbl">الوصول</span>
+        <span class="stat-icon"><i class="fa-solid fa-arrow-trend-up"></i></span>
+        <span class="stat-val">{{ campaign().ctr }}%</span>
+        <span class="stat-lbl">معدل النقر</span>
       </div>
       <div class="camp-stat">
+        <span class="stat-icon"><i class="fa-solid fa-arrow-pointer"></i></span>
         <span class="stat-val">{{ formatNumber(campaign().clicks) }}</span>
         <span class="stat-lbl">النقرات</span>
       </div>
       <div class="camp-stat">
-        <span class="stat-val">{{ campaign().ctr }}%</span>
-        <span class="stat-lbl">معدل النقر</span>
+        <span class="stat-icon"><i class="fa-solid fa-bullseye"></i></span>
+        <span class="stat-val">{{ formatNumber(campaign().reach) }}</span>
+        <span class="stat-lbl">الوصول</span>
       </div>
     </div>
 
-    <!-- Budget progress bar -->
+    <!-- Budget -->
     <div class="camp-budget">
-      <div class="budget-row">
-        <span class="budget-lbl">الميزانية المُنفقة</span>
-        <span class="budget-val">{{ progressPct }}%</span>
+      <div class="budget-ring">
+        <svg viewBox="0 0 100 100" class="ring-svg">
+          <circle cx="50" cy="50" [attr.r]="ringRadius" class="ring-track" />
+          <circle cx="50" cy="50" [attr.r]="ringRadius" class="ring-fill"
+                  [style.stroke-dasharray]="ringCircumference"
+                  [style.stroke-dashoffset]="ringDashOffset" />
+        </svg>
+        <span class="ring-label">{{ progressPct }}%</span>
       </div>
-      <div class="budget-track">
-        <div class="budget-fill" [style.width.%]="progressPct"></div>
-      </div>
-      <div class="budget-amounts">
-        <span>${{ formatNumber(campaign().spent) }}</span>
-        <span>${{ formatNumber(campaign().budget) }}</span>
+
+      <div class="budget-details">
+        <span class="budget-lbl"><i class="fa-solid fa-wallet"></i> الميزانية المُنفقة</span>
+        <div class="budget-track">
+          <div class="budget-fill" [style.width.%]="progressPct"></div>
+        </div>
+        <div class="budget-amounts">
+          <span class="amount-block">
+            <strong>${{ formatNumber(remainingBudget) }}</strong>
+            <small>المتبقي</small>
+          </span>
+          <span class="amount-block">
+            <strong>${{ formatNumber(campaign().budget) }}</strong>
+            <small>المستهدف</small>
+          </span>
+        </div>
       </div>
     </div>
   </div>
 
   <!-- Footer -->
   <div class="camp-card-foot">
+    @if (campaign().status === 'active') {
+      <button class="camp-action-btn pause-btn" (click)="pause.emit(campaign().id); $event.stopPropagation()" title="إيقاف">
+        <i class="fa-solid fa-pause"></i>
+      </button>
+    } @else if (campaign().status === 'paused') {
+      <button class="camp-action-btn resume-btn" (click)="resume.emit(campaign().id); $event.stopPropagation()" title="استئناف">
+        <i class="fa-solid fa-play"></i>
+      </button>
+    } @else {
+      <span class="camp-action-btn camp-action-btn--spacer"></span>
+    }
+
     <div class="camp-dates">
       <i class="fa-regular fa-calendar"></i>
       {{ campaign().startDate }} — {{ campaign().endDate }}
     </div>
-    <div class="camp-actions">
-      @if (campaign().status === 'active') {
-        <button class="camp-action-btn pause-btn" (click)="pause.emit(campaign().id)" title="إيقاف">
-          <i class="fa-solid fa-pause"></i>
-        </button>
-      } @else if (campaign().status === 'paused') {
-        <button class="camp-action-btn resume-btn" (click)="resume.emit(campaign().id)" title="استئناف">
-          <i class="fa-solid fa-play"></i>
-        </button>
-      }
-      <button class="camp-action-btn view-btn" (click)="view.emit(campaign().id)" title="عرض التفاصيل">
-        <i class="fa-solid fa-eye"></i>
-      </button>
-    </div>
+
+    <button type="button" class="camp-action-btn view-btn" (click)="view.emit(campaign().id); $event.stopPropagation()" title="عرض التفاصيل">
+      <i class="fa-solid fa-arrow-up-left-from-square"></i>
+    </button>
   </div>
 </div>

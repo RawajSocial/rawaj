@@ -1,27 +1,33 @@
-<section class="posts-section" [style.--active-index]="activeIndex" [style.--middle-index]="(posts.length - 1) / 2">
+<section class="posts-section">
   <div class="container position-relative z-1">
 
     <!-- Title Section -->
-    <div class="text-center section-header" appReveal="fade-up" [revealDuration]="1500">
+    <div class="text-center section-header" appGsapReveal="fade-up" [gsapDuration]="1500">
       <h2 class="title">منشورات صنعتها رواج</h2>
       <p class="subtitle m-0">تصاميم تفاعلية مبتكرة لعلامات تجارية عربية — جاهزة للنشر والانتشار</p>
     </div>
 
-    <!-- Carousel Container -->
-    <div class="carousel-container" appReveal="fade-up" [revealDuration]="2000">
-      <div class="carousel-track">
-        @for (post of posts; track post.id; let i = $index) {
-          <div class="carousel-card"
-               [class.active]="i === activeIndex"
-               [class.faded]="i !== activeIndex">
+    <!-- Carousel: exactly one card visible, centered -->
+    <div class="carousel-container"
+         #viewport
+         appGsapReveal="fade-up" [gsapDuration]="2000"
+         (mouseenter)="pauseAutoplay()" (mouseleave)="resumeAutoplay()">
+      <div class="carousel-stage" #stage>
+        @for (post of slides; track post.id; let i = $index) {
+          <div class="carousel-card" #card [class.active]="i === activeIndex()">
             <div class="card-inner">
-                <div class="phone-frame">
-                  <span class="phone-notch"></span>
-                  <span class="phone-button phone-button-top"></span>
-                  <span class="phone-button phone-button-bottom"></span>
+              <div class="phone-frame">
+                <span class="dynamic-island"><span class="camera-dot"></span></span>
+                <span class="side-btn side-btn-mute"></span>
+                <span class="side-btn side-btn-vol-up"></span>
+                <span class="side-btn side-btn-vol-down"></span>
+                <span class="side-btn side-btn-power"></span>
+                <div class="phone-screen">
                   <img [src]="post.image" [alt]="post.title" class="post-img">
+                  <span class="screen-glare"></span>
                 </div>
-                <div class="card-glow"></div>
+              </div>
+              <div class="card-glow"></div>
             </div>
           </div>
         }
@@ -29,14 +35,14 @@
     </div>
 
     <!-- Navigation Buttons -->
-    <div class="carousel-controls d-flex justify-content-center gap-3" >
+    <div class="carousel-controls d-flex justify-content-center gap-3">
       <!-- Right Arrow (Prev) -->
-      <button class="control-btn prev-btn" (click)="prev()" aria-label="Previous">
+      <button class="control-btn prev-btn" (click)="previous()" aria-label="السابق">
         <i class="fas fa-chevron-right"></i>
       </button>
 
       <!-- Left Arrow (Next) -->
-      <button class="control-btn next-btn" (click)="next()" aria-label="Next">
+      <button class="control-btn next-btn" (click)="next()" aria-label="التالي">
         <i class="fas fa-chevron-left"></i>
       </button>
     </div>

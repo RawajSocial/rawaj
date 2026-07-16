@@ -20,6 +20,8 @@ import {
 import { UserFormModal, UserFormValue } from '../user-form-modal/user-form-modal';
 import { ResetPasswordModal } from '../reset-password-modal/reset-password-modal';
 import { AssignProjectsModal } from '../assign-projects-modal/assign-projects-modal';
+import { SeoService } from '../../../../services/seo.service';
+import { Breadcrumb } from '../../../../shared/components/breadcrumb/breadcrumb';
 
 interface PermissionRow {
   manageKey: keyof TeamMemberPermissions;
@@ -40,7 +42,7 @@ const PERMISSION_ROWS: PermissionRow[] = [
 
 @Component({
   selector: 'app-user-profile-page',
-  imports: [RouterLink, DecimalPipe, UserFormModal, ResetPasswordModal, AssignProjectsModal],
+  imports: [RouterLink, DecimalPipe, UserFormModal, ResetPasswordModal, AssignProjectsModal, Breadcrumb],
   templateUrl: './user-profile-page.html',
   styleUrls: ['../users-shared.css', './user-profile-page.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -49,6 +51,7 @@ export class UserProfilePage {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly teamMemberService = inject(TeamMemberService);
+  private readonly seo = inject(SeoService);
 
   protected readonly roleLabels = ROLE_LABELS;
   protected readonly statusLabels = STATUS_LABELS;
@@ -76,6 +79,16 @@ export class UserProfilePage {
   private readonly cardRefs = viewChild.required<ElementRef<HTMLElement>>('cardsWrap');
 
   constructor() {
+    this.seo.setPageSeo({
+      title: 'الملف الشخصي للمستخدم | رواج',
+      description: 'تفاصيل وصلاحيات واستخدام عضو الفريق.',
+      keywords: 'رواج, ملف المستخدم, صلاحيات الفريق, استخدام الرصيد',
+      path: `/dashboard/users/${this.memberId}`,
+      image: '/home-hero-light.png',
+      type: 'website',
+      noIndex: true,
+    });
+
     afterNextRender(() => {
       const wrap = this.cardRefs().nativeElement;
       const cards = Array.from(wrap.querySelectorAll<HTMLElement>('.profile-card'));

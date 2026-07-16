@@ -100,6 +100,42 @@
   .header-search { display: none; }
 }
 
+/* ── Credit balance chip ── */
+.credit-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 38px;
+  padding: 0 12px;
+  border-radius: var(--radius-full);
+  background: var(--color-accent-light);
+  color: var(--color-text-primary);
+  text-decoration: none;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-semibold);
+  flex-shrink: 0;
+  transition: background var(--transition-fast);
+}
+
+.credit-chip:hover {
+  background: var(--color-yellow-100);
+}
+
+.credit-chip__coin {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.credit-chip__amount {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 576px) {
+  .credit-chip__amount { display: none; }
+  .credit-chip { padding: 0 9px; }
+}
+
 /* ── Badge ── */
 .badge-btn { position: relative; }
 

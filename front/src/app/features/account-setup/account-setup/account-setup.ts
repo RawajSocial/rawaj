@@ -13,6 +13,7 @@ import { BusinessDetails } from '../business/business-details/business-details';
 import { BusinessLocation } from '../business/business-location/business-location';
 import { BusinessSocialLinks } from '../business/business-social-links/business-social-links';
 import { OtpVerification } from '../otp-verification/otp-verification';
+import { SeoService } from '../../../services/seo.service';
 
 export type AccountSetupData = {
   email?: string;
@@ -66,6 +67,7 @@ const BUSINESS_STEPS = ['المعلومات الأساسية', 'تفاصيل ا�
 })
 export class AccountSetup {
   private readonly router = inject(Router);
+  private readonly seo = inject(SeoService);
   private readonly storageKey = 'rawaj.account-setup';
 
   protected readonly step = signal(0);
@@ -78,6 +80,15 @@ export class AccountSetup {
   protected readonly isOtpStep = computed(() => this.step() > 0 && this.step() === this.totalSteps() + 1);
 
   constructor() {
+    this.seo.setPageSeo({
+      title: 'اختيار نوع الحساب | رواج',
+      description: 'أنشئ ملفك في رواج عبر خطوات مخصصة لنوع حسابك: وكالة تسويق أو نشاط تجاري.',
+      keywords: 'رواج, إعداد الحساب, وكالة تسويق, نشاط تجاري',
+      path: '/account-setup',
+      image: '/home-hero-light.png',
+      type: 'website',
+      noIndex: true,
+    });
     effect(() => this.saveData(this.data()));
   }
 

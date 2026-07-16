@@ -23,10 +23,10 @@ export class Landing implements OnInit {
 
   ngOnInit(): void {
     this.seo.setPageSeo({
-      title: 'Rawaj | AI Marketing Platform for Businesses',
+      title: 'رواج | منصة تسويق ذكية مدعومة بالذكاء الاصطناعي',
       description:
-        'Rawaj is an AI-powered marketing platform to create content, manage campaigns, schedule posts, and track performance from one place.',
-      keywords: 'Rawaj, AI marketing, digital marketing, campaign management, content creation, analytics',
+        'رواج منصة تسويق ذكية مدعومة بالذكاء الاصطناعي لأصحاب الأعمال والوكالات في الشرق الأوسط — أنشئ خطتك التسويقية، وولّد محتوى احترافيًا، وانشره تلقائيًا على جميع منصاتك من مكان واحد.',
+      keywords: 'رواج, تسويق بالذكاء الاصطناعي, إدارة حملات تسويقية, توليد محتوى, نشر تلقائي, الشرق الأوسط',
       path: '/',
       image: '/home-hero-light.png',
       type: 'website',

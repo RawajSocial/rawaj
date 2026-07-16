@@ -1,14 +1,29 @@
 .pricing-section {
   position: relative;
-  background: var(--color-dark);
-  padding: 7rem 0;
+  background-color: var(--color-dark);
+  padding: 8rem 0;
   overflow: hidden;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-/* =========================================================
-   AMBIENT BACKGROUND (reference assets)
-========================================================= */
-
+.pricing-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: url('/home-cosmic.svg');
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
+  opacity: 0.95;
+  z-index: 0;
+  pointer-events: none;
+}
 .pricing-shape {
   position: absolute;
   top: 0;
@@ -22,10 +37,6 @@
   width: 100%;
   display: block;
 }
-
-/* =========================================================
-   HEADER
-========================================================= */
 
 .section-header {
   margin-bottom: 3.5rem;
@@ -123,7 +134,7 @@
   display: flex;
   align-items: stretch;
   gap: 0;
-  padding: 3rem 2.5rem;
+  padding: 5rem 2.5rem;
   border-radius: 28px;
   background: linear-gradient(144deg, var(--color-dark-soft) 0%, #14101f 100%);
   box-shadow: 0 30px 70px rgba(0, 0, 0, .4);

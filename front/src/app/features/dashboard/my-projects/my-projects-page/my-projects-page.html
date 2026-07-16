@@ -1,0 +1,43 @@
+<div class="page-shell">
+  <app-page-header
+    title="مشاريعي"
+    [breadcrumbs]="[{ label: 'نظرة عامة', link: '/dashboard' }, { label: 'مشاريعي' }]"
+    subtitle="المشاريع التي تمت دعوتك للعمل عليها ضمن فريق الوكالة." />
+
+  @if (currentUser(); as me) {
+    <div class="rw-card invite-banner">
+      <span class="invite-banner-icon"><i class="fa-solid fa-user-check"></i></span>
+      <div class="invite-banner-body">
+        <p class="invite-banner-title">منضم كـ {{ roleLabels[me.role] }}</p>
+        <p class="rw-card__hint">{{ myProjects().length }} مشروع مُسند إليك حاليًا</p>
+      </div>
+      <span class="rw-pill"
+            [class.rw-pill--success]="me.status === 'active'"
+            [class.rw-pill--warning]="me.status === 'pending'"
+            [class.rw-pill--danger]="me.status === 'suspended'">
+        {{ statusLabels[me.status] }}
+      </span>
+    </div>
+  }
+
+  @if (myProjects().length === 0) {
+    <div class="empty-state">
+      <div class="empty-icon"><i class="fa-solid fa-folder-open"></i></div>
+      <h3>لا توجد مشاريع مُسندة إليك بعد</h3>
+      <p>سيقوم مدير الوكالة بإسناد المشاريع إليك فور تحديدها.</p>
+    </div>
+  } @else {
+    <div class="projects-grid">
+      @for (project of myProjects(); track project.id) {
+        <div class="rw-card project-card">
+          <span class="project-icon"><i class="fa-solid fa-diagram-project"></i></span>
+          <h3 class="project-name">{{ project.name }}</h3>
+          <a class="project-link" routerLink="/dashboard/campaigns">
+            عرض الحملات المرتبطة
+            <i class="fa-solid fa-arrow-left"></i>
+          </a>
+        </div>
+      }
+    </div>
+  }
+</div>

@@ -3,13 +3,13 @@ import { OnboardingStepHeader } from '../onboarding-step-header/onboarding-step-
 import { OnboardingStepActions } from '../onboarding-step-actions/onboarding-step-actions';
 import { StepBadge } from '../../../shared/components/step-badge/step-badge';
 import { StepHeading } from '../../../shared/components/step-heading/step-heading';
-import { RevealDirective } from '../../../shared/directives/reveal.directive';
+import { GsapRevealDirective } from '../../../shared/directives/gsap-reveal.directive';
 
 const MAX_IMAGES = 10;
 
 @Component({
   selector: 'app-onboarding-step-six',
-  imports: [RevealDirective, OnboardingStepHeader, OnboardingStepActions, StepBadge, StepHeading],
+  imports: [GsapRevealDirective, OnboardingStepHeader, OnboardingStepActions, StepBadge, StepHeading],
   templateUrl: './onboarding-step-six.html',
   styleUrl: './onboarding-step-six.css',
 })

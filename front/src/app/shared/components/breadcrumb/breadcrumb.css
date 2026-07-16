@@ -1,0 +1,54 @@
+/* ================================================================= */
+/*  Breadcrumb                                                        */
+/*  Separators are rendered as real DOM elements (not ::before        */
+/*  pseudo-content) so RTL flex ordering handles them correctly       */
+/*  instead of fighting bidi text direction.                          */
+/* ================================================================= */
+
+.breadcrumb__list {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: var(--font-size-sm);
+}
+
+.breadcrumb__item {
+  display: flex;
+  align-items: center;
+  color: var(--color-secondary);
+  font-weight: var(--font-medium);
+  min-width: 0;
+}
+
+.breadcrumb__item a {
+  color: var(--color-secondary);
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+  transition: color var(--transition-fast);
+}
+
+.breadcrumb__item a:hover {
+  color: var(--color-primary);
+  text-decoration: underline;
+}
+
+.breadcrumb__item a:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-secondary-light);
+}
+
+.breadcrumb__item--active {
+  color: var(--color-primary);
+  font-weight: var(--font-bold);
+}
+
+.breadcrumb__separator {
+  display: flex;
+  align-items: center;
+  color: var(--color-secondary-light);
+  font-size: 0.7rem;
+}

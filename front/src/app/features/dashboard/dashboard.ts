@@ -23,10 +23,10 @@ export class Dashboard implements OnInit {
 
   ngOnInit(): void {
     this.seo.setPageSeo({
-      title: 'Dashboard | Rawaj',
+      title: 'لوحة التحكم | رواج',
       description:
-        'Track campaign performance, content workflows, and account activity from the Rawaj dashboard.',
-      keywords: 'Rawaj dashboard, campaign analytics, marketing performance, account overview',
+        'تابع أداء حملاتك، ومحتواك، ونشاط حسابك من لوحة تحكم رواج.',
+      keywords: 'رواج, لوحة التحكم, تحليلات الحملات, أداء التسويق',
       path: '/dashboard',
       image: '/home-hero-light.png',
       type: 'website',

@@ -1,0 +1,27 @@
+<div class="insight-card connect-card d-flex flex-column h-100">
+  <div class="insight-head">
+    <h3 class="insight-title">ربط حسابات التواصل الاجتماعي</h3>
+    <span class="insight-sub">OAuth</span>
+  </div>
+  <div class="connect-list">
+    @for (p of connectPlatforms; track p.key) {
+      <div class="connect-row d-flex align-items-center">
+        <span class="connect-icon rounded-circle flex-shrink-0 text-white d-flex align-items-center justify-content-center"
+              [style.background]="p.color">
+          <i class="{{ p.icon }}"></i>
+        </span>
+        <span class="connect-label flex-grow-1">{{ p.label }}</span>
+        <button type="button"
+                class="connect-btn flex-shrink-0"
+                [class.connect-btn--connected]="isConnected(p.key)"
+                (click)="toggleConnect(p.key)">
+          @if (isConnected(p.key)) {
+            <i class="fa-solid fa-circle-check"></i> متصل
+          } @else {
+            ربط الحساب
+          }
+        </button>
+      </div>
+    }
+  </div>
+</div>

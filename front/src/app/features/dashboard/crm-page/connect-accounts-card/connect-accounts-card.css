@@ -1,0 +1,59 @@
+/* Layout (display/flex-direction/align/justify) is handled by Bootstrap
+   utility classes in the template — only genuinely custom values (that
+   don't match Bootstrap's spacing/size scale) live here. */
+
+.connect-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.connect-row {
+  gap: 12px;
+}
+
+.connect-icon {
+  width: 36px;
+  height: 36px;
+  font-size: 0.9rem;
+}
+
+.connect-label {
+  min-width: 0;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-dark);
+}
+
+.connect-btn {
+  padding: 6px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-semibold);
+  font-family: inherit;
+  cursor: pointer;
+  transition: background-color var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.connect-btn:hover {
+  border-color: var(--color-secondary-light);
+  color: var(--color-dark);
+}
+
+.connect-btn--connected {
+  background: var(--color-success-light);
+  border-color: var(--color-success-light);
+  color: var(--color-success);
+}
+
+.connect-btn--connected:hover {
+  border-color: var(--color-success-light);
+  color: var(--color-success);
+}
+
+.connect-btn--connected i {
+  margin-inline-end: 3px;
+}

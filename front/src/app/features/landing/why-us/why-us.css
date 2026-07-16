@@ -1,5 +1,6 @@
 .why-us-section {
   position: relative;
+  scroll-margin-top: 110px;
   background: var(--background-gray);
   padding: 5.5rem 0;
   overflow: hidden;
@@ -10,7 +11,15 @@
   font-family: var(--font-serif);
   font-size: var(--font-size-4xl);
   font-weight: var(--font-bold);
-  margin-bottom: 2.75rem;
+  margin: 0 0 1rem;
+}
+
+.why-subtitle {
+  max-width: 620px;
+  margin: 0 auto 2.75rem;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-md);
+  line-height: 1.8;
 }
 
 .brands-strip {
@@ -40,9 +49,7 @@
 }
 
 /* ── Invite marketers ── */
-.why-invite {
-  margin-top: 4rem;
-}
+
 
 .why-invite__text h3 {
   font-family: var(--font-serif);

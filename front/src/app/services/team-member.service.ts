@@ -85,6 +85,12 @@ export class TeamMemberService {
   readonly activeCount = computed(() => this._members().filter(m => m.status === 'active').length);
   readonly pendingCount = computed(() => this._members().filter(m => m.status === 'pending').length);
 
+  // TODO: replace with the real authenticated session once auth exists —
+  // this stands in for "who am I" so invited-marketer views (e.g. "my
+  // projects") have someone to resolve assignments against.
+  readonly currentUserId = signal('u2');
+  readonly currentUser = computed(() => this._members().find(m => m.id === this.currentUserId()));
+
   getById(id: string) {
     return computed(() => this._members().find(m => m.id === id));
   }

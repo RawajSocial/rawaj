@@ -3,14 +3,8 @@
     <!-- Header -->
     <div class="page-top">
       <div>
-        <nav aria-label="breadcrumb">
-          <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a routerLink="/dashboard">لوحة التحكم</a></li>
-            <li class="breadcrumb-item"><a routerLink="/dashboard/users">المستخدمون</a></li>
-            <li class="breadcrumb-item active">{{ m.name }}</li>
-          </ol>
-        </nav>
         <h5 class="page-title">{{ m.name }}</h5>
+        <app-breadcrumb [items]="[{ label: 'نظرة عامة', link: '/dashboard' }, { label: 'المستخدمون', link: '/dashboard/users' }, { label: m.name }]" />
         <p class="page-subtitle">{{ m.email }}</p>
       </div>
 

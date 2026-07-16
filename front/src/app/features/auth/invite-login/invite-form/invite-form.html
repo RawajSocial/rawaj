@@ -1,0 +1,47 @@
+<div class="login-card">
+
+  <div class="text-center invite-badge-wrap">
+    <span class="invite-badge"><i class="fa-solid fa-envelope-open-text"></i> دعوة انضمام</span>
+  </div>
+
+  <div class="text-center">
+    @if (invitedMember(); as m) {
+      <h2>مرحبًا {{ m.name }}</h2>
+      <p class="login-subtitle">دعتك وكالتك للانضمام إلى رواج كمسوّق. سجّل الدخول لقبول الدعوة.</p>
+    } @else {
+      <h2>دعوة للانضمام كمسوّق</h2>
+      <p class="login-subtitle">سجّل الدخول لقبول دعوتك والانضمام إلى فريق التسويق في رواج.</p>
+    }
+  </div>
+
+  <form [formGroup]="form" (ngSubmit)="onSubmit()">
+    <div class="mb-3">
+      <label class="form-label" for="email">البريد الإلكتروني</label>
+      <input
+        id="email"
+        type="email"
+        class="form-control"
+        placeholder="name@company.com"
+        formControlName="email" />
+      @if (errorMessage('email'); as emailError) {
+        <small class="text-danger d-block mt-2 validation-msg">{{ emailError }}</small>
+      }
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label" for="password">كلمة المرور</label>
+      <input
+        id="password"
+        type="password"
+        class="form-control"
+        placeholder="••••••••"
+        formControlName="password" />
+      @if (errorMessage('password'); as passwordError) {
+        <small class="text-danger d-block mt-2 validation-msg">{{ passwordError }}</small>
+      }
+    </div>
+
+    <button class="btn login-btn w-100" type="submit">تسجيل الدخول وقبول الدعوة</button>
+  </form>
+
+</div>

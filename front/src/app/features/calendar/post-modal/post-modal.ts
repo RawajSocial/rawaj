@@ -26,13 +26,13 @@ export class PostModal {
   readonly editHashtags      = signal('');
 
   readonly platformConfig: Record<CampaignPlatform, { icon: string; color: string; label: string }> = {
-    instagram: { icon: 'fa-brands fa-instagram',  color: '#E1306C', label: 'إنستغرام' },
-    facebook:  { icon: 'fa-brands fa-facebook-f', color: '#1877F2', label: 'فيسبوك'   },
-    tiktok:    { icon: 'fa-brands fa-tiktok',      color: '#010101', label: 'تيك توك'  },
-    youtube:   { icon: 'fa-brands fa-youtube',     color: '#FF0000', label: 'يوتيوب'  },
-    x:         { icon: 'fa-brands fa-x-twitter',   color: '#14171A', label: 'إكس'      },
-    snapchat:  { icon: 'fa-brands fa-snapchat',    color: '#FFFC00', label: 'سناب شات' },
-    linkedin:  { icon: 'fa-brands fa-linkedin-in', color: '#0A66C2', label: 'لينكد إن' },
+    instagram: { icon: 'fa-brands fa-instagram',  color: 'var(--color-instagram)', label: 'إنستغرام' },
+    facebook:  { icon: 'fa-brands fa-facebook-f', color: 'var(--color-facebook)',  label: 'فيسبوك'   },
+    tiktok:    { icon: 'fa-brands fa-tiktok',      color: 'var(--color-tiktok)',    label: 'تيك توك'  },
+    youtube:   { icon: 'fa-brands fa-youtube',     color: 'var(--color-youtube)',   label: 'يوتيوب'  },
+    x:         { icon: 'fa-brands fa-x-twitter',   color: 'var(--color-x)',         label: 'إكس'      },
+    snapchat:  { icon: 'fa-brands fa-snapchat',    color: 'var(--color-snapchat)',  label: 'سناب شات' },
+    linkedin:  { icon: 'fa-brands fa-linkedin-in', color: 'var(--color-linkedin)',  label: 'لينكد إن' },
   };
 
   readonly statusOptions: { value: PostStatus; label: string; color: string }[] = [
