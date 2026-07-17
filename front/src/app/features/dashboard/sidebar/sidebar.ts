@@ -52,6 +52,7 @@ export class Sidebar {
       items: [
         { id: 'dashboard-home', label: 'لوحة التحكم',  icon: 'fa-gauge',        route: '/dashboard',           exact: true },
         { id: 'campaigns',      label: 'حملاتك',        icon: 'fa-bullhorn',     route: '/dashboard/campaigns' },
+        { id: 'competitors',    label: 'تحليل المنافسين', icon: 'fa-chess-knight', route: '/dashboard/competitors' },
       ],
     },
     {
@@ -72,6 +73,7 @@ export class Sidebar {
     {
       heading: 'الحساب',
       items: [
+        { id: 'social-accounts', label: 'الحسابات المرتبطة', icon: 'fa-link',         route: '/dashboard/social-accounts' },
         { id: 'notifications', label: 'الإشعارات',        icon: 'fa-bell',            route: '/dashboard/notifications' },
         { id: 'billing',       label: 'الفوترة',          icon: 'fa-credit-card',     route: '/dashboard/billing' },
         { id: 'settings',      label: 'الإعدادات',        icon: 'fa-gear',            route: '/dashboard/settings' },

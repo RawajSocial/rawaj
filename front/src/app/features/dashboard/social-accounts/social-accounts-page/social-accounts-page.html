@@ -1,0 +1,72 @@
+<div class="page-shell">
+  <app-page-header
+    title="الحسابات المرتبطة"
+    [breadcrumbs]="[{ label: 'لوحة التحكم', link: '/dashboard' }, { label: 'الحسابات المرتبطة' }]"
+    subtitle="اربط حساباتك على مواقع التواصل الاجتماعي حتى تتمكن من جدولة ونشر المحتوى مباشرة." />
+
+  @if (banner(); as b) {
+    <div class="alert" [class.alert-success]="b.kind === 'success'" [class.alert-danger]="b.kind === 'error'" role="alert">
+      <span>{{ b.text }}</span>
+      <button type="button" class="banner-close" (click)="dismissBanner()" aria-label="إغلاق">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+  }
+
+  @if (connectError(); as error) {
+    <div class="alert alert-danger">{{ error }}</div>
+  }
+
+  @if (loading()) {
+    <div class="text-center py-5">
+      <div class="spinner-border text-primary" role="status"></div>
+    </div>
+  } @else if (loadError(); as error) {
+    <div class="alert alert-danger">{{ error }}</div>
+  } @else {
+    <div class="accounts-grid">
+      @for (platform of platforms; track platform) {
+        @let account = accountsByPlatform().get(platform);
+        <div class="account-card">
+          <span class="account-icon" [style.background]="platformCfg(platform).color">
+            <i class="{{ platformCfg(platform).icon }}"></i>
+          </span>
+          <div class="account-info">
+            <p class="account-platform">{{ platformCfg(platform).label }}</p>
+            @if (account) {
+              <p class="account-name">{{ account.accountName }}</p>
+              <span class="rw-pill rw-pill--success">متصل</span>
+            } @else {
+              <p class="account-name account-name--muted">غير متصل</p>
+            }
+          </div>
+          @if (account) {
+            <button
+              type="button"
+              class="rw-btn rw-btn--outline"
+              [disabled]="disconnectingId() === account.socialAccountId"
+              (click)="disconnect(account)">
+              @if (disconnectingId() === account.socialAccountId) {
+                <span class="spinner-border spinner-border-sm" role="status"></span>
+              } @else {
+                فصل الحساب
+              }
+            </button>
+          } @else {
+            <button
+              type="button"
+              class="rw-btn rw-btn--dark"
+              [disabled]="connectingPlatform() === platform"
+              (click)="connect(platform)">
+              @if (connectingPlatform() === platform) {
+                <span class="spinner-border spinner-border-sm" role="status"></span>
+              } @else {
+                ربط الحساب
+              }
+            </button>
+          }
+        </div>
+      }
+    </div>
+  }
+</div>

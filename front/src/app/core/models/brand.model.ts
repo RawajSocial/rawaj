@@ -30,3 +30,19 @@ export interface CreateBrandProfileResponse {
   status: BrandProfileStatus;
   isDefault: boolean;
 }
+
+/** All fields optional - only fields present are applied server-side, the rest are left as-is. */
+export type UpdateBrandProfileRequest = Partial<CreateBrandProfileRequest>;
+
+export interface UpdateBrandProfileResponse {
+  brandProfileId: string;
+  name: string;
+  description: string | null;
+  brandVoice: BrandVoice | null;
+  status: BrandProfileStatus;
+  isDefault: boolean;
+}
+
+export interface GenerateOnboardingQuestionsResponse {
+  questionsJson: string;
+}

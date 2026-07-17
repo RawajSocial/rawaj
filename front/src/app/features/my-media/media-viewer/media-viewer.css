@@ -2,7 +2,7 @@
   position: fixed;
   inset: 0;
   background: rgba(0,0,0,0.55);
-  z-index: 9998;
+  z-index: var(--z-modal, 400);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -204,6 +204,38 @@
 .detail-row  { display: flex; flex-direction: column; gap: 2px; }
 .dr-key      { font-size: 0.72rem; color: #9ca3af; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; }
 .dr-val      { font-size: 0.85rem; color: #1a1a2e; font-weight: 500; }
+
+.revisions-list { display: flex; flex-direction: column; gap: 10px; }
+
+.revision-item {
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-bg-secondary);
+}
+
+.revision-item-head {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin-bottom: 6px;
+}
+
+.revision-prompt {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  font-style: italic;
+  margin: 0 0 6px;
+}
+
+.revision-diff {
+  font-size: 0.78rem;
+  color: #1a1a2e;
+  margin: 0 0 4px;
+  line-height: 1.5;
+}
 
 /* Action buttons */
 .action-btns { display: flex; flex-direction: column; gap: 7px; }

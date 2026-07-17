@@ -1,3 +1,5 @@
+import { ContentStatus } from '../core/models';
+
 export type GenType     = 'static-ad' | 'video' | 'text';
 export type GenStatus   = 'generating' | 'generated' | 'failed';
 export type AdSize      = 'square' | 'portrait' | 'landscape' | 'story';
@@ -18,6 +20,11 @@ export interface GeneratedItem {
   textContent?: string;
   thumbnailUrl?: string;
   videoUrl?: string;
+  /** Real backend review status - only meaningful for `type === 'text'` (content items). Content
+   * must be Approved before it can be scheduled (enforced server-side too). */
+  reviewStatus?: ContentStatus;
+  /** Real backend approval flag - only meaningful for `type === 'static-ad'` (visual assets). */
+  isApproved?: boolean;
 }
 
 export const TYPE_CFG: Record<GenType, { label: string; desc: string; icon: string; color: string }> = {

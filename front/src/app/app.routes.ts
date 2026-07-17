@@ -45,6 +45,11 @@ export const routes: Routes = [
           import('./features/campaigns/campaigns-page/campaigns-page').then((m) => m.CampaignsPage),
       },
       {
+        path: 'competitors',
+        loadComponent: () =>
+          import('./features/competitors/competitors-page/competitors-page').then((m) => m.CompetitorsPage),
+      },
+      {
         path: 'calendar',
         loadComponent: () =>
           import('./features/calendar/calendar-page/calendar-page').then((m) => m.CalendarPage),
@@ -73,6 +78,11 @@ export const routes: Routes = [
         path: 'users/:id',
         loadComponent: () =>
           import('./features/dashboard/users/user-profile-page/user-profile-page').then((m) => m.UserProfilePage),
+      },
+      {
+        path: 'social-accounts',
+        loadComponent: () =>
+          import('./features/dashboard/social-accounts/social-accounts-page/social-accounts-page').then((m) => m.SocialAccountsPage),
       },
       {
         path: 'notifications',

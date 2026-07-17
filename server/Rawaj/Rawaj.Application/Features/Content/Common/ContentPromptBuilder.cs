@@ -81,6 +81,22 @@ public static class ContentPromptBuilder
         return string.Join(" ", lines);
     }
 
+    public static string BuildOnboardingQuestionsPrompt(TenantBrandProfile brand, string onboardingContextJson)
+    {
+        var lines = new List<string>
+        {
+            $"A business called \"{brand.Name}\" is midway through an onboarding wizard for a social media marketing platform.",
+            "Here is the JSON of everything they've entered so far in the wizard (campaign type, brand details, target audience, positioning, budget, etc.):",
+            onboardingContextJson,
+            "Based specifically on what this business entered, write exactly 5 short follow-up questions in Arabic that would help a marketing strategist understand their business better " +
+            "and fill in gaps the answers above didn't cover. Each question needs 3 short quick-reply suggested answers in Arabic, relevant to what THIS business described - not generic questions.",
+            "Respond with ONLY a valid JSON array (no markdown fences, no commentary) with this exact shape: " +
+            "[{\"question\":\"...\",\"suggestions\":[\"...\",\"...\",\"...\"]}]",
+        };
+
+        return string.Join(" ", lines);
+    }
+
     public static string BuildMarketingPlanPrompt(
         TenantBrandProfile brand,
         MarketingCampaign campaign,

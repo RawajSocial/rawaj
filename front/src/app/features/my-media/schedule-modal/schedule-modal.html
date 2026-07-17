@@ -1,0 +1,88 @@
+<app-modal-shell [open]="open()" [maxWidth]="480" (closed)="closed.emit()">
+
+  <div modal-header class="sm-header">
+    <div class="sm-header-icon"><i class="fa-solid fa-calendar-plus"></i></div>
+    <h3 class="sm-title">جدولة المنشور</h3>
+  </div>
+
+  @if (submitError(); as error) {
+    <div class="alert alert-danger">{{ error }}</div>
+  }
+
+  @if (loadingAccounts()) {
+    <div class="text-center py-4">
+      <div class="spinner-border text-primary" role="status"></div>
+    </div>
+  } @else if (loadError(); as error) {
+    <div class="alert alert-danger">{{ error }}</div>
+  } @else if (accounts().length === 0) {
+    <div class="no-accounts">
+      <i class="fa-solid fa-link-slash"></i>
+      <p>لا توجد حسابات تواصل اجتماعي مرتبطة بهذا البراند بعد.</p>
+      <a routerLink="/dashboard/social-accounts" class="btn-brand" (click)="closed.emit()">
+        ربط حساب الآن
+      </a>
+    </div>
+  } @else {
+    <div class="form-field">
+      <label>انشر على</label>
+      <div class="account-options">
+        @for (account of accounts(); track account.socialAccountId) {
+          <button
+            type="button"
+            class="account-option"
+            [class.selected]="selectedAccountId() === account.socialAccountId"
+            (click)="selectAccount(account.socialAccountId)">
+            <span class="account-option-icon" [style.background]="platformCfg[account.platform].color">
+              <i class="{{ platformCfg[account.platform].icon }}"></i>
+            </span>
+            <span class="account-option-text">
+              <span class="account-option-platform">{{ platformCfg[account.platform].label }}</span>
+              <span class="account-option-name">{{ account.accountName }}</span>
+            </span>
+          </button>
+        }
+      </div>
+    </div>
+
+    @if (visualAssetOptions().length > 0) {
+      <div class="form-field">
+        <label for="visual-asset">إرفاق صورة (اختياري)</label>
+        <select
+          id="visual-asset"
+          class="form-control"
+          [value]="selectedVisualAssetId()"
+          (change)="selectedVisualAssetId.set($any($event.target).value)">
+          <option value="">بدون صورة</option>
+          @for (asset of visualAssetOptions(); track asset.id) {
+            <option [value]="asset.id">{{ asset.title }}</option>
+          }
+        </select>
+      </div>
+    }
+
+    <div class="form-field">
+      <label for="scheduled-at">موعد النشر</label>
+      <input
+        id="scheduled-at"
+        type="datetime-local"
+        class="form-control"
+        [min]="minDateTime"
+        [value]="scheduledAtLocal()"
+        (input)="scheduledAtLocal.set($any($event.target).value)" />
+    </div>
+  }
+
+  <div modal-footer class="sm-footer">
+    @if (accounts().length > 0) {
+      <button type="button" class="btn-outline" (click)="closed.emit()">إلغاء</button>
+      <button type="button" class="btn-brand" [disabled]="submitting()" (click)="submit()">
+        @if (submitting()) {
+          <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+        }
+        جدولة المنشور
+      </button>
+    }
+  </div>
+
+</app-modal-shell>

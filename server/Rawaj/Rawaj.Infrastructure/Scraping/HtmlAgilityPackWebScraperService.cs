@@ -1,5 +1,6 @@
 using HtmlAgilityPack;
 using Microsoft.Extensions.Logging;
+using Polly.Timeout;
 using Rawaj.Application.Common.Interfaces;
 using Rawaj.Application.Common.Models;
 
@@ -56,10 +57,35 @@ public class HtmlAgilityPackWebScraperService(
 
             return WebScrapeResult.Success(title, truncated);
         }
+        catch (HttpRequestException ex)
+        {
+            // Covers connection resets, SSL handshake failures, DNS failures, etc. - most commonly
+            // a site's bot-protection (WAF/CDN) closing the connection because this scraper
+            // truthfully identifies as a bot rather than spoofing a browser. The raw exception
+            // message (socket/TLS internals) is not something a business user can act on.
+            logger.LogWarning(ex, "Scraping {Url} failed to connect.", url);
+            return WebScrapeResult.Failure(
+                "Could not reach this website. It may be blocking automated visits, or it's temporarily unreachable.");
+        }
+        catch (TimeoutRejectedException ex)
+        {
+            // The resilience handler's per-attempt or total-request timeout tripped (e.g. the site
+            // returned a transient 5xx, got retried, and the retries together ran past the total
+            // timeout) - this is Polly's own exception type, not a .NET cancellation/timeout type.
+            logger.LogWarning(ex, "Scraping {Url} timed out.", url);
+            return WebScrapeResult.Failure("This website took too long to respond, or is temporarily unavailable.");
+        }
+        catch (TaskCanceledException ex) when (!cancellationToken.IsCancellationRequested)
+        {
+            // A plain (non-Polly) timeout can still surface as TaskCanceledException, distinct
+            // from the caller's own cancellationToken firing (excluded via the when-clause).
+            logger.LogWarning(ex, "Scraping {Url} timed out.", url);
+            return WebScrapeResult.Failure("This website took too long to respond.");
+        }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             logger.LogWarning(ex, "Scraping {Url} threw an exception.", url);
-            return WebScrapeResult.Failure(ex.Message);
+            return WebScrapeResult.Failure("Could not read this website's content. Please try again.");
         }
     }
 }

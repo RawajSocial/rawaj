@@ -90,26 +90,76 @@
                     {{ statusLabel(ci.status) }}
                   </span>
                 </div>
+                @if (ci.type === 'text' && ci.reviewStatus) {
+                  <div class="detail-row">
+                    <span class="dr-key">حالة المراجعة</span>
+                    <span class="dr-val" [style.color]="reviewStatusColor(ci.reviewStatus)" style="font-weight:700">
+                      {{ reviewStatusLabel(ci.reviewStatus) }}
+                    </span>
+                  </div>
+                }
+                @if (ci.type === 'static-ad' && ci.isApproved !== undefined) {
+                  <div class="detail-row">
+                    <span class="dr-key">حالة المراجعة</span>
+                    <span class="dr-val" [style.color]="ci.isApproved ? '#22c55e' : '#9ca3af'" style="font-weight:700">
+                      {{ ci.isApproved ? 'معتمد' : 'بانتظار المراجعة' }}
+                    </span>
+                  </div>
+                }
               </div>
             </div>
+
+            @if (reviewError(); as error) {
+              <div class="alert alert-danger" style="margin: 0 0 12px;">{{ error }}</div>
+            }
 
             <!-- Actions -->
             <div class="viewer-section">
               <p class="viewer-section-label">الإجراءات</p>
               <div class="action-btns">
 
-                <button type="button" class="abtn abtn-download">
-                  <i class="fa-solid fa-download"></i>
-                  تنزيل
-                  <i class="fa-solid fa-chevron-down abtn-caret"></i>
-                </button>
+                @if (ci.type === 'text' && ci.status === 'generated') {
+                  @if (ci.reviewStatus === 'Approved') {
+                    <button type="button" class="abtn abtn-edit" (click)="openSchedule()">
+                      <i class="fa-solid fa-calendar-plus"></i>
+                      جدولة المنشور
+                    </button>
+                  } @else {
+                    <button type="button" class="abtn abtn-edit" [disabled]="reviewing()" (click)="reviewContent(true)">
+                      <i class="fa-solid fa-check"></i>
+                      اعتماد
+                    </button>
+                    @if (ci.reviewStatus !== 'Rejected') {
+                      <button type="button" class="abtn abtn-delete" [disabled]="reviewing()" (click)="reviewContent(false)">
+                        <i class="fa-solid fa-xmark"></i>
+                        رفض
+                      </button>
+                    }
+                  }
 
-                <button type="button" class="abtn abtn-edit" (click)="startEdit()">
-                  <i class="fa-solid fa-wand-magic-sparkles"></i>
-                  تحرير بالذكاء الاصطناعي
-                </button>
+                  <button type="button" class="abtn abtn-edit" (click)="startEdit()">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                    إعادة التوليد بالذكاء الاصطناعي
+                  </button>
+
+                  <button type="button" class="abtn abtn-edit" (click)="toggleRevisions()">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                    سجل المراجعات
+                  </button>
+                }
 
                 @if (ci.type === 'static-ad') {
+                  @if (!ci.isApproved) {
+                    <button type="button" class="abtn abtn-edit" [disabled]="reviewing()" (click)="reviewVisualAsset(true)">
+                      <i class="fa-solid fa-check"></i>
+                      اعتماد
+                    </button>
+                  } @else {
+                    <button type="button" class="abtn abtn-delete" [disabled]="reviewing()" (click)="reviewVisualAsset(false)">
+                      <i class="fa-solid fa-xmark"></i>
+                      إلغاء الاعتماد
+                    </button>
+                  }
                   <button type="button" class="abtn abtn-resize">
                     <i class="fa-solid fa-expand"></i>
                     تغيير الحجم
@@ -119,6 +169,12 @@
                     تحويل إلى فيديو
                   </button>
                 }
+
+                <button type="button" class="abtn abtn-download">
+                  <i class="fa-solid fa-download"></i>
+                  تنزيل
+                  <i class="fa-solid fa-chevron-down abtn-caret"></i>
+                </button>
 
                 @if (!showDeleteConfirm()) {
                   <button type="button" class="abtn abtn-delete" (click)="confirmDelete()">
@@ -138,40 +194,60 @@
               </div>
             </div>
 
+            @if (revisionsOpen()) {
+              <div class="viewer-section">
+                <p class="viewer-section-label">سجل المراجعات</p>
+                @if (loadingRevisions()) {
+                  <div class="text-center py-3">
+                    <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                  </div>
+                } @else if (revisions().length === 0) {
+                  <p class="dr-val" style="color: var(--color-text-muted);">لا توجد مراجعات سابقة لهذا المحتوى.</p>
+                } @else {
+                  <div class="revisions-list">
+                    @for (rev of revisions(); track rev.id) {
+                      <div class="revision-item">
+                        <div class="revision-item-head">
+                          <span>مراجعة #{{ rev.revisionNumber }}</span>
+                          <span class="viewer-date-text">{{ formatDateTime(rev.createdAt) }}</span>
+                        </div>
+                        <p class="revision-prompt">"{{ rev.revisionPrompt }}"</p>
+                        <p class="revision-diff"><strong>قبل:</strong> {{ rev.previous }}</p>
+                        <p class="revision-diff"><strong>بعد:</strong> {{ rev.current }}</p>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            }
+
           } @else {
 
-            <!-- Edit mode -->
+            <!-- Edit mode: regenerate with feedback -->
             <div class="viewer-section edit-section">
-              <p class="viewer-section-label">تحرير المحتوى</p>
+              <p class="viewer-section-label">إعادة التوليد بالذكاء الاصطناعي</p>
+              @if (regenerateError(); as error) {
+                <div class="alert alert-danger">{{ error }}</div>
+              }
               <div class="edit-fields">
                 <div class="form-group">
-                  <label class="form-label">العلامة التجارية</label>
-                  <input type="text" class="form-control"
-                         [value]="editBrand()"
-                         (input)="editBrand.set($any($event.target).value)">
-                </div>
-                <div class="form-group">
-                  <label class="form-label">الوصف</label>
+                  <label class="form-label">ما التعديل الذي تريده؟</label>
                   <textarea class="form-control edit-ta"
-                            [value]="editDesc()"
-                            (input)="editDesc.set($any($event.target).value)"></textarea>
-                </div>
-                <div class="form-group">
-                  <label class="form-label">النبرة</label>
-                  <select class="form-control"
-                          [value]="editTone()"
-                          (change)="editTone.set($any($event.target).value)">
-                    @for (tone of tones; track tone) {
-                      <option [value]="tone">{{ toneCfg[tone] }}</option>
-                    }
-                  </select>
+                            placeholder="مثال: اجعل النبرة أكثر حماسًا، أو ركّز أكثر على العرض الترويجي..."
+                            [value]="regenerateFeedback()"
+                            (input)="regenerateFeedback.set($any($event.target).value)"></textarea>
                 </div>
               </div>
             </div>
 
             <div class="edit-footer">
               <button type="button" class="abtn abtn-cancel-edit" (click)="cancelEdit()">إلغاء</button>
-              <button type="button" class="abtn abtn-save" (click)="saveEdit()">حفظ</button>
+              <button type="button" class="abtn abtn-save" [disabled]="regenerating()" (click)="regenerate()">
+                @if (regenerating()) {
+                  <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                }
+                إعادة التوليد
+              </button>
             </div>
 
           }
@@ -182,4 +258,14 @@
 
     </div><!-- /viewer-modal -->
   </div><!-- /modal-backdrop -->
+}
+
+<!-- Rendered as a sibling, not nested inside .modal-backdrop above: that ancestor's open/close
+     transform animation would otherwise trap this modal's fixed-position overlay inside its own
+     stacking context instead of covering the full viewport. -->
+@if (currentItem(); as ci) {
+  <app-schedule-modal
+    [open]="scheduleModalOpen()"
+    [contentItemId]="ci.id"
+    (closed)="closeSchedule()" />
 }

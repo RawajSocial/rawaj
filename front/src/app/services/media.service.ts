@@ -1,10 +1,11 @@
 import { Injectable, computed, effect, inject, signal } from '@angular/core';
+import { Observable, tap } from 'rxjs';
 import { GeneratedItem } from '../model/generated-item.model';
 import { CampaignsApiService } from '../core/api/campaigns-api.service';
 import { ContentApiService } from '../core/api/content-api.service';
 import { VisualAssetsApiService } from '../core/api/visual-assets-api.service';
 import { TenantService } from '../core/tenant/tenant.service';
-import { CampaignSummary } from '../core/models';
+import { CampaignSummary, ContentRevisionSummary } from '../core/models';
 
 let _nextId = 200;
 
@@ -72,6 +73,7 @@ export class MediaService {
           language: c.language === 'Ar' ? 'ar' : 'en',
           description: c.content,
           textContent: c.content,
+          reviewStatus: c.status,
         }));
 
         this.visualAssetsApi.getByCampaign(campaignId, 1, 50).subscribe({
@@ -84,6 +86,7 @@ export class MediaService {
               status: 'generated',
               createdAt: v.createdAt,
               thumbnailUrl: v.fileUrl,
+              isApproved: v.isApproved,
             }));
             this.items.set(
               [...contentItems, ...visualItems].sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
@@ -123,5 +126,45 @@ export class MediaService {
 
   remove(id: string): void {
     this.items.update(list => list.filter(i => i.id !== id));
+  }
+
+  /** Approves or rejects a text content item. Only Approved content is eligible for scheduling
+   * (server-enforced). */
+  reviewContent(contentItemId: string, approve: boolean): Observable<{ contentItemId: string; status: string; reviewedAt: string }> {
+    return this.contentApi.review(contentItemId, approve).pipe(
+      tap((result) => {
+        this.items.update((list) =>
+          list.map((i) => (i.id === contentItemId ? { ...i, reviewStatus: result.status as GeneratedItem['reviewStatus'] } : i)),
+        );
+      }),
+    );
+  }
+
+  regenerate(contentItemId: string, feedback: string) {
+    return this.contentApi.regenerate(contentItemId, feedback).pipe(
+      tap((result) => {
+        this.items.update((list) =>
+          list.map((i) =>
+            i.id === contentItemId
+              ? { ...i, textContent: result.content, description: result.content, reviewStatus: result.status }
+              : i,
+          ),
+        );
+      }),
+    );
+  }
+
+  getRevisions(contentItemId: string): Observable<ContentRevisionSummary[]> {
+    return this.contentApi.getRevisions(contentItemId);
+  }
+
+  reviewVisualAsset(visualAssetId: string, approve: boolean) {
+    return this.visualAssetsApi.review(visualAssetId, approve).pipe(
+      tap((result) => {
+        this.items.update((list) =>
+          list.map((i) => (i.id === visualAssetId ? { ...i, isApproved: result.isApproved } : i)),
+        );
+      }),
+    );
   }
 }

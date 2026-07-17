@@ -1,14 +1,16 @@
 import { Component, HostListener, effect, inject, input, output, signal } from '@angular/core';
 import {
-  ContentTone, GeneratedItem, GenType,
+  GeneratedItem, GenType,
   SIZE_CFG, TONE_CFG, TYPE_CFG,
 } from '../../../model/generated-item.model';
 import { MediaService } from '../../../services/media.service';
+import { ScheduleModal } from '../schedule-modal/schedule-modal';
+import { ContentRevisionSummary } from '../../../core/models';
 
 @Component({
   selector: 'app-media-viewer',
   standalone: true,
-  imports: [],
+  imports: [ScheduleModal],
   templateUrl: './media-viewer.html',
   styleUrl: './media-viewer.css',
 })
@@ -18,17 +20,24 @@ export class MediaViewer {
   readonly typeCfg = TYPE_CFG;
   readonly toneCfg = TONE_CFG;
   readonly sizeCfg = SIZE_CFG;
-  readonly tones: ContentTone[] = ['professional', 'casual', 'energetic', 'luxurious'];
 
   closed = output<void>();
 
   readonly editMode          = signal(false);
   readonly showDeleteConfirm = signal(false);
+  readonly scheduleModalOpen = signal(false);
   readonly currentItem       = signal<GeneratedItem | null>(null);
 
-  readonly editBrand = signal('');
-  readonly editDesc  = signal('');
-  readonly editTone  = signal<ContentTone>('professional');
+  readonly reviewing    = signal(false);
+  readonly reviewError  = signal<string | null>(null);
+
+  readonly regenerateFeedback = signal('');
+  readonly regenerating       = signal(false);
+  readonly regenerateError    = signal<string | null>(null);
+
+  readonly revisionsOpen    = signal(false);
+  readonly loadingRevisions = signal(false);
+  readonly revisions        = signal<ContentRevisionSummary[]>([]);
 
   private readonly media = inject(MediaService);
 
@@ -37,39 +46,117 @@ export class MediaViewer {
       this.currentItem.set(this.item());
       this.editMode.set(false);
       this.showDeleteConfirm.set(false);
+      this.scheduleModalOpen.set(false);
+      this.revisionsOpen.set(false);
+      this.revisions.set([]);
+      this.regenerateFeedback.set('');
+      this.reviewError.set(null);
     });
   }
 
   @HostListener('document:keydown.escape')
   onEsc(): void {
+    if (this.scheduleModalOpen())  { return; } // ScheduleModal handles its own ESC via ModalShell
     if (this.editMode())          { this.editMode.set(false); return; }
     if (this.showDeleteConfirm()) { this.showDeleteConfirm.set(false); return; }
     this.closed.emit();
   }
 
-  startEdit(): void {
+  openSchedule(): void { this.scheduleModalOpen.set(true); }
+  closeSchedule(): void { this.scheduleModalOpen.set(false); }
+
+  reviewContent(approve: boolean): void {
     const item = this.currentItem();
     if (!item) return;
-    this.editBrand.set(item.brand);
-    this.editDesc.set(item.description ?? '');
-    this.editTone.set(item.tone ?? 'professional');
+
+    this.reviewing.set(true);
+    this.reviewError.set(null);
+
+    this.media.reviewContent(item.id, approve).subscribe({
+      next: (result) => {
+        this.reviewing.set(false);
+        this.currentItem.update((current) =>
+          current ? { ...current, reviewStatus: result.status as GeneratedItem['reviewStatus'] } : current,
+        );
+      },
+      error: () => {
+        this.reviewing.set(false);
+        this.reviewError.set('تعذر تحديث حالة المراجعة، حاول مرة أخرى.');
+      },
+    });
+  }
+
+  reviewVisualAsset(approve: boolean): void {
+    const item = this.currentItem();
+    if (!item) return;
+
+    this.reviewing.set(true);
+    this.reviewError.set(null);
+
+    this.media.reviewVisualAsset(item.id, approve).subscribe({
+      next: (result) => {
+        this.reviewing.set(false);
+        this.currentItem.update((current) => (current ? { ...current, isApproved: result.isApproved } : current));
+      },
+      error: () => {
+        this.reviewing.set(false);
+        this.reviewError.set('تعذر تحديث حالة المراجعة، حاول مرة أخرى.');
+      },
+    });
+  }
+
+  startEdit(): void {
+    this.regenerateFeedback.set('');
+    this.regenerateError.set(null);
     this.editMode.set(true);
   }
 
   cancelEdit(): void { this.editMode.set(false); }
 
-  saveEdit(): void {
+  regenerate(): void {
+    const item = this.currentItem();
+    const feedback = this.regenerateFeedback().trim();
+    if (!item || !feedback) {
+      this.regenerateError.set('يرجى وصف التعديل المطلوب.');
+      return;
+    }
+
+    this.regenerating.set(true);
+    this.regenerateError.set(null);
+
+    this.media.regenerate(item.id, feedback).subscribe({
+      next: (result) => {
+        this.regenerating.set(false);
+        this.editMode.set(false);
+        this.currentItem.update((current) =>
+          current ? { ...current, textContent: result.content, description: result.content, reviewStatus: result.status } : current,
+        );
+      },
+      error: (error: unknown) => {
+        this.regenerating.set(false);
+        this.regenerateError.set(
+          error instanceof Error ? error.message : 'تعذر إعادة توليد المحتوى، حاول مرة أخرى.',
+        );
+      },
+    });
+  }
+
+  toggleRevisions(): void {
     const item = this.currentItem();
     if (!item) return;
-    const updated: GeneratedItem = {
-      ...item,
-      brand:       this.editBrand(),
-      description: this.editDesc() || undefined,
-      tone:        this.editTone(),
-    };
-    this.media.update(updated);
-    this.currentItem.set(updated);
-    this.editMode.set(false);
+
+    const next = !this.revisionsOpen();
+    this.revisionsOpen.set(next);
+    if (next && this.revisions().length === 0) {
+      this.loadingRevisions.set(true);
+      this.media.getRevisions(item.id).subscribe({
+        next: (revisions) => {
+          this.revisions.set(revisions);
+          this.loadingRevisions.set(false);
+        },
+        error: () => this.loadingRevisions.set(false),
+      });
+    }
   }
 
   confirmDelete(): void { this.showDeleteConfirm.set(true); }
@@ -99,6 +186,14 @@ export class MediaViewer {
 
   statusColor(s: string): string {
     return { generating: '#f97316', generated: '#22c55e', failed: '#ef4444' }[s] ?? '#9ca3af';
+  }
+
+  reviewStatusLabel(s?: string): string {
+    return { Draft: 'مسودة', Reviewed: 'تمت المراجعة', Approved: 'معتمد', Rejected: 'مرفوض', Published: 'منشور' }[s ?? ''] ?? '';
+  }
+
+  reviewStatusColor(s?: string): string {
+    return { Draft: '#9ca3af', Reviewed: '#3b82f6', Approved: '#22c55e', Rejected: '#ef4444', Published: '#7C3AED' }[s ?? ''] ?? '#9ca3af';
   }
 
   formatDateTime(iso: string): string {

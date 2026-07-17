@@ -12,9 +12,10 @@ import { OnboardingStepSeven } from '../onboarding-step-seven/onboarding-step-se
 import { OnboardingSuccess } from '../onboarding-success/onboarding-success';
 import { OnboardingPlanApproval } from '../onboarding-plan-approval/onboarding-plan-approval';
 import { CampaignsApiService } from '../../../core/api/campaigns-api.service';
+import { BrandProfilesApiService } from '../../../core/api/brand-profiles-api.service';
 import { TenantService } from '../../../core/tenant/tenant.service';
 import { ApiError } from '../../../core/api';
-import { CreateCampaignRequest } from '../../../core/models';
+import { BrandVoice, CreateCampaignRequest, UpdateBrandProfileRequest } from '../../../core/models';
 
 @Component({
   selector: 'app-rawaj-onboarding',
@@ -44,11 +45,19 @@ export class RawajOnboarding {
   private readonly seo = inject(SeoService);
   private readonly router = inject(Router);
   private readonly campaignsApi = inject(CampaignsApiService);
+  private readonly brandProfilesApi = inject(BrandProfilesApiService);
   private readonly tenantService = inject(TenantService);
 
   constructor() {
     this.currentStep = signal(this.loadSavedStep());
     this.onboardingData.set(this.loadOnboardingData());
+
+    // Re-hydrates tenant/brand context on a hard page refresh or direct navigation - loadContext()
+    // after login/register only covers the in-app navigation case (mirrors Dashboard's guard).
+    if (!this.tenantService.loaded()) {
+      this.tenantService.loadContext().subscribe();
+    }
+
     this.seo.setPageSeo({
       title: 'Rawaj Onboarding | Step 1',
       description: 'ابدأ إعداد حسابك في Rawaj عبر خطوات Onboarding مخصصة لنوع نشاطك.',
@@ -96,6 +105,12 @@ export class RawajOnboarding {
     this.submitting.set(true);
     this.submitError.set(null);
 
+    // Account Setup already created a bare-bones brand profile (just a name) so the user could
+    // reach the dashboard quickly. This wizard collected much richer brand data since - refine
+    // that same profile now. Fire-and-forget: enrichment failing shouldn't block campaign
+    // creation, the primary action of this step.
+    this.brandProfilesApi.update(brandProfileId, this.buildBrandProfileUpdate(data)).subscribe({ error: () => undefined });
+
     const request: CreateCampaignRequest = {
       brandProfileId,
       name: data.campaignName?.trim() || (data.brandName ? `حملة ${data.brandName}` : 'حملة جديدة'),
@@ -124,6 +139,51 @@ export class RawajOnboarding {
         this.submitError.set(error instanceof ApiError ? error.message : 'تعذر إنشاء الحملة، حاول مرة أخرى.');
       },
     });
+  }
+
+  private buildBrandProfileUpdate(data: OnboardingData): UpdateBrandProfileRequest {
+    const targetAudienceParts: string[] = [];
+    if (data.gender && data.gender !== 'all') targetAudienceParts.push(`الجنس: ${data.gender === 'female' ? 'إناث' : 'ذكور'}`);
+    if (data.ageRanges?.length) targetAudienceParts.push(`الفئة العمرية: ${data.ageRanges.join('، ')}`);
+    if (data.customerType) targetAudienceParts.push(`نوع العميل: ${data.customerType}`);
+    if (data.interests?.length) targetAudienceParts.push(`الاهتمامات: ${data.interests.join('، ')}`);
+    if (data.painPoints) targetAudienceParts.push(`نقاط الألم: ${data.painPoints}`);
+    if (data.targetDescription) targetAudienceParts.push(data.targetDescription);
+
+    const keywords = [data.brandWord1, data.brandWord2, data.brandWord3].filter((w): w is string => !!w);
+    const colors = (data.brandColors ?? []).filter((c) => !!c);
+
+    return {
+      name: data.brandName?.trim() || undefined,
+      tagline: data.tagline || undefined,
+      industry: data.sector || undefined,
+      targetAudience: targetAudienceParts.length > 0 ? targetAudienceParts.join(' | ') : undefined,
+      colors: colors.length > 0 ? colors : undefined,
+      websiteUrl: data.website || undefined,
+      supportedLanguages: data.languages?.length ? data.languages : undefined,
+      keywords: keywords.length > 0 ? keywords : undefined,
+      brandVoice: this.mapBrandVoice(data.brandTone),
+    };
+  }
+
+  private mapBrandVoice(tones: string[] | undefined): BrandVoice | undefined {
+    const first = tones?.[0];
+    if (!first) return undefined;
+
+    const map: Record<string, BrandVoice> = {
+      'احترافي': 'Professional',
+      'ودود': 'Friendly',
+      'جريء': 'Bold',
+      'مرح': 'Playful',
+      'أنيق': 'Formal',
+      'ملهم': 'Professional',
+      'تثقيفي': 'Professional',
+      'مبتكر': 'Bold',
+      'محفز': 'Playful',
+      'ذكي ومضحك': 'Playful',
+    };
+
+    return map[first];
   }
 
   private buildObjective(data: OnboardingData): string {

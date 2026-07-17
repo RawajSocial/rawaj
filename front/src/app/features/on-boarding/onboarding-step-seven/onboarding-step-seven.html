@@ -36,13 +36,13 @@
         </div>
       }
 
-      @if (!done() && !loading()) {
+      @if (!done() && !loading() && !loadingQuestions()) {
         <div class="ai-msg ai-msg-assistant">
           <div class="ai-bubble">{{ currentQuestion().question }}</div>
         </div>
       }
 
-      @if (loading()) {
+      @if (loading() || loadingQuestions()) {
         <div class="ai-msg ai-msg-assistant">
           <div class="ai-bubble ai-loading">
             <span class="dot"></span>
@@ -55,7 +55,7 @@
 
 
 
-    @if (!done() && !loading()) {
+    @if (!done() && !loading() && !loadingQuestions()) {
       <div class="ai-input-row">
         <div class="ai-input-wrap">
           <span class="ai-input-icon" aria-hidden="true"><i class="fa-solid fa-paper-plane"></i></span>
