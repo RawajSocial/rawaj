@@ -12,7 +12,7 @@ using Rawaj.Persistence;
 namespace Rawaj.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260718022626_Initial")]
+    [Migration("20260718033451_Initial")]
     partial class Initial
     {
         /// <inheritdoc />
