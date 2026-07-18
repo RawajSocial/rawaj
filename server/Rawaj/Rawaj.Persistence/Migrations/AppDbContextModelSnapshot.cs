@@ -493,14 +493,44 @@ namespace Rawaj.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("AdditionalNotes")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("AgeRanges")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("AgencyExperience")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime?>("AiGeneratedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("AiPlanJson")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("AudienceGender")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("AudiencePlatforms")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("BrandColors")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("BrandName")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<Guid>("BrandProfileId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("BrandTone")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("BrandWords")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("BrandsAdmired")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<decimal?>("BudgetAmount")
                         .HasColumnType("decimal(12,2)");
@@ -509,21 +539,142 @@ namespace Rawaj.Persistence.Migrations
                         .HasMaxLength(5)
                         .HasColumnType("nvarchar(5)");
 
+                    b.Property<decimal?>("BudgetFrom")
+                        .HasColumnType("decimal(12,2)");
+
+                    b.Property<decimal?>("BudgetTo")
+                        .HasColumnType("decimal(12,2)");
+
+                    b.Property<string>("BusinessAge")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("BuyingBehavior")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CampaignBrief")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CampaignDuration")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CampaignGoal")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CampaignOutcome")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CampaignPhotoUrls")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CampaignType")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("ContentLanguages")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<Guid>("CreatedBy")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<int>("CurrentStep")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CustomerLocation")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CustomerType")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("EducationLevel")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateOnly?>("EndDate")
                         .HasColumnType("date");
 
+                    b.Property<string>("ExistingPlatforms")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("FacebookAccountName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool?>("FacebookConnected")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Goals")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("GuidelinesFileUrl")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("HasBrandGuidelines")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("HasExistingCustomers")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Hashtags")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("IncomeLevel")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("InstagramAccountName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool?>("InstagramConnected")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("InstagramHandle")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Interests")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsOnboardingComplete")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Location")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("LogoFileUrl")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("MonthlyBudget")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Name")
-                        .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
                     b.Property<string>("Objective")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("OnboardingCompletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("PainPoints")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PlatformRanking")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PositioningVs")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PricePositioning")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ProductDescription")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Sector")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Stage")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateOnly?>("StartDate")
@@ -534,12 +685,39 @@ namespace Rawaj.Persistence.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
+                    b.Property<string>("StorePresence")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("StrategistAnswers")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("SuccessMetrics")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Tagline")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("TargetDescription")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("TargetPlatforms")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("TargetSales")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Timeframe")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("UniqueValueProposition")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("Website")
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 

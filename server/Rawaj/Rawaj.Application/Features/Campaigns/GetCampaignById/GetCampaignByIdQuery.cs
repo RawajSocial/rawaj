@@ -1,0 +1,7 @@
+using MediatR;
+using Rawaj.Application.Common.Models;
+using Rawaj.Application.Features.Campaigns.Common;
+
+namespace Rawaj.Application.Features.Campaigns.GetCampaignById;
+
+public record GetCampaignByIdQuery(Guid CampaignId) : IRequest<Result<CampaignResponse>>;
