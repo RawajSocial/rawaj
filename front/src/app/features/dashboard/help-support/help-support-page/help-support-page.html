@@ -27,6 +27,13 @@
         <span class="rw-pill rw-pill--warning">قريباً</span>
       </div>
     </div>
+    <button type="button" class="help-card help-card--action" (click)="showDemoError()">
+      <span class="help-card-icon help-card-icon--danger"><i class="fa-solid fa-triangle-exclamation"></i></span>
+      <div>
+        <span class="help-card-title">تجربة رسالة خطأ</span>
+        <span class="help-card-sub">عرض توضيحي لخدمة رسائل الخطأ</span>
+      </div>
+    </button>
   </div>
 
   <div class="help-grid">
@@ -37,19 +44,7 @@
         <p class="rw-card__hint">إجابات سريعة للأسئلة المتكررة</p>
       </div>
 
-      <div class="faq-list">
-        @for (faq of faqs(); track faq.q; let i = $index) {
-          <div class="faq-item" [class.open]="openFaq() === i">
-            <button type="button" class="faq-q" (click)="toggleFaq(i)">
-              <span>{{ faq.q }}</span>
-              <i class="fa-solid fa-chevron-down faq-arrow"></i>
-            </button>
-            <div class="faq-a-wrap">
-              <p class="faq-a">{{ faq.a }}</p>
-            </div>
-          </div>
-        }
-      </div>
+      <app-faq-section [items]="faqs()" />
     </div>
 
     <!-- Contact -->

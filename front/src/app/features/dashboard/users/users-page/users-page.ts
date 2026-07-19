@@ -11,16 +11,17 @@ import {
 import { RouterLink } from '@angular/router';
 import { animate, stagger } from 'motion';
 import { TeamMemberService } from '../../../../services/team-member.service';
-import { ROLE_LABELS, STATUS_LABELS, TeamMember, TeamMemberStatus } from '../../../../model/team-member.model';
+import { STATUS_LABELS, TeamMember, TeamMemberStatus } from '../../../../model/team-member.model';
 import { UserFormModal, UserFormValue } from '../user-form-modal/user-form-modal';
 import { PageHeader } from '../../../../shared/components/page-header/page-header';
 import { SeoService } from '../../../../services/seo.service';
+import { TooltipDirective } from '../../../../shared/directives/tooltip.directive';
 
 type StatusTab = 'all' | TeamMemberStatus;
 
 @Component({
   selector: 'app-users-page',
-  imports: [RouterLink, UserFormModal, PageHeader],
+  imports: [RouterLink, UserFormModal, PageHeader, TooltipDirective],
   templateUrl: './users-page.html',
   styleUrls: ['../../../campaigns/campaigns-page/campaigns-page.css', './users-page.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -29,7 +30,6 @@ export class UsersPage {
   private readonly teamMemberService = inject(TeamMemberService);
   private readonly seo = inject(SeoService);
 
-  protected readonly roleLabels = ROLE_LABELS;
   protected readonly statusLabels = STATUS_LABELS;
 
   protected readonly members = this.teamMemberService.members;
@@ -102,6 +102,20 @@ export class UsersPage {
     event.stopPropagation();
     event.preventDefault();
     this.teamMemberService.removeMember(id);
+  }
+
+  protected toggleSuspend(member: TeamMember, event: Event): void {
+    event.stopPropagation();
+    event.preventDefault();
+    if (member.status === 'suspended') {
+      this.teamMemberService.reactivateMember(member.id);
+    } else {
+      this.teamMemberService.suspendMember(member.id);
+    }
+  }
+
+  protected creditUsageLabel(member: TeamMember): string {
+    return `${member.creditUsage.used.toLocaleString('ar-SA')} / ${member.creditUsage.limit.toLocaleString('ar-SA')}`;
   }
 
   protected trackById(_index: number, member: TeamMember): string {

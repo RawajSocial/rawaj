@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -13,7 +13,7 @@ import { FormErrorsService } from '../../../../services/form-errors.service';
 export class SignUpForm {
   protected readonly form;
 
-  protected submitted = false;
+  protected readonly submitted = signal(false);
 
   private readonly router = inject(Router);
 
@@ -37,7 +37,7 @@ export class SignUpForm {
   }
 
   protected onSubmit(): void {
-    this.submitted = true;
+    this.submitted.set(true);
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
@@ -89,11 +89,11 @@ export class SignUpForm {
       termsAccepted: { requiredTrue: 'يجب الموافقة على الشروط والأحكام للمتابعة.' },
     } as const;
 
-    return this.formErrorsService.getControlErrorMessage(control, this.submitted, messagesByControl[controlName]);
+    return this.formErrorsService.getControlErrorMessage(control, this.submitted(), messagesByControl[controlName]);
   }
 
   protected passwordsMismatchMessage(): string | null {
     const { password, confirmPassword } = this.form.getRawValue();
-    return this.formErrorsService.getPasswordsMismatchMessage(password, confirmPassword, this.submitted);
+    return this.formErrorsService.getPasswordsMismatchMessage(password, confirmPassword, this.submitted());
   }
 }

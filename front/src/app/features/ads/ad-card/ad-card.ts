@@ -1,5 +1,6 @@
 import { Component, input, output } from '@angular/core';
 import { Ad } from '../../../model/ad.model';
+import { TooltipDirective } from '../../../shared/directives/tooltip.directive';
 
 const POST_TYPE_LABELS: Record<string, string> = {
   text: 'منشور نصي', image: 'منشور بصورة', video: 'منشور فيديو',
@@ -34,7 +35,7 @@ const PLATFORM_LABELS: Record<string, string> = {
 @Component({
   selector: 'app-ad-card',
   standalone: true,
-  imports: [],
+  imports: [TooltipDirective],
   templateUrl: './ad-card.html',
   styleUrl: './ad-card.css',
 })

@@ -5,6 +5,9 @@ export type CampaignObjective = 'awareness' | 'traffic' | 'engagement' | 'leads'
 export interface Campaign {
   id: string;
   name: string;
+  /** The brand profile this campaign belongs to — every campaign is scoped
+   *  under a single brand profile umbrella (see BrandProfile). */
+  brandProfileId: string;
   status: CampaignStatus;
   platforms: CampaignPlatform[];
   objective: CampaignObjective;

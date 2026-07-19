@@ -5,6 +5,7 @@ const MOCK_CAMPAIGNS: Campaign[] = [
   {
     id: '1',
     name: 'حملة رمضان الكريم ٢٠٢٥',
+    brandProfileId: 'bp1',
     status: 'active',
     platforms: ['instagram', 'facebook', 'tiktok'],
     objective: 'sales',
@@ -23,6 +24,7 @@ const MOCK_CAMPAIGNS: Campaign[] = [
   {
     id: '2',
     name: 'إطلاق منتج العيد',
+    brandProfileId: 'bp2',
     status: 'paused',
     platforms: ['instagram', 'snapchat'],
     objective: 'awareness',
@@ -40,6 +42,7 @@ const MOCK_CAMPAIGNS: Campaign[] = [
   {
     id: '3',
     name: 'حملة الصيف — التوعية',
+    brandProfileId: 'bp1',
     status: 'draft',
     platforms: ['youtube', 'facebook'],
     objective: 'engagement',
@@ -62,6 +65,10 @@ export class CampaignService {
 
   getById(id: string) {
     return computed(() => this._campaigns().find(c => c.id === id));
+  }
+
+  byBrandProfile(brandProfileId: string) {
+    return computed(() => this._campaigns().filter(c => c.brandProfileId === brandProfileId));
   }
 
   pause(id: string): void {

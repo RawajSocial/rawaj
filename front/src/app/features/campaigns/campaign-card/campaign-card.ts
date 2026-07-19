@@ -1,5 +1,6 @@
 import { Component, input, output } from '@angular/core';
 import { Campaign } from '../../../model/campaign.model';
+import { TooltipDirective } from '../../../shared/directives/tooltip.directive';
 
 const DEFAULT_LOGO = '/assets/icons/logo.png';
 const RING_RADIUS = 42;
@@ -8,7 +9,7 @@ const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
 @Component({
   selector: 'app-campaign-card',
   standalone: true,
-  imports: [],
+  imports: [TooltipDirective],
   templateUrl: './campaign-card.html',
   styleUrl: './campaign-card.css',
 })

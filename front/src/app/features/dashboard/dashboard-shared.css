@@ -207,11 +207,13 @@
   border-radius: var(--radius-full);
   font-size: var(--font-size-xs);
   font-weight: var(--font-semibold);
+  color: #fff;
+  box-shadow: var(--shadow-tag);
 }
-.rw-pill--success { background: var(--color-success-light); color: var(--color-success); }
-.rw-pill--warning { background: var(--color-warning-light); color: var(--color-accent-active); }
-.rw-pill--danger  { background: var(--color-danger-light);  color: var(--color-danger); }
-.rw-pill--info    { background: var(--color-info-light);    color: var(--color-info); }
+.rw-pill--success { background: var(--color-success); }
+.rw-pill--warning { background: color-mix(in srgb, var(--color-accent) 85%, var(--color-dark-muted)); }
+.rw-pill--danger  { background: var(--color-danger); }
+.rw-pill--info    { background: var(--color-info); }
 
 @media (max-width: 768px) {
   .page-shell { padding: 16px; }
