@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { FormErrorsService } from '../../../../services/form-errors.service';
@@ -12,7 +12,7 @@ import { FormErrorsService } from '../../../../services/form-errors.service';
 export class LoginForm {
   protected readonly form;
 
-  protected submitted = false;
+  protected readonly submitted = signal(false);
 
   constructor(
     private readonly fb: FormBuilder,
@@ -26,7 +26,7 @@ export class LoginForm {
   }
 
   protected onSubmit(): void {
-    this.submitted = true;
+    this.submitted.set(true);
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
@@ -37,12 +37,12 @@ export class LoginForm {
 
   protected errorMessage(controlName: 'emailOrUserName' | 'password'): string | null {
     if (controlName === 'emailOrUserName') {
-      return this.formErrorsService.getControlErrorMessage(this.form.controls.emailOrUserName, this.submitted, {
+      return this.formErrorsService.getControlErrorMessage(this.form.controls.emailOrUserName, this.submitted(), {
         required: 'البريد الإلكتروني أو اسم المستخدم مطلوب.',
       });
     }
 
-    return this.formErrorsService.getControlErrorMessage(this.form.controls.password, this.submitted, {
+    return this.formErrorsService.getControlErrorMessage(this.form.controls.password, this.submitted(), {
       required: 'كلمة المرور مطلوبة.',
       minlength: 'كلمة المرور يجب أن تكون 8 أحرف على الأقل.',
     });

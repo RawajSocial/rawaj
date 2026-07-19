@@ -1,0 +1,16 @@
+<div class="file-upload-row">
+  @if (resolvedPreview) {
+    <div class="file-upload-preview">
+      <img [src]="resolvedPreview" alt="" class="file-upload-preview__img" />
+      <button type="button" class="file-upload-preview__remove" (click)="remove()" title="حذف">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+  }
+
+  <label class="file-upload-btn">
+    <i class="{{ icon() }}"></i>
+    {{ fileName() ?? label() }}
+    <input type="file" [accept]="accept()" class="file-upload-hidden-input" (change)="onFileChange($event)" />
+  </label>
+</div>

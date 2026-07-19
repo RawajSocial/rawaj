@@ -2,6 +2,8 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { PageHeader } from '../../../../shared/components/page-header/page-header';
 import { SeoService } from '../../../../services/seo.service';
+import { ErrorModalService } from '../../../../services/error-modal.service';
+import { FaqSection } from '../../../../shared/components/faq-section/faq-section';
 
 interface Faq {
   q: string;
@@ -10,13 +12,14 @@ interface Faq {
 
 @Component({
   selector: 'app-help-support-page',
-  imports: [PageHeader, ReactiveFormsModule],
+  imports: [PageHeader, ReactiveFormsModule, FaqSection],
   templateUrl: './help-support-page.html',
   styleUrls: ['../../dashboard-shared.css', './help-support-page.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class HelpSupportPage {
   private readonly seo = inject(SeoService);
+  private readonly errorModalService = inject(ErrorModalService);
 
   constructor() {
     this.seo.setPageSeo({
@@ -38,8 +41,6 @@ export class HelpSupportPage {
     { q: 'كيف أغيّر باقتي أو ألغي الاشتراك؟', a: 'من صفحة الفوترة يمكنك الترقية أو التخفيض أو إلغاء الاشتراك في أي وقت.' },
   ]);
 
-  protected readonly openFaq = signal<number | null>(0);
-
   private readonly fb = new FormBuilder();
   protected readonly contactForm = this.fb.nonNullable.group({
     name: ['', [Validators.required]],
@@ -50,8 +51,11 @@ export class HelpSupportPage {
 
   protected readonly sent = signal(false);
 
-  protected toggleFaq(i: number): void {
-    this.openFaq.set(this.openFaq() === i ? null : i);
+  protected showDemoError(): void {
+    this.errorModalService.show(
+      'تعذّر إتمام العملية بسبب انقطاع مؤقت في الاتصال بالخادم. يرجى المحاولة مرة أخرى خلال قليل.',
+      { variant: 'error', title: 'حدث خطأ غير متوقع' },
+    );
   }
 
   protected send(): void {

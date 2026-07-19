@@ -1,10 +1,11 @@
 import { Component, HostListener, computed, input, output, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { TooltipDirective } from '../../../shared/directives/tooltip.directive';
 
 @Component({
   selector: 'app-header',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, TooltipDirective],
   templateUrl: './header.html',
   styleUrl: './header.css',
 })

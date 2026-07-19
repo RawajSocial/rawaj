@@ -36,6 +36,14 @@
 
       <div class="overview-meta">
         <div class="meta-item">
+          <span class="meta-label">ملف العلامة التجارية</span>
+          @if (brandProfile(); as bp) {
+            <a class="meta-value meta-link" routerLink="/dashboard/brand-profiles">{{ bp.name }}</a>
+          } @else {
+            <span class="meta-value">—</span>
+          }
+        </div>
+        <div class="meta-item">
           <span class="meta-label">فترة الحملة</span>
           <span class="meta-value">{{ c.startDate }} — {{ c.endDate }}</span>
         </div>

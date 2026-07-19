@@ -250,6 +250,8 @@ body.no-scroll {
   --shadow-md: 0 4px 12px rgba(11, 15, 25, 0.10);
   --shadow-lg: 0 8px 24px rgba(11, 15, 25, 0.12);
   --shadow-xl: 0 16px 40px rgba(11, 15, 25, 0.14);
+  /* Solid-color tags/badges/circular icon buttons (pills, avatars, row actions). */
+  --shadow-tag: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
 
   /* --------------------------------------------------------------- */
   /* TRANSITIONS                                                      */
@@ -642,4 +644,79 @@ p, span, label, input, button,
 }
 [dir="rtl"] .input-group > .input-group-text:first-child {
   border-radius: var(--radius-md) 0 0 var(--radius-md);
+}
+
+/* --------------------------------------------------------------- */
+/* TOOLTIP — used via [appTooltip] on icon-only controls            */
+/* --------------------------------------------------------------- */
+
+.rw-tooltip-host {
+  position: relative;
+}
+
+.rw-tooltip-host::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  z-index: var(--z-tooltip, 500);
+  padding: 6px 10px;
+  border-radius: var(--radius-md);
+  background: var(--color-dark);
+  color: #fff;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-medium);
+  white-space: nowrap;
+  box-shadow: var(--shadow-md);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(2px);
+  transition: opacity var(--transition-fast), transform var(--transition-fast), visibility var(--transition-fast);
+  pointer-events: none;
+}
+
+.rw-tooltip-host:hover::after,
+.rw-tooltip-host:focus-visible::after {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.rw-tooltip-host--top::after {
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translate(-50%, 2px);
+}
+.rw-tooltip-host--top:hover::after,
+.rw-tooltip-host--top:focus-visible::after {
+  transform: translate(-50%, 0);
+}
+
+.rw-tooltip-host--bottom::after {
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translate(-50%, -2px);
+}
+.rw-tooltip-host--bottom:hover::after,
+.rw-tooltip-host--bottom:focus-visible::after {
+  transform: translate(-50%, 0);
+}
+
+.rw-tooltip-host--start::after {
+  inset-inline-end: calc(100% + 8px);
+  top: 50%;
+  transform: translate(4px, -50%);
+}
+.rw-tooltip-host--start:hover::after,
+.rw-tooltip-host--start:focus-visible::after {
+  transform: translate(0, -50%);
+}
+
+.rw-tooltip-host--end::after {
+  inset-inline-start: calc(100% + 8px);
+  top: 50%;
+  transform: translate(-4px, -50%);
+}
+.rw-tooltip-host--end:hover::after,
+.rw-tooltip-host--end:focus-visible::after {
+  transform: translate(0, -50%);
 }

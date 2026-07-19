@@ -84,11 +84,11 @@
   <!-- Footer -->
   <div class="camp-card-foot">
     @if (campaign().status === 'active') {
-      <button class="camp-action-btn pause-btn" (click)="pause.emit(campaign().id); $event.stopPropagation()" title="إيقاف">
+      <button class="camp-action-btn pause-btn" (click)="pause.emit(campaign().id); $event.stopPropagation()" appTooltip="إيقاف" aria-label="إيقاف">
         <i class="fa-solid fa-pause"></i>
       </button>
     } @else if (campaign().status === 'paused') {
-      <button class="camp-action-btn resume-btn" (click)="resume.emit(campaign().id); $event.stopPropagation()" title="استئناف">
+      <button class="camp-action-btn resume-btn" (click)="resume.emit(campaign().id); $event.stopPropagation()" appTooltip="استئناف" aria-label="استئناف">
         <i class="fa-solid fa-play"></i>
       </button>
     } @else {
@@ -100,7 +100,7 @@
       {{ campaign().startDate }} — {{ campaign().endDate }}
     </div>
 
-    <button type="button" class="camp-action-btn view-btn" (click)="view.emit(campaign().id); $event.stopPropagation()" title="عرض التفاصيل">
+    <button type="button" class="camp-action-btn view-btn" (click)="view.emit(campaign().id); $event.stopPropagation()" appTooltip="عرض التفاصيل" aria-label="عرض التفاصيل">
       <i class="fa-solid fa-arrow-up-left-from-square"></i>
     </button>
   </div>

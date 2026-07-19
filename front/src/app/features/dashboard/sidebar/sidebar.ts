@@ -50,9 +50,10 @@ export class Sidebar {
     {
       heading: 'الرئيسية',
       items: [
-        { id: 'dashboard-home', label: 'لوحة التحكم',  icon: 'fa-gauge',        route: '/dashboard',           exact: true },
-        { id: 'campaigns',      label: 'حملاتك',        icon: 'fa-bullhorn',     route: '/dashboard/campaigns' },
-        { id: 'ads',            label: 'منشوراتك',      icon: 'fa-rectangle-ad', route: '/dashboard/ads' },
+        { id: 'dashboard-home',  label: 'لوحة التحكم',        icon: 'fa-gauge',        route: '/dashboard',           exact: true },
+        { id: 'brand-profiles',  label: 'ملفات العلامة التجارية', icon: 'fa-copyright', route: '/dashboard/brand-profiles' },
+        { id: 'campaigns',       label: 'حملاتك',              icon: 'fa-bullhorn',     route: '/dashboard/campaigns' },
+        { id: 'ads',             label: 'منشوراتك',            icon: 'fa-rectangle-ad', route: '/dashboard/ads' },
       ],
     },
     {

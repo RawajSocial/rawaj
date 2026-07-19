@@ -61,8 +61,8 @@
         <thead>
           <tr>
             <th>الاسم</th>
-            <th>الدور</th>
-            <th>القسم</th>
+            <th>المشاريع المسندة</th>
+            <th>الرصيد المستخدم</th>
             <th>الحالة</th>
             <th>آخر نشاط</th>
             <th></th>
@@ -80,20 +80,21 @@
                   </div>
                 </div>
               </td>
-              <td>
-                <span class="role-badge" [class]="'role-badge--' + member.role">{{ roleLabels[member.role] }}</span>
-              </td>
-              <td class="muted-cell">{{ member.department }}</td>
+              <td class="muted-cell">{{ member.assignedProjectIds.length }}</td>
+              <td class="muted-cell">{{ creditUsageLabel(member) }}</td>
               <td>
                 <span class="status-badge" [class]="'status-badge--' + member.status">{{ statusLabels[member.status] }}</span>
               </td>
               <td class="muted-cell">{{ member.lastActiveAt }}</td>
               <td class="actions-cell">
                 <div class="row-actions">
-                  <a [routerLink]="['/dashboard/users', member.id]" class="row-action row-action--edit" title="عرض الملف" (click)="$event.stopPropagation()">
+                  <a [routerLink]="['/dashboard/users', member.id]" class="row-action row-action--edit" appTooltip="عرض الملف" aria-label="عرض الملف" (click)="$event.stopPropagation()">
                     <i class="fa-solid fa-pen"></i>
                   </a>
-                  <button type="button" class="row-action row-action--danger" title="إزالة العضو" (click)="removeMember(member.id, $event)">
+                  <button type="button" class="row-action row-action--warning" [appTooltip]="member.status === 'suspended' ? 'إعادة تفعيل الحساب' : 'إيقاف الحساب'" [attr.aria-label]="member.status === 'suspended' ? 'إعادة تفعيل الحساب' : 'إيقاف الحساب'" (click)="toggleSuspend(member, $event)">
+                    <i class="fa-solid" [class.fa-ban]="member.status !== 'suspended'" [class.fa-rotate-left]="member.status === 'suspended'"></i>
+                  </button>
+                  <button type="button" class="row-action row-action--danger" appTooltip="إزالة العضو" aria-label="إزالة العضو" (click)="removeMember(member.id, $event)">
                     <i class="fa-solid fa-trash"></i>
                   </button>
                 </div>

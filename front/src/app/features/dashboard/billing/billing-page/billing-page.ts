@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { PageHeader } from '../../../../shared/components/page-header/page-header';
 import { SeoService } from '../../../../services/seo.service';
+import { TooltipDirective } from '../../../../shared/directives/tooltip.directive';
 
 interface UsageMetric {
   label: string;
@@ -18,7 +19,7 @@ interface Invoice {
 
 @Component({
   selector: 'app-billing-page',
-  imports: [PageHeader],
+  imports: [PageHeader, TooltipDirective],
   templateUrl: './billing-page.html',
   styleUrls: ['../../dashboard-shared.css', './billing-page.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,

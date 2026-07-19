@@ -1,0 +1,16 @@
+<app-modal-shell [open]="state().open" [maxWidth]="400" (closed)="close()">
+  <div class="error-modal">
+    <span class="error-modal__icon" [class.error-modal__icon--error]="state().variant === 'error'"
+                                     [class.error-modal__icon--warning]="state().variant === 'warning'"
+                                     [class.error-modal__icon--info]="state().variant === 'info'"
+                                     [class.error-modal__icon--success]="state().variant === 'success'">
+      <i class="{{ state().icon }}"></i>
+    </span>
+    <h3 class="error-modal__title">{{ state().title }}</h3>
+    <p class="error-modal__message">{{ state().message }}</p>
+  </div>
+
+  <div modal-footer class="error-modal__footer">
+    <button type="button" class="error-modal__btn" (click)="close()">حسنًا</button>
+  </div>
+</app-modal-shell>

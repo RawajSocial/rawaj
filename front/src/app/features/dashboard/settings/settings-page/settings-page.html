@@ -7,7 +7,7 @@
   <div class="rw-tabs">
     <button type="button" class="rw-tab" [class.active]="tab() === 'profile'" (click)="setTab('profile')">الملف الشخصي</button>
     <button type="button" class="rw-tab" [class.active]="tab() === 'preferences'" (click)="setTab('preferences')">التفضيلات</button>
-    <button type="button" class="rw-tab" [class.active]="tab() === 'appearance'" (click)="setTab('appearance')">المظهر</button>
+    <button type="button" class="rw-tab" [class.active]="tab() === 'connections'" (click)="setTab('connections')">ربط الحسابات</button>
   </div>
 
   <!-- ── Profile ── -->
@@ -78,34 +78,49 @@
     </div>
   }
 
-  <!-- ── Appearance ── -->
-  @if (tab() === 'appearance') {
+  <!-- ── Connected accounts ── -->
+  @if (tab() === 'connections') {
     <div class="rw-card">
       <div class="rw-card__header">
-        <h3 class="rw-card__title">المظهر</h3>
-        <p class="rw-card__hint">خصّص شكل لوحة التحكم</p>
+        <h3 class="rw-card__title">ربط حسابات التواصل الاجتماعي</h3>
+        <p class="rw-card__hint">
+          @if (isAgency()) {
+            اختر ملف العلامة التجارية ثم اربط حساباته بشكل مستقل عن باقي العلامات
+          } @else {
+            اربط حسابات علامتك التجارية بمنصات التواصل الاجتماعي
+          }
+        </p>
       </div>
 
-      <div class="appearance-section">
-        <span class="appearance-label">السمة</span>
-        <div class="theme-grid">
-          @for (t of themes; track t.value) {
-            <button type="button" class="theme-card" [class.active]="activeTheme() === t.value" (click)="activeTheme.set(t.value)">
-              <i class="fa-solid {{ t.icon }}"></i>
-              <span>{{ t.label }}</span>
+      @if (isAgency()) {
+        <div class="brand-select-row">
+          @for (bp of brandProfiles(); track bp.id) {
+            <button type="button" class="brand-select-chip" [class.active]="selectedBrandProfileId() === bp.id" (click)="selectBrandProfile(bp.id)">
+              {{ bp.name }}
             </button>
           }
         </div>
-      </div>
+      }
 
-      <div class="appearance-section">
-        <span class="appearance-label">اللون المميّز</span>
-        <div class="accent-row">
-          @for (c of accents; track c) {
-            <button type="button" class="accent-dot" [class.active]="activeAccent() === c"
-              [style.background]="c" (click)="activeAccent.set(c)" [attr.aria-label]="c"></button>
-          }
-        </div>
+      <div class="connect-list">
+        @for (p of connectPlatforms; track p.key) {
+          <div class="connect-row">
+            <span class="connect-icon" [style.background]="p.color">
+              <i class="{{ p.icon }}"></i>
+            </span>
+            <span class="connect-label">{{ p.label }}</span>
+            <button type="button"
+                    class="connect-btn"
+                    [class.connect-btn--connected]="isConnected(p.key)"
+                    (click)="toggleConnect(p.key)">
+              @if (isConnected(p.key)) {
+                <i class="fa-solid fa-circle-check"></i> متصل
+              } @else {
+                ربط الحساب
+              }
+            </button>
+          </div>
+        }
       </div>
     </div>
   }

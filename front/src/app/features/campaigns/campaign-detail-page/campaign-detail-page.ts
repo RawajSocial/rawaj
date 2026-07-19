@@ -3,6 +3,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { PageHeader } from '../../../shared/components/page-header/page-header';
 import { KpiCard } from '../../dashboard/kpi-card/kpi-card';
 import { CampaignService } from '../../../services/campaign.service';
+import { BrandProfileService } from '../../../services/brand-profile.service';
 import { ScheduledPostService } from '../../../services/scheduled-post.service';
 import { CampaignObjective, CampaignPlatform, CampaignStatus } from '../../../model/campaign.model';
 import { SeoService } from '../../../services/seo.service';
@@ -41,11 +42,17 @@ const OBJECTIVE_LABELS: Record<CampaignObjective, string> = {
 export class CampaignDetailPage {
   private readonly route = inject(ActivatedRoute);
   private readonly campaignService = inject(CampaignService);
+  private readonly brandProfileService = inject(BrandProfileService);
   private readonly scheduledPostService = inject(ScheduledPostService);
   private readonly seo = inject(SeoService);
 
   protected readonly campaignId = this.route.snapshot.paramMap.get('id') ?? '';
   protected readonly campaign = this.campaignService.getById(this.campaignId);
+
+  protected readonly brandProfile = computed(() => {
+    const c = this.campaign();
+    return c ? this.brandProfileService.getById(c.brandProfileId)() : undefined;
+  });
 
   protected readonly statusLabels = STATUS_LABELS;
   protected readonly objectiveLabels = OBJECTIVE_LABELS;

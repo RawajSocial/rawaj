@@ -1,0 +1,139 @@
+<div class="page-shell">
+  <app-page-header
+    title="إنشاء ملف علامة تجارية"
+    [breadcrumbs]="[
+      { label: 'نظرة عامة', link: '/dashboard' },
+      { label: 'ملفات العلامة التجارية', link: '/dashboard/brand-profiles' },
+      { label: 'إنشاء ملف جديد' }
+    ]"
+    subtitle="أضف علامة تجارية جديدة خطوة بخطوة." />
+
+  <!-- Progress bar -->
+  <div class="wizard-progress">
+    <div class="wizard-progress__track">
+      <div class="wizard-progress__fill" [style.width.%]="progressPercent()"></div>
+    </div>
+    <div class="wizard-progress__steps">
+      @for (step of steps; track step.key; let i = $index) {
+        <button type="button" class="wizard-progress__step" [class.active]="i === currentStepIndex()" [class.done]="i < currentStepIndex()" (click)="goToStep(i)">
+          <span class="wizard-progress__dot">
+            @if (i < currentStepIndex()) {
+              <i class="fa-solid fa-check"></i>
+            } @else {
+              {{ i + 1 }}
+            }
+          </span>
+          <span class="wizard-progress__label">{{ step.label }}</span>
+        </button>
+      }
+    </div>
+  </div>
+
+  <div class="rw-card wizard-card">
+    <!-- Step 1: Basics -->
+    @if (steps[currentStepIndex()].key === 'basics') {
+      <form [formGroup]="basicsForm" class="wizard-form">
+        <div class="rw-field">
+          <label for="bp-name">اسم العلامة التجارية</label>
+          <input id="bp-name" type="text" formControlName="name" placeholder="مثال: عطور الشرق">
+          @if (basicsForm.controls.name.touched && basicsForm.controls.name.invalid) {
+            <span class="field-error">الرجاء إدخال اسم صحيح</span>
+          }
+        </div>
+
+        <div class="form-row">
+          <div class="rw-field">
+            <label for="bp-tagline">الشعار (Tagline)</label>
+            <input id="bp-tagline" type="text" formControlName="tagline" placeholder="مثال: عبق الأصالة">
+          </div>
+          <div class="rw-field">
+            <label for="bp-industry">القطاع</label>
+            <input id="bp-industry" type="text" formControlName="industry" placeholder="مثال: العطور">
+          </div>
+        </div>
+
+        <div class="rw-field">
+          <label for="bp-description">نبذة</label>
+          <textarea id="bp-description" formControlName="description" rows="3"></textarea>
+        </div>
+      </form>
+    }
+
+    <!-- Step 2: Voice -->
+    @if (steps[currentStepIndex()].key === 'voice') {
+      <div class="voice-grid">
+        @for (opt of voiceOptions; track opt.value) {
+          <button type="button" class="voice-card" [class.active]="selectedVoice() === opt.value" (click)="selectVoice(opt.value)">
+            <span class="voice-card__title">{{ opt.label }}</span>
+            <span class="voice-card__desc">{{ opt.desc }}</span>
+          </button>
+        }
+      </div>
+    }
+
+    <!-- Step 3: Logo -->
+    @if (steps[currentStepIndex()].key === 'logo') {
+      <div class="logo-step">
+        <p class="logo-step__hint">ارفع شعار علامتك التجارية (اختياري — PNG أو SVG أو JPG).</p>
+        <app-file-upload
+          accept=".png,.svg,.jpg,.jpeg,.webp"
+          label="اختر شعارًا..."
+          icon="fa-solid fa-image"
+          (fileSelected)="onLogoSelected($event)"
+          (cleared)="onLogoCleared()" />
+      </div>
+    }
+
+    <!-- Step 4: Review -->
+    @if (steps[currentStepIndex()].key === 'review') {
+      <div class="review-step">
+        <div class="review-step__logo">
+          @if (logoDataUrl()) {
+            <img [src]="logoDataUrl()" alt="">
+          } @else {
+            <i class="fa-solid fa-copyright"></i>
+          }
+        </div>
+        <div class="review-step__data">
+          <h3 class="review-step__name">{{ basicsForm.controls.name.value || '—' }}</h3>
+          @if (basicsForm.controls.tagline.value) {
+            <p class="review-step__tagline">{{ basicsForm.controls.tagline.value }}</p>
+          }
+          <div class="review-step__meta">
+            @if (basicsForm.controls.industry.value) {
+              <span><i class="fa-solid fa-industry"></i> {{ basicsForm.controls.industry.value }}</span>
+            }
+            <span><i class="fa-solid fa-comment-dots"></i> {{ voiceOptions.find(o => o.value === selectedVoice())?.label }}</span>
+          </div>
+          @if (basicsForm.controls.description.value) {
+            <p class="review-step__desc">{{ basicsForm.controls.description.value }}</p>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- Wizard nav -->
+    <div class="wizard-nav">
+      @if (currentStepIndex() > 0) {
+        <button type="button" class="rw-btn rw-btn--outline" (click)="back()">
+          <i class="fa-solid fa-arrow-right"></i>
+          السابق
+        </button>
+      } @else {
+        <a routerLink="/dashboard/brand-profiles" class="rw-btn rw-btn--outline">إلغاء</a>
+      }
+
+      @if (currentStepIndex() < steps.length - 1) {
+        <button type="button" class="rw-btn rw-btn--dark" (click)="next()">
+          التالي
+          <i class="fa-solid fa-arrow-left"></i>
+        </button>
+      } @else {
+        <button type="button" class="rw-btn rw-btn--dark" (click)="submit()">
+          <i class="fa-solid fa-check"></i>
+          إنشاء الملف
+        </button>
+      }
+    </div>
+  </div>
+</div>

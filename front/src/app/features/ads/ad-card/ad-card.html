@@ -65,12 +65,12 @@
 
   <!-- Footer -->
   <div class="ad-foot">
-    <button type="button" class="ad-foot-btn" title="عرض التفاصيل" aria-label="عرض التفاصيل" (click)="view.emit(ad().id); $event.stopPropagation()">
+    <button type="button" class="ad-foot-btn" appTooltip="عرض التفاصيل" aria-label="عرض التفاصيل" (click)="view.emit(ad().id); $event.stopPropagation()">
       <i class="fa-regular fa-eye"></i>
     </button>
     @if (ad().postUrl) {
       <a class="ad-foot-btn ad-foot-btn--primary"
-         title="عرض على المنصة"
+         appTooltip="عرض على المنصة"
          aria-label="عرض على المنصة"
          [href]="ad().postUrl"
          target="_blank"

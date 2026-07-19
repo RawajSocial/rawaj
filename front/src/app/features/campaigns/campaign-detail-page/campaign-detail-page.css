@@ -75,6 +75,16 @@
   color: var(--color-dark);
 }
 
+.meta-link {
+  color: var(--color-secondary);
+  text-decoration: none;
+  width: fit-content;
+}
+
+.meta-link:hover {
+  text-decoration: underline;
+}
+
 .budget-track {
   height: 8px;
   border-radius: 999px;

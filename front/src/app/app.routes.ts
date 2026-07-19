@@ -38,6 +38,16 @@ export const routes: Routes = [
           import('./features/dashboard/crm-page/crm-page').then((m) => m.CrmPage),
       },
       {
+        path: 'brand-profiles',
+        loadComponent: () =>
+          import('./features/brand-profiles/brand-profiles-page/brand-profiles-page').then((m) => m.BrandProfilesPage),
+      },
+      {
+        path: 'brand-profiles/new',
+        loadComponent: () =>
+          import('./features/brand-profiles/brand-profile-create-page/brand-profile-create-page').then((m) => m.BrandProfileCreatePage),
+      },
+      {
         path: 'campaigns',
         loadComponent: () =>
           import('./features/campaigns/campaigns-page/campaigns-page').then((m) => m.CampaignsPage),
@@ -123,5 +133,9 @@ export const routes: Routes = [
           import('./features/dashboard/help-support/help-support-page/help-support-page').then((m) => m.HelpSupportPage),
       },
     ],
+  },
+  {
+    path: '**',
+    loadComponent: () => import('./features/not-found/not-found').then((m) => m.NotFound),
   },
 ];

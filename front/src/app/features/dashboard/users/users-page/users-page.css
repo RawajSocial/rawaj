@@ -102,6 +102,7 @@
   color: #fff;
   font-size: var(--font-size-xs);
   font-weight: var(--font-bold);
+  box-shadow: var(--shadow-tag);
 }
 
 .user-cell__text {
@@ -134,12 +135,14 @@
   border-radius: var(--radius-full);
   font-size: var(--font-size-xs);
   font-weight: var(--font-semibold);
+  color: #fff;
+  box-shadow: var(--shadow-tag);
 }
 
-.role-badge--admin    { background: var(--color-dark);            color: #fff; }
-.role-badge--editor   { background: var(--color-primary-subtle);  color: var(--color-primary-active); }
-.role-badge--moderator{ background: var(--color-accent-light);    color: var(--color-accent-active); }
-.role-badge--viewer   { background: var(--color-bg-secondary);    color: var(--color-text-secondary); }
+.role-badge--admin    { background: var(--color-dark); }
+.role-badge--editor   { background: var(--color-primary); }
+.role-badge--moderator{ background: color-mix(in srgb, var(--color-accent) 85%, var(--color-dark-muted)); }
+.role-badge--viewer   { background: var(--color-text-secondary); }
 
 /* ── Status badge ── */
 .status-badge {
@@ -148,11 +151,13 @@
   border-radius: var(--radius-full);
   font-size: var(--font-size-xs);
   font-weight: var(--font-semibold);
+  color: #fff;
+  box-shadow: var(--shadow-tag);
 }
 
-.status-badge--active    { background: var(--color-success-light); color: var(--color-success); }
-.status-badge--pending   { background: var(--color-warning-light); color: var(--color-accent-active); }
-.status-badge--suspended { background: var(--color-danger-light);  color: var(--color-danger); }
+.status-badge--active    { background: var(--color-success); }
+.status-badge--pending   { background: color-mix(in srgb, var(--color-accent) 85%, var(--color-dark-muted)); }
+.status-badge--suspended { background: var(--color-danger); }
 
 /* ── Actions ── */
 .actions-cell {
@@ -173,28 +178,19 @@
   place-items: center;
   border-radius: 8px;
   border: none;
+  color: #fff;
   cursor: pointer;
   text-decoration: none;
-  transition: background-color var(--transition-fast), color var(--transition-fast);
+  box-shadow: var(--shadow-tag);
+  transition: opacity var(--transition-fast);
+}
+.row-action:hover {
+  opacity: 0.85;
 }
 
-.row-action--edit {
-  background: var(--color-primary-subtle);
-  color: var(--color-primary);
-}
-.row-action--edit:hover {
-  background: var(--color-primary);
-  color: #fff;
-}
-
-.row-action--danger {
-  background: var(--color-danger-light);
-  color: var(--color-danger);
-}
-.row-action--danger:hover {
-  background: var(--color-danger);
-  color: #fff;
-}
+.row-action--edit    { background: var(--color-primary); }
+.row-action--warning  { background: color-mix(in srgb, var(--color-accent) 85%, var(--color-dark-muted)); }
+.row-action--danger   { background: var(--color-danger); }
 
 @media (max-width: 768px) {
   .status-tabs { width: 100%; overflow-x: auto; }

@@ -2,7 +2,6 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { KpiCard } from '../kpi-card/kpi-card';
 import { BalanceChart } from '../balance-chart/balance-chart';
 import { PageHeader } from '../../../shared/components/page-header/page-header';
-import { ConnectAccountsCard } from './connect-accounts-card/connect-accounts-card';
 import { PlatformPerformanceCard } from './platform-performance-card/platform-performance-card';
 import { TopPostsCard } from './top-posts-card/top-posts-card';
 import { MetaAnalyticsCard } from './meta-analytics-card/meta-analytics-card';
@@ -20,7 +19,7 @@ const PLATFORM_STATS: PlatformStat[] = [
 @Component({
   selector: 'app-crm-page',
   standalone: true,
-  imports: [KpiCard, BalanceChart, PageHeader, ConnectAccountsCard, PlatformPerformanceCard, TopPostsCard, MetaAnalyticsCard],
+  imports: [KpiCard, BalanceChart, PageHeader, PlatformPerformanceCard, TopPostsCard, MetaAnalyticsCard],
   templateUrl: './crm-page.html',
   styleUrl: './crm-page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

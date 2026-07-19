@@ -1,9 +1,9 @@
 <header class="dash-header">
   <div class="header-start">
-    <button class="header-btn sidebar-toggle-btn" (click)="toggleSidebar.emit()" title="تبديل الشريط الجانبي">
+    <button class="header-btn sidebar-toggle-btn" (click)="toggleSidebar.emit()" appTooltip="تبديل الشريط الجانبي" aria-label="تبديل الشريط الجانبي">
       <i class="fa-solid fa-bars"></i>
     </button>
-    <button class="header-btn mobile-menu-btn" (click)="toggleMobileMenu.emit()" title="القائمة">
+    <button class="header-btn mobile-menu-btn" (click)="toggleMobileMenu.emit()" appTooltip="القائمة" aria-label="القائمة">
       <i class="fa-solid" [class.fa-bars]="!mobileMenuOpen()" [class.fa-xmark]="mobileMenuOpen()"></i>
     </button>
     <div class="header-search">
@@ -23,7 +23,7 @@
       <span class="credit-chip__amount">{{ creditBalanceLabel() }}</span>
     </a>
 
-    <button class="header-btn" (click)="toggleFullscreen()" title="ملء الشاشة">
+    <button class="header-btn" (click)="toggleFullscreen()" appTooltip="ملء الشاشة" aria-label="ملء الشاشة">
       <i class="fa-solid" [class.fa-expand]="!fullscreen()" [class.fa-compress]="fullscreen()"></i>
     </button>
 
