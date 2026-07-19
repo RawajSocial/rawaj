@@ -18,6 +18,7 @@ public class TenantBrandProfileConfiguration : IEntityTypeConfiguration<TenantBr
         builder.Property(b => b.BrandVoice).HasConversion<string>().HasMaxLength(20);
         builder.Property(b => b.Status).HasConversion<string>().HasMaxLength(20).IsRequired();
         builder.Property(b => b.BrandInfo!).HasJsonConversion().HasColumnType("nvarchar(max)");
+        builder.Property(b => b.ImageUrl).HasMaxLength(2048);
 
         builder.HasIndex(b => b.TenantId);
     }

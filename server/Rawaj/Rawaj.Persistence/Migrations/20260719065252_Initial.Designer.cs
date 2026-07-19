@@ -12,7 +12,7 @@ using Rawaj.Persistence;
 namespace Rawaj.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260718033451_Initial")]
+    [Migration("20260719065252_Initial")]
     partial class Initial
     {
         /// <inheritdoc />
@@ -1134,6 +1134,10 @@ namespace Rawaj.Persistence.Migrations
 
                     b.Property<string>("Description")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ImageUrl")
+                        .HasMaxLength(2048)
+                        .HasColumnType("nvarchar(2048)");
 
                     b.Property<string>("Name")
                         .IsRequired()

@@ -3,6 +3,11 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/main/VisualStudio.gitignore
 
+# custom
+graphify-out
+.claude
+appsettings.Development.json
+
 # User-specific files
 *.rsuser
 *.suo
@@ -10,9 +15,6 @@
 *.userosscache
 *.sln.docstates
 *.env
-
-.claude
-appsettings.Development.json
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs

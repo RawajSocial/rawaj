@@ -77,6 +77,48 @@ public class BrandProfileService(AppDbContext dbContext) : IBrandProfileService
         return new CreateBrandProfileResult(CreateBrandProfileOutcome.Created, brandProfile);
     }
 
+    public async Task<BrandImageResult> GetAuthorizedBrandProfileAsync(Guid userId, Guid brandProfileId, CancellationToken cancellationToken)
+    {
+        var brandProfile = await dbContext.TenantBrandProfiles
+            .FirstOrDefaultAsync(b => b.Id == brandProfileId, cancellationToken);
+
+        if (brandProfile is null)
+        {
+            return new BrandImageResult(BrandImageOutcome.NotFound, null);
+        }
+
+        var member = await dbContext.TenantMembers
+            .FirstOrDefaultAsync(m => m.TenantId == brandProfile.TenantId && m.UserId == userId, cancellationToken);
+
+        if (member is null || member.InvitationStatus != InvitationStatus.Accepted ||
+            (member.Role != TenantMemberRole.Owner && member.Role != TenantMemberRole.Admin))
+        {
+            return new BrandImageResult(BrandImageOutcome.Forbidden, null);
+        }
+
+        var hasBrandAccess = await dbContext.TenantMemberBrandAccesses
+            .AnyAsync(a => a.TenantMemberId == member.Id && a.BrandProfileId == brandProfileId, cancellationToken);
+
+        if (!hasBrandAccess)
+        {
+            return new BrandImageResult(BrandImageOutcome.Forbidden, null);
+        }
+
+        return new BrandImageResult(BrandImageOutcome.Updated, brandProfile);
+    }
+
+    public async Task<TenantBrandProfile> SetBrandImageAsync(Guid brandProfileId, string? imageUrl, CancellationToken cancellationToken)
+    {
+        var brandProfile = await dbContext.TenantBrandProfiles.FirstAsync(b => b.Id == brandProfileId, cancellationToken);
+
+        brandProfile.ImageUrl = imageUrl;
+        brandProfile.UpdatedAt = DateTime.UtcNow;
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return brandProfile;
+    }
+
     private async Task EnsureOwnerHasBrandAccessAsync(Guid ownerMemberId, Guid brandProfileId, CancellationToken cancellationToken)
     {
         var alreadyGranted = await dbContext.TenantMemberBrandAccesses

@@ -19,6 +19,7 @@ public record TenantBrandProfileResponse(
     List<string> SupportedLanguages,
     List<string> Keywords,
     bool IsDefault,
+    string? ImageUrl,
     DateTime CreatedAt,
     DateTime UpdatedAt)
 {
@@ -38,6 +39,7 @@ public record TenantBrandProfileResponse(
         p.BrandInfo?.SupportedLanguages ?? [],
         p.BrandInfo?.Keywords ?? [],
         p.BrandInfo?.IsDefault ?? false,
+        p.ImageUrl,
         p.CreatedAt,
         p.UpdatedAt);
 }
