@@ -940,9 +940,9 @@ namespace Rawaj.Persistence.Migrations
                 column: "UserId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_marketing_campaigns_BrandProfileId",
+                name: "IX_marketing_campaigns_BrandProfileId_Status_CreatedAt",
                 table: "marketing_campaigns",
-                column: "BrandProfileId");
+                columns: new[] { "BrandProfileId", "Status", "CreatedAt" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_marketing_campaigns_CreatedBy",

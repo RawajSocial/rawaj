@@ -5,6 +5,7 @@ using Rawaj.Application.Common.Models;
 using Rawaj.Application.Features.Campaigns.Common;
 using Rawaj.Application.Features.Campaigns.CreateCampaignStep1;
 using Rawaj.Application.Features.Campaigns.GetCampaignById;
+using Rawaj.Application.Features.Campaigns.GetCampaigns;
 using Rawaj.Application.Features.Campaigns.UpdateCampaignStep2;
 using Rawaj.Application.Features.Campaigns.UpdateCampaignStep3;
 using Rawaj.Application.Features.Campaigns.UpdateCampaignStep4;
@@ -12,6 +13,7 @@ using Rawaj.Application.Features.Campaigns.UpdateCampaignStep5;
 using Rawaj.Application.Features.Campaigns.UpdateCampaignStep6;
 using Rawaj.Application.Features.Campaigns.UpdateCampaignStep7;
 using Rawaj.Common;
+using Rawaj.Domain.Enums;
 
 namespace Rawaj.Controllers;
 
@@ -27,6 +29,16 @@ public class CampaignsController(ISender sender) : ControllerBase
     [HttpGet("{campaignId:guid}")]
     public async Task<IActionResult> Get(Guid campaignId, CancellationToken cancellationToken) =>
         await Handle(new GetCampaignByIdQuery(campaignId), cancellationToken);
+
+    [HttpGet]
+    public async Task<IActionResult> List([FromQuery] string? search, [FromQuery] CampaignStatus? status, [FromQuery] string? platform, [FromQuery] DateOnly? from, [FromQuery] DateOnly? to, [FromQuery] int page = 1, [FromQuery] int pageSize = 20, CancellationToken cancellationToken = default)
+    {
+        var result = await sender.Send(new GetCampaignsQuery(search, status, platform, from, to, page, pageSize), cancellationToken);
+
+        return result.Succeeded
+            ? Ok(ApiResponse<PagedResult<CampaignSummaryResponse>>.Success(result.Data!))
+            : BadRequest(ApiResponse<PagedResult<CampaignSummaryResponse>>.Fail(result.ErrorMessage!));
+    }
 
     [HttpPut("{campaignId:guid}/onboarding/step-2")]
     public async Task<IActionResult> Step2(Guid campaignId, UpdateCampaignStep2Command command, CancellationToken cancellationToken) =>

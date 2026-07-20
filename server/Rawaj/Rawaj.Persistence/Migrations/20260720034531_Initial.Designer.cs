@@ -12,7 +12,7 @@ using Rawaj.Persistence;
 namespace Rawaj.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260720001707_Initial")]
+    [Migration("20260720034531_Initial")]
     partial class Initial
     {
         /// <inheritdoc />
@@ -724,9 +724,9 @@ namespace Rawaj.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("BrandProfileId");
-
                     b.HasIndex("CreatedBy");
+
+                    b.HasIndex("BrandProfileId", "Status", "CreatedAt");
 
                     b.ToTable("marketing_campaigns", (string)null);
                 });

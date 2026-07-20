@@ -46,6 +46,8 @@ public class MarketingCampaignConfiguration : IEntityTypeConfiguration<Marketing
         builder.Property(c => c.CampaignPhotoUrls).HasJsonConversion().HasColumnType("nvarchar(max)");
         builder.Property(c => c.StrategistAnswers).HasJsonConversion().HasColumnType("nvarchar(max)");
 
+        builder.HasIndex(c => new { c.BrandProfileId, c.Status, c.CreatedAt });
+
         builder.HasOne(c => c.BrandProfile)
             .WithMany()
             .HasForeignKey(c => c.BrandProfileId)
