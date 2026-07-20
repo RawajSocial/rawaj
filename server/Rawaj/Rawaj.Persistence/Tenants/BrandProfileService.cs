@@ -119,6 +119,86 @@ public class BrandProfileService(AppDbContext dbContext) : IBrandProfileService
         return brandProfile;
     }
 
+    public async Task<List<TenantBrandProfile>> GetAccessibleBrandProfilesAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var memberIds = await dbContext.TenantMembers
+            .Where(m => m.UserId == userId && m.InvitationStatus == InvitationStatus.Accepted)
+            .Select(m => m.Id)
+            .ToListAsync(cancellationToken);
+
+        var brandProfileIds = await dbContext.TenantMemberBrandAccesses
+            .Where(a => memberIds.Contains(a.TenantMemberId))
+            .Select(a => a.BrandProfileId)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
+        return await dbContext.TenantBrandProfiles
+            .Where(b => brandProfileIds.Contains(b.Id))
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<UpdateBrandProfileResult> UpdateBrandProfileAsync(
+        Guid userId,
+        Guid brandProfileId,
+        string name,
+        string? description,
+        BrandVoice? brandVoice,
+        BrandInfo? brandInfo,
+        CancellationToken cancellationToken)
+    {
+        var authorization = await GetAuthorizedBrandProfileAsync(userId, brandProfileId, cancellationToken);
+
+        if (authorization.Outcome is BrandImageOutcome.NotFound)
+        {
+            return new UpdateBrandProfileResult(UpdateBrandProfileOutcome.NotFound, null);
+        }
+
+        if (authorization.Outcome is BrandImageOutcome.Forbidden)
+        {
+            return new UpdateBrandProfileResult(UpdateBrandProfileOutcome.Forbidden, null);
+        }
+
+        var brandProfile = authorization.BrandProfile!;
+
+        if (brandInfo is not null)
+        {
+            brandInfo.IsDefault = brandProfile.BrandInfo?.IsDefault ?? false;
+        }
+
+        brandProfile.Name = name;
+        brandProfile.Description = description;
+        brandProfile.BrandVoice = brandVoice;
+        brandProfile.BrandInfo = brandInfo;
+        brandProfile.UpdatedAt = DateTime.UtcNow;
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return new UpdateBrandProfileResult(UpdateBrandProfileOutcome.Updated, brandProfile);
+    }
+
+    public async Task<ArchiveBrandProfileResult> ArchiveBrandProfileAsync(Guid userId, Guid brandProfileId, CancellationToken cancellationToken)
+    {
+        var authorization = await GetAuthorizedBrandProfileAsync(userId, brandProfileId, cancellationToken);
+
+        if (authorization.Outcome is BrandImageOutcome.NotFound)
+        {
+            return new ArchiveBrandProfileResult(ArchiveBrandProfileOutcome.NotFound, null);
+        }
+
+        if (authorization.Outcome is BrandImageOutcome.Forbidden)
+        {
+            return new ArchiveBrandProfileResult(ArchiveBrandProfileOutcome.Forbidden, null);
+        }
+
+        var brandProfile = authorization.BrandProfile!;
+        brandProfile.Status = BrandProfileStatus.Archived;
+        brandProfile.UpdatedAt = DateTime.UtcNow;
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return new ArchiveBrandProfileResult(ArchiveBrandProfileOutcome.Archived, brandProfile);
+    }
+
     private async Task EnsureOwnerHasBrandAccessAsync(Guid ownerMemberId, Guid brandProfileId, CancellationToken cancellationToken)
     {
         var alreadyGranted = await dbContext.TenantMemberBrandAccesses

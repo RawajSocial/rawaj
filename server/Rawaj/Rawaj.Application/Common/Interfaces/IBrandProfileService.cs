@@ -7,15 +7,15 @@ namespace Rawaj.Application.Common.Interfaces;
 
 public interface IBrandProfileService
 {
-    Task<CreateBrandProfileResult> CreateFirstBrandProfileAsync(
-        Guid ownerUserId,
-        string name,
-        string? description,
-        BrandVoice? brandVoice,
-        BrandInfo? brandInfo,
-        CancellationToken cancellationToken);
+    Task<CreateBrandProfileResult> CreateFirstBrandProfileAsync(Guid ownerUserId, string name, string? description, BrandVoice? brandVoice, BrandInfo? brandInfo, CancellationToken cancellationToken);
 
     Task<BrandImageResult> GetAuthorizedBrandProfileAsync(Guid userId, Guid brandProfileId, CancellationToken cancellationToken);
 
     Task<TenantBrandProfile> SetBrandImageAsync(Guid brandProfileId, string? imageUrl, CancellationToken cancellationToken);
+
+    Task<List<TenantBrandProfile>> GetAccessibleBrandProfilesAsync(Guid userId, CancellationToken cancellationToken);
+
+    Task<UpdateBrandProfileResult> UpdateBrandProfileAsync(Guid userId, Guid brandProfileId, string name, string? description, BrandVoice? brandVoice, BrandInfo? brandInfo, CancellationToken cancellationToken);
+
+    Task<ArchiveBrandProfileResult> ArchiveBrandProfileAsync(Guid userId, Guid brandProfileId, CancellationToken cancellationToken);
 }
