@@ -1,0 +1,27 @@
+<div class="page-shell">
+  <div class="admin-page-top">
+    <div>
+      <h1 class="admin-page-title">الاشتراكات والباقات</h1>
+      <p class="admin-page-sub">الباقات المتاحة على المنصة وعدد المشتركين في كل باقة.</p>
+    </div>
+  </div>
+
+  <div class="admin-plans-grid">
+    @for (plan of plans(); track plan.id) {
+      <div class="rw-card admin-plan-card">
+        <div class="admin-plan-card__head">
+          <h3 class="admin-plan-card__name">{{ plan.name }}</h3>
+          <span class="rw-pill rw-pill--info">{{ plan.subscriberCount }} مشترك</span>
+        </div>
+        <div class="admin-plan-card__price">
+          <span class="admin-plan-card__amount">${{ plan.price }}</span>
+          <span class="admin-plan-card__period">/ شهرياً</span>
+        </div>
+        <div class="admin-plan-card__meta">
+          <span><i class="fa-solid fa-copyright"></i> حتى {{ plan.maxBrands }} علامة تجارية</span>
+          <span><i class="fa-solid fa-users"></i> حتى {{ plan.maxUsers }} مستخدم</span>
+        </div>
+      </div>
+    }
+  </div>
+</div>

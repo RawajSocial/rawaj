@@ -4,6 +4,11 @@ export type AdSize      = 'square' | 'portrait' | 'landscape' | 'story';
 export type ContentTone = 'professional' | 'casual' | 'energetic' | 'luxurious';
 export type TextType    = 'caption' | 'hashtags' | 'ad-copy' | 'blog';
 
+export interface GeneratedAsset {
+  name: string;
+  url: string;
+}
+
 export interface GeneratedItem {
   id: string;
   type: GenType;
@@ -18,6 +23,12 @@ export interface GeneratedItem {
   textContent?: string;
   thumbnailUrl?: string;
   videoUrl?: string;
+  /** Which brand profile / campaign this content was generated for — lets
+   *  the media library (إعلاناتي) filter generated content by either. */
+  brandProfileId?: string;
+  campaignId?: string;
+  /** Reference assets the user attached to the generation request. */
+  assets?: GeneratedAsset[];
 }
 
 export const TYPE_CFG: Record<GenType, { label: string; desc: string; icon: string; color: string }> = {

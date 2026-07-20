@@ -1,0 +1,79 @@
+<div class="page-shell">
+  <div class="admin-page-top">
+    <div>
+      <h1 class="admin-page-title">المستخدمون</h1>
+      <p class="admin-page-sub">إدارة جميع مستخدمي المنصة عبر كل الحسابات.</p>
+    </div>
+  </div>
+
+  <!-- Status tabs -->
+  <div class="rw-tabs">
+    @for (tab of tabs; track tab.value) {
+      <button type="button" class="rw-tab" [class.active]="statusTab() === tab.value" (click)="statusTab.set(tab.value)">
+        {{ tab.label }}
+      </button>
+    }
+  </div>
+
+  <!-- Search -->
+  <div class="admin-search-wrap">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <input
+      type="text"
+      placeholder="ابحث بالاسم أو البريد أو اسم الحساب..."
+      [value]="searchQuery()"
+      (input)="searchQuery.set($any($event.target).value)" />
+    <span class="admin-results-count">{{ filtered().length }} مستخدم</span>
+  </div>
+
+  <div class="rw-card admin-table-card">
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>المستخدم</th>
+            <th>الحساب</th>
+            <th>الدور</th>
+            <th>الحالة</th>
+            <th>آخر نشاط</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (user of filtered(); track user.id) {
+            <tr>
+              <td>
+                <div class="admin-user-cell">
+                  <span class="admin-user-avatar">{{ initials(user.name) }}</span>
+                  <div class="admin-user-cell__text">
+                    <span class="admin-user-name">{{ user.name }}</span>
+                    <span class="admin-user-email">{{ user.email }}</span>
+                  </div>
+                </div>
+              </td>
+              <td class="admin-cell-muted">{{ user.tenantName }}</td>
+              <td class="admin-cell-muted">{{ user.role }}</td>
+              <td>
+                <span class="rw-pill"
+                      [class.rw-pill--success]="user.status === 'active'"
+                      [class.rw-pill--warning]="user.status === 'pending'"
+                      [class.rw-pill--danger]="user.status === 'suspended'">
+                  {{ statusLabels[user.status] }}
+                </span>
+              </td>
+              <td class="admin-cell-muted">{{ user.lastActiveAt }}</td>
+              <td class="admin-actions-cell">
+                <button type="button" class="admin-row-action"
+                        [appTooltip]="user.status === 'suspended' ? 'إعادة تفعيل الحساب' : 'إيقاف الحساب'"
+                        [attr.aria-label]="user.status === 'suspended' ? 'إعادة تفعيل الحساب' : 'إيقاف الحساب'"
+                        (click)="toggleSuspend(user.id, user.status)">
+                  <i class="fa-solid" [class.fa-ban]="user.status !== 'suspended'" [class.fa-rotate-left]="user.status === 'suspended'"></i>
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

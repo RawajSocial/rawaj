@@ -1,0 +1,15 @@
+<div class="page-shell">
+  <app-page-header
+    title="اختبار شاشة التحميل"
+    [breadcrumbs]="[{ label: 'نظرة عامة', link: '/dashboard' }, { label: 'اختبار شاشة التحميل' }]"
+    subtitle="صفحة داخلية لمعاينة حركة شاشة التحميل العامة دون الحاجة لانتقال حقيقي بين الصفحات." />
+
+  <div class="rw-card loading-test-card">
+    <p class="loading-test-hint">اضغط أحد الأزرار لإظهار شاشة التحميل لمدة محددة.</p>
+    <div class="loading-test-actions">
+      <button type="button" class="rw-btn rw-btn--outline" (click)="showFor(2)">إظهار لمدة ثانيتين</button>
+      <button type="button" class="rw-btn rw-btn--outline" (click)="showFor(5)">إظهار لمدة 5 ثوانٍ</button>
+      <button type="button" class="rw-btn rw-btn--dark" (click)="showFor(10)">إظهار لمدة 10 ثوانٍ</button>
+    </div>
+  </div>
+</div>

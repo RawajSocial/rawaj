@@ -1,17 +1,17 @@
 import { Component, OnInit, effect, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { SeoService } from '../../services/seo.service';
-import { Header } from './header/header';
-import { Sidebar } from './sidebar/sidebar';
+import { AdminHeader } from './admin-header/admin-header';
+import { AdminSidebar } from './admin-sidebar/admin-sidebar';
 
 @Component({
-  selector: 'app-dashboard',
+  selector: 'app-admin-layout',
   standalone: true,
-  imports: [Header, Sidebar, RouterOutlet],
-  templateUrl: './dashboard.html',
-  styleUrl: './dashboard.css',
+  imports: [AdminHeader, AdminSidebar, RouterOutlet],
+  templateUrl: './admin-layout.html',
+  styleUrls: ['./admin-theme.css', './admin-layout.css'],
 })
-export class Dashboard implements OnInit {
+export class AdminLayout implements OnInit {
   sidebarOpen = signal(true);
   mobileOverlayOpen = signal(false);
 
@@ -23,11 +23,10 @@ export class Dashboard implements OnInit {
 
   ngOnInit(): void {
     this.seo.setPageSeo({
-      title: 'لوحة التحكم | رواج',
-      description:
-        'تابع أداء حملاتك، ومحتواك، ونشاط حسابك من لوحة تحكم رواج.',
-      keywords: 'رواج, لوحة التحكم, تحليلات الحملات, أداء التسويق',
-      path: '/dashboard',
+      title: 'لوحة إدارة المنصة | رواج',
+      description: 'إدارة المستخدمين والوكالات والاشتراكات وإعدادات منصة رواج.',
+      keywords: 'رواج, إدارة المنصة, لوحة الأدمن',
+      path: '/admin',
       image: '/home-hero-light.png',
       type: 'website',
       noIndex: true,

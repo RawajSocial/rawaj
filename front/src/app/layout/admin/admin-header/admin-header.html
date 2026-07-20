@@ -1,0 +1,41 @@
+<header class="admin-header">
+  <div class="admin-header-start">
+    <button class="admin-header-btn" (click)="toggleSidebar.emit()" appTooltip="تبديل الشريط الجانبي" aria-label="تبديل الشريط الجانبي">
+      <i class="fa-solid fa-bars"></i>
+    </button>
+    <button class="admin-header-btn admin-mobile-menu-btn" (click)="toggleMobileMenu.emit()" appTooltip="القائمة" aria-label="القائمة">
+      <i class="fa-solid" [class.fa-bars]="!mobileMenuOpen()" [class.fa-xmark]="mobileMenuOpen()"></i>
+    </button>
+    <div class="admin-header-search">
+      <i class="fa-solid fa-magnifying-glass"></i>
+      <input
+        type="text"
+        placeholder="ابحث عن مستخدم أو علامة تجارية..."
+        [value]="searchQuery()"
+        (input)="searchQuery.set($any($event.target).value)" />
+    </div>
+  </div>
+
+  <div class="admin-header-end">
+    <span class="admin-mode-pill"><i class="fa-solid fa-shield-halved"></i> وضع الإدارة</span>
+
+    <div class="admin-profile-dropdown" [class.open]="profileOpen()">
+      <button class="admin-profile-btn" (click)="profileOpen.update(v => !v)">
+        <span class="admin-profile-avatar"><i class="fa-solid fa-user-shield"></i></span>
+        <span class="admin-profile-name">مدير النظام</span>
+        <i class="fa-solid fa-chevron-down"></i>
+      </button>
+      <div class="admin-dropdown-panel">
+        <a class="admin-profile-menu-item" routerLink="/admin/settings" (click)="profileOpen.set(false)">
+          <i class="fa-solid fa-gear"></i>
+          الإعدادات العامة
+        </a>
+        <div class="admin-panel-divider"></div>
+        <a class="admin-profile-menu-item" routerLink="/dashboard" (click)="profileOpen.set(false)">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i>
+          العودة للوحة التحكم
+        </a>
+      </div>
+    </div>
+  </div>
+</header>

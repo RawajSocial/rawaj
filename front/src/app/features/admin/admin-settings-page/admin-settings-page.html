@@ -1,0 +1,28 @@
+<div class="page-shell">
+  <div class="admin-page-top">
+    <div>
+      <h1 class="admin-page-title">الإعدادات العامة</h1>
+      <p class="admin-page-sub">التحكم في سلوك المنصة على مستوى كل الحسابات.</p>
+    </div>
+  </div>
+
+  <div class="rw-card">
+    <div class="rw-card__header">
+      <h3 class="rw-card__title">إعدادات المنصة</h3>
+      <p class="rw-card__hint">هذه الإعدادات تؤثر على جميع المستخدمين والحسابات</p>
+    </div>
+
+    <div class="admin-pref-list">
+      @for (t of toggles(); track t.key) {
+        <div class="admin-pref-row">
+          <div class="admin-pref-text">
+            <span class="admin-pref-title">{{ t.title }}</span>
+            <span class="admin-pref-desc">{{ t.desc }}</span>
+          </div>
+          <button type="button" class="rw-switch" [class.on]="t.enabled"
+            (click)="toggle(t.key)" [attr.aria-pressed]="t.enabled" [attr.aria-label]="t.title"></button>
+        </div>
+      }
+    </div>
+  </div>
+</div>

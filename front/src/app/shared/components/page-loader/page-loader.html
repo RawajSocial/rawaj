@@ -1,10 +1,20 @@
 @if (loading()) {
   <div class="page-loader" role="status" aria-live="polite">
+    <div class="page-loader__brand">
+      <img src="assets/icons/logo.png" alt="" aria-hidden="true" class="page-loader__logo" />
+      <span class="page-loader__brand-name"><span class="page-loader__brand-accent">ر</span>واج</span>
+    </div>
+
     <img
       src="assets/animations/Ai-powered marketing tools abstract.svg"
       alt=""
       aria-hidden="true"
       class="page-loader__art" />
-    <span class="page-loader__label">جارِ التحميل...</span>
+
+    <span class="page-loader__label">
+      جارِ التحميل
+      <span class="page-loader__dots" aria-hidden="true"><span>.</span><span>.</span><span>.</span></span>
+    </span>
+    <span class="page-loader__hint">لحظات قليلة ويكتمل كل شيء</span>
   </div>
 }
