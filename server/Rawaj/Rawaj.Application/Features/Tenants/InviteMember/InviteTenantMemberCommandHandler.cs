@@ -5,17 +5,22 @@ using Rawaj.Application.Common.Models;
 namespace Rawaj.Application.Features.Tenants.InviteMember;
 
 public class InviteTenantMemberCommandHandler(ITenantProvisioningService tenantProvisioningService, ICurrentUserService currentUserService)
-    : IRequestHandler<InviteTenantMemberCommand, Result<Unit>>
+    : IRequestHandler<InviteTenantMemberCommand, Result<InviteTenantMemberResponse>>
 {
-    public async Task<Result<Unit>> Handle(InviteTenantMemberCommand request, CancellationToken cancellationToken)
+    public async Task<Result<InviteTenantMemberResponse>> Handle(InviteTenantMemberCommand request, CancellationToken cancellationToken)
     {
         if (currentUserService.UserId is not { } inviterUserId)
         {
-            return Result<Unit>.Failure("You must be signed in to invite a member.");
+            return Result<InviteTenantMemberResponse>.Failure("You must be signed in to invite a member.");
         }
 
-        await tenantProvisioningService.InviteMemberAsync(request.TenantId, request.Email, request.Role, inviterUserId, cancellationToken);
+        var result = await tenantProvisioningService.InviteMemberAsync(request.TenantId, request.Email, request.Role, inviterUserId, cancellationToken);
 
-        return Result<Unit>.Success(Unit.Value);
+        return result.Outcome switch
+        {
+            InviteMemberOutcome.AlreadyMember => Result<InviteTenantMemberResponse>.Failure("This user is already a member of the tenant."),
+            InviteMemberOutcome.AlreadyInvited => Result<InviteTenantMemberResponse>.Failure("An invitation is already pending for this email."),
+            _ => Result<InviteTenantMemberResponse>.Success(new InviteTenantMemberResponse(result.InvitationId, result.RequiresRegistration))
+        };
     }
 }

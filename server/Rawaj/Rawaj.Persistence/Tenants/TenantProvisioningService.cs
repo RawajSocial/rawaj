@@ -64,12 +64,13 @@ public class TenantProvisioningService(
         return tenant.Id;
     }
 
-    public async Task InviteMemberAsync(Guid tenantId, string email, TenantMemberRole role, Guid invitedByUserId, CancellationToken cancellationToken)
+    public async Task<InviteMemberResult> InviteMemberAsync(Guid tenantId, string email, TenantMemberRole role, Guid invitedByUserId, CancellationToken cancellationToken)
     {
         var tenant = await dbContext.Tenants.SingleAsync(t => t.Id == tenantId, cancellationToken);
         var existingUser = await identityService.FindByEmailAsync(email, cancellationToken);
         var now = DateTime.UtcNow;
         Guid invitationId;
+        bool requiresRegistration;
 
         if (existingUser is not null)
         {
@@ -78,7 +79,7 @@ public class TenantProvisioningService(
 
             if (existingMembership is not null)
             {
-                return;
+                return new InviteMemberResult(InviteMemberOutcome.AlreadyMember, existingMembership.Id, false);
             }
 
             var member = new TenantMember
@@ -93,16 +94,17 @@ public class TenantProvisioningService(
             };
             dbContext.TenantMembers.Add(member);
             invitationId = member.Id;
+            requiresRegistration = false;
         }
         else
         {
             var normalizedEmail = email.Trim().ToUpperInvariant();
             var alreadyInvited = await dbContext.TenantInvitations
-                .AnyAsync(i => i.TenantId == tenantId && i.Status == InvitationStatus.Pending && i.Email.ToUpper() == normalizedEmail, cancellationToken);
+                .FirstOrDefaultAsync(i => i.TenantId == tenantId && i.Status == InvitationStatus.Pending && i.Email.ToUpper() == normalizedEmail, cancellationToken);
 
-            if (alreadyInvited)
+            if (alreadyInvited is not null)
             {
-                return;
+                return new InviteMemberResult(InviteMemberOutcome.AlreadyInvited, alreadyInvited.Id, true);
             }
 
             var invitation = new TenantInvitation
@@ -113,15 +115,19 @@ public class TenantProvisioningService(
                 Role = role,
                 InvitedBy = invitedByUserId,
                 Status = InvitationStatus.Pending,
-                CreatedAt = now
+                CreatedAt = now,
+                ExpiresAt = now.AddDays(7)
             };
             dbContext.TenantInvitations.Add(invitation);
             invitationId = invitation.Id;
+            requiresRegistration = true;
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);
 
         await SendInvitationEmailAsync(email, tenant.Name, role, invitationId, cancellationToken);
+
+        return new InviteMemberResult(InviteMemberOutcome.Invited, invitationId, requiresRegistration);
     }
 
     public async Task<InvitationDetailsDto?> GetInvitationAsync(Guid invitationId, CancellationToken cancellationToken)
@@ -132,6 +138,8 @@ public class TenantProvisioningService(
 
         if (invitation is not null)
         {
+            var isExpired = invitation.Status == InvitationStatus.Pending && invitation.ExpiresAt < DateTime.UtcNow;
+
             return new InvitationDetailsDto(
                 invitation.Id,
                 invitation.TenantId,
@@ -139,7 +147,8 @@ public class TenantProvisioningService(
                 invitation.Role,
                 invitation.Email,
                 RequiresRegistration: true,
-                invitation.Status);
+                invitation.Status,
+                isExpired);
         }
 
         var member = await dbContext.TenantMembers
@@ -160,7 +169,8 @@ public class TenantProvisioningService(
             member.Role,
             user?.Email ?? string.Empty,
             RequiresRegistration: false,
-            member.InvitationStatus);
+            member.InvitationStatus,
+            IsExpired: false);
     }
 
     public async Task<InvitationActionOutcome> AcceptInvitationAsync(Guid invitationId, Guid currentUserId, string currentUserEmail, CancellationToken cancellationToken)
@@ -178,6 +188,11 @@ public class TenantProvisioningService(
             if (invitation.Status != InvitationStatus.Pending)
             {
                 return InvitationActionOutcome.AlreadyResolved;
+            }
+
+            if (invitation.ExpiresAt < now)
+            {
+                return InvitationActionOutcome.Expired;
             }
 
             invitation.Status = InvitationStatus.Accepted;
@@ -242,6 +257,11 @@ public class TenantProvisioningService(
             if (invitation.Status != InvitationStatus.Pending)
             {
                 return InvitationActionOutcome.AlreadyResolved;
+            }
+
+            if (invitation.ExpiresAt < now)
+            {
+                return InvitationActionOutcome.Expired;
             }
 
             invitation.Status = InvitationStatus.Declined;

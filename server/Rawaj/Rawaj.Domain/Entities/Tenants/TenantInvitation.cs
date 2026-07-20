@@ -11,6 +11,7 @@ public class TenantInvitation : BaseEntity
     public Guid InvitedBy { get; set; }
     public InvitationStatus Status { get; set; }
     public DateTime? RespondedAt { get; set; }
+    public DateTime ExpiresAt { get; set; }
 
     public Tenant Tenant { get; set; } = null!;
 }

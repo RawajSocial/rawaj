@@ -9,4 +9,5 @@ public record InvitationDetailsDto(
     TenantMemberRole Role,
     string Email,
     bool RequiresRegistration,
-    InvitationStatus Status);
+    InvitationStatus Status,
+    bool IsExpired);

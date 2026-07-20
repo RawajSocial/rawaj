@@ -31,6 +31,7 @@ public class AcceptInvitationCommandHandler(
             InvitationActionOutcome.NotFound => Result<Unit>.Failure("Invitation not found."),
             InvitationActionOutcome.NotAuthorized => Result<Unit>.Failure("This invitation was not sent to your account."),
             InvitationActionOutcome.AlreadyResolved => Result<Unit>.Failure("This invitation has already been responded to."),
+            InvitationActionOutcome.Expired => Result<Unit>.Failure("This invitation has expired."),
             _ => Result<Unit>.Failure("Unable to process this invitation.")
         };
     }

@@ -5,5 +5,6 @@ public enum InvitationActionOutcome
     Success,
     NotFound,
     NotAuthorized,
-    AlreadyResolved
+    AlreadyResolved,
+    Expired
 }

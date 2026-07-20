@@ -18,6 +18,7 @@ public class TenantInvitationConfiguration : IEntityTypeConfiguration<TenantInvi
 
         builder.Property(i => i.Role).HasConversion<string>().HasMaxLength(20).IsRequired();
         builder.Property(i => i.Status).HasConversion<string>().HasMaxLength(20).IsRequired();
+        builder.Property(i => i.ExpiresAt).IsRequired();
 
         builder.HasOne(i => i.Tenant)
             .WithMany()
