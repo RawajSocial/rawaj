@@ -71,6 +71,19 @@ public class IdentityService(UserManager<ApplicationUser> userManager) : IIdenti
         await userManager.UpdateAsync(user);
     }
 
+    public async Task ConfirmEmailAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var user = await userManager.FindByIdAsync(userId.ToString());
+        if (user is null)
+        {
+            return;
+        }
+
+        user.EmailConfirmed = true;
+        user.UpdatedAt = DateTime.UtcNow;
+        await userManager.UpdateAsync(user);
+    }
+
     private static ApplicationUserDto ToDto(ApplicationUser user) => new()
     {
         Id = user.Id,

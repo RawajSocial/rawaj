@@ -796,6 +796,91 @@ namespace Rawaj.Persistence.Migrations
                     b.ToTable("visual_assets", (string)null);
                 });
 
+            modelBuilder.Entity("Rawaj.Domain.Entities.Identity.EmailOtp", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CodeHash")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<DateTime?>("ConsumedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("LastSentAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Purpose")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<int>("SendCount")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("WindowStartAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "Purpose")
+                        .IsUnique();
+
+                    b.ToTable("email_otps", (string)null);
+                });
+
+            modelBuilder.Entity("Rawaj.Domain.Entities.Identity.RefreshToken", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedByIp")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("ReplacedByTokenId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("RevokedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique();
+
+                    b.HasIndex("UserId", "RevokedAt");
+
+                    b.ToTable("refresh_tokens", (string)null);
+                });
+
             modelBuilder.Entity("Rawaj.Domain.Entities.Platform.AuditLog", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1113,6 +1198,52 @@ namespace Rawaj.Persistence.Migrations
                     b.ToTable("tenants", (string)null);
                 });
 
+            modelBuilder.Entity("Rawaj.Domain.Entities.Tenants.TenantAccountSetup", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("AccountType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("AgencyDetails")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("BrandProfileId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("BusinessDetails")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("City")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Country")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SocialLinks")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BrandProfileId")
+                        .IsUnique();
+
+                    b.ToTable("tenant_account_setups", (string)null);
+                });
+
             modelBuilder.Entity("Rawaj.Domain.Entities.Tenants.TenantBrandProfile", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1172,6 +1303,9 @@ namespace Rawaj.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<Guid>("InvitedBy")
                         .HasColumnType("uniqueidentifier");
@@ -1546,6 +1680,24 @@ namespace Rawaj.Persistence.Migrations
                     b.Navigation("VersionOfAsset");
                 });
 
+            modelBuilder.Entity("Rawaj.Domain.Entities.Identity.EmailOtp", b =>
+                {
+                    b.HasOne("Rawaj.Persistence.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Rawaj.Domain.Entities.Identity.RefreshToken", b =>
+                {
+                    b.HasOne("Rawaj.Persistence.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Rawaj.Domain.Entities.Platform.AuditLog", b =>
                 {
                     b.HasOne("Rawaj.Persistence.Identity.ApplicationUser", null)
@@ -1624,6 +1776,17 @@ namespace Rawaj.Persistence.Migrations
                         .HasForeignKey("SubscriptionId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("Rawaj.Domain.Entities.Tenants.TenantAccountSetup", b =>
+                {
+                    b.HasOne("Rawaj.Domain.Entities.Tenants.TenantBrandProfile", "BrandProfile")
+                        .WithMany()
+                        .HasForeignKey("BrandProfileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("BrandProfile");
                 });
 
             modelBuilder.Entity("Rawaj.Domain.Entities.Tenants.TenantBrandProfile", b =>
