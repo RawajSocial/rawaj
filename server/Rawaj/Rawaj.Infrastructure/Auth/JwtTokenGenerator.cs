@@ -12,7 +12,7 @@ public class JwtTokenGenerator(IOptions<JwtSettings> jwtSettings) : IJwtTokenGen
 {
     private readonly JwtSettings _settings = jwtSettings.Value;
 
-    public string GenerateToken(ApplicationUserDto user)
+    public string GenerateToken(ApplicationUserDto user, out DateTime expiresAt)
     {
         var claims = new[]
         {
@@ -27,11 +27,13 @@ public class JwtTokenGenerator(IOptions<JwtSettings> jwtSettings) : IJwtTokenGen
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_settings.Secret));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
+        expiresAt = DateTime.UtcNow.AddMinutes(_settings.ExpiryMinutes);
+
         var token = new JwtSecurityToken(
             issuer: _settings.Issuer,
             audience: _settings.Audience,
             claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(_settings.ExpiryMinutes),
+            expires: expiresAt,
             signingCredentials: credentials);
 
         return new JwtSecurityTokenHandler().WriteToken(token);

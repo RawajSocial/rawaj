@@ -4,7 +4,10 @@ using Rawaj.Application.Common.Models;
 
 namespace Rawaj.Application.Features.Auth.Login;
 
-public class LoginCommandHandler(IIdentityService identityService, IJwtTokenGenerator jwtTokenGenerator)
+public class LoginCommandHandler(
+    IIdentityService identityService,
+    IJwtTokenGenerator jwtTokenGenerator,
+    IRefreshTokenService refreshTokenService)
     : IRequestHandler<LoginCommand, Result<LoginResponse>>
 {
     public async Task<Result<LoginResponse>> Handle(LoginCommand request, CancellationToken cancellationToken)
@@ -24,8 +27,11 @@ public class LoginCommandHandler(IIdentityService identityService, IJwtTokenGene
 
         await identityService.UpdateLastLoginAsync(user.Id, cancellationToken);
 
-        var accessToken = jwtTokenGenerator.GenerateToken(user);
+        var accessToken = jwtTokenGenerator.GenerateToken(user, out var accessTokenExpiresAt);
+        var refreshToken = await refreshTokenService.IssueAsync(user.Id, cancellationToken);
 
-        return Result<LoginResponse>.Success(new LoginResponse(user.Id, user.Email, user.UserName, user.FullName, accessToken));
+        return Result<LoginResponse>.Success(new LoginResponse(
+            user.Id, user.Email, user.UserName, user.FullName,
+            accessToken, refreshToken.RawToken, accessTokenExpiresAt, refreshToken.ExpiresAt));
     }
 }

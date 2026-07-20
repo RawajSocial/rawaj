@@ -6,4 +6,7 @@ public record RegisterResponse(
     string UserName,
     string FullName,
     string AccessToken,
-    Guid TenantId);
+    Guid TenantId,
+    string RefreshToken,
+    DateTime AccessTokenExpiresAt,
+    DateTime RefreshTokenExpiresAt);

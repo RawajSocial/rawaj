@@ -156,6 +156,32 @@ namespace Rawaj.Persistence.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "email_otps",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Purpose = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: false),
+                    CodeHash = table.Column<string>(type: "nvarchar(128)", maxLength: 128, nullable: false),
+                    ExpiresAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ConsumedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    SendCount = table.Column<int>(type: "int", nullable: false),
+                    WindowStartAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    LastSentAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_email_otps", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_email_otps_users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "logs",
                 columns: table => new
                 {
@@ -204,6 +230,30 @@ namespace Rawaj.Persistence.Migrations
                     table.PrimaryKey("PK_notifications", x => x.Id);
                     table.ForeignKey(
                         name: "FK_notifications_users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "refresh_tokens",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    TokenHash = table.Column<string>(type: "nvarchar(128)", maxLength: 128, nullable: false),
+                    ExpiresAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    RevokedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    ReplacedByTokenId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    CreatedByIp = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_refresh_tokens", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_refresh_tokens_users_UserId",
                         column: x => x.UserId,
                         principalTable: "users",
                         principalColumn: "Id",
@@ -278,6 +328,7 @@ namespace Rawaj.Persistence.Migrations
                     InvitedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     Status = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
                     RespondedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    ExpiresAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
                 constraints: table =>
@@ -518,6 +569,32 @@ namespace Rawaj.Persistence.Migrations
                         principalTable: "tenant_brand_profiles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "tenant_account_setups",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    BrandProfileId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    AccountType = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
+                    Country = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    City = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
+                    SocialLinks = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    AgencyDetails = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    BusinessDetails = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_tenant_account_setups", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_tenant_account_setups_tenant_brand_profiles_BrandProfileId",
+                        column: x => x.BrandProfileId,
+                        principalTable: "tenant_brand_profiles",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -852,6 +929,12 @@ namespace Rawaj.Persistence.Migrations
                 column: "RevisedBy");
 
             migrationBuilder.CreateIndex(
+                name: "IX_email_otps_UserId_Purpose",
+                table: "email_otps",
+                columns: new[] { "UserId", "Purpose" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_logs_UserId",
                 table: "logs",
                 column: "UserId");
@@ -887,6 +970,17 @@ namespace Rawaj.Persistence.Migrations
                 column: "CompetitorId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_refresh_tokens_TokenHash",
+                table: "refresh_tokens",
+                column: "TokenHash",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_refresh_tokens_UserId_RevokedAt",
+                table: "refresh_tokens",
+                columns: new[] { "UserId", "RevokedAt" });
+
+            migrationBuilder.CreateIndex(
                 name: "IX_scheduled_posts_ContentItemId",
                 table: "scheduled_posts",
                 column: "ContentItemId");
@@ -916,6 +1010,12 @@ namespace Rawaj.Persistence.Migrations
                 name: "IX_subscriptions_SubscriptionPlanId",
                 table: "subscriptions",
                 column: "SubscriptionPlanId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_tenant_account_setups_BrandProfileId",
+                table: "tenant_account_setups",
+                column: "BrandProfileId",
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_tenant_brand_profiles_TenantId",
@@ -1034,6 +1134,9 @@ namespace Rawaj.Persistence.Migrations
                 name: "content_revisions");
 
             migrationBuilder.DropTable(
+                name: "email_otps");
+
+            migrationBuilder.DropTable(
                 name: "logs");
 
             migrationBuilder.DropTable(
@@ -1044,6 +1147,12 @@ namespace Rawaj.Persistence.Migrations
 
             migrationBuilder.DropTable(
                 name: "rag_documents");
+
+            migrationBuilder.DropTable(
+                name: "refresh_tokens");
+
+            migrationBuilder.DropTable(
+                name: "tenant_account_setups");
 
             migrationBuilder.DropTable(
                 name: "tenant_invitations");

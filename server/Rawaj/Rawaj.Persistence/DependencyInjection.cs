@@ -30,6 +30,9 @@ public static class DependencyInjection
         services.AddScoped<ITenantProvisioningService, TenantProvisioningService>();
         services.AddScoped<IBrandProfileService, BrandProfileService>();
         services.AddScoped<ICampaignOnboardingService, CampaignOnboardingService>();
+        services.AddScoped<IAccountSetupService, AccountSetupService>();
+        services.AddScoped<IRefreshTokenService, RefreshTokenService>();
+        services.AddScoped<IOtpService, OtpService>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
 
         return services;

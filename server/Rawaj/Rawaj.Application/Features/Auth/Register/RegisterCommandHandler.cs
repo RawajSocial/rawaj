@@ -9,6 +9,7 @@ public class RegisterCommandHandler(
     IIdentityService identityService,
     IJwtTokenGenerator jwtTokenGenerator,
     ITenantProvisioningService tenantProvisioningService,
+    IRefreshTokenService refreshTokenService,
     IUnitOfWork unitOfWork)
     : IRequestHandler<RegisterCommand, Result<RegisterResponse>>
 {
@@ -65,8 +66,11 @@ public class RegisterCommandHandler(
             IsActive = true
         };
 
-        var accessToken = jwtTokenGenerator.GenerateToken(userDto);
+        var accessToken = jwtTokenGenerator.GenerateToken(userDto, out var accessTokenExpiresAt);
+        var refreshToken = await refreshTokenService.IssueAsync(userDto.Id, cancellationToken);
 
-        return Result<RegisterResponse>.Success(new RegisterResponse(userDto.Id, userDto.Email, userDto.UserName, userDto.FullName, accessToken, tenantId));
+        return Result<RegisterResponse>.Success(new RegisterResponse(
+            userDto.Id, userDto.Email, userDto.UserName, userDto.FullName, accessToken, tenantId,
+            refreshToken.RawToken, accessTokenExpiresAt, refreshToken.ExpiresAt));
     }
 }

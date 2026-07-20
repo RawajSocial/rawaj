@@ -4,6 +4,7 @@ using Rawaj.Domain.Entities.AiOperations;
 using Rawaj.Domain.Entities.Billing;
 using Rawaj.Domain.Entities.BrandIntelligence;
 using Rawaj.Domain.Entities.Campaigns;
+using Rawaj.Domain.Entities.Identity;
 using Rawaj.Domain.Entities.Platform;
 using Rawaj.Domain.Entities.SocialMedia;
 using Rawaj.Domain.Entities.Tenants;
@@ -20,6 +21,10 @@ public class AppDbContext : IdentityUserContext<ApplicationUser, Guid>
     public DbSet<TenantMember> TenantMembers => Set<TenantMember>();
     public DbSet<TenantMemberBrandAccess> TenantMemberBrandAccesses => Set<TenantMemberBrandAccess>();
     public DbSet<TenantInvitation> TenantInvitations => Set<TenantInvitation>();
+    public DbSet<TenantAccountSetup> TenantAccountSetups => Set<TenantAccountSetup>();
+
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    public DbSet<EmailOtp> EmailOtps => Set<EmailOtp>();
 
     public DbSet<Competitor> Competitors => Set<Competitor>();
     public DbSet<RagDocument> RagDocuments => Set<RagDocument>();
