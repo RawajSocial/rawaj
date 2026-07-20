@@ -1,0 +1,32 @@
+.admin-pref-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.admin-pref-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+.admin-pref-row:last-child { border-bottom: none; }
+
+.admin-pref-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.admin-pref-title {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-bold);
+  color: var(--color-dark);
+}
+
+.admin-pref-desc {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}

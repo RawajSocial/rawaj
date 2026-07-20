@@ -1,0 +1,18 @@
+<div class="admin-shell admin-layout"
+     [class.sidebar-collapsed]="!sidebarOpen()"
+     [class.mobile-sidebar-open]="mobileOverlayOpen()">
+  <app-admin-sidebar
+    [mobileOpen]="mobileOverlayOpen()"
+    (mobileClose)="closeMobileMenu()"
+  />
+  <div class="admin-main">
+    <app-admin-header
+      [mobileMenuOpen]="mobileOverlayOpen()"
+      (toggleSidebar)="toggleSidebar()"
+      (toggleMobileMenu)="toggleMobileMenu()"
+    />
+    <main class="admin-content">
+      <router-outlet />
+    </main>
+  </div>
+</div>

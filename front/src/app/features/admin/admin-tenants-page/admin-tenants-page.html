@@ -1,0 +1,73 @@
+<div class="page-shell">
+  <div class="admin-page-top">
+    <div>
+      <h1 class="admin-page-title">الوكالات والعلامات التجارية</h1>
+      <p class="admin-page-sub">إدارة جميع الحسابات المسجّلة في المنصة.</p>
+    </div>
+  </div>
+
+  <div class="rw-tabs">
+    @for (tab of tabs; track tab.value) {
+      <button type="button" class="rw-tab" [class.active]="kindTab() === tab.value" (click)="kindTab.set(tab.value)">
+        {{ tab.label }}
+      </button>
+    }
+  </div>
+
+  <div class="admin-search-wrap">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <input
+      type="text"
+      placeholder="ابحث بالاسم أو البريد الإلكتروني..."
+      [value]="searchQuery()"
+      (input)="searchQuery.set($any($event.target).value)" />
+    <span class="admin-results-count">{{ filtered().length }} حساب</span>
+  </div>
+
+  <div class="rw-card admin-table-card">
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>الاسم</th>
+            <th>النوع</th>
+            <th>المالك</th>
+            <th>الباقة</th>
+            <th>المستخدمون</th>
+            <th>ملفات العلامة</th>
+            <th>الحالة</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (t of filtered(); track t.id) {
+            <tr>
+              <td class="admin-cell-strong">{{ t.name }}</td>
+              <td class="admin-cell-muted">{{ kindLabels[t.kind] }}</td>
+              <td class="admin-cell-muted">{{ t.ownerEmail }}</td>
+              <td class="admin-cell-muted">{{ t.plan }}</td>
+              <td class="admin-cell-muted">{{ t.usersCount }}</td>
+              <td class="admin-cell-muted">{{ t.brandProfilesCount }}</td>
+              <td>
+                <span class="rw-pill"
+                      [class.rw-pill--success]="t.status === 'active'"
+                      [class.rw-pill--warning]="t.status === 'trial'"
+                      [class.rw-pill--danger]="t.status === 'suspended'">
+                  {{ statusLabels[t.status] }}
+                </span>
+              </td>
+              <td class="admin-actions-cell">
+                <button type="button" class="admin-row-action"
+                        [appTooltip]="t.status === 'suspended' ? 'إعادة تفعيل الحساب' : 'إيقاف الحساب'"
+                        [attr.aria-label]="t.status === 'suspended' ? 'إعادة تفعيل الحساب' : 'إيقاف الحساب'"
+                        (click)="toggleSuspend(t.id, t.status)">
+                  <i class="fa-solid" [class.fa-ban]="t.status !== 'suspended'" [class.fa-rotate-left]="t.status === 'suspended'"></i>
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

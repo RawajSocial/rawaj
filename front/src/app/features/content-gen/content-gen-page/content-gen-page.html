@@ -12,23 +12,10 @@
     </a>
   </div>
 
-  <!-- Success banner -->
-  @if (showSuccess()) {
-    <div class="success-banner mb-3">
-      <div class="d-flex align-items-center gap-2">
-        <i class="fa-solid fa-circle-check text-success"></i>
-        <span>تم بدء التوليد! سيظهر في قسم الوسائط خلال لحظات</span>
-      </div>
-      <button type="button" class="success-close" (click)="showSuccess.set(false)">
-        <i class="fa-solid fa-xmark"></i>
-      </button>
-    </div>
-  }
-
   <!-- ══ Bootstrap 2-column layout ══ -->
   <div class="row g-4 align-items-start">
 
-    <!-- ═══ COL LEFT: FORM ═══ -->
+    <!-- ═══ COL RIGHT (RTL start): FORM ═══ -->
     <div class="col-xl-4 col-lg-5">
       <div class="form-panel">
 
@@ -75,6 +62,40 @@
             </div>
           </div>
 
+          <!-- ملف العلامة التجارية + الحملة -->
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label-sm">ملف العلامة التجارية</label>
+              <div class="dropdown" [class.open]="brandProfileOpen()" data-dd="brandprofile">
+                <button type="button" class="dropdown-trigger form-control form-control-sm" (click)="brandProfileOpen.update(v => !v)">
+                  <span class="dropdown-label">{{ brandProfileLabel() }}</span>
+                  <span class="dropdown-icon"><i class="fa-solid fa-chevron-down"></i></span>
+                </button>
+                <div class="dropdown-menu">
+                  <button type="button" class="dropdown-option" [class.active]="!formBrandProfileId()" (click)="setBrandProfile('')">بدون تحديد</button>
+                  @for (bp of brandProfiles(); track bp.id) {
+                    <button type="button" class="dropdown-option" [class.active]="formBrandProfileId() === bp.id" (click)="setBrandProfile(bp.id)">{{ bp.name }}</button>
+                  }
+                </div>
+              </div>
+            </div>
+            <div class="col-6">
+              <label class="form-label-sm">الحملة</label>
+              <div class="dropdown" [class.open]="campaignOpen()" data-dd="campaign">
+                <button type="button" class="dropdown-trigger form-control form-control-sm" (click)="campaignOpen.update(v => !v)">
+                  <span class="dropdown-label">{{ campaignLabel() }}</span>
+                  <span class="dropdown-icon"><i class="fa-solid fa-chevron-down"></i></span>
+                </button>
+                <div class="dropdown-menu">
+                  <button type="button" class="dropdown-option" [class.active]="!formCampaignId()" (click)="formCampaignId.set(''); campaignOpen.set(false)">بدون تحديد</button>
+                  @for (c of availableCampaigns(); track c.id) {
+                    <button type="button" class="dropdown-option" [class.active]="formCampaignId() === c.id" (click)="formCampaignId.set(c.id); campaignOpen.set(false)">{{ c.name }}</button>
+                  }
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- اسم العلامة التجارية -->
           <div class="mb-3">
             <label class="form-label-sm">اسم العلامة التجارية <span class="req">*</span></label>
@@ -91,6 +112,29 @@
                       placeholder="صف المحتوى المطلوب بتفاصيل..."
                       [value]="formDesc()"
                       (input)="formDesc.set($any($event.target).value)"></textarea>
+          </div>
+
+          <!-- الوسائط (assets) -->
+          <div class="mb-3">
+            <label class="form-label-sm">الوسائط <span class="hint-sm">(اختياري — صور مرجعية للتوليد)</span></label>
+            <label class="assets-upload-btn">
+              <i class="fa-solid fa-paperclip"></i>
+              أرفق ملفات...
+              <input type="file" accept="image/*" multiple class="hidden-file" (change)="onAssetsChange($event)">
+            </label>
+            @if (formAssets().length > 0) {
+              <div class="assets-list">
+                @for (asset of formAssets(); track asset.name; let i = $index) {
+                  <div class="asset-chip">
+                    <img [src]="asset.url" [alt]="asset.name" class="asset-chip__thumb">
+                    <span class="asset-chip__name">{{ asset.name }}</span>
+                    <button type="button" class="asset-chip__remove" (click)="removeAsset(i)" aria-label="إزالة">
+                      <i class="fa-solid fa-xmark"></i>
+                    </button>
+                  </div>
+                }
+              </div>
+            }
           </div>
 
           <!-- Row: نبرة + منصة -->
@@ -232,207 +276,77 @@
       </div><!-- /form-panel -->
     </div>
 
-    <!-- ═══ COL RIGHT: GENERATED MEDIA ═══ -->
+    <!-- ═══ COL LEFT (RTL end): OUTPUT ═══ -->
     <div class="col-xl-8 col-lg-7">
-      <div class="gallery-panel">
-
-        <!-- Gallery header -->
-        <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
-          <div class="d-flex align-items-center gap-2">
-            <h6 class="gallery-title mb-0">الوسائط المُنشأة</h6>
-            <span class="gallery-count">{{ filteredItems().length }} عنصر</span>
+      <div class="output-panel">
+        @if (!currentItem()) {
+          <!-- Placeholder (before generation) -->
+          <div class="output-placeholder">
+            <div class="output-placeholder__icon"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+            <h6>لم يتم إنشاء أي محتوى بعد</h6>
+            <p>املأ النموذج واضغط "توليد المحتوى الآن" لمشاهدة النتيجة هنا</p>
           </div>
-          <!-- Filter tabs -->
-          <div class="d-flex gap-1 flex-wrap">
-            <button type="button" class="ftab" [class.active]="filterType()==='all'"       (click)="filterType.set('all')">الكل <span class="ftab-cnt">{{ counts().all }}</span></button>
-            <button type="button" class="ftab" [class.active]="filterType()==='static-ad'" (click)="filterType.set('static-ad')"><i class="{{ typeCfg['static-ad'].icon }}"></i> <span class="ftab-cnt">{{ counts()['static-ad'] }}</span></button>
-            <button type="button" class="ftab" [class.active]="filterType()==='video'"     (click)="filterType.set('video')"><i class="{{ typeCfg['video'].icon }}"></i> <span class="ftab-cnt">{{ counts().video }}</span></button>
-            <button type="button" class="ftab" [class.active]="filterType()==='text'"      (click)="filterType.set('text')"><i class="{{ typeCfg['text'].icon }}"></i> <span class="ftab-cnt">{{ counts().text }}</span></button>
+        } @else if (currentItem()!.status === 'generating') {
+          <!-- Animation (during generation) -->
+          <div class="output-generating" [style.background]="thumbnailGradient(currentItem()!.type)">
+            <div class="gen-orbit">
+              <span class="gen-orbit__dot"></span>
+              <span class="gen-orbit__dot"></span>
+              <span class="gen-orbit__dot"></span>
+            </div>
+            <h6>جارِ إنشاء المحتوى...</h6>
+            <p>يستخدم الذكاء الاصطناعي لتوليد {{ typeCfg[currentItem()!.type].label }} عالي الجودة</p>
           </div>
-        </div>
-
-        <!-- Empty state -->
-        @if (filteredItems().length === 0) {
-          <div class="gallery-empty">
-            <i class="fa-solid fa-wand-magic-sparkles"></i>
-            <p>لا يوجد محتوى بعد</p>
-            <span>استخدم النموذج لتوليد محتوى جديد</span>
-          </div>
-        }
-
-        <!-- Cards grid using Bootstrap row -->
-        @if (filteredItems().length > 0) {
-          <div class="row g-3">
-            @for (item of filteredItems(); track item.id) {
-              <div class="col-xl-4 col-lg-6 col-md-6 col-6">
-                <div class="media-card" [class.is-generating]="item.status==='generating'" (click)="openItem(item)">
-
-                  <div class="media-thumb">
-                    @if (item.status === 'generating') {
-                      <div class="thumb-state" [style.background]="thumbnailGradient(item.type)">
-                        <div class="gen-spinner"></div>
-                        <span>يُنشأ المحتوى...</span>
-                        <small>معالجة عالية الجودة</small>
-                      </div>
-                    } @else if (item.status === 'failed') {
-                      <div class="thumb-state" [style.background]="thumbnailGradient(item.type)">
-                        <i class="fa-solid fa-triangle-exclamation" style="font-size:1.8rem;color:#ef4444;opacity:.7"></i>
-                      </div>
-                    } @else if (isImage(item)) {
-                      <img [src]="item.thumbnailUrl" [alt]="item.title" class="thumb-img">
-                    } @else if (isVideo(item)) {
-                      <video class="thumb-img" [src]="item.videoUrl" muted loop autoplay playsinline preload="metadata"></video>
-                      <div class="thumb-play-overlay"><div class="thumb-play-btn"><i class="fa-solid fa-play"></i></div></div>
-                    } @else {
-                      <div class="thumb-state" [style.background]="thumbnailGradient(item.type)">
-                        <p class="thumb-text-p">{{ item.textContent ?? item.description }}</p>
-                      </div>
-                    }
-                    <div class="media-badge" [style.background]="typeCfg[item.type].color">
-                      <i class="{{ typeCfg[item.type].icon }}"></i>
-                    </div>
-                    @if (item.status !== 'generated') {
-                      <div class="status-badge" [style.background]="statusColor(item.status)">{{ statusLabel(item.status) }}</div>
-                    }
-                  </div>
-
-                  <div class="media-info">
-                    <span class="media-title">{{ item.title }}</span>
-                    <div class="d-flex align-items-center justify-content-between gap-1">
-                      <span class="media-brand">{{ item.brand }}</span>
-                      <span class="media-date">{{ formatDate(item.createdAt) }}</span>
-                    </div>
-                  </div>
-
+        } @else {
+          <!-- Result -->
+          <div class="output-result">
+            <div class="output-result__preview">
+              @if (isImage(currentItem()!)) {
+                <img [src]="currentItem()!.thumbnailUrl" [alt]="currentItem()!.title" class="output-result__img">
+              } @else if (isVideo(currentItem()!)) {
+                <video class="output-result__img" [src]="currentItem()!.videoUrl" controls autoplay muted></video>
+              } @else {
+                <div class="output-result__text" [style.background]="thumbnailGradient(currentItem()!.type)">
+                  <i class="fa-solid fa-quote-right"></i>
+                  <p>{{ currentItem()!.textContent ?? currentItem()!.description }}</p>
                 </div>
+              }
+            </div>
+            <div class="output-result__meta">
+              <div>
+                <span class="output-result__title">{{ currentItem()!.title }}</span>
+                <span class="output-result__sub">{{ currentItem()!.brand }} · {{ formatDateTime(currentItem()!.createdAt) }}</span>
               </div>
-            }
+              <a routerLink="/dashboard/my-media" class="output-result__link">
+                عرض في إعلاناتي <i class="fa-solid fa-arrow-left"></i>
+              </a>
+            </div>
+
+            <!-- Edit with prompt -->
+            <div class="output-edit">
+              <label class="output-edit__label" for="edit-prompt">
+                <i class="fa-solid fa-wand-magic-sparkles"></i>
+                تعديل المحتوى بالذكاء الاصطناعي
+              </label>
+              <div class="output-edit__row">
+                <input
+                  id="edit-prompt"
+                  type="text"
+                  class="output-edit__input"
+                  placeholder="مثال: اجعل الخلفية أكثر إشراقًا، أضف شعار العلامة..."
+                  [value]="editPrompt()"
+                  (input)="editPrompt.set($any($event.target).value)"
+                  (keydown.enter)="applyEdit()">
+                <button type="button" class="output-edit__btn" [disabled]="!canApplyEdit()" (click)="applyEdit()">
+                  <i class="fa-solid fa-paper-plane"></i>
+                  تطبيق التعديل
+                </button>
+              </div>
+            </div>
           </div>
         }
-
       </div>
     </div>
 
   </div><!-- /row -->
 </div><!-- /page-shell -->
-
-
-<!-- ═══ VIEWER / EDIT MODAL ═══ -->
-@if (selectedItem()) {
-  <div class="modal-backdrop" (click)="closeModal()">
-    <div class="viewer-modal" [class.wide]="isVideo(selectedItem()!)" (click)="$event.stopPropagation()">
-
-      <div class="viewer-header"
-           [style.background]="'linear-gradient(135deg,' + typeCfg[selectedItem()!.type].color + ' 0%,' + typeCfg[selectedItem()!.type].color + 'bb 100%)'">
-        <div class="d-flex align-items-center gap-3">
-          <div class="viewer-hdr-icon"><i class="{{ typeCfg[selectedItem()!.type].icon }}"></i></div>
-          <div>
-            <div class="viewer-hdr-title">{{ selectedItem()!.title }}</div>
-            <div class="viewer-hdr-sub">{{ typeCfg[selectedItem()!.type].label }} · {{ selectedItem()!.brand }}</div>
-          </div>
-        </div>
-        <button type="button" class="viewer-close" (click)="closeModal()"><i class="fa-solid fa-xmark"></i></button>
-      </div>
-
-      <div class="viewer-body">
-        <div class="viewer-preview">
-          @if (selectedItem()!.status === 'generating') {
-            <div class="viewer-state" [style.background]="thumbnailGradient(selectedItem()!.type)">
-              <div class="gen-spinner large"></div><span>يُنشأ المحتوى...</span>
-            </div>
-          } @else if (isImage(selectedItem()!)) {
-            <img [src]="selectedItem()!.thumbnailUrl" [alt]="selectedItem()!.title" class="viewer-img">
-          } @else if (isVideo(selectedItem()!)) {
-            <video class="viewer-video" [src]="selectedItem()!.videoUrl" controls autoplay muted></video>
-          } @else {
-            <div class="viewer-state" [style.background]="thumbnailGradient(selectedItem()!.type)">
-              <i class="fa-solid fa-quote-right viewer-quote"></i>
-              <p class="viewer-text-p">{{ selectedItem()!.textContent ?? selectedItem()!.description }}</p>
-            </div>
-          }
-        </div>
-
-        <div class="viewer-details">
-          <div class="vd-meta-top">
-            <span class="viewer-date">{{ formatDateTime(selectedItem()!.createdAt) }}</span>
-            <span class="viewer-brand-pill">{{ selectedItem()!.brand }}</span>
-          </div>
-
-          @if (!editMode()) {
-            <div class="viewer-section">
-              <p class="vsec-label">تفاصيل المحتوى</p>
-              <div class="d-flex flex-column gap-2">
-                <div class="dr"><span class="dr-k">العلامة التجارية</span><span class="dr-v">{{ selectedItem()!.brand }}</span></div>
-                @if (selectedItem()!.description) {
-                  <div class="dr"><span class="dr-k">الوصف</span><span class="dr-v">{{ selectedItem()!.description }}</span></div>
-                }
-                @if (selectedItem()!.tone) {
-                  <div class="dr"><span class="dr-k">النبرة</span><span class="dr-v">{{ toneCfg[selectedItem()!.tone!] }}</span></div>
-                }
-                @if (selectedItem()!.size) {
-                  <div class="dr"><span class="dr-k">الحجم</span><span class="dr-v">{{ sizeCfg[selectedItem()!.size!].label }}</span></div>
-                }
-                <div class="dr">
-                  <span class="dr-k">الحالة</span>
-                  <span class="dr-v fw-bold" [style.color]="statusColor(selectedItem()!.status)">{{ statusLabel(selectedItem()!.status) }}</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="viewer-section">
-              <p class="vsec-label">الإجراءات</p>
-              <div class="d-flex flex-column gap-2">
-                <button type="button" class="abtn abtn-download"><i class="fa-solid fa-download"></i> تنزيل <i class="fa-solid fa-chevron-down ms-auto" style="font-size:.7rem;opacity:.6"></i></button>
-                <button type="button" class="abtn abtn-edit" (click)="startEdit()"><i class="fa-solid fa-wand-magic-sparkles"></i> تحرير بالذكاء الاصطناعي</button>
-                @if (selectedItem()!.type === 'static-ad') {
-                  <button type="button" class="abtn abtn-resize"><i class="fa-solid fa-expand"></i> تغيير الحجم</button>
-                  <button type="button" class="abtn abtn-convert"><i class="fa-solid fa-film"></i> تحويل إلى فيديو</button>
-                }
-                @if (!showDeleteConfirm()) {
-                  <button type="button" class="abtn abtn-delete" (click)="confirmDelete()"><i class="fa-solid fa-trash"></i> حذف</button>
-                } @else {
-                  <div class="delete-confirm">
-                    <span class="d-block mb-2" style="font-size:.8rem;font-weight:600;color:#b91c1c">هل أنت متأكد من الحذف؟</span>
-                    <div class="d-flex gap-2">
-                      <button type="button" class="abtn abtn-del-yes flex-fill justify-content-center" (click)="deleteItem()">نعم، احذف</button>
-                      <button type="button" class="abtn abtn-cancel-del flex-fill justify-content-center" (click)="cancelDelete()">إلغاء</button>
-                    </div>
-                  </div>
-                }
-              </div>
-            </div>
-
-          } @else {
-
-            <div class="viewer-section flex-grow-1">
-              <p class="vsec-label">تحرير المحتوى</p>
-              <div class="d-flex flex-column gap-3">
-                <div>
-                  <label class="form-label-sm">العلامة التجارية</label>
-                  <input type="text" class="form-control form-control-sm" [value]="editBrand()" (input)="editBrand.set($any($event.target).value)">
-                </div>
-                <div>
-                  <label class="form-label-sm">الوصف</label>
-                  <textarea class="form-control form-control-sm edit-ta" [value]="editDesc()" (input)="editDesc.set($any($event.target).value)"></textarea>
-                </div>
-                <div>
-                  <label class="form-label-sm">النبرة</label>
-                  <select class="form-control form-control-sm" [value]="editTone()" (change)="editTone.set($any($event.target).value)">
-                    @for (tone of tones; track tone) { <option [value]="tone">{{ toneCfg[tone] }}</option> }
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            <div class="edit-footer">
-              <button type="button" class="abtn abtn-cancel-edit flex-fill justify-content-center" (click)="cancelEdit()">إلغاء</button>
-              <button type="button" class="abtn abtn-save flex-fill justify-content-center" (click)="saveEdit()">حفظ</button>
-            </div>
-
-          }
-        </div>
-      </div>
-
-    </div>
-  </div>
-}

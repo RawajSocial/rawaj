@@ -8,6 +8,7 @@ const INITIAL_ITEMS: GeneratedItem[] = [
     size: 'square', tone: 'professional', language: 'ar',
     description: 'إعلان لمنتج العناية بالبشرة',
     thumbnailUrl: '/Ads/Product%201.jpg',
+    brandProfileId: 'bp1', campaignId: '1',
   },
   {
     id: '2', type: 'static-ad', title: 'كوليكشن الصيف', brand: 'ستايل هاوس',
@@ -15,6 +16,7 @@ const INITIAL_ITEMS: GeneratedItem[] = [
     size: 'portrait', tone: 'energetic', language: 'ar',
     description: 'مجموعة الصيف الجديدة بأسعار مميزة',
     thumbnailUrl: '/Ads/product%202.jpg',
+    brandProfileId: 'bp2', campaignId: '2',
   },
   {
     id: '3', type: 'static-ad', title: 'تشكيلة جديدة', brand: 'تاون تيم',
@@ -91,6 +93,15 @@ export class MediaService {
   markGenerated(id: string, extra?: Partial<GeneratedItem>): void {
     this.items.update(list =>
       list.map(i => i.id === id ? { ...i, status: 'generated', ...extra } : i)
+    );
+  }
+
+  /** Puts an already-generated item back into the "generating" state — used
+   *  when re-running generation with an edit prompt on top of an existing
+   *  result. */
+  markRegenerating(id: string): void {
+    this.items.update(list =>
+      list.map(i => i.id === id ? { ...i, status: 'generating' } : i)
     );
   }
 

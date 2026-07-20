@@ -1,0 +1,58 @@
+.admin-plans-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1rem;
+}
+
+.admin-plan-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.admin-plan-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.admin-plan-card__name {
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-bold);
+  color: var(--color-dark);
+}
+
+.admin-plan-card__price {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.admin-plan-card__amount {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-bold);
+  color: var(--color-dark);
+}
+
+.admin-plan-card__period {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.admin-plan-card__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 8px;
+  border-top: 1px solid var(--color-border);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.admin-plan-card__meta span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
