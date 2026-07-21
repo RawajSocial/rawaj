@@ -14,12 +14,12 @@ namespace Rawaj.Application.Common.Policies;
 /// </summary>
 public static class RefreshTokenPolicy
 {
-    private const int ExpiryDays = 30;
+    private const int DefaultExpiryDays = 30;
 
     /// <summary>
     /// Adds a new refresh token to the dbContext (caller SaveChanges) and returns the raw value.
     /// </summary>
-    public static string Issue(IApplicationDbContext dbContext, Guid userId)
+    public static string Issue(IApplicationDbContext dbContext, Guid userId, int expiryDays = DefaultExpiryDays)
     {
         var rawToken = GenerateRawToken();
         var now = DateTime.UtcNow;
@@ -29,7 +29,7 @@ public static class RefreshTokenPolicy
             Id = Guid.NewGuid(),
             UserId = userId,
             TokenHash = Hash(rawToken),
-            ExpiresAt = now.AddDays(ExpiryDays),
+            ExpiresAt = now.AddDays(expiryDays),
             CreatedAt = now
         });
 
@@ -42,7 +42,7 @@ public static class RefreshTokenPolicy
     /// token on success.
     /// </summary>
     public static async Task<Result<(Guid UserId, string NewRawToken)>> RotateAsync(
-        IApplicationDbContext dbContext, string rawToken, CancellationToken cancellationToken)
+        IApplicationDbContext dbContext, string rawToken, CancellationToken cancellationToken, int expiryDays = DefaultExpiryDays)
     {
         var tokenHash = Hash(rawToken);
 
@@ -56,7 +56,7 @@ public static class RefreshTokenPolicy
 
         existing.RevokedAt = DateTime.UtcNow;
 
-        var newRawToken = Issue(dbContext, existing.UserId);
+        var newRawToken = Issue(dbContext, existing.UserId, expiryDays);
 
         return Result<(Guid, string)>.Success((existing.UserId, newRawToken));
     }

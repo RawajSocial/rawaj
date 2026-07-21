@@ -26,7 +26,7 @@ public class LoginCommandHandler(
         await identityService.UpdateLastLoginAsync(user.Id, cancellationToken);
 
         var accessToken = jwtTokenGenerator.GenerateToken(user);
-        var refreshToken = RefreshTokenPolicy.Issue(dbContext, user.Id);
+        var refreshToken = RefreshTokenPolicy.Issue(dbContext, user.Id, jwtTokenGenerator.RefreshTokenExpiryDays);
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return Result<LoginResponse>.Success(new LoginResponse(user.Id, user.Email, user.FullName, accessToken, refreshToken));

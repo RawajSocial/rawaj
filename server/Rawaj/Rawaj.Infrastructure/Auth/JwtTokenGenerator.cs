@@ -11,7 +11,7 @@ namespace Rawaj.Infrastructure.Auth;
 public class JwtTokenGenerator(IOptions<JwtSettings> jwtSettings) : IJwtTokenGenerator
 {
     private readonly JwtSettings _settings = jwtSettings.Value;
-
+    public int RefreshTokenExpiryDays => _settings.RefreshTokenExpiryDays;
     public string GenerateToken(ApplicationUserDto user)
     {
         var claims = new[]

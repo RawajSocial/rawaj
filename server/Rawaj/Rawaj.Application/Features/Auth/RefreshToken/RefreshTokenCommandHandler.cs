@@ -11,7 +11,8 @@ public class RefreshTokenCommandHandler(
 {
     public async Task<Result<RefreshTokenResponse>> Handle(RefreshTokenCommand request, CancellationToken cancellationToken)
     {
-        var rotation = await RefreshTokenPolicy.RotateAsync(dbContext, request.RefreshToken, cancellationToken);
+        var rotation = await RefreshTokenPolicy.RotateAsync(
+            dbContext, request.RefreshToken, cancellationToken, jwtTokenGenerator.RefreshTokenExpiryDays);
         if (!rotation.Succeeded)
         {
             return Result<RefreshTokenResponse>.Failure(rotation.ErrorMessage!);

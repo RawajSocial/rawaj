@@ -39,7 +39,7 @@ public class RegisterCommandHandler(
         };
 
         var accessToken = jwtTokenGenerator.GenerateToken(userDto);
-        var refreshToken = RefreshTokenPolicy.Issue(dbContext, userDto.Id);
+        var refreshToken = RefreshTokenPolicy.Issue(dbContext, userDto.Id, jwtTokenGenerator.RefreshTokenExpiryDays);
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return Result<RegisterResponse>.Success(
