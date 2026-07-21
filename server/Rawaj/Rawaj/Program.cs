@@ -1,11 +1,7 @@
-using System.Text;
 using System.Text.Json.Serialization;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
-using Microsoft.IdentityModel.Tokens;
 using Rawaj.Application;
 using Rawaj.Infrastructure;
-using Rawaj.Infrastructure.Auth;
 using Rawaj.Application.Common.Interfaces;
 using Rawaj.Extensions;
 using Rawaj.Middleware;
@@ -47,29 +43,7 @@ namespace Rawaj
             builder.Services.AddPersistence(builder.Configuration);
             builder.Services.AddInfrastructure(builder.Configuration);
 
-            var jwtSettings = builder.Configuration.GetSection(JwtSettings.SectionName).Get<JwtSettings>()
-                ?? throw new InvalidOperationException("Jwt settings are not configured.");
-
-            builder.Services
-                .AddAuthentication(options =>
-                {
-                    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-                    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-                })
-                .AddJwtBearer(options =>
-                {
-                    options.TokenValidationParameters = new TokenValidationParameters
-                    {
-                        ValidateIssuer = true,
-                        ValidateAudience = true,
-                        ValidateLifetime = true,
-                        ValidateIssuerSigningKey = true,
-                        ValidIssuer = jwtSettings.Issuer,
-                        ValidAudience = jwtSettings.Audience,
-                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.Secret)),
-                        ClockSkew = TimeSpan.Zero
-                    };
-                });
+            builder.Services.AddJwtAuthentication(builder.Configuration);
 
             builder.Services.AddAuthorization(options =>
             {
