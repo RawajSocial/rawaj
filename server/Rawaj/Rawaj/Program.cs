@@ -7,6 +7,7 @@ using Rawaj.Application;
 using Rawaj.Infrastructure;
 using Rawaj.Infrastructure.Auth;
 using Rawaj.Application.Common.Interfaces;
+using Rawaj.Extensions;
 using Rawaj.Middleware;
 using Rawaj.Persistence;
 using Rawaj.Services;
@@ -17,8 +18,6 @@ namespace Rawaj
     {
         public static void Main(string[] args)
         {
-            // Ensures WebRootPath resolves (StaticFileMiddleware warns otherwise) - must exist
-            // before CreateBuilder resolves the web root, not just before UseStaticFiles.
             Directory.CreateDirectory(Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "media"));
 
             var builder = WebApplication.CreateBuilder(args);
@@ -26,13 +25,9 @@ namespace Rawaj
             // Add services to the container.
 
             builder.Services.AddControllers()
-                .AddJsonOptions(options =>
-                    options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
-            // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-            builder.Services.AddOpenApi();
+                .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+            builder.Services.AddSwaggerService();
 
-            // Dev-friendly: allow any origin. Auth uses a Bearer token (not cookies), so
-            // AllowAnyOrigin is safe here — tighten to specific origins before production.
             builder.Services.AddCors(options =>
             {
                 options.AddDefaultPolicy(policy =>
@@ -78,8 +73,6 @@ namespace Rawaj
 
             builder.Services.AddAuthorization(options =>
             {
-                // Platform admins are a separate concern from tenant-scoped RBAC (TenantMemberRole)
-                // - this claim marks a user as SaaS operator staff, not a role within any tenant.
                 options.AddPolicy("PlatformAdmin", policy => policy.RequireClaim("platform_admin", "true"));
             });
 
@@ -91,7 +84,7 @@ namespace Rawaj
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
             {
-                app.MapOpenApi();
+                app.UseSwaggerService();
             }
 
             app.UseMiddleware<RequestLoggingMiddleware>();
@@ -99,13 +92,9 @@ namespace Rawaj
 
             app.UseHttpsRedirection();
 
-            // /health/live: process is up, no dependency checks (fast, for restart probes).
-            // /health: also verifies the database is reachable (for readiness/monitoring).
             app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false });
             app.MapHealthChecks("/health");
 
-            // Serves images re-hosted by IPublicImageHostingService (needed for Instagram's
-            // image_url-based publishing API) under /media.
             app.UseStaticFiles();
 
             app.UseCors();

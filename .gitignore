@@ -6,6 +6,7 @@
 # custom
 graphify-out
 .claude
+CLAUDE.md
 appsettings.Development.json
 
 # User-specific files
