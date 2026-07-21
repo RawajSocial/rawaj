@@ -14,6 +14,15 @@ export type ContentType = 'Post' | 'Story' | 'ReelScript' | 'AdCopy' | 'Blog' | 
 export type SocialPlatform = 'Instagram' | 'Linkedin' | 'Twitter' | 'Facebook' | 'Tiktok' | 'Youtube';
 export type ContentStatus = 'Draft' | 'Reviewed' | 'Approved' | 'Rejected' | 'Published';
 export type VisualAssetType = 'Image' | 'Banner' | 'Logo' | 'Story' | 'Ad' | 'VideoThumbnail';
+export type ContentTemplateStyle =
+  | 'Auto'
+  | 'ProductHighlight'
+  | 'PromotionalOffer'
+  | 'EducationalTip'
+  | 'EngagementQuestion'
+  | 'BehindTheScenes'
+  | 'Testimonial'
+  | 'Announcement';
 
 export type CompetitorStatus = 'Active' | 'Archived';
 

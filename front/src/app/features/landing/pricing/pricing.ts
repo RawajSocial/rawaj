@@ -1,9 +1,10 @@
 import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { RevealDirective } from '../../../shared/directives/reveal.directive';
 
 @Component({
   selector: 'app-pricing',
-  imports: [RevealDirective],
+  imports: [RevealDirective, RouterLink],
   templateUrl: './pricing.html',
   styleUrl: './pricing.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

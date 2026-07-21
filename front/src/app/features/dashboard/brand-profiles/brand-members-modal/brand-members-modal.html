@@ -1,0 +1,39 @@
+<app-modal-shell [open]="open()" [title]="'أعضاء ' + (brand()?.name ?? '')" [maxWidth]="480" (closed)="closed.emit()">
+
+  @if (toggleError(); as error) {
+    <div class="alert alert-danger">{{ error }}</div>
+  }
+
+  @if (loading()) {
+    <div class="text-center py-4">
+      <div class="spinner-border text-primary" role="status"></div>
+    </div>
+  } @else if (activeMembers().length === 0) {
+    <p class="text-muted text-center py-3">لا يوجد أعضاء نشطون في الفريق بعد.</p>
+  } @else {
+    <div class="bm-list">
+      @for (member of activeMembers(); track member.id) {
+        <div class="bm-row">
+          <div class="bm-info">
+            <span class="bm-name">{{ member.name }}</span>
+            <span class="bm-role">{{ roleLabels[member.role] }}</span>
+          </div>
+
+          @if (isToggleable(member)) {
+            <button
+              type="button"
+              class="bm-switch"
+              [class.on]="hasBrandAccess(member)"
+              [disabled]="togglingId() === member.id"
+              [attr.aria-pressed]="hasBrandAccess(member)"
+              [attr.aria-label]="member.name"
+              (click)="toggleAccess(member)"></button>
+          } @else {
+            <span class="bm-always">دائمًا</span>
+          }
+        </div>
+      }
+    </div>
+  }
+
+</app-modal-shell>

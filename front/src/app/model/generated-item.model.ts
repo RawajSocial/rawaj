@@ -1,10 +1,10 @@
-import { ContentStatus } from '../core/models';
+import { ContentStatus, ContentType, VisualAssetType } from '../core/models';
 
 export type GenType     = 'static-ad' | 'video' | 'text';
 export type GenStatus   = 'generating' | 'generated' | 'failed';
 export type AdSize      = 'square' | 'portrait' | 'landscape' | 'story';
 export type ContentTone = 'professional' | 'casual' | 'energetic' | 'luxurious';
-export type TextType    = 'caption' | 'hashtags' | 'ad-copy' | 'blog';
+export type TextType    = 'caption' | 'hashtags' | 'post' | 'story' | 'reel-script' | 'ad-copy' | 'blog';
 
 export interface GeneratedItem {
   id: string;
@@ -48,8 +48,30 @@ export const TONE_CFG: Record<ContentTone, string> = {
 };
 
 export const TEXT_TYPE_CFG: Record<TextType, string> = {
-  caption:   'تعليق منشور',
-  hashtags:  'هاشتاقات',
-  'ad-copy': 'نص إعلاني',
-  blog:      'منشور مدونة',
+  caption:      'تعليق منشور',
+  hashtags:     'هاشتاقات',
+  post:         'منشور',
+  story:        'نص ستوري',
+  'reel-script': 'نص ريلز',
+  'ad-copy':    'نص إعلاني',
+  blog:         'منشور مدونة',
+};
+
+export const TEXT_TYPE_TO_CONTENT_TYPE: Record<TextType, ContentType> = {
+  caption: 'Caption',
+  hashtags: 'Caption',
+  post: 'Post',
+  story: 'Story',
+  'reel-script': 'ReelScript',
+  'ad-copy': 'AdCopy',
+  blog: 'Blog',
+};
+
+export const VISUAL_TYPE_CFG: Record<VisualAssetType, string> = {
+  Image: 'صورة',
+  Banner: 'بانر',
+  Logo: 'شعار',
+  Story: 'صورة ستوري',
+  Ad: 'صورة إعلانية',
+  VideoThumbnail: 'صورة مصغرة للفيديو',
 };

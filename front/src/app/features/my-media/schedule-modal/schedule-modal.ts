@@ -3,7 +3,7 @@ import { RouterLink } from '@angular/router';
 import { ModalShell } from '../../../shared/components/modal-shell/modal-shell';
 import { SocialAccountsApiService } from '../../../core/api/social-accounts-api.service';
 import { SchedulingApiService } from '../../../core/api/scheduling-api.service';
-import { TenantService } from '../../../core/tenant/tenant.service';
+import { ContentApiService } from '../../../core/api/content-api.service';
 import { MediaService } from '../../../services/media.service';
 import { ApiError } from '../../../core/api';
 import { SocialAccountSummary, SocialPlatform } from '../../../core/models';
@@ -33,7 +33,7 @@ export class ScheduleModal {
 
   private readonly socialAccountsApi = inject(SocialAccountsApiService);
   private readonly schedulingApi = inject(SchedulingApiService);
-  private readonly tenantService = inject(TenantService);
+  private readonly contentApi = inject(ContentApiService);
   protected readonly media = inject(MediaService);
 
   protected readonly platformCfg = PLATFORM_CFG;
@@ -57,9 +57,10 @@ export class ScheduleModal {
 
   constructor() {
     effect(() => {
-      if (this.open()) {
+      const contentItemId = this.contentItemId();
+      if (this.open() && contentItemId) {
         this.resetForm();
-        this.loadAccounts();
+        this.loadAccounts(contentItemId);
       }
     });
   }
@@ -71,27 +72,46 @@ export class ScheduleModal {
     this.submitError.set(null);
   }
 
-  private loadAccounts(): void {
-    const brandProfileId = this.tenantService.activeBrandProfile()?.brandProfileId;
-    if (!brandProfileId) return;
-
+  /** Resolves accounts via the content item's own brand, not whatever brand happens to be
+   * globally "active" - a content item may belong to a different brand than the one currently
+   * selected elsewhere in the app, and scheduling must always target the right brand's accounts. */
+  private loadAccounts(contentItemId: string): void {
     this.loadingAccounts.set(true);
     this.loadError.set(null);
 
-    this.socialAccountsApi.getByBrand(brandProfileId).subscribe({
-      next: (accounts) => {
-        this.accounts.set(accounts.filter((a) => a.isActive));
-        this.loadingAccounts.set(false);
+    this.contentApi.getById(contentItemId).subscribe({
+      next: (item) => {
+        const brandProfileId = item.brandProfileId;
+        if (!brandProfileId) {
+          this.loadingAccounts.set(false);
+          this.loadError.set('تعذر تحديد العلامة التجارية لهذا المحتوى.');
+          return;
+        }
+
+        this.socialAccountsApi.getByBrand(brandProfileId).subscribe({
+          next: (accounts) => {
+            this.accounts.set(accounts.filter((a) => a.isActive));
+            this.loadingAccounts.set(false);
+          },
+          error: (error: unknown) => {
+            this.loadingAccounts.set(false);
+            this.loadError.set(error instanceof ApiError ? error.message : 'تعذر تحميل الحسابات المرتبطة.');
+          },
+        });
       },
       error: (error: unknown) => {
         this.loadingAccounts.set(false);
-        this.loadError.set(error instanceof ApiError ? error.message : 'تعذر تحميل الحسابات المرتبطة.');
+        this.loadError.set(error instanceof ApiError ? error.message : 'تعذر تحميل بيانات المحتوى.');
       },
     });
   }
 
   protected selectAccount(id: string): void {
     this.selectedAccountId.set(id);
+  }
+
+  protected setNow(): void {
+    this.scheduledAtLocal.set(this.toLocalInputValue(new Date()));
   }
 
   protected submit(): void {
@@ -113,6 +133,7 @@ export class ScheduleModal {
         visualAssetId: this.selectedVisualAssetId() || null,
         socialAccountId,
         scheduledAt: new Date(scheduledAtLocal).toISOString(),
+        aiSuggestedTime: false,
       })
       .subscribe({
         next: () => {

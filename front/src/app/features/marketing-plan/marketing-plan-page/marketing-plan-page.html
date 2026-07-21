@@ -168,11 +168,220 @@
               }
 
               <div class="d-flex gap-2 mt-4 flex-wrap">
-                <button class="btn btn-primary" type="button" (click)="goToContentGen()">
-                  <i class="fa-solid fa-pen-nib me-1"></i>توليد محتوى لهذه الحملة
-                </button>
                 <button class="btn btn-outline-secondary" type="button" (click)="goToCalendar()">
                   <i class="fa-regular fa-calendar me-1"></i>عرض جدول النشر
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="card mt-4">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                <h4 class="mb-0"><i class="fa-solid fa-layer-group text-primary me-2"></i>منشورات الحملة</h4>
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                  <label class="small text-muted mb-0">عدد المنشورات</label>
+                  <input
+                    class="form-control form-control-sm"
+                    style="width: 70px"
+                    type="number"
+                    min="1"
+                    max="15"
+                    [value]="postCount()"
+                    (change)="setPostCount($any($event.target).value)" />
+                  <div class="btn-group btn-group-sm" role="group">
+                    <button
+                      type="button"
+                      class="btn"
+                      [class.btn-primary]="contentLanguage() === 'Ar'"
+                      [class.btn-outline-secondary]="contentLanguage() !== 'Ar'"
+                      (click)="setContentLanguage('Ar')">
+                      عربي
+                    </button>
+                    <button
+                      type="button"
+                      class="btn"
+                      [class.btn-primary]="contentLanguage() === 'En'"
+                      [class.btn-outline-secondary]="contentLanguage() !== 'En'"
+                      (click)="setContentLanguage('En')">
+                      English
+                    </button>
+                  </div>
+                  <select
+                    class="form-select form-select-sm"
+                    style="width: auto"
+                    [value]="templateStyle()"
+                    (change)="setTemplateStyle($any($event.target).value)">
+                    @for (style of templateStyles; track style) {
+                      <option [value]="style">{{ templateLabels[style] }}</option>
+                    }
+                  </select>
+                  <div class="form-check form-check-sm mb-0">
+                    <input
+                      class="form-check-input"
+                      type="checkbox"
+                      id="includeImages"
+                      [checked]="includeImages()"
+                      (change)="setIncludeImages($any($event.target).checked)" />
+                    <label class="form-check-label small" for="includeImages">توليد صور مع المنشورات</label>
+                  </div>
+                  <button class="btn btn-primary btn-sm" type="button" [disabled]="generatingContent()" (click)="generateContent()">
+                    @if (generatingContent()) {
+                      <span class="spinner-border spinner-border-sm me-1" role="status"></span>جاري التوليد... قد يستغرق توليد الصور وقتًا أطول
+                    } @else {
+                      <i class="fa-solid fa-sparkles me-1"></i>توليد منشورات الحملة
+                    }
+                  </button>
+                </div>
+              </div>
+
+              @if (contentGenError(); as error) {
+                <div class="alert alert-warning">{{ error }}</div>
+              }
+
+              @if (contentGenNote(); as note) {
+                <div class="alert alert-info">{{ note }}</div>
+              }
+
+              @if (schedulablePosts().length > 0) {
+                <div class="d-flex justify-content-between align-items-center gap-2 mb-3">
+                  <span class="small text-muted">
+                    <i class="fa-solid fa-clock me-1"></i>
+                    يوجد {{ schedulablePosts().length }} منشور(ات) معتمدة جاهزة للجدولة التلقائية.
+                  </span>
+                  <button class="btn btn-outline-primary btn-sm" type="button" [disabled]="schedulingAll()" (click)="scheduleAllApproved()">
+                    @if (schedulingAll()) {
+                      <span class="spinner-border spinner-border-sm me-1" role="status"></span>جاري الجدولة...
+                    } @else {
+                      جدولة كل المعتمدة تلقائيًا
+                    }
+                  </button>
+                </div>
+              }
+
+              @if (scheduleAllError(); as error) {
+                <div class="alert alert-warning">{{ error }}</div>
+              }
+
+              @if (loadingPosts()) {
+                <div class="text-center py-4">
+                  <div class="spinner-border text-primary" role="status"></div>
+                </div>
+              } @else if (generatedPosts().length === 0) {
+                <div class="text-center py-4 text-muted">
+                  <i class="fa-solid fa-note-sticky fa-2x mb-2"></i>
+                  <p>لا توجد منشورات مولّدة لهذه الحملة بعد.</p>
+                </div>
+              } @else {
+                <div class="d-flex flex-column gap-3">
+                  @for (post of generatedPosts(); track post.contentItemId) {
+                    <div class="mp-post-card">
+                      <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                        <div class="mp-post-meta">
+                          <span class="badge text-bg-light me-1">{{ platformLabel(post.platform) }}</span>
+                          <span class="badge text-bg-light me-1">{{ post.contentType }}</span>
+                          @if (post.suggestedPostAt) {
+                            <span><i class="fa-regular fa-clock me-1"></i>{{ formatSuggested(post.suggestedPostAt) }}</span>
+                          }
+                        </div>
+                        <span class="badge mp-status-badge" [attr.data-status]="post.status">{{ post.status }}</span>
+                      </div>
+
+                      @if (post.imageUrl) {
+                        <img [src]="post.imageUrl" alt="" class="mp-post-image" />
+                      }
+
+                      <p class="mp-post-content">{{ post.content }}</p>
+
+                      <div class="d-flex gap-2 flex-wrap">
+                        @if (post.status === 'Draft' || post.status === 'Reviewed') {
+                          <button
+                            class="btn btn-outline-success btn-sm"
+                            type="button"
+                            [disabled]="reviewingId() === post.contentItemId"
+                            (click)="reviewPost(post.contentItemId, true)">
+                            <i class="fa-solid fa-check me-1"></i>اعتماد
+                          </button>
+                          <button
+                            class="btn btn-outline-danger btn-sm"
+                            type="button"
+                            [disabled]="reviewingId() === post.contentItemId"
+                            (click)="reviewPost(post.contentItemId, false)">
+                            <i class="fa-solid fa-xmark me-1"></i>رفض
+                          </button>
+                          <button class="btn btn-outline-secondary btn-sm" type="button" (click)="toggleFeedback(post.contentItemId)">
+                            <i class="fa-solid fa-rotate me-1"></i>إعادة التوليد
+                          </button>
+                        }
+                        @if (post.status === 'Approved' && !post.imageUrl) {
+                          <button
+                            class="btn btn-outline-secondary btn-sm"
+                            type="button"
+                            [disabled]="generatingImageForPost() === post.contentItemId"
+                            (click)="generateImageForPost(post)">
+                            @if (generatingImageForPost() === post.contentItemId) {
+                              <span class="spinner-border spinner-border-sm me-1" role="status"></span>جاري إنشاء الصورة...
+                            } @else {
+                              <i class="fa-regular fa-image me-1"></i>إنشاء صورة
+                            }
+                          </button>
+                        }
+                        @if (post.status === 'Approved') {
+                          <button class="btn btn-outline-primary btn-sm" type="button" (click)="openManualSchedule(post.contentItemId)">
+                            <i class="fa-regular fa-calendar-plus me-1"></i>جدولة يدويًا
+                          </button>
+                        }
+                      </div>
+
+                      @if (post.status === 'Approved') {
+                        @if (schedulingPostId() === post.contentItemId) {
+                          <p class="small text-muted mt-2 mb-0">
+                            <span class="spinner-border spinner-border-sm me-1" role="status"></span>جاري الجدولة التلقائية...
+                          </p>
+                        } @else if (scheduledAtFor(post.contentItemId); as scheduledAt) {
+                          <p class="small text-success mt-2 mb-0">
+                            <i class="fa-solid fa-circle-check me-1"></i>
+                            تمت الجدولة تلقائيًا لـ {{ formatSuggested(scheduledAt) }}.
+                            <button type="button" class="btn btn-link btn-sm p-0 align-baseline" (click)="goToCalendar()">عرض في التقويم</button>
+                          </p>
+                        } @else if (scheduleErrorFor(post.contentItemId); as scheduleError) {
+                          <p class="small text-danger mt-2 mb-0">
+                            <i class="fa-solid fa-triangle-exclamation me-1"></i>{{ scheduleError }}
+                          </p>
+                        } @else if (hasNoMatchingAccount(post)) {
+                          <p class="small text-muted mt-2 mb-0">
+                            <i class="fa-solid fa-circle-info me-1"></i>
+                            لا يوجد حساب {{ platformLabel(post.platform) }} متصل، اربط حسابًا لتفعيل الجدولة التلقائية.
+                            <a routerLink="/dashboard/social-accounts">ربط حساب</a>
+                          </p>
+                        }
+                      }
+
+                      @if (openFeedbackFor() === post.contentItemId) {
+                        <div class="mp-feedback-row">
+                          <textarea
+                            class="form-control form-control-sm"
+                            rows="2"
+                            placeholder="ما التعديل المطلوب؟"
+                            [value]="regenerateFeedback()[post.contentItemId] ?? ''"
+                            (input)="setFeedback(post.contentItemId, $any($event.target).value)"></textarea>
+                          <button
+                            class="btn btn-primary btn-sm"
+                            type="button"
+                            [disabled]="regeneratingId() === post.contentItemId"
+                            (click)="regeneratePost(post.contentItemId)">
+                            إرسال
+                          </button>
+                        </div>
+                      }
+                    </div>
+                  }
+                </div>
+              }
+
+              <div class="d-flex gap-2 mt-4 flex-wrap">
+                <button class="btn btn-primary" type="button" (click)="goToContentGen()">
+                  <i class="fa-solid fa-pen-nib me-1"></i>توليد محتوى فردي لهذه الحملة
                 </button>
               </div>
             </div>
@@ -182,3 +391,9 @@
     }
   }
 </div>
+
+<app-schedule-modal
+  [open]="manualScheduleContentItemId() !== null"
+  [contentItemId]="manualScheduleContentItemId()"
+  (closed)="closeManualSchedule()"
+  (scheduled)="onManualScheduled()" />

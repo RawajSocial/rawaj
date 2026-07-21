@@ -1,0 +1,82 @@
+<app-modal-shell [open]="open()" [title]="isEditMode() ? 'تعديل العلامة التجارية' : 'علامة تجارية جديدة'" [maxWidth]="560" (closed)="closed.emit()">
+
+  @if (loadingDetail()) {
+    <div class="text-center py-4">
+      <div class="spinner-border text-primary" role="status"></div>
+    </div>
+  } @else {
+    @if (submitError(); as error) {
+      <div class="alert alert-danger">{{ error }}</div>
+    }
+
+    <form [formGroup]="form" (ngSubmit)="submit()" class="bpf-form">
+      <div class="bpf-field">
+        <label for="bp-name">الاسم</label>
+        <input id="bp-name" type="text" class="form-control" formControlName="name">
+      </div>
+
+      <div class="bpf-field">
+        <label for="bp-description">الوصف</label>
+        <textarea id="bp-description" class="form-control" rows="2" formControlName="description"></textarea>
+      </div>
+
+      <div class="bpf-grid">
+        <div class="bpf-field">
+          <label for="bp-voice">نبرة العلامة</label>
+          <select id="bp-voice" class="form-control" formControlName="brandVoice">
+            <option value="">بدون تحديد</option>
+            @for (v of brandVoices; track v.value) {
+              <option [value]="v.value">{{ v.label }}</option>
+            }
+          </select>
+        </div>
+        <div class="bpf-field">
+          <label for="bp-industry">المجال</label>
+          <input id="bp-industry" type="text" class="form-control" formControlName="industry">
+        </div>
+      </div>
+
+      <div class="bpf-field">
+        <label for="bp-tagline">الشعار النصي (Tagline)</label>
+        <input id="bp-tagline" type="text" class="form-control" formControlName="tagline">
+      </div>
+
+      <div class="bpf-field">
+        <label for="bp-audience">الجمهور المستهدف</label>
+        <input id="bp-audience" type="text" class="form-control" formControlName="targetAudience">
+      </div>
+
+      <div class="bpf-grid">
+        <div class="bpf-field">
+          <label for="bp-logo">رابط الشعار</label>
+          <input id="bp-logo" type="url" class="form-control" formControlName="logoUrl" placeholder="https://...">
+        </div>
+        <div class="bpf-field">
+          <label for="bp-website">رابط الموقع</label>
+          <input id="bp-website" type="url" class="form-control" formControlName="websiteUrl" placeholder="https://...">
+        </div>
+      </div>
+
+      <div class="bpf-field">
+        <label for="bp-colors">ألوان العلامة (مفصولة بفاصلة)</label>
+        <input id="bp-colors" type="text" class="form-control" formControlName="colors" placeholder="#7C3AED, #2563EB">
+      </div>
+
+      <div class="bpf-field">
+        <label for="bp-keywords">كلمات مفتاحية (مفصولة بفاصلة)</label>
+        <input id="bp-keywords" type="text" class="form-control" formControlName="keywords">
+      </div>
+
+      <div class="bpf-footer">
+        <button type="button" class="btn btn-outline-secondary" (click)="closed.emit()">إلغاء</button>
+        <button type="submit" class="btn btn-primary" [disabled]="submitting()">
+          @if (submitting()) {
+            <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+          }
+          {{ isEditMode() ? 'حفظ التغييرات' : 'إنشاء العلامة التجارية' }}
+        </button>
+      </div>
+    </form>
+  }
+
+</app-modal-shell>

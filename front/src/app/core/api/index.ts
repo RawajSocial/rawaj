@@ -11,4 +11,5 @@ export * from './scheduling-api.service';
 export * from './social-accounts-api.service';
 export * from './team-members-api.service';
 export * from './tenants-api.service';
+export * from './users-api.service';
 export * from './visual-assets-api.service';

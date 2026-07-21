@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 import { guestGuard } from './core/guards/guest.guard';
+import { noTenantGuard, tenantGuard } from './core/guards/tenant.guard';
 
 export const routes: Routes = [
   {
@@ -19,9 +20,14 @@ export const routes: Routes = [
   },
   {
     path: 'account-setup',
-    canActivate: [authGuard],
+    canActivate: [authGuard, noTenantGuard],
     loadComponent: () =>
       import('./features/account-setup/account-setup/account-setup').then((m) => m.AccountSetup),
+  },
+  {
+    path: 'welcome',
+    canActivate: [authGuard, noTenantGuard],
+    loadComponent: () => import('./features/welcome/welcome/welcome').then((m) => m.Welcome),
   },
   {
     path: 'on-boarding',
@@ -31,7 +37,7 @@ export const routes: Routes = [
   },
   {
     path: 'dashboard',
-    canActivate: [authGuard],
+    canActivate: [authGuard, tenantGuard],
     loadComponent: () => import('./features/dashboard/dashboard').then((m) => m.Dashboard),
     children: [
       {
@@ -78,6 +84,16 @@ export const routes: Routes = [
         path: 'users/:id',
         loadComponent: () =>
           import('./features/dashboard/users/user-profile-page/user-profile-page').then((m) => m.UserProfilePage),
+      },
+      {
+        path: 'brand-profiles',
+        loadComponent: () =>
+          import('./features/dashboard/brand-profiles/brand-profiles-page/brand-profiles-page').then((m) => m.BrandProfilesPage),
+      },
+      {
+        path: 'analytics',
+        loadComponent: () =>
+          import('./features/dashboard/analytics/analytics-page/analytics-page').then((m) => m.AnalyticsPage),
       },
       {
         path: 'social-accounts',

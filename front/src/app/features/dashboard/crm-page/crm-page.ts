@@ -1,5 +1,4 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
 import { KpiCard } from '../kpi-card/kpi-card';
 import { PageHeader } from '../../../shared/components/page-header/page-header';
 import { AnalyticsApiService } from '../../../core/api/analytics-api.service';
@@ -28,7 +27,7 @@ interface KpiData {
 @Component({
   selector: 'app-crm-page',
   standalone: true,
-  imports: [KpiCard, PageHeader, RouterLink],
+  imports: [KpiCard, PageHeader],
   templateUrl: './crm-page.html',
   styleUrls: ['../../campaigns/campaigns-page/campaigns-page.css', './crm-page.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -42,11 +41,6 @@ export class CrmPage {
   protected readonly loadError = signal<string | null>(null);
 
   protected readonly hasData = computed(() => (this.overview()?.postsTracked ?? 0) > 0);
-
-  /** A registered account works without a tenant - this is the state a brand-new user (or one who
-   * hasn't created/joined a business yet) lands in, distinct from "has a business but no post data
-   * yet". */
-  protected readonly needsTenant = computed(() => this.tenantService.loaded() && !this.tenantService.hasTenant());
 
   protected readonly kpis = computed<KpiData[]>(() => {
     const o = this.overview();

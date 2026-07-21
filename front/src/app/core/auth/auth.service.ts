@@ -62,6 +62,17 @@ export class AuthService {
       );
   }
 
+  /** Called after a successful profile update so the header/sidebar reflect the new name immediately
+   * without a full session reload. */
+  updateCurrentUserName(fullName: string): void {
+    const current = this.userSignal();
+    if (!current) return;
+
+    const updated: AuthUser = { ...current, fullName };
+    this.userSignal.set(updated);
+    localStorage.setItem(USER_KEY, JSON.stringify(updated));
+  }
+
   logout(): void {
     const refreshToken = this.refreshToken;
     this.clearSession();

@@ -2,7 +2,13 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { ApiResponse, ChangeSubscriptionPlanResponse, CurrentSubscription, SubscriptionPlanSummary } from '../models';
+import {
+  AiCreditsUsage,
+  ApiResponse,
+  ChangeSubscriptionPlanResponse,
+  CurrentSubscription,
+  SubscriptionPlanSummary,
+} from '../models';
 import { unwrapApiResponse } from './unwrap-api-response';
 
 @Injectable({ providedIn: 'root' })
@@ -22,5 +28,9 @@ export class BillingApiService {
     return this.http
       .post<ApiResponse<ChangeSubscriptionPlanResponse>>(`${this.baseUrl}/change-plan`, { subscriptionPlanId })
       .pipe(unwrapApiResponse());
+  }
+
+  getAiCreditsUsage(): Observable<AiCreditsUsage> {
+    return this.http.get<ApiResponse<AiCreditsUsage>>(`${this.baseUrl}/ai-credits`).pipe(unwrapApiResponse());
   }
 }

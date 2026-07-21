@@ -1,11 +1,12 @@
 import { Component, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 
 const SCROLLED_THRESHOLD = 40;
 const HIDE_THRESHOLD = 120;
 
 @Component({
   selector: 'app-navbar',
-  imports: [],
+  imports: [RouterLink],
   templateUrl: './navbar.html',
   styleUrl: './navbar.css',
   host: {

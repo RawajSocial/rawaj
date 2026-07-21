@@ -1,4 +1,4 @@
-import { TenantMemberRole, TenantType } from './enums';
+import { InvitationStatus, TenantMemberRole, TenantType } from './enums';
 
 export interface MyTenant {
   tenantId: string;
@@ -29,12 +29,15 @@ export interface TeamMemberSummary {
   email: string;
   fullName: string;
   role: TenantMemberRole;
+  invitationStatus: InvitationStatus;
   joinedAt: string | null;
+  brandProfileIds: string[];
 }
 
 export interface AddTeamMemberRequest {
   email: string;
   role: TenantMemberRole;
+  brandProfileIds: string[];
 }
 
 export interface AddTeamMemberResponse {
@@ -42,4 +45,25 @@ export interface AddTeamMemberResponse {
   userId: string;
   email: string;
   role: TenantMemberRole;
+  invitationStatus: InvitationStatus;
+}
+
+export interface UpdateTeamMemberRequest {
+  role: TenantMemberRole;
+  brandProfileIds: string[];
+}
+
+export interface UpdateTeamMemberResponse {
+  tenantMemberId: string;
+  role: TenantMemberRole;
+  brandProfileIds: string[];
+}
+
+export interface PendingInviteSummary {
+  tenantMemberId: string;
+  tenantId: string;
+  tenantName: string;
+  role: TenantMemberRole;
+  brandProfileNames: string[];
+  createdAt: string;
 }

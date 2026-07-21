@@ -63,13 +63,16 @@
 
     <div class="form-field">
       <label for="scheduled-at">موعد النشر</label>
-      <input
-        id="scheduled-at"
-        type="datetime-local"
-        class="form-control"
-        [min]="minDateTime"
-        [value]="scheduledAtLocal()"
-        (input)="scheduledAtLocal.set($any($event.target).value)" />
+      <div class="scheduled-at-row">
+        <input
+          id="scheduled-at"
+          type="datetime-local"
+          class="form-control"
+          [min]="minDateTime"
+          [value]="scheduledAtLocal()"
+          (input)="scheduledAtLocal.set($any($event.target).value)" />
+        <button type="button" class="btn-outline btn-now" (click)="setNow()">الآن</button>
+      </div>
     </div>
   }
 

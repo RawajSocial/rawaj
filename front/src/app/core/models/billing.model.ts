@@ -34,3 +34,9 @@ export interface ChangeSubscriptionPlanResponse {
   currentPeriodStart: string;
   currentPeriodEnd: string;
 }
+
+export interface AiCreditsUsage {
+  maxCreditsMonthly: number;
+  usedThisMonth: number;
+  hasCreditsRemaining: boolean;
+}

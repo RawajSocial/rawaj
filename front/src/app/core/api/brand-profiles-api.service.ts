@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
   ApiResponse,
+  BrandProfileDetail,
   BrandProfileSummary,
   CreateBrandProfileRequest,
   CreateBrandProfileResponse,
@@ -24,6 +25,12 @@ export class BrandProfilesApiService {
 
   getAll(): Observable<BrandProfileSummary[]> {
     return this.http.get<ApiResponse<BrandProfileSummary[]>>(this.baseUrl).pipe(unwrapApiResponse());
+  }
+
+  getById(brandProfileId: string): Observable<BrandProfileDetail> {
+    return this.http
+      .get<ApiResponse<BrandProfileDetail>>(`${this.baseUrl}/${brandProfileId}`)
+      .pipe(unwrapApiResponse());
   }
 
   update(brandProfileId: string, request: UpdateBrandProfileRequest): Observable<UpdateBrandProfileResponse> {

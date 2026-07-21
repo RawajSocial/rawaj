@@ -15,6 +15,61 @@
         (input)="searchQuery.set($any($event.target).value)"
       />
     </div>
+
+    @if (activeBrandProfile(); as brand) {
+      <div class="brand-switcher header-dropdown brand-dropdown" [class.open]="brandOpen()">
+        <button
+          class="brand-switcher-arrow"
+          type="button"
+          [disabled]="brandProfiles().length < 2"
+          title="العلامة التجارية السابقة"
+          (click)="cycleBrand(-1)">
+          <i class="fa-solid fa-chevron-right"></i>
+        </button>
+
+        <button class="brand-switcher-name" type="button" (click)="brandOpen.update(v => !v)">
+          <i class="fa-solid fa-shop"></i>
+          <span>{{ brand.name }}</span>
+          @if (brandProfiles().length > 1) {
+            <i class="fa-solid fa-chevron-down brand-switcher-caret"></i>
+          }
+        </button>
+
+        <button
+          class="brand-switcher-arrow"
+          type="button"
+          [disabled]="brandProfiles().length < 2"
+          title="العلامة التجارية التالية"
+          (click)="cycleBrand(1)">
+          <i class="fa-solid fa-chevron-left"></i>
+        </button>
+
+        @if (brandProfiles().length > 1) {
+          <div class="dropdown-panel brand-panel">
+            @for (b of brandProfiles(); track b.brandProfileId) {
+              <button
+                type="button"
+                class="brand-panel-item"
+                [class.active]="b.brandProfileId === brand.brandProfileId"
+                (click)="selectBrand(b.brandProfileId)">
+                <i class="fa-solid fa-shop"></i>
+                <span>{{ b.name }}</span>
+                @if (b.brandProfileId === brand.brandProfileId) {
+                  <i class="fa-solid fa-check"></i>
+                }
+              </button>
+            }
+            @if (canManageBrands()) {
+              <div class="panel-divider"></div>
+              <a class="brand-panel-item" routerLink="/dashboard/brand-profiles" (click)="brandOpen.set(false)">
+                <i class="fa-solid fa-gear"></i>
+                <span>إدارة العلامات التجارية</span>
+              </a>
+            }
+          </div>
+        }
+      </div>
+    }
   </div>
 
   <div class="header-end">

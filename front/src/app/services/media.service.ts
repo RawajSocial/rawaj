@@ -30,16 +30,30 @@ export class MediaService {
     this.campaigns().find((c) => c.campaignId === this.selectedCampaignId()) ?? null,
   );
 
+  private loadedForBrandProfileId: string | null = null;
+
   constructor() {
     effect(() => {
       const brandProfileId = this.tenantService.activeBrandProfile()?.brandProfileId;
       if (!brandProfileId) {
+        this.loadedForBrandProfileId = null;
         this.campaigns.set([]);
+        this.selectedCampaignId.set(null);
+        this.items.set([]);
         return;
+      }
+
+      if (brandProfileId !== this.loadedForBrandProfileId) {
+        // Switching brands must clear the previously selected campaign/gallery immediately -
+        // otherwise the gallery keeps showing the previous brand's content until the user
+        // happens to pick a new campaign, which reads as "everyone can see everything".
+        this.selectedCampaignId.set(null);
+        this.items.set([]);
       }
 
       this.campaignsApi.getAll(brandProfileId, 1, 50).subscribe({
         next: (result) => {
+          this.loadedForBrandProfileId = brandProfileId;
           this.campaigns.set(result.items);
           if (!this.selectedCampaignId() && result.items.length > 0) {
             this.selectedCampaignId.set(result.items[0].campaignId);
@@ -60,6 +74,7 @@ export class MediaService {
 
   private loadGallery(campaignId: string): void {
     this.loading.set(true);
+    const brandName = this.tenantService.activeBrandProfile()?.name ?? '';
 
     this.contentApi.getByCampaign(campaignId, 1, 50).subscribe({
       next: (contentResult) => {
@@ -67,7 +82,7 @@ export class MediaService {
           id: c.contentItemId,
           type: 'text',
           title: c.content.slice(0, 24) + (c.content.length > 24 ? '…' : ''),
-          brand: '',
+          brand: brandName,
           status: 'generated',
           createdAt: c.createdAt,
           language: c.language === 'Ar' ? 'ar' : 'en',
@@ -82,7 +97,7 @@ export class MediaService {
               id: v.visualAssetId,
               type: 'static-ad',
               title: v.type,
-              brand: '',
+              brand: brandName,
               status: 'generated',
               createdAt: v.createdAt,
               thumbnailUrl: v.fileUrl,

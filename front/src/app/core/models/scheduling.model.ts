@@ -16,6 +16,7 @@ export interface SchedulePostRequest {
   visualAssetId?: string | null;
   socialAccountId: string;
   scheduledAt: string;
+  aiSuggestedTime: boolean;
 }
 
 export interface SchedulePostResponse {

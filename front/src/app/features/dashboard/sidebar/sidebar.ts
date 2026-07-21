@@ -1,7 +1,10 @@
-import { Component, inject, input, output, signal } from '@angular/core';
+import { Component, effect, inject, input, output, signal } from '@angular/core';
 // signal kept for activeRoute
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../../core/auth/auth.service';
+import { BillingApiService } from '../../../core/api/billing-api.service';
+import { TenantService } from '../../../core/tenant/tenant.service';
+import { AiCreditsUsage } from '../../../core/models';
 
 type NavItem = {
   id: string;
@@ -28,12 +31,35 @@ type NavSection = {
 export class Sidebar {
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly billingApi = inject(BillingApiService);
+  private readonly tenantService = inject(TenantService);
 
   isOpen = input(true);
   mobileOpen = input(false);
   mobileClose = output<void>();
 
   activeRoute = signal('dashboard-home');
+
+  readonly aiCreditsUsage = signal<AiCreditsUsage | null>(null);
+  readonly aiCreditsPercent = signal(0);
+
+  constructor() {
+    effect(() => {
+      if (this.tenantService.hasTenant()) {
+        this.billingApi.getAiCreditsUsage().subscribe({
+          next: (usage) => {
+            this.aiCreditsUsage.set(usage);
+            this.aiCreditsPercent.set(
+              usage.maxCreditsMonthly > 0
+                ? Math.min(100, Math.round((usage.usedThisMonth / usage.maxCreditsMonthly) * 100))
+                : 0,
+            );
+          },
+          error: () => this.aiCreditsUsage.set(null),
+        });
+      }
+    });
+  }
 
   private readonly collapsedSections = signal<Set<string>>(new Set());
 
@@ -57,6 +83,7 @@ export class Sidebar {
         { id: 'dashboard-home', label: 'لوحة التحكم',  icon: 'fa-gauge',        route: '/dashboard',           exact: true },
         { id: 'campaigns',      label: 'حملاتك',        icon: 'fa-bullhorn',     route: '/dashboard/campaigns' },
         { id: 'competitors',    label: 'تحليل المنافسين', icon: 'fa-chess-knight', route: '/dashboard/competitors' },
+        { id: 'analytics',      label: 'التحليلات',      icon: 'fa-chart-line',   route: '/dashboard/analytics' },
       ],
     },
     {
@@ -72,6 +99,7 @@ export class Sidebar {
       heading: 'الفريق',
       items: [
         { id: 'users', label: 'المستخدمون', icon: 'fa-users-gear', route: '/dashboard/users' },
+        { id: 'brand-profiles', label: 'العلامات التجارية', icon: 'fa-shop', route: '/dashboard/brand-profiles' },
       ],
     },
     {

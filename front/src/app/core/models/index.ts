@@ -11,3 +11,4 @@ export * from './social-account.model';
 export * from './analytics.model';
 export * from './notification.model';
 export * from './billing.model';
+export * from './user-profile.model';

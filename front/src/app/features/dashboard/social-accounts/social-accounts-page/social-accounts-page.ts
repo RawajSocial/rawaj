@@ -15,7 +15,10 @@ const PLATFORM_CFG: Record<SocialPlatform, { icon: string; color: string; label:
   Linkedin:  { icon: 'fa-brands fa-linkedin-in', color: '#0A66C2', label: 'لينكد إن' },
 };
 
-const ALL_PLATFORMS = Object.keys(PLATFORM_CFG) as SocialPlatform[];
+// Only Facebook/Instagram have a working OAuth provider today (see Rawaj.Infrastructure's
+// DependencyInjection) - the rest are left in PLATFORM_CFG for later but hidden from the connect
+// list so we don't offer a connection we can't actually complete.
+const ALL_PLATFORMS: SocialPlatform[] = ['Facebook', 'Instagram'];
 
 @Component({
   selector: 'app-social-accounts-page',
@@ -41,6 +44,11 @@ export class SocialAccountsPage {
   protected readonly disconnectingId = signal<string | null>(null);
 
   protected readonly banner = signal<{ kind: 'success' | 'error'; text: string } | null>(null);
+
+  protected readonly canManageAccounts = computed(() => {
+    const role = this.tenantService.tenant()?.role;
+    return role === 'Owner' || role === 'Admin';
+  });
 
   protected readonly accountsByPlatform = computed(() => {
     const map = new Map<SocialPlatform, SocialAccountSummary>();

@@ -1,4 +1,4 @@
-import { CampaignStatus } from './enums';
+import { CampaignStatus, ContentTemplateStyle, Language } from './enums';
 
 export interface CampaignSummary {
   campaignId: string;
@@ -49,6 +49,20 @@ export interface GenerateMarketingPlanResponse {
   campaignId: string;
   aiPlanJson: string;
   aiGeneratedAt: string;
+}
+
+export interface GenerateCampaignContentRequest {
+  postCount: number;
+  language: Language;
+  includeImages: boolean;
+  templateStyle: ContentTemplateStyle;
+}
+
+export interface GenerateCampaignContentResponse {
+  campaignId: string;
+  generatedCount: number;
+  imagesGenerated: number;
+  imagesSkippedForCredits: number;
 }
 
 // Shape the AI is asked to return for aiPlanJson - see

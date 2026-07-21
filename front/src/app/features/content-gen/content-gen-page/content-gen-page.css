@@ -1,6 +1,17 @@
 /* ── Page shell ── */
 .page-shell { padding: 24px 28px; }
 
+.campaign-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #374151;
+  cursor: pointer;
+  user-select: none;
+}
+
 .page-title {
   font-size: var(--font-size-xl);
   font-weight: var(--font-bold);
@@ -95,6 +106,19 @@
 /* Form labels */
 .form-label-sm { font-size: 0.8rem; font-weight: 600; color: #374151; display: block; margin-bottom: 5px; }
 .req { color: #ef4444; }
+
+.active-brand-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #f5f3ff;
+  border: 1px solid #ddd6fe;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #5b21b6;
+}
 
 /* Override Bootstrap form-control to match design */
 .form-control, .form-control-sm {

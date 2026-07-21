@@ -1,0 +1,81 @@
+<div class="page-shell">
+  <app-page-header
+    title="التحليلات"
+    [breadcrumbs]="[{ label: 'لوحة التحكم', link: '/dashboard' }, { label: 'التحليلات' }]"
+    subtitle="أداء منشوراتك المنشورة على العلامة التجارية النشطة حاليًا." />
+
+  @if (!tenantService.activeBrandProfile()) {
+    <div class="text-center py-5 text-muted">
+      <i class="fa-solid fa-shop fa-2x mb-2"></i>
+      <p>اختر علامة تجارية نشطة أولاً.</p>
+    </div>
+  } @else if (loading()) {
+    <div class="text-center py-5">
+      <div class="spinner-border text-primary" role="status"></div>
+    </div>
+  } @else if (error(); as err) {
+    <div class="alert alert-danger">{{ err }}</div>
+  } @else if (overview(); as ov) {
+    @if (ov.postsTracked === 0) {
+      <div class="text-center py-5 text-muted">
+        <i class="fa-solid fa-chart-line fa-2x mb-2"></i>
+        <p>لا توجد بيانات تحليلية بعد لهذه العلامة التجارية.</p>
+      </div>
+    } @else {
+      <div class="row g-3 mb-4">
+        <div class="col-md-6 col-xl-3">
+          <app-kpi-card title="منشورات مُتابَعة" [value]="ov.postsTracked.toString()" icon="fa-file-lines" iconBg="rgba(37,99,235,0.12)" iconColor="#2563EB" accentColor="#2563EB" />
+        </div>
+        <div class="col-md-6 col-xl-3">
+          <app-kpi-card title="إجمالي الوصول" [value]="ov.totalReach.toString()" icon="fa-eye" iconBg="rgba(22,163,74,0.12)" iconColor="#16A34A" accentColor="#16A34A" />
+        </div>
+        <div class="col-md-6 col-xl-3">
+          <app-kpi-card title="إجمالي مرات الظهور" [value]="ov.totalImpressions.toString()" icon="fa-chart-simple" iconBg="rgba(249,115,22,0.12)" iconColor="#F97316" accentColor="#F97316" />
+        </div>
+        <div class="col-md-6 col-xl-3">
+          <app-kpi-card title="متوسط التفاعل" [value]="formatPercent(ov.averageEngagementRate)" icon="fa-heart" iconBg="rgba(236,72,153,0.12)" iconColor="#EC4899" accentColor="#EC4899" />
+        </div>
+      </div>
+
+      <div class="row g-3">
+        <div class="col-lg-5">
+          <div class="rw-card">
+            <div class="rw-card__header">
+              <h3 class="rw-card__title">التوزيع حسب المنصة</h3>
+            </div>
+            <div class="platform-list">
+              @for (p of ov.platformBreakdown; track p.platform) {
+                <div class="platform-row">
+                  <span class="platform-name">{{ platformLabel(p.platform) }}</span>
+                  <span class="platform-stat"><i class="fa-solid fa-eye me-1"></i>{{ p.reach }}</span>
+                  <span class="platform-stat"><i class="fa-solid fa-chart-simple me-1"></i>{{ p.impressions }}</span>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+
+        <div class="col-lg-7">
+          <div class="rw-card">
+            <div class="rw-card__header">
+              <h3 class="rw-card__title">أفضل المنشورات أداءً</h3>
+            </div>
+            <div class="top-posts-list">
+              @for (post of ov.topPosts; track post.scheduledPostId) {
+                <div class="top-post-row">
+                  <span class="badge text-bg-light">{{ platformLabel(post.platform) }}</span>
+                  <p class="top-post-content">{{ post.content }}</p>
+                  <div class="top-post-stats">
+                    <span><i class="fa-solid fa-eye me-1"></i>{{ post.reach }}</span>
+                    <span><i class="fa-solid fa-heart me-1"></i>{{ post.likes }}</span>
+                    <span>{{ formatPercent(post.engagementRate) }}</span>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+  }
+</div>

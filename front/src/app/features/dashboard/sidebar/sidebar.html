@@ -40,6 +40,18 @@
       }
     </nav>
 
+    @if (aiCreditsUsage(); as usage) {
+      <div class="ai-credits-widget">
+        <div class="ai-credits-widget-header">
+          <span>رصيد الذكاء الاصطناعي</span>
+          <span>{{ usage.usedThisMonth }} / {{ usage.maxCreditsMonthly }}</span>
+        </div>
+        <div class="ai-credits-bar">
+          <div class="ai-credits-bar-fill" [class.low]="!usage.hasCreditsRemaining" [style.width.%]="aiCreditsPercent()"></div>
+        </div>
+      </div>
+    }
+
     <div class="sidebar-footer">
       <button type="button" class="sidebar-logout" (click)="logout()">
         <i class="fa-solid fa-right-from-bracket"></i>

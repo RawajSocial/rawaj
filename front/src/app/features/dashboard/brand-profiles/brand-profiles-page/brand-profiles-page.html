@@ -1,0 +1,82 @@
+<div class="page-shell">
+  <div class="page-top">
+    <app-page-header
+      title="العلامات التجارية"
+      [breadcrumbs]="[{ label: 'لوحة التحكم', link: '/dashboard' }, { label: 'العلامات التجارية' }]"
+      subtitle="أنشئ وأدر العلامات التجارية داخل مؤسستك، وحدد أي علامة نشطة الآن." />
+    @if (canManageBrands()) {
+      <button type="button" class="btn-new-camp" (click)="openCreate()">
+        <i class="fa-solid fa-plus"></i>
+        علامة تجارية جديدة
+      </button>
+    }
+  </div>
+
+  @if (tenantService.brandProfiles().length === 0) {
+    <div class="bp-empty text-center py-5">
+      <i class="fa-solid fa-shop fa-3x text-primary mb-3"></i>
+      <h4>لا توجد علامات تجارية بعد</h4>
+      @if (canManageBrands()) {
+        <p class="text-muted">أنشئ أول علامة تجارية لبدء العمل عليها.</p>
+        <button type="button" class="btn btn-primary" (click)="openCreate()">إنشاء علامة تجارية</button>
+      } @else {
+        <p class="text-muted">لم يقم مدير المؤسسة بإنشاء أي علامة تجارية بعد.</p>
+      }
+    </div>
+  } @else {
+    <div class="row g-3">
+      @for (brand of tenantService.brandProfiles(); track brand.brandProfileId) {
+        <div class="col-md-6 col-lg-4">
+          <div class="bp-card" [class.bp-card--active]="isActive(brand)">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+              <div class="bp-card__icon"><i class="fa-solid fa-shop"></i></div>
+              <div class="d-flex gap-1">
+                @if (brand.isDefault) {
+                  <span class="badge text-bg-light">افتراضية</span>
+                }
+                @if (isActive(brand)) {
+                  <span class="badge bp-active-badge">نشطة الآن</span>
+                }
+              </div>
+            </div>
+
+            <h5 class="bp-card__title">{{ brand.name }}</h5>
+            @if (brand.description) {
+              <p class="bp-card__desc">{{ brand.description }}</p>
+            }
+            @if (brand.brandVoice) {
+              <span class="badge text-bg-light">{{ brand.brandVoice }}</span>
+            }
+
+            <div class="bp-card__actions">
+              @if (!isActive(brand)) {
+                <button type="button" class="btn btn-outline-primary btn-sm" (click)="setActive(brand)">
+                  <i class="fa-solid fa-toggle-on me-1"></i>تفعيل
+                </button>
+              }
+              @if (canManageBrands()) {
+                <button type="button" class="btn btn-outline-secondary btn-sm" (click)="openEdit(brand)">
+                  <i class="fa-solid fa-pen me-1"></i>تعديل
+                </button>
+                <button type="button" class="btn btn-outline-secondary btn-sm" (click)="openMembers(brand)">
+                  <i class="fa-solid fa-users me-1"></i>الأعضاء
+                </button>
+              }
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>
+
+<app-brand-profile-form-modal
+  [open]="formModalOpen()"
+  [editingBrand]="editingBrand()"
+  (closed)="closeModal()"
+  (saved)="onSaved()" />
+
+<app-brand-members-modal
+  [open]="membersModalOpen()"
+  [brand]="membersModalBrand()"
+  (closed)="closeMembers()" />

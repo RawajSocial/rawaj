@@ -4,11 +4,14 @@ import { BrandProfilesApiService } from '../api/brand-profiles-api.service';
 import { TenantsApiService } from '../api/tenants-api.service';
 import { BrandProfileSummary, MyTenant } from '../models';
 
+const ACTIVE_BRAND_KEY = 'rawaj.tenant.activeBrandProfileId';
+
 /**
  * The backend resolves the active tenant server-side from the JWT (a user currently belongs to
  * exactly one tenant - see TenantAuthorizationBehavior), so there is no tenant-switcher here.
  * This just caches "my tenant" + its brand profiles after login so every dashboard page can read
- * them synchronously instead of re-fetching.
+ * them synchronously instead of re-fetching. The active *brand* within that tenant is a client-side
+ * choice (see the header's brand switcher) persisted in localStorage so it survives a reload.
  */
 @Injectable({ providedIn: 'root' })
 export class TenantService {
@@ -17,7 +20,7 @@ export class TenantService {
 
   private readonly tenantSignal = signal<MyTenant | null>(null);
   private readonly brandProfilesSignal = signal<BrandProfileSummary[]>([]);
-  private readonly activeBrandProfileIdSignal = signal<string | null>(null);
+  private readonly activeBrandProfileIdSignal = signal<string | null>(localStorage.getItem(ACTIVE_BRAND_KEY));
   private readonly loadedSignal = signal(false);
 
   readonly tenant = this.tenantSignal.asReadonly();
@@ -67,6 +70,7 @@ export class TenantService {
 
   setActiveBrandProfile(brandProfileId: string): void {
     this.activeBrandProfileIdSignal.set(brandProfileId);
+    localStorage.setItem(ACTIVE_BRAND_KEY, brandProfileId);
   }
 
   clear(): void {
@@ -74,6 +78,7 @@ export class TenantService {
     this.brandProfilesSignal.set([]);
     this.activeBrandProfileIdSignal.set(null);
     this.loadedSignal.set(false);
+    localStorage.removeItem(ACTIVE_BRAND_KEY);
   }
 
   private setDefaultActiveBrand(brandProfiles: BrandProfileSummary[]): void {
@@ -83,6 +88,15 @@ export class TenantService {
     }
 
     const defaultBrand = brandProfiles.find((b) => b.isDefault) ?? brandProfiles[0] ?? null;
-    this.activeBrandProfileIdSignal.set(defaultBrand?.brandProfileId ?? null);
+    this.setActiveOrClear(defaultBrand?.brandProfileId ?? null);
+  }
+
+  private setActiveOrClear(brandProfileId: string | null): void {
+    this.activeBrandProfileIdSignal.set(brandProfileId);
+    if (brandProfileId) {
+      localStorage.setItem(ACTIVE_BRAND_KEY, brandProfileId);
+    } else {
+      localStorage.removeItem(ACTIVE_BRAND_KEY);
+    }
   }
 }

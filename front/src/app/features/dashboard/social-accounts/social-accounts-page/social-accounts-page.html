@@ -40,30 +40,32 @@
               <p class="account-name account-name--muted">غير متصل</p>
             }
           </div>
-          @if (account) {
-            <button
-              type="button"
-              class="rw-btn rw-btn--outline"
-              [disabled]="disconnectingId() === account.socialAccountId"
-              (click)="disconnect(account)">
-              @if (disconnectingId() === account.socialAccountId) {
-                <span class="spinner-border spinner-border-sm" role="status"></span>
-              } @else {
-                فصل الحساب
-              }
-            </button>
-          } @else {
-            <button
-              type="button"
-              class="rw-btn rw-btn--dark"
-              [disabled]="connectingPlatform() === platform"
-              (click)="connect(platform)">
-              @if (connectingPlatform() === platform) {
-                <span class="spinner-border spinner-border-sm" role="status"></span>
-              } @else {
-                ربط الحساب
-              }
-            </button>
+          @if (canManageAccounts()) {
+            @if (account) {
+              <button
+                type="button"
+                class="rw-btn rw-btn--outline"
+                [disabled]="disconnectingId() === account.socialAccountId"
+                (click)="disconnect(account)">
+                @if (disconnectingId() === account.socialAccountId) {
+                  <span class="spinner-border spinner-border-sm" role="status"></span>
+                } @else {
+                  فصل الحساب
+                }
+              </button>
+            } @else {
+              <button
+                type="button"
+                class="rw-btn rw-btn--dark"
+                [disabled]="connectingPlatform() === platform"
+                (click)="connect(platform)">
+                @if (connectingPlatform() === platform) {
+                  <span class="spinner-border spinner-border-sm" role="status"></span>
+                } @else {
+                  ربط الحساب
+                }
+              </button>
+            }
           }
         </div>
       }

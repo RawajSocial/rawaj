@@ -13,8 +13,8 @@ export class TeamMemberService {
   readonly loading = signal(false);
   readonly loadError = signal<string | null>(null);
 
-  readonly activeCount = computed(() => this._members().filter(m => m.joinedAt !== null).length);
-  readonly pendingCount = computed(() => this._members().filter(m => m.joinedAt === null).length);
+  readonly activeCount = computed(() => this._members().filter(m => m.invitationStatus === 'Accepted').length);
+  readonly pendingCount = computed(() => this._members().filter(m => m.invitationStatus === 'Pending').length);
 
   getById(id: string) {
     return computed(() => this._members().find(m => m.id === id));
@@ -33,7 +33,9 @@ export class TeamMemberService {
             name: m.fullName,
             email: m.email,
             role: m.role,
+            invitationStatus: m.invitationStatus,
             joinedAt: m.joinedAt,
+            brandProfileIds: m.brandProfileIds,
           })),
         );
         this.loading.set(false);
@@ -45,7 +47,15 @@ export class TeamMemberService {
     });
   }
 
-  invite(email: string, role: TenantMemberRole): Observable<unknown> {
-    return this.api.add({ email, role }).pipe(tap(() => this.load()));
+  invite(email: string, role: TenantMemberRole, brandProfileIds: string[]): Observable<unknown> {
+    return this.api.add({ email, role, brandProfileIds }).pipe(tap(() => this.load()));
+  }
+
+  update(tenantMemberId: string, role: TenantMemberRole, brandProfileIds: string[]): Observable<unknown> {
+    return this.api.update(tenantMemberId, { role, brandProfileIds }).pipe(tap(() => this.load()));
+  }
+
+  remove(tenantMemberId: string): Observable<unknown> {
+    return this.api.remove(tenantMemberId).pipe(tap(() => this.load()));
   }
 }

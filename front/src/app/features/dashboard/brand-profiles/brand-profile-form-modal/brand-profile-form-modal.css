@@ -1,0 +1,32 @@
+.bpf-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.bpf-field label {
+  display: block;
+  font-size: var(--font-size-sm, 0.875rem);
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: var(--color-text-primary, #1e1b4b);
+}
+
+.bpf-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+@media (max-width: 480px) {
+  .bpf-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.bpf-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 6px;
+}

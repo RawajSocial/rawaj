@@ -1,4 +1,4 @@
-import { ContentStatus, ContentType, Language, SocialPlatform, VisualAssetType } from './enums';
+import { ContentStatus, ContentTemplateStyle, ContentType, Language, SocialPlatform, VisualAssetType } from './enums';
 
 export interface ContentItemSummary {
   contentItemId: string;
@@ -8,11 +8,15 @@ export interface ContentItemSummary {
   content: string;
   status: ContentStatus;
   createdAt: string;
+  suggestedPostAt: string | null;
+  visualAssetId: string | null;
+  imageUrl: string | null;
 }
 
 export interface ContentItemDetail {
   contentItemId: string;
   campaignId: string | null;
+  brandProfileId: string | null;
   contentType: ContentType;
   platform: SocialPlatform;
   language: Language;
@@ -29,17 +33,19 @@ export interface ContentItemDetail {
 }
 
 export interface GenerateContentItemRequest {
-  campaignId: string;
+  brandProfileId: string;
+  campaignId?: string | null;
   contentType: ContentType;
   platform: SocialPlatform;
   language: Language;
   tone?: string | null;
   additionalInstructions?: string | null;
+  templateStyle?: ContentTemplateStyle;
 }
 
 export interface GenerateContentItemResponse {
   contentItemId: string;
-  campaignId: string;
+  campaignId: string | null;
   content: string;
   status: ContentStatus;
 }
@@ -71,7 +77,8 @@ export interface VisualAssetSummary {
 }
 
 export interface GenerateVisualAssetRequest {
-  campaignId: string;
+  brandProfileId: string;
+  campaignId?: string | null;
   contentItemId?: string | null;
   type: VisualAssetType;
   prompt: string;
@@ -79,6 +86,6 @@ export interface GenerateVisualAssetRequest {
 
 export interface GenerateVisualAssetResponse {
   visualAssetId: string;
-  campaignId: string;
+  campaignId: string | null;
   fileUrl: string;
 }

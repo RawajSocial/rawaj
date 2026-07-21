@@ -17,17 +17,22 @@
     </a>
   </div>
 
-  <!-- Campaign selector -->
-  <div class="mb-3">
-    <label class="form-label small text-muted" for="campaignSelect">الحملة</label>
-    <select id="campaignSelect" class="form-select w-auto" [ngModel]="media.selectedCampaignId()" (ngModelChange)="media.selectedCampaignId.set($event)">
-      @if (media.campaigns().length === 0) {
-        <option [ngValue]="null">لا توجد حملات - أنشئ حملة أولاً</option>
-      }
-      @for (campaign of media.campaigns(); track campaign.campaignId) {
-        <option [ngValue]="campaign.campaignId">{{ campaign.name }}</option>
-      }
-    </select>
+  <!-- Campaign attachment (optional - most content isn't tied to a campaign) -->
+  <div class="mb-3 d-flex align-items-center gap-2 flex-wrap">
+    <label class="campaign-toggle">
+      <input type="checkbox" [checked]="attachToCampaign()" (change)="attachToCampaign.set($any($event.target).checked)">
+      اربط هذا المحتوى بحملة
+    </label>
+    @if (attachToCampaign()) {
+      <select id="campaignSelect" class="form-select w-auto" [ngModel]="media.selectedCampaignId()" (ngModelChange)="media.selectedCampaignId.set($event)">
+        @if (media.campaigns().length === 0) {
+          <option [ngValue]="null">لا توجد حملات - أنشئ حملة أولاً</option>
+        }
+        @for (campaign of media.campaigns(); track campaign.campaignId) {
+          <option [ngValue]="campaign.campaignId">{{ campaign.name }}</option>
+        }
+      </select>
+    }
   </div>
 
   @if (generateError(); as error) {
@@ -97,14 +102,37 @@
             </div>
           </div>
 
-          <!-- اسم العلامة التجارية -->
+          <!-- العلامة التجارية النشطة (للقراءة فقط - تُحدد من مبدّل العلامات في الأعلى) -->
           <div class="mb-3">
-            <label class="form-label-sm">اسم العلامة التجارية <span class="req">*</span></label>
-            <input type="text" class="form-control form-control-sm"
-                   placeholder="مثال: تاون تيم"
-                   [value]="formBrand()"
-                   (input)="formBrand.set($any($event.target).value)">
+            <label class="form-label-sm">العلامة التجارية</label>
+            @if (activeBrandName()) {
+              <div class="active-brand-chip">
+                <i class="fa-solid fa-building"></i>
+                <span>{{ activeBrandName() }}</span>
+              </div>
+            } @else {
+              <div class="alert alert-warning py-2 px-3 mb-0" style="font-size:.8rem">لا يوجد نشاط تجاري نشط.</div>
+            }
           </div>
+
+          <!-- نمط القالب -->
+          @if (genType() === 'text') {
+            <div class="mb-3">
+              <label class="form-label-sm">نمط المحتوى</label>
+              <div class="dropdown" [class.open]="templateOpen()" data-dd="template">
+                <button type="button" class="dropdown-trigger form-control form-control-sm" (click)="templateOpen.update(v => !v)">
+                  <span class="dropdown-label">{{ templateLabels[templateStyle()] }}</span>
+                  <span class="dropdown-icon"><i class="fa-solid fa-chevron-down"></i></span>
+                </button>
+                <div class="dropdown-menu">
+                  @for (style of templateStyles; track style) {
+                    <button type="button" class="dropdown-option" [class.active]="templateStyle()===style"
+                            (click)="templateStyle.set(style); templateOpen.set(false)">{{ templateLabels[style] }}</button>
+                  }
+                </div>
+              </div>
+            </div>
+          }
 
           <!-- وصف المحتوى -->
           <div class="mb-3">
@@ -159,7 +187,7 @@
             </div>
           </div>
 
-          <!-- Row: لغة + جودة -->
+          <!-- Row: لغة -->
           <div class="row g-2 mb-3">
             <div class="col-6">
               <label class="form-label-sm">اللغة</label>
@@ -175,24 +203,23 @@
                 </div>
               </div>
             </div>
-            <div class="col-6">
-              <label class="form-label-sm">الجودة</label>
-              <div class="dropdown" [class.open]="qualityOpen()" data-dd="quality">
-                <button type="button" class="dropdown-trigger form-control form-control-sm" (click)="qualityOpen.update(v => !v)">
-                  <span class="dropdown-label">{{ qualityLabel() }}</span>
-                  <span class="dropdown-icon"><i class="fa-solid fa-chevron-down"></i></span>
-                </button>
-                <div class="dropdown-menu">
-                  @for (q of qualities; track q.value) {
-                    <button type="button" class="dropdown-option quality-opt" [class.active]="formQuality()===q.value"
-                            (click)="formQuality.set(q.value); qualityOpen.set(false)">
-                      <span class="d-block fw-semibold" style="font-size:.82rem">{{ q.label }}</span>
-                      <span class="d-block" style="font-size:.68rem;color:#9ca3af">{{ q.desc }}</span>
-                    </button>
-                  }
+            @if (genType() === 'static-ad') {
+              <div class="col-6">
+                <label class="form-label-sm">نوع الصورة</label>
+                <div class="dropdown" [class.open]="visualTypeOpen()" data-dd="visualtype">
+                  <button type="button" class="dropdown-trigger form-control form-control-sm" (click)="visualTypeOpen.update(v => !v)">
+                    <span class="dropdown-label">{{ visualTypeLabel() }}</span>
+                    <span class="dropdown-icon"><i class="fa-solid fa-chevron-down"></i></span>
+                  </button>
+                  <div class="dropdown-menu">
+                    @for (vt of visualTypes; track vt) {
+                      <button type="button" class="dropdown-option" [class.active]="formVisualType()===vt"
+                              (click)="formVisualType.set(vt); visualTypeOpen.set(false)">{{ visualTypeCfg[vt] }}</button>
+                    }
+                  </div>
                 </div>
               </div>
-            </div>
+            }
           </div>
 
           <!-- حجم الإعلان (static-ad) -->
@@ -227,18 +254,6 @@
                             (click)="formTextType.set(tt); textTypeOpen.set(false)">{{ textTypeCfg[tt] }}</button>
                   }
                 </div>
-              </div>
-            </div>
-          }
-
-          <!-- مدة الفيديو (video) -->
-          @if (genType() === 'video') {
-            <div class="mb-3">
-              <label class="form-label-sm">مدة الفيديو</label>
-              <div class="d-flex gap-2">
-                <button type="button" class="duration-chip active flex-fill">15 ث</button>
-                <button type="button" class="duration-chip flex-fill">30 ث</button>
-                <button type="button" class="duration-chip flex-fill">60 ث</button>
               </div>
             </div>
           }
@@ -404,11 +419,14 @@
             <div class="viewer-section">
               <p class="vsec-label">الإجراءات</p>
               <div class="d-flex flex-column gap-2">
-                <button type="button" class="abtn abtn-download"><i class="fa-solid fa-download"></i> تنزيل <i class="fa-solid fa-chevron-down ms-auto" style="font-size:.7rem;opacity:.6"></i></button>
+                @if (isImage(selectedItem()!)) {
+                  <a class="abtn abtn-download" [href]="selectedItem()!.thumbnailUrl" [download]="selectedItem()!.title">
+                    <i class="fa-solid fa-download"></i> تنزيل
+                  </a>
+                }
                 <button type="button" class="abtn abtn-edit" (click)="startEdit()"><i class="fa-solid fa-wand-magic-sparkles"></i> تحرير بالذكاء الاصطناعي</button>
-                @if (selectedItem()!.type === 'static-ad') {
-                  <button type="button" class="abtn abtn-resize"><i class="fa-solid fa-expand"></i> تغيير الحجم</button>
-                  <button type="button" class="abtn abtn-convert"><i class="fa-solid fa-film"></i> تحويل إلى فيديو</button>
+                @if (selectedItem()!.type === 'text' && selectedItem()!.status === 'generated') {
+                  <button type="button" class="abtn abtn-schedule" (click)="openSchedule()"><i class="fa-solid fa-calendar-plus"></i> جدولة أو نشر</button>
                 }
                 @if (!showDeleteConfirm()) {
                   <button type="button" class="abtn abtn-delete" (click)="confirmDelete()"><i class="fa-solid fa-trash"></i> حذف</button>
@@ -458,3 +476,9 @@
     </div>
   </div>
 }
+
+<app-schedule-modal
+  [open]="scheduleModalOpen()"
+  [contentItemId]="selectedItem()?.id ?? null"
+  (closed)="closeSchedule()"
+  (scheduled)="closeSchedule()" />

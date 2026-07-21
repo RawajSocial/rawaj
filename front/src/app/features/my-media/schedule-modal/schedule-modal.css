@@ -21,6 +21,20 @@
   font-weight: var(--font-bold);
 }
 
+.scheduled-at-row {
+  display: flex;
+  gap: 8px;
+}
+
+.scheduled-at-row .form-control {
+  flex: 1;
+}
+
+.btn-now {
+  flex-shrink: 0;
+  padding: 0 14px;
+}
+
 .sm-footer {
   display: flex;
   justify-content: flex-end;

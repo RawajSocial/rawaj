@@ -46,3 +46,20 @@ export interface UpdateBrandProfileResponse {
 export interface GenerateOnboardingQuestionsResponse {
   questionsJson: string;
 }
+
+export interface BrandProfileDetail {
+  brandProfileId: string;
+  name: string;
+  description: string | null;
+  brandVoice: BrandVoice | null;
+  status: BrandProfileStatus;
+  isDefault: boolean;
+  tagline: string | null;
+  industry: string | null;
+  targetAudience: string | null;
+  colors: string[];
+  logoUrl: string | null;
+  websiteUrl: string | null;
+  supportedLanguages: string[];
+  keywords: string[];
+}

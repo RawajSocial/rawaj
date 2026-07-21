@@ -1,7 +1,8 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { PageHeader } from '../../../../shared/components/page-header/page-header';
 import { BillingApiService } from '../../../../core/api/billing-api.service';
+import { TenantService } from '../../../../core/tenant/tenant.service';
 import { ApiError } from '../../../../core/api';
 import { CurrentSubscription, SubscriptionPlanSummary } from '../../../../core/models';
 
@@ -14,6 +15,9 @@ import { CurrentSubscription, SubscriptionPlanSummary } from '../../../../core/m
 })
 export class BillingPage {
   private readonly billingApi = inject(BillingApiService);
+  private readonly tenantService = inject(TenantService);
+
+  protected readonly canManageBilling = computed(() => this.tenantService.tenant()?.role === 'Owner');
 
   protected readonly currentSubscription = signal<CurrentSubscription | null>(null);
   protected readonly plans = signal<SubscriptionPlanSummary[]>([]);

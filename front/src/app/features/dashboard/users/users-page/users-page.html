@@ -5,10 +5,12 @@
       title="المستخدمون"
       [breadcrumbs]="[{ label: 'لوحة التحكم', link: '/dashboard' }, { label: 'المستخدمون' }]"
       subtitle="إدارة أعضاء فريقك وأدوارهم وصلاحياتهم." />
-    <button type="button" class="btn-new-camp" (click)="openInvite()">
-      <i class="fa-solid fa-user-plus"></i>
-      دعوة عضو جديد
-    </button>
+    @if (canManageMembers()) {
+      <button type="button" class="btn-new-camp" (click)="openInvite()">
+        <i class="fa-solid fa-user-plus"></i>
+        دعوة عضو جديد
+      </button>
+    }
   </div>
 
   <!-- Status tabs -->
@@ -90,9 +92,28 @@
                 <span class="status-badge">{{ statusLabel(member) }}</span>
               </td>
               <td class="actions-cell">
-                <a [routerLink]="['/dashboard/users', member.id]" class="row-action row-action--edit" title="عرض الملف" (click)="$event.stopPropagation()">
-                  <i class="fa-solid fa-eye"></i>
-                </a>
+                <div class="row-actions">
+                  <a [routerLink]="['/dashboard/users', member.id]" class="row-action row-action--edit" title="عرض الملف" (click)="$event.stopPropagation()">
+                    <i class="fa-solid fa-eye"></i>
+                  </a>
+                  @if (canManageMembers() && member.role !== 'Owner') {
+                    <button
+                      type="button"
+                      class="row-action row-action--edit"
+                      title="تعديل"
+                      (click)="$event.stopPropagation(); openEdit(member)">
+                      <i class="fa-solid fa-pen"></i>
+                    </button>
+                    <button
+                      type="button"
+                      class="row-action row-action--danger"
+                      title="إزالة"
+                      [disabled]="removingId() === member.id"
+                      (click)="$event.stopPropagation(); removeMember(member)">
+                      <i class="fa-solid fa-trash"></i>
+                    </button>
+                  }
+                </div>
               </td>
             </tr>
           }
@@ -103,8 +124,10 @@
 </div>
 
 <app-user-form-modal
-  [open]="inviteModalOpen()"
+  [open]="formModalOpen()"
+  [editingMember]="editingMember()"
   [submitting]="inviting()"
   [serverError]="inviteError()"
-  (closed)="inviteModalOpen.set(false)"
-  (save)="onInviteSaved($event)" />
+  (closed)="closeFormModal()"
+  (save)="onInviteSaved($event)"
+  (update)="onMemberUpdated($event)" />

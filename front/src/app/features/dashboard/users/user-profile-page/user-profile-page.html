@@ -16,7 +16,21 @@
         <h5 class="page-title">{{ m.name }}</h5>
         <p class="page-subtitle">{{ m.email }}</p>
       </div>
+      @if (canManageMembers() && m.role !== 'Owner') {
+        <div class="d-flex gap-2">
+          <button type="button" class="btn-outline" (click)="openEdit()">
+            <i class="fa-solid fa-pen me-1"></i>تعديل
+          </button>
+          <button type="button" class="btn-outline" [disabled]="removing()" (click)="removeMember()">
+            <i class="fa-solid fa-trash me-1"></i>إزالة
+          </button>
+        </div>
+      }
     </div>
+
+    @if (saveError(); as error) {
+      <div class="alert alert-danger">{{ error }}</div>
+    }
 
     <div class="profile-grid">
       <div class="profile-card">
@@ -54,10 +68,33 @@
               <dd>{{ m.joinedAt }}</dd>
             </div>
           }
+          @if (m.role !== 'Owner' && m.role !== 'Admin') {
+            <div class="detail-row">
+              <dt>العلامات التجارية المتاحة</dt>
+              <dd>
+                @if (brandNames().length === 0) {
+                  <span class="text-muted">لا شيء</span>
+                } @else {
+                  @for (name of brandNames(); track name) {
+                    <span class="badge text-bg-light me-1">{{ name }}</span>
+                  }
+                }
+              </dd>
+            </div>
+          }
         </dl>
       </div>
     </div>
   </div>
+
+  <app-user-form-modal
+    [open]="formModalOpen()"
+    [editingMember]="m"
+    [submitting]="saving()"
+    [serverError]="saveError()"
+    (closed)="closeFormModal()"
+    (save)="onIgnoreCreateSave($event)"
+    (update)="onMemberUpdated($event)" />
 } @else {
   <div class="page-shell">
     <p class="not-found">هذا العضو غير موجود.</p>

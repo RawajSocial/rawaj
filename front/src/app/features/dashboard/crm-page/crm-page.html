@@ -4,17 +4,7 @@
     [breadcrumbs]="[{ label: 'لوحة التحكم', link: '/dashboard' }, { label: 'نظرة عامة' }]"
     subtitle="نظرة شاملة على أداء حساباتك على مواقع التواصل الاجتماعي." />
 
-  @if (needsTenant()) {
-    <div class="empty-state">
-      <div class="empty-icon"><i class="fa-solid fa-store"></i></div>
-      <h3>لا يوجد لديك نشاط تجاري بعد</h3>
-      <p>أنشئ نشاطك التجاري الآن لتبدأ في إدارة حملاتك ومحتواك التسويقي.</p>
-      <a routerLink="/account-setup" class="btn-new-camp">
-        <i class="fa-solid fa-plus"></i>
-        إنشاء نشاط تجاري
-      </a>
-    </div>
-  } @else if (loading()) {
+  @if (loading()) {
     <div class="text-center py-5">
       <div class="spinner-border text-primary" role="status"></div>
     </div>

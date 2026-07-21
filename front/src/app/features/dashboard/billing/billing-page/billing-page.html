@@ -71,12 +71,16 @@
 
                 @if (isCurrentPlan(plan)) {
                   <button type="button" class="btn btn-outline-secondary" disabled>باقتك الحالية</button>
-                } @else {
+                } @else if (canManageBilling()) {
                   <button type="button" class="btn btn-primary" [disabled]="changingPlanId() === plan.subscriptionPlanId" (click)="changePlan(plan)">
                     @if (changingPlanId() === plan.subscriptionPlanId) {
                       <span class="spinner-border spinner-border-sm me-1" role="status"></span>
                     }
                     الترقية لهذه الباقة
+                  </button>
+                } @else {
+                  <button type="button" class="btn btn-outline-secondary" disabled title="فقط مالك المؤسسة يمكنه تغيير الباقة">
+                    مالك المؤسسة فقط
                   </button>
                 }
               </div>

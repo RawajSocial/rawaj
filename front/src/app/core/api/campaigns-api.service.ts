@@ -8,6 +8,8 @@ import {
   CampaignSummary,
   CreateCampaignRequest,
   CreateCampaignResponse,
+  GenerateCampaignContentRequest,
+  GenerateCampaignContentResponse,
   GenerateMarketingPlanResponse,
   PagedResult,
 } from '../models';
@@ -40,6 +42,12 @@ export class CampaignsApiService {
   generatePlan(campaignId: string): Observable<GenerateMarketingPlanResponse> {
     return this.http
       .post<ApiResponse<GenerateMarketingPlanResponse>>(`${this.baseUrl}/${campaignId}/generate-plan`, {})
+      .pipe(unwrapApiResponse());
+  }
+
+  generateContent(campaignId: string, request: GenerateCampaignContentRequest): Observable<GenerateCampaignContentResponse> {
+    return this.http
+      .post<ApiResponse<GenerateCampaignContentResponse>>(`${this.baseUrl}/${campaignId}/generate-content`, request)
       .pipe(unwrapApiResponse());
   }
 }
