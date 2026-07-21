@@ -1,0 +1,89 @@
+using MediatR;
+using Microsoft.EntityFrameworkCore;
+using Rawaj.Application.Common.Interfaces;
+using Rawaj.Application.Common.Models;
+
+namespace Rawaj.Application.Features.Analytics.GetBrandAnalytics;
+
+/// <summary>
+/// Mirrors GetCampaignAnalyticsQueryHandler's "latest snapshot per post" reduction, scoped to every
+/// post across the whole brand instead of a single campaign - backs the dashboard overview page.
+/// </summary>
+public class GetBrandAnalyticsQueryHandler(IApplicationDbContext dbContext, ICurrentTenantContext currentTenantContext)
+    : IRequestHandler<GetBrandAnalyticsQuery, Result<BrandAnalyticsOverview>>
+{
+    public async Task<Result<BrandAnalyticsOverview>> Handle(GetBrandAnalyticsQuery request, CancellationToken cancellationToken)
+    {
+        var tenantId = currentTenantContext.TenantId!.Value;
+
+        var belongsToTenant = await dbContext.TenantBrandProfiles.AnyAsync(
+            b => b.Id == request.BrandProfileId && b.TenantId == tenantId, cancellationToken);
+        if (!belongsToTenant)
+        {
+            return Result<BrandAnalyticsOverview>.Failure("Brand profile not found.");
+        }
+
+        var snapshots = await dbContext.PostAnalytics
+            .Where(a => a.ScheduledPost.ContentItem.BrandProfileId == request.BrandProfileId)
+            .OrderByDescending(a => a.RecordedAt)
+            .Select(a => new
+            {
+                a.ScheduledPostId,
+                a.Platform,
+                a.Impressions,
+                a.Reach,
+                a.Likes,
+                a.Comments,
+                a.Shares,
+                a.EngagementRate,
+                ContentItemId = a.ScheduledPost.ContentItemId,
+                Title = a.ScheduledPost.ContentItem.Title,
+                Content = a.ScheduledPost.ContentItem.Content,
+            })
+            .ToListAsync(cancellationToken);
+
+        var latestPerPost = snapshots
+            .GroupBy(a => a.ScheduledPostId)
+            .Select(g => g.First())
+            .ToList();
+
+        var engagementRates = latestPerPost
+            .Where(p => p.EngagementRate.HasValue)
+            .Select(p => p.EngagementRate!.Value)
+            .ToList();
+
+        var platformBreakdown = latestPerPost
+            .GroupBy(p => p.Platform)
+            .Select(g => new PlatformBreakdownItem(g.Key, g.Sum(p => p.Reach ?? 0), g.Sum(p => p.Impressions ?? 0)))
+            .OrderByDescending(p => p.Reach)
+            .ToList();
+
+        var topPosts = latestPerPost
+            .OrderByDescending(p => p.Reach ?? 0)
+            .Take(5)
+            .Select(p => new TopPostItem(
+                p.ScheduledPostId,
+                p.ContentItemId,
+                p.Platform,
+                p.Title,
+                p.Content,
+                p.Reach ?? 0,
+                p.Likes ?? 0,
+                p.EngagementRate))
+            .ToList();
+
+        var overview = new BrandAnalyticsOverview(
+            request.BrandProfileId,
+            latestPerPost.Count,
+            latestPerPost.Sum(p => p.Impressions ?? 0),
+            latestPerPost.Sum(p => p.Reach ?? 0),
+            latestPerPost.Sum(p => p.Likes ?? 0),
+            latestPerPost.Sum(p => p.Comments ?? 0),
+            latestPerPost.Sum(p => p.Shares ?? 0),
+            engagementRates.Count > 0 ? Math.Round(engagementRates.Average(), 4) : null,
+            platformBreakdown,
+            topPosts);
+
+        return Result<BrandAnalyticsOverview>.Success(overview);
+    }
+}
