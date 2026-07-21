@@ -1,7 +1,9 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Rawaj.Application.Common.Policies;
 using Rawaj.Application.Features.Billing.ChangeSubscriptionPlan;
+using Rawaj.Application.Features.Billing.GetAiCreditsUsage;
 using Rawaj.Application.Features.Billing.GetSubscription;
 using Rawaj.Application.Features.Billing.GetSubscriptionPlans;
 using Rawaj.Common;
@@ -31,6 +33,16 @@ public class SubscriptionsController(ISender sender) : ControllerBase
         return result.Succeeded
             ? Ok(ApiResponse<GetSubscriptionResponse>.Success(result.Data!))
             : BadRequest(ApiResponse<GetSubscriptionResponse>.Fail(result.ErrorMessage!));
+    }
+
+    [HttpGet("ai-credits")]
+    public async Task<IActionResult> GetAiCreditsUsage(CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new GetAiCreditsUsageQuery(), cancellationToken);
+
+        return result.Succeeded
+            ? Ok(ApiResponse<AiCreditsUsage>.Success(result.Data!))
+            : BadRequest(ApiResponse<AiCreditsUsage>.Fail(result.ErrorMessage!));
     }
 
     [HttpPost("change-plan")]

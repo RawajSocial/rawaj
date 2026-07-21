@@ -80,7 +80,7 @@ public class SchedulePostCommandHandler(
             VisualAssetId = request.VisualAssetId,
             SocialAccountId = socialAccount.Id,
             ScheduledAt = request.ScheduledAt,
-            AiSuggestedTime = false,
+            AiSuggestedTime = request.AiSuggestedTime,
             Status = ScheduledPostStatus.Pending,
             RetryCount = 0,
             CreatedAt = now,

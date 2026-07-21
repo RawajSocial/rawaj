@@ -15,5 +15,6 @@ public enum NotificationCategory
     PostFailed,
     ReviewNeeded,
     Billing,
-    System
+    System,
+    TeamInvite
 }

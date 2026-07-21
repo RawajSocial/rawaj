@@ -1,6 +1,7 @@
-import { Component, input, output, signal } from '@angular/core';
+import { Component, inject, input, output, signal } from '@angular/core';
 // signal kept for activeRoute
-import { RouterLink, RouterLinkActive } from '@angular/router';
+import { Router, RouterLink, RouterLinkActive } from '@angular/router';
+import { AuthService } from '../../../core/auth/auth.service';
 
 type NavItem = {
   id: string;
@@ -25,6 +26,9 @@ type NavSection = {
   styleUrl: './sidebar.css',
 })
 export class Sidebar {
+  private readonly authService = inject(AuthService);
+  private readonly router = inject(Router);
+
   isOpen = input(true);
   mobileOpen = input(false);
   mobileClose = output<void>();
@@ -82,4 +86,9 @@ export class Sidebar {
     },
   ];
 
+  logout(): void {
+    this.mobileClose.emit();
+    this.authService.logout();
+    void this.router.navigate(['/login']);
+  }
 }

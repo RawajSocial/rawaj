@@ -24,25 +24,33 @@ public class GenerateVisualAssetCommandHandler(
         var tenantId = currentTenantContext.TenantId!.Value;
         var userId = currentUserService.UserId!.Value;
 
-        var campaign = await dbContext.MarketingCampaigns
-            .FirstOrDefaultAsync(c => c.Id == request.CampaignId && c.BrandProfile.TenantId == tenantId, cancellationToken);
-        if (campaign is null)
+        var brand = await dbContext.TenantBrandProfiles
+            .FirstOrDefaultAsync(b => b.Id == request.BrandProfileId && b.TenantId == tenantId, cancellationToken);
+        if (brand is null)
         {
-            return Result<GenerateVisualAssetResponse>.Failure("Campaign not found.");
+            return Result<GenerateVisualAssetResponse>.Failure("Brand profile not found.");
+        }
+
+        MarketingCampaign? campaign = null;
+        if (request.CampaignId.HasValue)
+        {
+            campaign = await dbContext.MarketingCampaigns
+                .FirstOrDefaultAsync(c => c.Id == request.CampaignId.Value && c.BrandProfileId == brand.Id, cancellationToken);
+            if (campaign is null)
+            {
+                return Result<GenerateVisualAssetResponse>.Failure("Campaign not found.");
+            }
         }
 
         if (request.ContentItemId is not null)
         {
             var contentItemExists = await dbContext.ContentItems.AnyAsync(
-                c => c.Id == request.ContentItemId && c.CampaignId == campaign.Id, cancellationToken);
+                c => c.Id == request.ContentItemId && c.BrandProfileId == brand.Id, cancellationToken);
             if (!contentItemExists)
             {
                 return Result<GenerateVisualAssetResponse>.Failure("Content item not found.");
             }
         }
-
-        var brand = await dbContext.TenantBrandProfiles
-            .FirstAsync(b => b.Id == campaign.BrandProfileId, cancellationToken);
 
         var creditsUsage = await AiCreditsPolicy.GetUsageAsync(dbContext, tenantId, cancellationToken);
         if (!creditsUsage.HasCreditsRemaining)
@@ -88,7 +96,7 @@ public class GenerateVisualAssetCommandHandler(
         {
             Id = visualAssetId,
             ContentItemId = request.ContentItemId,
-            CampaignId = campaign.Id,
+            CampaignId = campaign?.Id,
             BrandProfileId = brand.Id,
             Type = request.Type,
             FileUrl = dataUrl,
@@ -100,6 +108,7 @@ public class GenerateVisualAssetCommandHandler(
         };
         dbContext.VisualAssets.Add(visualAsset);
 
+        var visualSubject = campaign is not null ? $"for \"{campaign.Name}\"" : $"for {brand.Name}";
         NotificationPublisher.Notify(
             dbContext,
             userId,
@@ -107,13 +116,13 @@ public class GenerateVisualAssetCommandHandler(
             NotificationType.Success,
             NotificationCategory.AiJob,
             "Image generated",
-            $"A new {request.Type} image for \"{campaign.Name}\" has finished generating.",
+            $"A new {request.Type} image {visualSubject} has finished generating.",
             visualAsset.Id,
             "visual_asset");
 
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return Result<GenerateVisualAssetResponse>.Success(
-            new GenerateVisualAssetResponse(visualAsset.Id, campaign.Id, visualAsset.FileUrl));
+            new GenerateVisualAssetResponse(visualAsset.Id, campaign?.Id, visualAsset.FileUrl));
     }
 }

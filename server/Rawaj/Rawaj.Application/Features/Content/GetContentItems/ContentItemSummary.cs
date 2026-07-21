@@ -9,4 +9,7 @@ public record ContentItemSummary(
     Language Language,
     string Content,
     ContentStatus Status,
-    DateTime CreatedAt);
+    DateTime CreatedAt,
+    DateTime? SuggestedPostAt,
+    Guid? VisualAssetId,
+    string? ImageUrl);

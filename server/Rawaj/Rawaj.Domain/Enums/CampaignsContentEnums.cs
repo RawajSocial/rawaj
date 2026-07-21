@@ -54,3 +54,15 @@ public enum VisualAssetSourceType
     UserUploaded,
     Edited
 }
+
+public enum ContentTemplateStyle
+{
+    Auto,
+    ProductHighlight,
+    PromotionalOffer,
+    EducationalTip,
+    EngagementQuestion,
+    BehindTheScenes,
+    Testimonial,
+    Announcement
+}

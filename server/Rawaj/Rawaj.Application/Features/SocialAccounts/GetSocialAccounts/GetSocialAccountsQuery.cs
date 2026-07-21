@@ -6,7 +6,7 @@ using Rawaj.Domain.Enums;
 namespace Rawaj.Application.Features.SocialAccounts.GetSocialAccounts;
 
 public record GetSocialAccountsQuery(Guid BrandProfileId)
-    : IRequest<Result<List<SocialAccountSummary>>>, IRequireTenantRole
+    : IRequest<Result<List<SocialAccountSummary>>>, IRequireTenantRole, IRequireBrandAccess
 {
     public TenantMemberRole MinimumRole => TenantMemberRole.Viewer;
 }

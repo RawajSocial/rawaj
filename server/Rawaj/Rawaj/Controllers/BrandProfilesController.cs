@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Rawaj.Application.Features.Brands.CreateBrandProfile;
 using Rawaj.Application.Features.Brands.GenerateOnboardingQuestions;
+using Rawaj.Application.Features.Brands.GetBrandProfile;
 using Rawaj.Application.Features.Brands.GetBrandProfiles;
 using Rawaj.Application.Features.Brands.UpdateBrandProfile;
 using Rawaj.Common;
@@ -34,6 +35,16 @@ public class BrandProfilesController(ISender sender) : ControllerBase
         return result.Succeeded
             ? Ok(ApiResponse<List<BrandProfileSummary>>.Success(result.Data!))
             : BadRequest(ApiResponse<List<BrandProfileSummary>>.Fail(result.ErrorMessage!));
+    }
+
+    [HttpGet("{brandProfileId:guid}")]
+    public async Task<IActionResult> GetById(Guid brandProfileId, CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new GetBrandProfileQuery(brandProfileId), cancellationToken);
+
+        return result.Succeeded
+            ? Ok(ApiResponse<GetBrandProfileResponse>.Success(result.Data!))
+            : NotFound(ApiResponse<GetBrandProfileResponse>.Fail(result.ErrorMessage!));
     }
 
     public record UpdateBrandProfileRequest(

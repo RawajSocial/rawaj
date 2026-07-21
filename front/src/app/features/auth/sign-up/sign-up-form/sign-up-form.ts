@@ -30,7 +30,6 @@ export class SignUpForm {
       firstName: ['', [Validators.required]],
       lastName: ['', [Validators.required]],
       email: ['', [Validators.required, Validators.email]],
-      businessName: ['', [Validators.required]],
       password: ['', [Validators.required, Validators.minLength(8)]],
       confirmPassword: ['', [Validators.required, Validators.minLength(8)]],
       termsAccepted: [false, [Validators.requiredTrue]],
@@ -46,7 +45,7 @@ export class SignUpForm {
       return;
     }
 
-    const { firstName, lastName, email, businessName, password } = this.form.getRawValue();
+    const { firstName, lastName, email, password } = this.form.getRawValue();
     this.submitting.set(true);
 
     this.authService
@@ -54,8 +53,9 @@ export class SignUpForm {
       .subscribe({
         next: () => {
           this.submitting.set(false);
-          localStorage.setItem('rawaj.account-setup', JSON.stringify({ businessName }));
-          this.router.navigate(['/account-setup']);
+          // A registered account works on its own - creating a business/tenant is a separate,
+          // optional step reachable from the dashboard, not forced immediately after signing up.
+          this.router.navigate(['/dashboard']);
         },
         error: (error: unknown) => {
           this.submitting.set(false);
@@ -69,7 +69,6 @@ export class SignUpForm {
       | 'firstName'
       | 'lastName'
       | 'email'
-      | 'businessName'
       | 'password'
       | 'confirmPassword'
       | 'termsAccepted',
@@ -83,7 +82,6 @@ export class SignUpForm {
         required: 'البريد الإلكتروني مطلوب.',
         email: 'أدخل بريدًا إلكترونيًا صحيحًا.',
       },
-      businessName: { required: 'اسم النشاط التجاري مطلوب.' },
       password: {
         required: 'كلمة المرور مطلوبة.',
         minlength: 'كلمة المرور يجب أن تكون 8 أحرف على الأقل.',

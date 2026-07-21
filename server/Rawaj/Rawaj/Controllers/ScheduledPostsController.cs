@@ -3,10 +3,12 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Rawaj.Application.Common.Models;
 using Rawaj.Application.Features.Scheduling.CancelScheduledPost;
+using Rawaj.Application.Features.Scheduling.GetPostingTimeSuggestions;
 using Rawaj.Application.Features.Scheduling.GetScheduledPosts;
 using Rawaj.Application.Features.Scheduling.PublishScheduledPost;
 using Rawaj.Application.Features.Scheduling.SchedulePost;
 using Rawaj.Common;
+using Rawaj.Domain.Enums;
 
 namespace Rawaj.Controllers;
 
@@ -54,5 +56,16 @@ public class ScheduledPostsController(ISender sender) : ControllerBase
         return result.Succeeded
             ? Ok(ApiResponse<PublishScheduledPostResponse>.Success(result.Data!))
             : BadRequest(ApiResponse<PublishScheduledPostResponse>.Fail(result.ErrorMessage!));
+    }
+
+    [HttpGet("posting-time-suggestions")]
+    public async Task<IActionResult> GetPostingTimeSuggestions(
+        [FromQuery] Guid brandProfileId, [FromQuery] List<SocialPlatform>? platforms, CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new GetPostingTimeSuggestionsQuery(brandProfileId, platforms), cancellationToken);
+
+        return result.Succeeded
+            ? Ok(ApiResponse<List<PostingTimeSuggestionDto>>.Success(result.Data!))
+            : BadRequest(ApiResponse<List<PostingTimeSuggestionDto>>.Fail(result.ErrorMessage!));
     }
 }

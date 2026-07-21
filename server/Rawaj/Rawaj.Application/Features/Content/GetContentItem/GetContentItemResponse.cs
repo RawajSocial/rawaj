@@ -5,6 +5,7 @@ namespace Rawaj.Application.Features.Content.GetContentItem;
 public record GetContentItemResponse(
     Guid ContentItemId,
     Guid? CampaignId,
+    Guid? BrandProfileId,
     ContentType ContentType,
     SocialPlatform Platform,
     Language Language,

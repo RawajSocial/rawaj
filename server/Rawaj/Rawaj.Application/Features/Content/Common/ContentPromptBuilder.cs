@@ -1,24 +1,17 @@
 using Rawaj.Domain.Entities.Campaigns;
 using Rawaj.Domain.Entities.Tenants;
+using Rawaj.Domain.Enums;
 
 namespace Rawaj.Application.Features.Content.Common;
 
 public static class ContentPromptBuilder
 {
-    public static string BuildTextPrompt(
-        TenantBrandProfile brand,
-        MarketingCampaign campaign,
-        string contentType,
-        string platform,
-        string language,
-        string? tone,
-        string? additionalInstructions)
+    private static void AddBrandIdentityLines(List<string> lines, TenantBrandProfile brand)
     {
-        var lines = new List<string>
+        if (!string.IsNullOrWhiteSpace(brand.Description))
         {
-            $"Write a {contentType} for the {platform} platform in {language}.",
-            $"Brand: {brand.Name}."
-        };
+            lines.Add($"Brand description: {brand.Description}.");
+        }
 
         if (!string.IsNullOrWhiteSpace(brand.BrandInfo?.Tagline))
         {
@@ -35,16 +28,43 @@ public static class ContentPromptBuilder
             lines.Add($"Target audience: {brand.BrandInfo.TargetAudience}.");
         }
 
+        if (brand.BrandInfo?.Keywords is { Count: > 0 })
+        {
+            lines.Add($"Relevant keywords: {string.Join(", ", brand.BrandInfo.Keywords)}.");
+        }
+
         if (brand.BrandVoice.HasValue)
         {
             lines.Add($"Brand voice: {brand.BrandVoice}.");
         }
+    }
 
-        lines.Add($"Campaign: {campaign.Name}.");
-
-        if (!string.IsNullOrWhiteSpace(campaign.Objective))
+    public static string BuildTextPrompt(
+        TenantBrandProfile brand,
+        MarketingCampaign? campaign,
+        string contentType,
+        string platform,
+        string language,
+        string? tone,
+        string? additionalInstructions,
+        ContentTemplateStyle templateStyle = ContentTemplateStyle.Auto)
+    {
+        var lines = new List<string>
         {
-            lines.Add($"Campaign objective: {campaign.Objective}.");
+            $"Write a {contentType} for the {platform} platform in {language}.",
+            $"Brand: {brand.Name}."
+        };
+
+        AddBrandIdentityLines(lines, brand);
+
+        if (campaign is not null)
+        {
+            lines.Add($"Campaign: {campaign.Name}.");
+
+            if (!string.IsNullOrWhiteSpace(campaign.Objective))
+            {
+                lines.Add($"Campaign objective: {campaign.Objective}.");
+            }
         }
 
         if (!string.IsNullOrWhiteSpace(tone))
@@ -56,6 +76,8 @@ public static class ContentPromptBuilder
         {
             lines.Add($"Additional instructions: {additionalInstructions}.");
         }
+
+        lines.Add(ContentTemplateCatalog.StructureGuidance(templateStyle));
 
         lines.Add("Return only the final copy, no explanations or formatting notes.");
 
@@ -155,11 +177,66 @@ public static class ContentPromptBuilder
         return string.Join(" ", lines);
     }
 
-    public static string BuildImagePrompt(
+    public static string BuildCampaignContentPlanPrompt(
         TenantBrandProfile brand,
         MarketingCampaign campaign,
+        List<string> competitorInsights,
+        string postingTimeSummary,
+        int postCount,
+        List<SocialPlatform> platforms,
+        Language language,
+        ContentTemplateStyle templateStyle = ContentTemplateStyle.Auto)
+    {
+        var lines = new List<string>
+        {
+            $"Create {postCount} distinct social media posts for the campaign \"{campaign.Name}\" for the brand \"{brand.Name}\", " +
+            $"written in {language}, distributed across these platforms: {string.Join(", ", platforms)}."
+        };
+
+        AddBrandIdentityLines(lines, brand);
+
+        if (!string.IsNullOrWhiteSpace(campaign.Objective))
+        {
+            lines.Add($"Campaign objective: {campaign.Objective}.");
+        }
+
+        if (campaign.StartDate.HasValue && campaign.EndDate.HasValue)
+        {
+            lines.Add($"Campaign runs from {campaign.StartDate} to {campaign.EndDate}.");
+        }
+
+        if (competitorInsights.Count > 0)
+        {
+            lines.Add("Known competitor intelligence: " + string.Join(" | ", competitorInsights));
+        }
+
+        if (!string.IsNullOrWhiteSpace(postingTimeSummary))
+        {
+            lines.Add("Optimal posting time guidance: " + postingTimeSummary);
+        }
+
+        lines.Add(
+            $"For each post choose a dayOffset (integer, 0 = campaign start day, {postCount * 2} = latest allowed) and an hour " +
+            "(0-23) that best matches the posting time guidance above. contentType must be one of: " +
+            "Post, Story, ReelScript, AdCopy, Blog, Caption. platform must be one of the target platforms listed above.");
+
+        lines.Add(ContentTemplateCatalog.StructureGuidance(templateStyle));
+
+        lines.Add(
+            "Respond with ONLY a valid JSON object (no markdown fences, no commentary) with this exact shape: " +
+            "{\"posts\":[{\"platform\":\"...\",\"contentType\":\"...\",\"dayOffset\":0,\"hour\":18,\"content\":\"...\"," +
+            "\"hashtags\":[\"...\"],\"cta\":\"...\"}]}. " +
+            $"Return exactly {postCount} posts in the array.");
+
+        return string.Join(" ", lines);
+    }
+
+    public static string BuildImagePrompt(
+        TenantBrandProfile brand,
+        MarketingCampaign? campaign,
         string visualType,
-        string userPrompt)
+        string userPrompt,
+        ContentTemplateStyle templateStyle = ContentTemplateStyle.Auto)
     {
         var lines = new List<string> { userPrompt, $"Style fits a {visualType} for the brand \"{brand.Name}\"." };
 
@@ -168,7 +245,22 @@ public static class ContentPromptBuilder
             lines.Add($"Industry: {brand.BrandInfo.Industry}.");
         }
 
-        lines.Add($"Campaign context: {campaign.Name}.");
+        if (brand.BrandInfo?.Colors is { Count: > 0 })
+        {
+            lines.Add($"Use brand colors: {string.Join(", ", brand.BrandInfo.Colors)}.");
+        }
+
+        if (brand.BrandInfo?.Keywords is { Count: > 0 })
+        {
+            lines.Add($"Relevant keywords: {string.Join(", ", brand.BrandInfo.Keywords)}.");
+        }
+
+        if (campaign is not null)
+        {
+            lines.Add($"Campaign context: {campaign.Name}.");
+        }
+
+        lines.Add(ContentTemplateCatalog.ImageStyleHint(templateStyle));
 
         return string.Join(" ", lines);
     }

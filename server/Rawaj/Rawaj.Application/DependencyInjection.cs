@@ -19,6 +19,7 @@ public static class DependencyInjection
         services.AddScoped<ICurrentTenantContext, CurrentTenantContext>();
 
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(TenantAuthorizationBehavior<,>));
+        services.AddTransient(typeof(IPipelineBehavior<,>), typeof(BrandAccessAuthorizationBehavior<,>));
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
 
         return services;

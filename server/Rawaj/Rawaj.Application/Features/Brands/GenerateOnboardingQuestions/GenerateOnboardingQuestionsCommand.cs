@@ -14,7 +14,7 @@ namespace Rawaj.Application.Features.Brands.GenerateOnboardingQuestions;
 /// structured data to act on.
 /// </summary>
 public record GenerateOnboardingQuestionsCommand(Guid BrandProfileId, string OnboardingContextJson)
-    : IRequest<Result<GenerateOnboardingQuestionsResponse>>, IRequireTenantRole
+    : IRequest<Result<GenerateOnboardingQuestionsResponse>>, IRequireTenantRole, IRequireBrandAccess
 {
     public TenantMemberRole MinimumRole => TenantMemberRole.Viewer;
 }

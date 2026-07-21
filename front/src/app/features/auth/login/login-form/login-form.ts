@@ -49,14 +49,17 @@ export class LoginForm {
 
     this.authService.login({ email, password }).subscribe({
       next: () => {
+        // Whether this user owns/belongs to a tenant or not, they land on the dashboard - it
+        // shows a "create your business" prompt for tenant-less accounts instead of forcing
+        // everyone through setup immediately after logging in.
         this.tenantService.loadContext().subscribe({
-          next: ({ tenant }) => {
+          next: () => {
             this.submitting.set(false);
-            this.router.navigate([tenant ? '/dashboard' : '/account-setup']);
+            this.router.navigate(['/dashboard']);
           },
           error: () => {
             this.submitting.set(false);
-            this.router.navigate(['/account-setup']);
+            this.router.navigate(['/dashboard']);
           },
         });
       },

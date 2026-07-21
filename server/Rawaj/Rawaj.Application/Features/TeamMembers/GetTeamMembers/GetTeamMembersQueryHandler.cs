@@ -18,6 +18,15 @@ public class GetTeamMembersQueryHandler(
         var members = await dbContext.TenantMembers
             .Where(m => m.TenantId == tenantId)
             .OrderBy(m => m.CreatedAt)
+            .Select(m => new
+            {
+                m.Id,
+                m.UserId,
+                m.Role,
+                m.InvitationStatus,
+                m.JoinedAt,
+                BrandProfileIds = m.BrandAccesses.Select(a => a.BrandProfileId).ToList(),
+            })
             .ToListAsync(cancellationToken);
 
         var users = await identityService.FindByIdsAsync(members.Select(m => m.UserId), cancellationToken);
@@ -28,7 +37,8 @@ public class GetTeamMembersQueryHandler(
             .Select(m =>
             {
                 var user = usersById[m.UserId];
-                return new TeamMemberSummary(m.Id, user.Id, user.Email, user.FullName, m.Role, m.JoinedAt);
+                return new TeamMemberSummary(
+                    m.Id, user.Id, user.Email, user.FullName, m.Role, m.InvitationStatus, m.JoinedAt, m.BrandProfileIds);
             })
             .ToList();
 

@@ -24,15 +24,23 @@ public class GenerateContentItemCommandHandler(
         var tenantId = currentTenantContext.TenantId!.Value;
         var userId = currentUserService.UserId!.Value;
 
-        var campaign = await dbContext.MarketingCampaigns
-            .FirstOrDefaultAsync(c => c.Id == request.CampaignId && c.BrandProfile.TenantId == tenantId, cancellationToken);
-        if (campaign is null)
+        var brand = await dbContext.TenantBrandProfiles
+            .FirstOrDefaultAsync(b => b.Id == request.BrandProfileId && b.TenantId == tenantId, cancellationToken);
+        if (brand is null)
         {
-            return Result<GenerateContentItemResponse>.Failure("Campaign not found.");
+            return Result<GenerateContentItemResponse>.Failure("Brand profile not found.");
         }
 
-        var brand = await dbContext.TenantBrandProfiles
-            .FirstAsync(b => b.Id == campaign.BrandProfileId, cancellationToken);
+        MarketingCampaign? campaign = null;
+        if (request.CampaignId.HasValue)
+        {
+            campaign = await dbContext.MarketingCampaigns
+                .FirstOrDefaultAsync(c => c.Id == request.CampaignId.Value && c.BrandProfileId == brand.Id, cancellationToken);
+            if (campaign is null)
+            {
+                return Result<GenerateContentItemResponse>.Failure("Campaign not found.");
+            }
+        }
 
         var creditsUsage = await AiCreditsPolicy.GetUsageAsync(dbContext, tenantId, cancellationToken);
         if (!creditsUsage.HasCreditsRemaining)
@@ -48,7 +56,8 @@ public class GenerateContentItemCommandHandler(
             request.Platform.ToString(),
             request.Language.ToString(),
             request.Tone,
-            request.AdditionalInstructions);
+            request.AdditionalInstructions,
+            request.TemplateStyle);
 
         var generation = await textGenerationService.GenerateTextAsync(prompt, cancellationToken);
 
@@ -83,7 +92,7 @@ public class GenerateContentItemCommandHandler(
         var contentItem = new ContentItem
         {
             Id = contentItemId,
-            CampaignId = campaign.Id,
+            CampaignId = campaign?.Id,
             TenantId = tenantId,
             BrandProfileId = brand.Id,
             CreatedBy = userId,
@@ -99,6 +108,7 @@ public class GenerateContentItemCommandHandler(
         };
         dbContext.ContentItems.Add(contentItem);
 
+        var contentSubject = campaign is not null ? $"for \"{campaign.Name}\"" : $"for {brand.Name}";
         NotificationPublisher.Notify(
             dbContext,
             userId,
@@ -106,13 +116,13 @@ public class GenerateContentItemCommandHandler(
             NotificationType.Info,
             NotificationCategory.ReviewNeeded,
             "Content ready for review",
-            $"A new {request.ContentType} draft for \"{campaign.Name}\" is ready for your review.",
+            $"A new {request.ContentType} draft {contentSubject} is ready for your review.",
             contentItem.Id,
             "content_item");
 
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return Result<GenerateContentItemResponse>.Success(
-            new GenerateContentItemResponse(contentItem.Id, campaign.Id, contentItem.Content, contentItem.Status));
+            new GenerateContentItemResponse(contentItem.Id, campaign?.Id, contentItem.Content, contentItem.Status));
     }
 }

@@ -22,7 +22,16 @@ public class GetContentItemsQueryHandler(IApplicationDbContext dbContext, ICurre
         var items = await query
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(c => new ContentItemSummary(c.Id, c.ContentType, c.Platform, c.Language, c.Content, c.Status, c.CreatedAt))
+            .Select(c => new ContentItemSummary(
+                c.Id, c.ContentType, c.Platform, c.Language, c.Content, c.Status, c.CreatedAt, c.SuggestedPostAt,
+                c.VisualAssets
+                    .OrderByDescending(v => v.CreatedAt)
+                    .Select(v => (Guid?)v.Id)
+                    .FirstOrDefault(),
+                c.VisualAssets
+                    .OrderByDescending(v => v.CreatedAt)
+                    .Select(v => v.FileUrl)
+                    .FirstOrDefault()))
             .ToListAsync(cancellationToken);
 
         return Result<PagedResult<ContentItemSummary>>.Success(new PagedResult<ContentItemSummary>(items, page, pageSize, totalCount));

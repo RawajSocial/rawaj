@@ -266,7 +266,10 @@
   color: rgba(255, 255, 255, 0.75);
   font-size: var(--font-size-sm);
   font-weight: var(--font-medium);
+  font-family: inherit;
   text-decoration: none;
+  background: none;
+  border: none;
   cursor: pointer;
   transition: background var(--transition-fast), color var(--transition-fast);
 }

@@ -13,7 +13,7 @@ public record CreateCampaignCommand(
     DateOnly? StartDate,
     DateOnly? EndDate,
     decimal? BudgetAmount,
-    string? BudgetCurrency) : IRequest<Result<CreateCampaignResponse>>, IRequireTenantRole
+    string? BudgetCurrency) : IRequest<Result<CreateCampaignResponse>>, IRequireTenantRole, IRequireBrandAccess
 {
     public TenantMemberRole MinimumRole => TenantMemberRole.Editor;
 }

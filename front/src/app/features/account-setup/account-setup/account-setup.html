@@ -5,96 +5,103 @@
       <a class="setup-logo" routerLink="/">رواج</a>
     </header>
 
-    @if (step() === 0) {
-      <app-setup-type-selector (typeSelected)="selectType($event)" />
-    } @else {
-      <div class="setup-card">
-        <app-setup-stepper
-          [currentStep]="step()"
-          [totalSteps]="totalSteps()"
-          [steps]="steps()" />
+    <div class="setup-card">
+      <h2 class="setup-title">أنشئ نشاطك التجاري</h2>
+      <p class="setup-subtitle">اختر باقتك، نوع نشاطك، وأخبرنا القليل عن علامتك التجارية لتبدأ.</p>
 
-        @if (submitError(); as error) {
-          <div class="alert alert-danger" role="alert">{{ error }}</div>
-        }
+      @if (submitError(); as error) {
+        <div class="alert alert-danger" role="alert">{{ error }}</div>
+      }
 
-        @if (submitting()) {
-          <div class="setup-submitting text-center py-5">
-            <div class="spinner-border text-primary" role="status"></div>
-            <p class="mt-3">جاري إنشاء مساحة عملك...</p>
+      @if (submitting()) {
+        <div class="setup-submitting text-center py-5">
+          <div class="spinner-border text-primary" role="status"></div>
+          <p class="mt-3">جاري إنشاء نشاطك التجاري...</p>
+        </div>
+      } @else {
+
+        <!-- Plan selection -->
+        <section class="setup-section">
+          <h3 class="setup-section-title">١. اختر باقتك</h3>
+          @if (loadingPlans()) {
+            <div class="text-center py-3">
+              <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+            </div>
+          } @else if (loadError(); as error) {
+            <div class="alert alert-danger">{{ error }}</div>
+          } @else {
+            <div class="plan-options">
+              @for (plan of plans(); track plan.subscriptionPlanId) {
+                <button
+                  type="button"
+                  class="plan-option"
+                  [class.selected]="selectedPlanId() === plan.subscriptionPlanId"
+                  (click)="selectPlan(plan.subscriptionPlanId)">
+                  <span class="plan-option-name">{{ plan.name }}</span>
+                  <span class="plan-option-price">
+                    @if (plan.cost > 0) {
+                      {{ plan.cost }} {{ plan.currency }} / {{ plan.billingCycle === 'Monthly' ? 'شهرياً' : 'سنوياً' }}
+                    } @else {
+                      مجاناً
+                    }
+                  </span>
+                  <span class="plan-option-hint">
+                    حتى {{ plan.maxBrands }} علامة تجارية، {{ plan.maxUsers }} مستخدمين
+                  </span>
+                </button>
+              }
+            </div>
+          }
+        </section>
+
+        <!-- Tenant type -->
+        <section class="setup-section">
+          <h3 class="setup-section-title">٢. نوع النشاط</h3>
+          <div class="type-options">
+            @for (type of tenantTypes; track type.value) {
+              <button
+                type="button"
+                class="type-option"
+                [class.selected]="selectedType() === type.value"
+                (click)="selectType(type.value)">
+                <i class="fa-solid {{ type.icon }}"></i>
+                <span class="type-option-label">{{ type.label }}</span>
+                <span class="type-option-hint">{{ type.hint }}</span>
+              </button>
+            }
           </div>
-        } @else if (data().accountType === 'agency') {
-          @switch (step()) {
-            @case (1) {
-              <app-agency-basic-info
-                [data]="data()"
-                (dataChange)="updateData($event)"
-                (next)="next()"
-                (back)="back()" />
-            }
-            @case (2) {
-              <app-agency-size-clients
-                [data]="data()"
-                (dataChange)="updateData($event)"
-                (next)="next()"
-                (back)="back()" />
-            }
-            @case (3) {
-              <app-agency-services
-                [data]="data()"
-                (dataChange)="updateData($event)"
-                (next)="next()"
-                (back)="back()" />
-            }
-            @case (4) {
-              <app-agency-location
-                [data]="data()"
-                (dataChange)="updateData($event)"
-                (next)="next()"
-                (back)="back()" />
-            }
-            @case (5) {
-              <app-agency-social-links
-                [data]="data()"
-                (dataChange)="updateData($event)"
-                (next)="next()"
-                (back)="back()" />
-            }
-          }
-        } @else {
-          @switch (step()) {
-            @case (1) {
-              <app-business-basic-info
-                [data]="data()"
-                (dataChange)="updateData($event)"
-                (next)="next()"
-                (back)="back()" />
-            }
-            @case (2) {
-              <app-business-details
-                [data]="data()"
-                (dataChange)="updateData($event)"
-                (next)="next()"
-                (back)="back()" />
-            }
-            @case (3) {
-              <app-business-location
-                [data]="data()"
-                (dataChange)="updateData($event)"
-                (next)="next()"
-                (back)="back()" />
-            }
-            @case (4) {
-              <app-business-social-links
-                [data]="data()"
-                (dataChange)="updateData($event)"
-                (next)="next()"
-                (back)="back()" />
-            }
-          }
-        }
-      </div>
-    }
+        </section>
+
+        <!-- Brand info -->
+        <section class="setup-section">
+          <h3 class="setup-section-title">٣. عن علامتك التجارية</h3>
+          <form [formGroup]="form" (ngSubmit)="submit()">
+            <div class="form-field">
+              <label for="brand-name">اسم العلامة التجارية</label>
+              <input id="brand-name" type="text" class="form-control" formControlName="name" placeholder="مثال: متجر الأناقة">
+              @if (submitted() && form.controls.name.invalid) {
+                <span class="field-error">الرجاء إدخال اسم العلامة التجارية</span>
+              }
+            </div>
+
+            <div class="form-row">
+              <div class="form-field">
+                <label for="brand-industry">القطاع (اختياري)</label>
+                <input id="brand-industry" type="text" class="form-control" formControlName="industry" placeholder="مثال: أزياء">
+              </div>
+              <div class="form-field">
+                <label for="brand-website">الموقع الإلكتروني (اختياري)</label>
+                <input id="brand-website" type="url" class="form-control" formControlName="website" placeholder="https://example.com">
+              </div>
+            </div>
+
+            <button type="submit" class="btn-brand btn-submit">
+              إنشاء النشاط التجاري والمتابعة
+            </button>
+          </form>
+        </section>
+      }
+    </div>
 
   </div>
 </main>

@@ -23,7 +23,7 @@ public static class DependencyInjection
         services.Configure<JwtSettings>(configuration.GetSection(JwtSettings.SectionName));
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
 
-        services.Configure<GeminiSettings>(configuration.GetSection(GeminiSettings.SectionName));
+        services.Configure<GroqSettings>(configuration.GetSection(GroqSettings.SectionName));
         services.Configure<HuggingFaceSettings>(configuration.GetSection(HuggingFaceSettings.SectionName));
         services.Configure<TavilySettings>(configuration.GetSection(TavilySettings.SectionName));
         services.Configure<EncryptionSettings>(configuration.GetSection(EncryptionSettings.SectionName));
@@ -34,7 +34,7 @@ public static class DependencyInjection
         // AI generation calls run much longer than a typical API request (image generation in
         // particular), so they get generous timeouts; social platform calls are usually fast and
         // keep closer to the resilience handler's defaults.
-        services.AddResilientHttpClient("Gemini", attemptTimeout: TimeSpan.FromSeconds(45), totalTimeout: TimeSpan.FromSeconds(120));
+        services.AddResilientHttpClient("Groq", attemptTimeout: TimeSpan.FromSeconds(45), totalTimeout: TimeSpan.FromSeconds(120));
         services.AddResilientHttpClient("HuggingFace", attemptTimeout: TimeSpan.FromSeconds(60), totalTimeout: TimeSpan.FromSeconds(150));
         services.AddResilientHttpClient("Tavily", attemptTimeout: TimeSpan.FromSeconds(30), totalTimeout: TimeSpan.FromSeconds(60));
         services.AddResilientHttpClient("Meta", attemptTimeout: TimeSpan.FromSeconds(20), totalTimeout: TimeSpan.FromSeconds(45));
@@ -46,7 +46,7 @@ public static class DependencyInjection
             configureClient: client => client.DefaultRequestHeaders.UserAgent.ParseAdd(
                 "Mozilla/5.0 (compatible; RawajBot/1.0; +https://rawaj.example/bot)"));
 
-        services.AddScoped<IAiTextGenerationService, GeminiTextGenerationService>();
+        services.AddScoped<IAiTextGenerationService, GroqTextGenerationService>();
         services.AddScoped<IAiImageGenerationService, HuggingFaceImageGenerationService>();
         services.AddScoped<ITavilySearchService, TavilySearchService>();
         services.AddScoped<IWebScraperService, HtmlAgilityPackWebScraperService>();
@@ -73,10 +73,9 @@ public static class DependencyInjection
                 sp.GetRequiredService<ILogger<MetaOAuthProvider>>()));
         }
 
-        if (!string.IsNullOrWhiteSpace(configuration["SocialOAuth:LinkedIn:ClientId"]))
-        {
-            services.AddScoped<ISocialOAuthProvider, LinkedInOAuthProvider>();
-        }
+        // LinkedIn (and any other platform beyond Facebook/Instagram) is intentionally deferred -
+        // the provider implementation stays in the codebase for later, but is not registered so it
+        // can never be offered as a connect option, regardless of configuration.
 
         // Publishing only needs a valid stored access token (however it was obtained), not our
         // own app's OAuth client id/secret, so it is registered unconditionally.

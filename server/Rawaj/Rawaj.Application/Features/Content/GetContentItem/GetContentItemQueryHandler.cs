@@ -17,6 +17,7 @@ public class GetContentItemQueryHandler(IApplicationDbContext dbContext, ICurren
             .Select(c => new GetContentItemResponse(
                 c.Id,
                 c.CampaignId,
+                c.BrandProfileId,
                 c.ContentType,
                 c.Platform,
                 c.Language,

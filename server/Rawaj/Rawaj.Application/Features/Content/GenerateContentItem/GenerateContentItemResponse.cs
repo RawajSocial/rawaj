@@ -4,6 +4,6 @@ namespace Rawaj.Application.Features.Content.GenerateContentItem;
 
 public record GenerateContentItemResponse(
     Guid ContentItemId,
-    Guid CampaignId,
+    Guid? CampaignId,
     string Content,
     ContentStatus Status);

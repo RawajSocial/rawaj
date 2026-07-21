@@ -6,7 +6,7 @@ using Rawaj.Domain.Enums;
 namespace Rawaj.Application.Features.Analytics.GetBrandAnalytics;
 
 public record GetBrandAnalyticsQuery(Guid BrandProfileId)
-    : IRequest<Result<BrandAnalyticsOverview>>, IRequireTenantRole
+    : IRequest<Result<BrandAnalyticsOverview>>, IRequireTenantRole, IRequireBrandAccess
 {
     public TenantMemberRole MinimumRole => TenantMemberRole.Viewer;
 }

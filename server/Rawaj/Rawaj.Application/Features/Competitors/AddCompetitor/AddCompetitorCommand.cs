@@ -10,7 +10,7 @@ public record AddCompetitorCommand(
     string Name,
     string? Url,
     Dictionary<string, string>? SocialHandles,
-    string? Notes) : IRequest<Result<AddCompetitorResponse>>, IRequireTenantRole
+    string? Notes) : IRequest<Result<AddCompetitorResponse>>, IRequireTenantRole, IRequireBrandAccess
 {
     public TenantMemberRole MinimumRole => TenantMemberRole.Editor;
 }

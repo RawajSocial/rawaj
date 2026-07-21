@@ -40,6 +40,12 @@ public class IdentityService(UserManager<ApplicationUser> userManager) : IIdenti
         return user is null ? null : ToDto(user);
     }
 
+    public async Task<ApplicationUserDto?> FindByIdAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var user = await userManager.FindByIdAsync(userId.ToString());
+        return user is null ? null : ToDto(user);
+    }
+
     public async Task<List<ApplicationUserDto>> FindByIdsAsync(IEnumerable<Guid> userIds, CancellationToken cancellationToken)
     {
         var ids = userIds.ToArray();
@@ -54,6 +60,39 @@ public class IdentityService(UserManager<ApplicationUser> userManager) : IIdenti
     {
         var user = await userManager.FindByIdAsync(userId.ToString());
         return user is not null && user.IsActive && await userManager.CheckPasswordAsync(user, password);
+    }
+
+    public async Task<bool> UpdateProfileAsync(
+        Guid userId, string fullName, Language preferredLanguage, string? avatarUrl, CancellationToken cancellationToken)
+    {
+        var user = await userManager.FindByIdAsync(userId.ToString());
+        if (user is null)
+        {
+            return false;
+        }
+
+        user.FullName = fullName;
+        user.PreferredLanguage = preferredLanguage;
+        user.AvatarUrl = avatarUrl;
+        user.UpdatedAt = DateTime.UtcNow;
+        await userManager.UpdateAsync(user);
+        return true;
+    }
+
+    public async Task<IdentityChangePasswordResult> ChangePasswordAsync(
+        Guid userId, string currentPassword, string newPassword, CancellationToken cancellationToken)
+    {
+        var user = await userManager.FindByIdAsync(userId.ToString());
+        if (user is null)
+        {
+            return IdentityChangePasswordResult.Failure(["User not found."]);
+        }
+
+        var result = await userManager.ChangePasswordAsync(user, currentPassword, newPassword);
+
+        return result.Succeeded
+            ? IdentityChangePasswordResult.Success()
+            : IdentityChangePasswordResult.Failure(result.Errors.Select(e => e.Description).ToArray());
     }
 
     public async Task UpdateLastLoginAsync(Guid userId, CancellationToken cancellationToken)
@@ -102,6 +141,7 @@ public class IdentityService(UserManager<ApplicationUser> userManager) : IIdenti
         Id = user.Id,
         Email = user.Email!,
         FullName = user.FullName,
+        AvatarUrl = user.AvatarUrl,
         PreferredLanguage = user.PreferredLanguage,
         IsActive = user.IsActive,
         IsPlatformAdmin = user.IsPlatformAdmin

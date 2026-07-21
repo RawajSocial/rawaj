@@ -8,4 +8,6 @@ public record TeamMemberSummary(
     string Email,
     string FullName,
     TenantMemberRole Role,
-    DateTime? JoinedAt);
+    InvitationStatus InvitationStatus,
+    DateTime? JoinedAt,
+    List<Guid> BrandProfileIds);

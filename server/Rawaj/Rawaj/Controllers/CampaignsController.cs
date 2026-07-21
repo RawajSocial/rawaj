@@ -3,10 +3,12 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Rawaj.Application.Common.Models;
 using Rawaj.Application.Features.Campaigns.CreateCampaign;
+using Rawaj.Application.Features.Campaigns.GenerateCampaignContent;
 using Rawaj.Application.Features.Campaigns.GenerateMarketingPlan;
 using Rawaj.Application.Features.Campaigns.GetCampaign;
 using Rawaj.Application.Features.Campaigns.GetCampaigns;
 using Rawaj.Common;
+using Rawaj.Domain.Enums;
 
 namespace Rawaj.Controllers;
 
@@ -55,4 +57,21 @@ public class CampaignsController(ISender sender) : ControllerBase
             ? Ok(ApiResponse<GenerateMarketingPlanResponse>.Success(result.Data!))
             : BadRequest(ApiResponse<GenerateMarketingPlanResponse>.Fail(result.ErrorMessage!));
     }
+
+    [HttpPost("{campaignId:guid}/generate-content")]
+    public async Task<IActionResult> GenerateContent(
+        Guid campaignId, [FromBody] GenerateCampaignContentRequest request, CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(
+            new GenerateCampaignContentCommand(
+                campaignId, request.PostCount, request.Language, request.IncludeImages, request.TemplateStyle),
+            cancellationToken);
+
+        return result.Succeeded
+            ? Ok(ApiResponse<GenerateCampaignContentResponse>.Success(result.Data!))
+            : BadRequest(ApiResponse<GenerateCampaignContentResponse>.Fail(result.ErrorMessage!));
+    }
+
+    public record GenerateCampaignContentRequest(
+        int PostCount, Language Language, bool IncludeImages = true, ContentTemplateStyle TemplateStyle = ContentTemplateStyle.Auto);
 }

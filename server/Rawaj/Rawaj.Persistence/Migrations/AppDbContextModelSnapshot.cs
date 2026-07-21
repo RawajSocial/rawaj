@@ -469,6 +469,9 @@ namespace Rawaj.Persistence.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
+                    b.Property<DateTime?>("SuggestedPostAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<Guid?>("TenantId")
                         .HasColumnType("uniqueidentifier");
 
