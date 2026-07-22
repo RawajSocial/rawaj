@@ -17,6 +17,7 @@ export interface BrandProfile {
   websiteUrl?: string;
   supportedLanguages: string[];
   keywords: string[];
+  location?: string;
   isDefault: boolean;
   createdAt: string;
   updatedAt: string;

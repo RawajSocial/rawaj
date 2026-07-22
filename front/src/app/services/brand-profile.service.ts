@@ -53,6 +53,7 @@ export interface CreateBrandProfileInput {
   websiteUrl?: string;
   supportedLanguages?: string[];
   keywords?: string[];
+  location?: string;
 }
 
 /**

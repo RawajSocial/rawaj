@@ -1,6 +1,7 @@
-import { Component, OnInit, effect, signal } from '@angular/core';
+import { Component, OnInit, effect, inject, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { SeoService } from '../../services/seo.service';
+import { TenantService } from '../../core/tenant/tenant.service';
 import { Header } from './header/header';
 import { Sidebar } from './sidebar/sidebar';
 
@@ -15,10 +16,16 @@ export class UserLayout implements OnInit {
   sidebarOpen = signal(true);
   mobileOverlayOpen = signal(false);
 
+  private readonly tenantService = inject(TenantService);
+
   constructor(private readonly seo: SeoService) {
     effect(() => {
       document.body.classList.toggle('no-scroll', this.mobileOverlayOpen());
     });
+
+    if (!this.tenantService.tenant()) {
+      this.tenantService.refresh().subscribe();
+    }
   }
 
   ngOnInit(): void {

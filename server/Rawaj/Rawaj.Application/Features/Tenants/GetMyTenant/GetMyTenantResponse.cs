@@ -8,4 +8,17 @@ public record GetMyTenantResponse(
     string Subdomain,
     TenantType TenantType,
     TenantMemberRole Role,
-    bool IsActive);
+    bool IsActive,
+    int CoinBalance,
+    bool IsActivated,
+    string PlanName,
+    int MaxBrands,
+    int BrandProfileCount,
+    Guid? DefaultBrandProfileId,
+    string? Phone,
+    string? Industry,
+    string? Country,
+    string? City,
+    string? Website,
+    string? AgencySize,
+    List<string> ServicesOffered);

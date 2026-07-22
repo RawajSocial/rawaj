@@ -6,6 +6,8 @@ import { FileUpload } from '../../../shared/components/file-upload/file-upload';
 import { BrandProfileService } from '../../../services/brand-profile.service';
 import { BrandVoice } from '../../../model/brand-profile.model';
 import { SeoService } from '../../../services/seo.service';
+import { TenantService } from '../../../core/tenant/tenant.service';
+import { ErrorModalService } from '../../../services/error-modal.service';
 
 interface WizardStep {
   key: 'basics' | 'voice' | 'logo' | 'review';
@@ -28,6 +30,8 @@ const STEPS: WizardStep[] = [
 })
 export class BrandProfileCreatePage {
   private readonly brandProfileService = inject(BrandProfileService);
+  private readonly tenantService = inject(TenantService);
+  private readonly errorModalService = inject(ErrorModalService);
   private readonly router = inject(Router);
   private readonly seo = inject(SeoService);
 
@@ -51,6 +55,7 @@ export class BrandProfileCreatePage {
     tagline: [''],
     industry: [''],
     description: [''],
+    location: [''],
   });
 
   protected readonly selectedVoice = signal<BrandVoice>('professional');
@@ -118,12 +123,22 @@ export class BrandProfileCreatePage {
       return;
     }
 
-    const { name, tagline, industry, description } = this.basicsForm.getRawValue();
+    if (this.brandProfileService.profiles().length >= 1 && !this.tenantService.isAgency()) {
+      this.errorModalService.show(
+        'حسابك الحالي كصاحب علامة تجارية يسمح بملف تعريف واحد فقط. رقِّ حسابك إلى وكالة تسويق لإدارة أكثر من علامة.',
+        { variant: 'warning', title: 'يلزم ترقية الحساب' },
+      );
+      this.router.navigate(['/upgrade-tenant']);
+      return;
+    }
+
+    const { name, tagline, industry, description, location } = this.basicsForm.getRawValue();
     this.brandProfileService.create({
       name,
       tagline: tagline || undefined,
       industry: industry || undefined,
       description: description || undefined,
+      location: location || undefined,
       brandVoice: this.selectedVoice(),
       logoUrl: this.logoDataUrl() ?? undefined,
     });

@@ -2,11 +2,16 @@ using MediatR;
 using Rawaj.Application.Common.Interfaces;
 using Rawaj.Application.Common.Models;
 using Rawaj.Application.Common.Policies;
+using Rawaj.Application.Common.Services;
+using Rawaj.Domain.Enums;
 
 namespace Rawaj.Application.Features.Auth.Register;
 
 public class RegisterCommandHandler(
-    IIdentityService identityService, IJwtTokenGenerator jwtTokenGenerator, IApplicationDbContext dbContext)
+    IIdentityService identityService,
+    IJwtTokenGenerator jwtTokenGenerator,
+    IApplicationDbContext dbContext,
+    TenantProvisioningService tenantProvisioningService)
     : IRequestHandler<RegisterCommand, Result<RegisterResponse>>
 {
     public async Task<Result<RegisterResponse>> Handle(RegisterCommand request, CancellationToken cancellationToken)
@@ -37,6 +42,10 @@ public class RegisterCommandHandler(
             PreferredLanguage = request.PreferredLanguage,
             IsActive = true
         };
+
+        var subdomain = TenantProvisioningService.GenerateSubdomain(request.Email);
+        await tenantProvisioningService.ProvisionAsync(
+            userDto.Id, request.FullName, subdomain, TenantType.Business, cancellationToken, createDefaultBrandProfile: true);
 
         var accessToken = jwtTokenGenerator.GenerateToken(userDto);
         var refreshToken = RefreshTokenPolicy.Issue(dbContext, userDto.Id, jwtTokenGenerator.RefreshTokenExpiryDays);

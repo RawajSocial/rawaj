@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { KpiCard } from '../kpi-card/kpi-card';
 import { BalanceChart } from '../balance-chart/balance-chart';
 import { PageHeader } from '../../../shared/components/page-header/page-header';
@@ -6,6 +7,7 @@ import { PlatformPerformanceCard } from './platform-performance-card/platform-pe
 import { TopPostsCard } from './top-posts-card/top-posts-card';
 import { MetaAnalyticsCard } from './meta-analytics-card/meta-analytics-card';
 import { SeoService } from '../../../services/seo.service';
+import { TenantService } from '../../../core/tenant/tenant.service';
 import { KpiData, MetaWidget, PlatformKey, PlatformStat, TopPost, TopPostView, compactNumber } from './crm-page.model';
 
 const PLATFORM_STATS: PlatformStat[] = [
@@ -19,13 +21,16 @@ const PLATFORM_STATS: PlatformStat[] = [
 @Component({
   selector: 'app-crm-page',
   standalone: true,
-  imports: [KpiCard, BalanceChart, PageHeader, PlatformPerformanceCard, TopPostsCard, MetaAnalyticsCard],
+  imports: [RouterLink, KpiCard, BalanceChart, PageHeader, PlatformPerformanceCard, TopPostsCard, MetaAnalyticsCard],
   templateUrl: './crm-page.html',
   styleUrl: './crm-page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CrmPage {
   private readonly seo = inject(SeoService);
+  private readonly tenantService = inject(TenantService);
+
+  protected readonly isActivated = this.tenantService.isActivated;
 
   constructor() {
     this.seo.setPageSeo({

@@ -26,10 +26,12 @@ export const routes: Routes = [
       import('./features/auth/invite-login/invite-login').then((m) => m.InviteLogin),
   },
   {
-    path: 'account-setup',
+    path: 'upgrade-tenant',
     canActivate: [authGuard],
     loadComponent: () =>
-      import('./features/account-setup/account-setup/account-setup').then((m) => m.AccountSetup),
+      import('./features/upgrade-tenant/upgrade-tenant-page/upgrade-tenant-page').then(
+        (m) => m.UpgradeTenantPage,
+      ),
   },
   {
     path: 'on-boarding',

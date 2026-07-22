@@ -1,9 +1,11 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { PageHeader } from '../../../../shared/components/page-header/page-header';
 import { SeoService } from '../../../../services/seo.service';
-import { TenantService } from '../../../../services/tenant.service';
+import { TenantService } from '../../../../core/tenant/tenant.service';
 import { BrandProfileService } from '../../../../services/brand-profile.service';
+import { ErrorModalService } from '../../../../services/error-modal.service';
+import { LoaderService } from '../../../../services/loader.service';
 
 type SettingsTab = 'profile' | 'preferences' | 'connections';
 
@@ -41,8 +43,12 @@ export class SettingsPage {
   private readonly seo = inject(SeoService);
   private readonly tenantService = inject(TenantService);
   private readonly brandProfileService = inject(BrandProfileService);
+  private readonly errorModalService = inject(ErrorModalService);
+  private readonly loaderService = inject(LoaderService);
 
   protected readonly isAgency = this.tenantService.isAgency;
+  protected readonly isActivated = this.tenantService.isActivated;
+  protected readonly coinBalance = this.tenantService.coinBalance;
   protected readonly brandProfiles = this.brandProfileService.profiles;
   protected readonly connectPlatforms = CONNECT_PLATFORMS;
 
@@ -56,6 +62,21 @@ export class SettingsPage {
       type: 'website',
       noIndex: true,
     });
+
+    effect(() => {
+      const tenant = this.tenantService.tenant();
+      if (!tenant) return;
+      this.businessForm.patchValue(
+        {
+          phone: tenant.phone ?? '',
+          industry: tenant.industry ?? '',
+          country: tenant.country ?? '',
+          city: tenant.city ?? '',
+          website: tenant.website ?? '',
+        },
+        { emitEvent: false },
+      );
+    });
   }
 
   protected readonly tab = signal<SettingsTab>('profile');
@@ -66,6 +87,14 @@ export class SettingsPage {
     lastName: ['أحمد', [Validators.required]],
     email: ['haitham@rawaj.com', [Validators.required, Validators.email]],
     bio: ['مؤسس وكالة رواج للتسويق الرقمي.'],
+  });
+
+  protected readonly businessForm = this.fb.nonNullable.group({
+    phone: [''],
+    industry: [''],
+    country: [''],
+    city: [''],
+    website: [''],
   });
 
   protected readonly preferences = signal<Preference[]>([
@@ -123,5 +152,27 @@ export class SettingsPage {
 
   protected saveProfile(): void {
     this.profileForm.markAllAsTouched();
+  }
+
+  protected saveBusinessProfile(): void {
+    const wasActivated = this.isActivated();
+    this.loaderService.show();
+    this.tenantService.updateProfile(this.businessForm.getRawValue()).subscribe({
+      next: res => {
+        this.loaderService.hide();
+        if (res.status === 'success' && res.data?.activationRewardGranted && !wasActivated) {
+          this.errorModalService.show('تم تفعيل حسابك بنجاح! حصلت على 50 كوين مكافأة.', {
+            variant: 'success',
+            title: 'تم تفعيل الحساب',
+          });
+        } else if (res.status !== 'success') {
+          this.errorModalService.show(res.message ?? 'تعذّر حفظ بيانات النشاط.', { variant: 'error' });
+        }
+      },
+      error: () => {
+        this.loaderService.hide();
+        this.errorModalService.show('تعذّر حفظ بيانات النشاط. يرجى المحاولة مرة أخرى.', { variant: 'error' });
+      },
+    });
   }
 }

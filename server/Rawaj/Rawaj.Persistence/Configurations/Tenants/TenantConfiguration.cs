@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Rawaj.Domain.Entities.Billing;
 using Rawaj.Domain.Entities.Tenants;
+using Rawaj.Persistence.Common;
 using Rawaj.Persistence.Identity;
 
 namespace Rawaj.Persistence.Configurations.Tenants;
@@ -19,6 +20,7 @@ public class TenantConfiguration : IEntityTypeConfiguration<Tenant>
         builder.HasIndex(t => t.Subdomain).IsUnique();
 
         builder.Property(t => t.TenantType).HasConversion<string>().HasMaxLength(20).IsRequired();
+        builder.Property(t => t.TenantProfile!).HasJsonConversion().HasColumnType("nvarchar(max)");
 
         builder.HasOne<ApplicationUser>()
             .WithMany()

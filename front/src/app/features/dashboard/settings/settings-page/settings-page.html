@@ -53,6 +53,52 @@
         </div>
       </form>
     </div>
+
+    <div class="rw-card">
+      <div class="rw-card__header">
+        <h3 class="rw-card__title">بيانات النشاط التجاري</h3>
+        <p class="rw-card__hint">
+          @if (isActivated()) {
+            حسابك مُفعّل — رصيدك الحالي {{ coinBalance() }} كوين.
+          } @else {
+            أكمل هذه البيانات لتفعيل حسابك والحصول على 50 كوين مكافأة.
+          }
+        </p>
+      </div>
+
+      <form [formGroup]="businessForm" (ngSubmit)="saveBusinessProfile()" class="settings-form">
+        <div class="form-grid">
+          <div class="rw-field">
+            <label for="phone">رقم الهاتف</label>
+            <input id="phone" type="tel" formControlName="phone">
+          </div>
+          <div class="rw-field">
+            <label for="industry">المجال</label>
+            <input id="industry" type="text" formControlName="industry">
+          </div>
+        </div>
+
+        <div class="form-grid">
+          <div class="rw-field">
+            <label for="country">الدولة</label>
+            <input id="country" type="text" formControlName="country">
+          </div>
+          <div class="rw-field">
+            <label for="city">المدينة</label>
+            <input id="city" type="text" formControlName="city">
+          </div>
+        </div>
+
+        <div class="rw-field">
+          <label for="website">الموقع الإلكتروني</label>
+          <input id="website" type="url" formControlName="website" placeholder="https://example.com">
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="rw-btn rw-btn--dark">حفظ بيانات النشاط</button>
+        </div>
+      </form>
+    </div>
   }
 
   <!-- ── Preferences ── -->

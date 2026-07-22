@@ -88,6 +88,11 @@ export const userRoutes: Routes = [
       import('../features/dashboard/notifications/notifications-page/notifications-page').then((m) => m.NotificationsPage),
   },
   {
+    path: 'social-accounts',
+    loadComponent: () =>
+      import('../features/dashboard/social-accounts-page/social-accounts-page').then((m) => m.SocialAccountsPage),
+  },
+  {
     path: 'settings',
     loadComponent: () =>
       import('../features/dashboard/settings/settings-page/settings-page').then((m) => m.SettingsPage),

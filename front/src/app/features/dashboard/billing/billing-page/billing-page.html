@@ -10,14 +10,14 @@
       <div class="plan-head">
         <div>
           <h3 class="rw-card__title">الباقة الحالية</h3>
-          <p class="rw-card__hint">أنت مشترك في الباقة الأساسية</p>
+          <p class="rw-card__hint">أنت مشترك في باقة {{ tenant()?.planName ?? '—' }}</p>
         </div>
-        <span class="rw-pill rw-pill--success">الباقة الأساسية</span>
+        <span class="rw-pill rw-pill--success">{{ tenant()?.planName ?? '—' }}</span>
       </div>
 
       <div class="plan-price">
-        <span class="plan-amount">$15</span>
-        <span class="plan-period">/ شهرياً</span>
+        <span class="plan-amount"><i class="fa-solid fa-coins"></i> {{ coinBalance() }}</span>
+        <span class="plan-period">كوين متاح</span>
       </div>
 
       <ul class="plan-features">

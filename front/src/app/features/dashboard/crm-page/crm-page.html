@@ -4,6 +4,32 @@
     [breadcrumbs]="[{ label: 'نظرة عامة', link: '/dashboard' }, { label: 'لوحة التحكم' }]"
     subtitle="نظرة شاملة على أداء حساباتك على مواقع التواصل الاجتماعي." />
 
+  <!-- Quick actions -->
+  <div class="row row-cols-1 row-cols-md-2 g-3">
+    <div class="col">
+      <a routerLink="/dashboard/social-accounts" class="quick-action-card d-flex align-items-center gap-3 p-3">
+        <span class="quick-action-card__icon"><i class="fa-solid fa-link"></i></span>
+        <div class="quick-action-card__text">
+          <span class="quick-action-card__title">اربط حسابات التواصل الاجتماعي</span>
+          <span class="quick-action-card__desc">اربط علامتك التجارية بمنصات التواصل عبر OAuth</span>
+        </div>
+        <i class="fa-solid fa-arrow-left quick-action-card__arrow"></i>
+      </a>
+    </div>
+    @if (!isActivated()) {
+      <div class="col">
+        <a routerLink="/dashboard/settings" [queryParams]="{ tab: 'profile' }" class="quick-action-card quick-action-card--reward d-flex align-items-center gap-3 p-3">
+          <span class="quick-action-card__icon"><i class="fa-solid fa-coins"></i></span>
+          <div class="quick-action-card__text">
+            <span class="quick-action-card__title">أكمل بياناتك واحصل على 50 كوين</span>
+            <span class="quick-action-card__desc">فعّل حسابك بإكمال بيانات النشاط التجاري</span>
+          </div>
+          <i class="fa-solid fa-arrow-left quick-action-card__arrow"></i>
+        </a>
+      </div>
+    }
+  </div>
+
   <!-- Social platform filter -->
   <div class="platform-filter d-flex align-items-center flex-wrap gap-2">
     @for (t of filterTabs; track t.key) {

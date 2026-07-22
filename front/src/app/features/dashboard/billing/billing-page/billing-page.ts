@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { PageHeader } from '../../../../shared/components/page-header/page-header';
 import { SeoService } from '../../../../services/seo.service';
+import { TenantService } from '../../../../core/tenant/tenant.service';
 import { TooltipDirective } from '../../../../shared/directives/tooltip.directive';
 
 interface UsageMetric {
@@ -26,6 +27,10 @@ interface Invoice {
 })
 export class BillingPage {
   private readonly seo = inject(SeoService);
+  private readonly tenantService = inject(TenantService);
+
+  protected readonly tenant = this.tenantService.tenant;
+  protected readonly coinBalance = this.tenantService.coinBalance;
 
   constructor() {
     this.seo.setPageSeo({

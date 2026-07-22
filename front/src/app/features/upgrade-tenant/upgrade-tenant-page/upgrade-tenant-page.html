@@ -1,0 +1,54 @@
+<main class="setup-page">
+  <div class="setup-container">
+
+    <header class="setup-header">
+      <a class="setup-logo" routerLink="/dashboard">رواج</a>
+    </header>
+
+    <div class="setup-card">
+      <app-setup-stepper
+        [currentStep]="step()"
+        [totalSteps]="totalSteps()"
+        [steps]="steps" />
+
+      @switch (step()) {
+        @case (1) {
+          <app-agency-basic-info
+            [data]="data()"
+            (dataChange)="updateData($event)"
+            (next)="next()"
+            (back)="back()" />
+        }
+        @case (2) {
+          <app-agency-size-clients
+            [data]="data()"
+            (dataChange)="updateData($event)"
+            (next)="next()"
+            (back)="back()" />
+        }
+        @case (3) {
+          <app-agency-services
+            [data]="data()"
+            (dataChange)="updateData($event)"
+            (next)="next()"
+            (back)="back()" />
+        }
+        @case (4) {
+          <app-agency-location
+            [data]="data()"
+            (dataChange)="updateData($event)"
+            (next)="next()"
+            (back)="back()" />
+        }
+        @case (5) {
+          <app-agency-social-links
+            [data]="data()"
+            (dataChange)="updateData($event)"
+            (next)="finish()"
+            (back)="back()" />
+        }
+      }
+    </div>
+
+  </div>
+</main>
