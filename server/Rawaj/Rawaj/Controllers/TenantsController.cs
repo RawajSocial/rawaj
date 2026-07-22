@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Rawaj.Application.Features.Tenants.CreateTenant;
 using Rawaj.Application.Features.Tenants.GetMyTenant;
+using Rawaj.Application.Features.Tenants.UpdateTenantProfile;
+using Rawaj.Application.Features.Tenants.UpgradeToAgency;
 using Rawaj.Common;
 
 namespace Rawaj.Controllers;
@@ -30,5 +32,25 @@ public class TenantsController(ISender sender) : ControllerBase
         return result.Succeeded
             ? Ok(ApiResponse<GetMyTenantResponse>.Success(result.Data!))
             : NotFound(ApiResponse<GetMyTenantResponse>.Fail(result.ErrorMessage!));
+    }
+
+    [HttpPut("me/profile")]
+    public async Task<IActionResult> UpdateProfile(UpdateTenantProfileCommand command, CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(command, cancellationToken);
+
+        return result.Succeeded
+            ? Ok(ApiResponse<UpdateTenantProfileResponse>.Success(result.Data!))
+            : BadRequest(ApiResponse<UpdateTenantProfileResponse>.Fail(result.ErrorMessage!));
+    }
+
+    [HttpPost("me/upgrade-to-agency")]
+    public async Task<IActionResult> UpgradeToAgency(UpgradeToAgencyCommand command, CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(command, cancellationToken);
+
+        return result.Succeeded
+            ? Ok(ApiResponse<UpgradeToAgencyResponse>.Success(result.Data!))
+            : BadRequest(ApiResponse<UpgradeToAgencyResponse>.Fail(result.ErrorMessage!));
     }
 }

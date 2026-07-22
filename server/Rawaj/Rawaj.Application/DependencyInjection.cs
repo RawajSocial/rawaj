@@ -17,6 +17,7 @@ public static class DependencyInjection
         services.AddValidatorsFromAssembly(assembly);
 
         services.AddScoped<ICurrentTenantContext, CurrentTenantContext>();
+        services.AddScoped<TenantProvisioningService>();
 
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(TenantAuthorizationBehavior<,>));
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(BrandAccessAuthorizationBehavior<,>));

@@ -10,5 +10,6 @@ public class BrandInfo
     public string? WebsiteUrl { get; set; }
     public List<string> SupportedLanguages { get; set; } = [];
     public List<string> Keywords { get; set; } = [];
+    public string? Location { get; set; }
     public bool IsDefault { get; set; }
 }

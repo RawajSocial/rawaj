@@ -943,8 +943,14 @@ namespace Rawaj.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<int>("CoinBalance")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActivated")
+                        .HasColumnType("bit");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
@@ -964,6 +970,9 @@ namespace Rawaj.Persistence.Migrations
 
                     b.Property<Guid>("SubscriptionId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("TenantProfile")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("TenantType")
                         .IsRequired()

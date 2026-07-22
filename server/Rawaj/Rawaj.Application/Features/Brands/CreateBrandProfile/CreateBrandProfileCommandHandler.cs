@@ -28,8 +28,7 @@ public class CreateBrandProfileCommandHandler(IApplicationDbContext dbContext, I
 
         if (existingBrandCount >= maxBrands)
         {
-            return Result<CreateBrandProfileResponse>.Failure(
-                $"Your subscription plan allows a maximum of {maxBrands} brand profile(s). Upgrade to add more.");
+            return Result<CreateBrandProfileResponse>.Failure("AGENCY_UPGRADE_REQUIRED");
         }
 
         var now = DateTime.UtcNow;
@@ -52,6 +51,7 @@ public class CreateBrandProfileCommandHandler(IApplicationDbContext dbContext, I
                 WebsiteUrl = request.WebsiteUrl,
                 SupportedLanguages = request.SupportedLanguages ?? [],
                 Keywords = request.Keywords ?? [],
+                Location = request.Location,
                 IsDefault = existingBrandCount == 0
             },
             CreatedAt = now,

@@ -4,6 +4,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { FormErrorsService } from '../../../../services/form-errors.service';
 import { AuthService } from '../../../../core/auth/auth.service';
+import { TenantService } from '../../../../core/tenant/tenant.service';
 import { ErrorModalService } from '../../../../services/error-modal.service';
 import { LoaderService } from '../../../../services/loader.service';
 import { extractApiErrorMessage, applyFieldErrors } from '../../../../core/auth/api-error.util';
@@ -21,6 +22,7 @@ export class SignUpForm {
 
   private readonly router = inject(Router);
   private readonly authService = inject(AuthService);
+  private readonly tenantService = inject(TenantService);
   private readonly errorModalService = inject(ErrorModalService);
   private readonly loaderService = inject(LoaderService);
 
@@ -32,11 +34,6 @@ export class SignUpForm {
       firstName: ['', [Validators.required]],
       lastName: ['', [Validators.required]],
       email: ['', [Validators.required, Validators.email]],
-      userName: [
-        '',
-        [Validators.required, Validators.minLength(3), Validators.maxLength(50), Validators.pattern(/^[a-zA-Z0-9_.-]+$/)],
-      ],
-      businessName: ['', [Validators.required]],
       password: ['', [Validators.required, Validators.minLength(8)]],
       confirmPassword: ['', [Validators.required, Validators.minLength(8)]],
       termsAccepted: [false, [Validators.requiredTrue]],
@@ -50,7 +47,7 @@ export class SignUpForm {
       return;
     }
 
-    const { firstName, lastName, email, userName, businessName, password, confirmPassword } = this.form.getRawValue();
+    const { firstName, lastName, email, password, confirmPassword } = this.form.getRawValue();
     if (password !== confirmPassword) {
       return;
     }
@@ -66,12 +63,8 @@ export class SignUpForm {
           return;
         }
 
-        const existing = JSON.parse(localStorage.getItem('rawaj.account-setup') ?? '{}');
-        localStorage.setItem(
-          'rawaj.account-setup',
-          JSON.stringify({ ...existing, email, userName, businessName }),
-        );
-        this.router.navigate(['/account-setup']);
+        this.tenantService.refresh().subscribe();
+        this.router.navigate(['/dashboard']);
       },
       error: err => {
         this.loaderService.hide();
@@ -88,8 +81,6 @@ export class SignUpForm {
       | 'firstName'
       | 'lastName'
       | 'email'
-      | 'userName'
-      | 'businessName'
       | 'password'
       | 'confirmPassword'
       | 'termsAccepted',
@@ -103,13 +94,6 @@ export class SignUpForm {
         required: 'البريد الإلكتروني مطلوب.',
         email: 'أدخل بريدًا إلكترونيًا صحيحًا.',
       },
-      userName: {
-        required: 'اسم المستخدم مطلوب.',
-        minlength: 'اسم المستخدم يجب أن يكون 3 أحرف على الأقل.',
-        maxlength: 'اسم المستخدم يجب ألا يتجاوز 50 حرفًا.',
-        pattern: 'اسم المستخدم يمكن أن يحتوي على أحرف وأرقام و . _ - فقط.',
-      },
-      businessName: { required: 'اسم النشاط التجاري مطلوب.' },
       password: {
         required: 'كلمة المرور مطلوبة.',
         minlength: 'كلمة المرور يجب أن تكون 8 أحرف على الأقل.',

@@ -1,7 +1,9 @@
 using NSubstitute;
 using Rawaj.Application.Common.Interfaces;
 using Rawaj.Application.Common.Models;
+using Rawaj.Application.Common.Services;
 using Rawaj.Application.Features.Auth.Register;
+using Rawaj.Domain.Entities.Billing;
 using Rawaj.Domain.Enums;
 using Xunit;
 
@@ -18,7 +20,8 @@ public class RegisterCommandHandlerTests
         var identityService = Substitute.For<IIdentityService>();
         identityService.FindByEmailAsync(existing.Email, Arg.Any<CancellationToken>()).Returns(existing);
 
-        var handler = new RegisterCommandHandler(identityService, Substitute.For<IJwtTokenGenerator>(), dbContext);
+        var handler = new RegisterCommandHandler(
+            identityService, Substitute.For<IJwtTokenGenerator>(), dbContext, new TenantProvisioningService(dbContext));
 
         var result = await handler.Handle(
             new RegisterCommand(existing.Email, "P@ssw0rd1", "New Person", Language.En), CancellationToken.None);
@@ -36,7 +39,8 @@ public class RegisterCommandHandlerTests
         identityService.CreateUserAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<Language>(), Arg.Any<CancellationToken>())
             .Returns(IdentityRegisterResult.Failure(["Password too weak."]));
 
-        var handler = new RegisterCommandHandler(identityService, Substitute.For<IJwtTokenGenerator>(), dbContext);
+        var handler = new RegisterCommandHandler(
+            identityService, Substitute.For<IJwtTokenGenerator>(), dbContext, new TenantProvisioningService(dbContext));
 
         var result = await handler.Handle(
             new RegisterCommand("new@example.com", "weak", "New Person", Language.En), CancellationToken.None);
@@ -49,6 +53,17 @@ public class RegisterCommandHandlerTests
     public async Task Handle_WithValidInput_CreatesUserAndIssuesTokens()
     {
         using var dbContext = TestDbContextFactory.Create();
+        dbContext.SubscriptionPlans.Add(new SubscriptionPlan
+        {
+            Id = Guid.NewGuid(),
+            Name = "Free",
+            Cost = 0,
+            Currency = "USD",
+            MaxBrands = 1,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        });
+        await dbContext.SaveChangesAsync();
         var newUserId = Guid.NewGuid();
 
         var identityService = Substitute.For<IIdentityService>();
@@ -59,7 +74,8 @@ public class RegisterCommandHandlerTests
         var jwtTokenGenerator = Substitute.For<IJwtTokenGenerator>();
         jwtTokenGenerator.GenerateToken(Arg.Any<ApplicationUserDto>()).Returns("fake-access-token");
 
-        var handler = new RegisterCommandHandler(identityService, jwtTokenGenerator, dbContext);
+        var handler = new RegisterCommandHandler(
+            identityService, jwtTokenGenerator, dbContext, new TenantProvisioningService(dbContext));
 
         var result = await handler.Handle(
             new RegisterCommand("new@example.com", "P@ssw0rd1", "New Person", Language.En), CancellationToken.None);

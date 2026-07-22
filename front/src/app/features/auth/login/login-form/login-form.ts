@@ -4,6 +4,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormErrorsService } from '../../../../services/form-errors.service';
 import { AuthService } from '../../../../core/auth/auth.service';
+import { TenantService } from '../../../../core/tenant/tenant.service';
 import { ErrorModalService } from '../../../../services/error-modal.service';
 import { LoaderService } from '../../../../services/loader.service';
 import { extractApiErrorMessage, applyFieldErrors } from '../../../../core/auth/api-error.util';
@@ -19,6 +20,7 @@ export class LoginForm {
   protected readonly submitted = signal(false);
 
   private readonly authService = inject(AuthService);
+  private readonly tenantService = inject(TenantService);
   private readonly errorModalService = inject(ErrorModalService);
   private readonly loaderService = inject(LoaderService);
   private readonly router = inject(Router);
@@ -52,6 +54,7 @@ export class LoginForm {
           this.errorModalService.show(res.message ?? 'تعذّر تسجيل الدخول.', { variant: 'error' });
           return;
         }
+        this.tenantService.refresh().subscribe();
         const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
         this.router.navigateByUrl(returnUrl ?? '/dashboard');
       },

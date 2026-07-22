@@ -16,7 +16,8 @@ public record CreateBrandProfileCommand(
     string? LogoUrl,
     string? WebsiteUrl,
     List<string>? SupportedLanguages,
-    List<string>? Keywords) : IRequest<Result<CreateBrandProfileResponse>>, IRequireTenantRole
+    List<string>? Keywords,
+    string? Location) : IRequest<Result<CreateBrandProfileResponse>>, IRequireTenantRole
 {
     public TenantMemberRole MinimumRole => TenantMemberRole.Admin;
 }
