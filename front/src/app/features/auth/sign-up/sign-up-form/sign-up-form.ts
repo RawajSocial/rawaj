@@ -3,6 +3,10 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { FormErrorsService } from '../../../../services/form-errors.service';
+import { AuthService } from '../../../../core/auth/auth.service';
+import { ErrorModalService } from '../../../../services/error-modal.service';
+import { LoaderService } from '../../../../services/loader.service';
+import { extractApiErrorMessage, applyFieldErrors } from '../../../../core/auth/api-error.util';
 
 @Component({
   selector: 'app-sign-up-form',
@@ -16,6 +20,9 @@ export class SignUpForm {
   protected readonly submitted = signal(false);
 
   private readonly router = inject(Router);
+  private readonly authService = inject(AuthService);
+  private readonly errorModalService = inject(ErrorModalService);
+  private readonly loaderService = inject(LoaderService);
 
   constructor(
     private readonly fb: FormBuilder,
@@ -43,12 +50,37 @@ export class SignUpForm {
       return;
     }
 
-    const existing = JSON.parse(localStorage.getItem('rawaj.account-setup') ?? '{}');
-    localStorage.setItem(
-      'rawaj.account-setup',
-      JSON.stringify({ ...existing, email: this.form.value.email, userName: this.form.value.userName }),
-    );
-    this.router.navigate(['/account-setup']);
+    const { firstName, lastName, email, userName, businessName, password, confirmPassword } = this.form.getRawValue();
+    if (password !== confirmPassword) {
+      return;
+    }
+
+    const fullName = `${firstName} ${lastName}`.trim();
+
+    this.loaderService.show();
+    this.authService.register({ email, password, fullName, preferredLanguage: 'Ar' }).subscribe({
+      next: res => {
+        this.loaderService.hide();
+        if (res.status !== 'success' || !res.data) {
+          this.errorModalService.show(res.message ?? 'تعذّر إنشاء الحساب.', { variant: 'error' });
+          return;
+        }
+
+        const existing = JSON.parse(localStorage.getItem('rawaj.account-setup') ?? '{}');
+        localStorage.setItem(
+          'rawaj.account-setup',
+          JSON.stringify({ ...existing, email, userName, businessName }),
+        );
+        this.router.navigate(['/account-setup']);
+      },
+      error: err => {
+        this.loaderService.hide();
+        applyFieldErrors(this.form, err);
+        this.errorModalService.show(extractApiErrorMessage(err, 'تعذّر إنشاء الحساب. يرجى المحاولة مرة أخرى.'), {
+          variant: 'error',
+        });
+      },
+    });
   }
 
   protected errorMessage(

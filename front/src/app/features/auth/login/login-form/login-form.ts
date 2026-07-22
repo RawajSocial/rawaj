@@ -1,7 +1,12 @@
-import { Component, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
 import { FormErrorsService } from '../../../../services/form-errors.service';
+import { AuthService } from '../../../../core/auth/auth.service';
+import { ErrorModalService } from '../../../../services/error-modal.service';
+import { LoaderService } from '../../../../services/loader.service';
+import { extractApiErrorMessage, applyFieldErrors } from '../../../../core/auth/api-error.util';
 
 @Component({
   selector: 'app-login-form',
@@ -11,15 +16,20 @@ import { FormErrorsService } from '../../../../services/form-errors.service';
 })
 export class LoginForm {
   protected readonly form;
-
   protected readonly submitted = signal(false);
+
+  private readonly authService = inject(AuthService);
+  private readonly errorModalService = inject(ErrorModalService);
+  private readonly loaderService = inject(LoaderService);
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
   constructor(
     private readonly fb: FormBuilder,
     private readonly formErrorsService: FormErrorsService,
   ) {
     this.form = this.fb.nonNullable.group({
-      emailOrUserName: ['', [Validators.required]],
+      email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(8)]],
       rememberMe: [false],
     });
@@ -32,13 +42,34 @@ export class LoginForm {
       return;
     }
 
-    console.log('Login payload', this.form.getRawValue());
+    const { email, password } = this.form.getRawValue();
+
+    this.loaderService.show();
+    this.authService.login({ email, password }).subscribe({
+      next: res => {
+        this.loaderService.hide();
+        if (res.status !== 'success' || !res.data) {
+          this.errorModalService.show(res.message ?? 'تعذّر تسجيل الدخول.', { variant: 'error' });
+          return;
+        }
+        const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
+        this.router.navigateByUrl(returnUrl ?? '/dashboard');
+      },
+      error: err => {
+        this.loaderService.hide();
+        applyFieldErrors(this.form, err);
+        this.errorModalService.show(extractApiErrorMessage(err, 'البريد الإلكتروني أو كلمة المرور غير صحيحة.'), {
+          variant: 'error',
+        });
+      },
+    });
   }
 
-  protected errorMessage(controlName: 'emailOrUserName' | 'password'): string | null {
-    if (controlName === 'emailOrUserName') {
-      return this.formErrorsService.getControlErrorMessage(this.form.controls.emailOrUserName, this.submitted(), {
-        required: 'البريد الإلكتروني أو اسم المستخدم مطلوب.',
+  protected errorMessage(controlName: 'email' | 'password'): string | null {
+    if (controlName === 'email') {
+      return this.formErrorsService.getControlErrorMessage(this.form.controls.email, this.submitted(), {
+        required: 'البريد الإلكتروني مطلوب.',
+        email: 'أدخل بريدًا إلكترونيًا صحيحًا.',
       });
     }
 
