@@ -21,9 +21,16 @@ public class RegisterCommandHandler(
         {
             return Result<RegisterResponse>.Failure("A user with this email already exists.");
         }
+        
+        var existingUsername = await identityService.FindByUsernameAsync(request.Username, cancellationToken);
+        if (existingUsername is not null)
+        {
+            return Result<RegisterResponse>.Failure("A user with this username already exists.");
+        }
 
         var registerResult = await identityService.CreateUserAsync(
             request.Email,
+            request.Username,
             request.Password,
             request.FullName,
             request.PreferredLanguage,
@@ -38,6 +45,7 @@ public class RegisterCommandHandler(
         {
             Id = registerResult.UserId,
             Email = request.Email,
+            Username = request.Username,
             FullName = request.FullName,
             PreferredLanguage = request.PreferredLanguage,
             IsActive = true

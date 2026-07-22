@@ -18,38 +18,144 @@
         <p class="rw-card__hint">حدّث معلوماتك الشخصية</p>
       </div>
 
-      <div class="avatar-row">
-        <span class="settings-avatar">{{ initials() }}</span>
-        <div>
-          <button type="button" class="rw-btn rw-btn--outline">تغيير الصورة</button>
-          <p class="avatar-hint">JPG أو PNG أو GIF. بحد أقصى 2 ميجابايت.</p>
+      @if (profileLoaded()) {
+        <div class="avatar-row">
+          <app-file-upload
+            #avatarUpload
+            shape="circle"
+            label="تغيير الصورة"
+            icon="fa-solid fa-user"
+            accept=".jpg,.jpeg,.png,.webp"
+            [maxSizeMb]="5"
+            [disabled]="avatarUploading() || avatarDeleting()"
+            [uploadProgress]="avatarUploadProgress()"
+            [previewUrl]="currentUser()?.avatarUrl ?? null"
+            [altText]="'صورة الملف الشخصي لـ ' + (currentUser()?.fullName ?? '')"
+            (fileSelected)="onAvatarSelected($event)"
+            (cleared)="onAvatarRemoved()"
+            (validationError)="onAvatarValidationError($event)" />
+
+          <div class="avatar-info">
+            <p class="avatar-info__name">{{ currentUser()?.fullName }}</p>
+            <p class="avatar-info__username">&#64;{{ currentUser()?.username }}</p>
+            <p class="avatar-info__email">{{ currentUser()?.email }}</p>
+
+            <p class="avatar-hint">JPG أو PNG أو WEBP. بحد أقصى 5 ميجابايت.</p>
+            @if (avatarValidationError(); as error) {
+              <small class="text-danger d-block mt-2 validation-msg">{{ error }}</small>
+            }
+            @if (avatarUploading()) {
+              <button type="button" class="avatar-cancel-btn" (click)="cancelAvatarUpload()">إلغاء الرفع</button>
+            }
+            @if (currentUser()?.avatarUrl) {
+              <button
+                type="button"
+                class="avatar-delete-btn"
+                [disabled]="avatarUploading() || avatarDeleting()"
+                (click)="onAvatarRemoved()"
+              >
+                <i class="fa-solid fa-trash-can"></i>
+                {{ avatarDeleting() ? 'جارٍ الحذف...' : 'حذف الصورة' }}
+              </button>
+            }
+          </div>
         </div>
+
+        <form [formGroup]="profileForm" (ngSubmit)="saveProfile()" class="settings-form">
+          <div class="form-grid">
+            <div class="rw-field">
+              <label for="fullName">الاسم الكامل</label>
+              <input id="fullName" type="text" formControlName="fullName">
+              @if (profileErrorMessage('fullName'); as error) {
+                <small class="text-danger d-block mt-2 validation-msg">{{ error }}</small>
+              }
+            </div>
+            <div class="rw-field">
+              <label for="username">اسم المستخدم</label>
+              <input id="username" type="text" formControlName="username">
+              @if (profileErrorMessage('username'); as error) {
+                <small class="text-danger d-block mt-2 validation-msg">{{ error }}</small>
+              }
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <div class="rw-field">
+              <label for="email">البريد الإلكتروني</label>
+              <input id="email" type="email" formControlName="email">
+            </div>
+            <div class="rw-field">
+              <label for="preferredLanguage">اللغة المفضلة</label>
+              <select id="preferredLanguage" formControlName="preferredLanguage">
+                <option value="Ar">العربية</option>
+                <option value="En">English</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="rw-btn rw-btn--dark" [disabled]="!canSaveProfile()">حفظ التغييرات</button>
+          </div>
+        </form>
+      } @else {
+        <div class="avatar-row">
+          <div class="skeleton-circle"></div>
+          <div class="avatar-info">
+            <div class="skeleton-line skeleton-line--name"></div>
+            <div class="skeleton-line skeleton-line--username"></div>
+            <div class="skeleton-line skeleton-line--email"></div>
+          </div>
+        </div>
+        <div class="settings-form">
+          <div class="form-grid">
+            <div class="skeleton-line skeleton-line--field"></div>
+            <div class="skeleton-line skeleton-line--field"></div>
+          </div>
+          <div class="form-grid">
+            <div class="skeleton-line skeleton-line--field"></div>
+            <div class="skeleton-line skeleton-line--field"></div>
+          </div>
+        </div>
+      }
+    </div>
+
+    <div class="rw-card">
+      <div class="rw-card__header">
+        <h3 class="rw-card__title">كلمة المرور</h3>
+        <p class="rw-card__hint">حدّث كلمة مرور حسابك</p>
       </div>
 
-      <form [formGroup]="profileForm" (ngSubmit)="saveProfile()" class="settings-form">
+      <form [formGroup]="passwordForm" (ngSubmit)="changePassword()" class="settings-form">
+        <div class="rw-field">
+          <label for="currentPassword">كلمة المرور الحالية</label>
+          <input id="currentPassword" type="password" formControlName="currentPassword">
+          @if (passwordErrorMessage('currentPassword'); as error) {
+            <small class="text-danger d-block mt-2 validation-msg">{{ error }}</small>
+          }
+        </div>
+
         <div class="form-grid">
           <div class="rw-field">
-            <label for="firstName">الاسم الأول</label>
-            <input id="firstName" type="text" formControlName="firstName">
+            <label for="newPassword">كلمة المرور الجديدة</label>
+            <input id="newPassword" type="password" formControlName="newPassword">
+            @if (passwordErrorMessage('newPassword'); as error) {
+              <small class="text-danger d-block mt-2 validation-msg">{{ error }}</small>
+            }
           </div>
           <div class="rw-field">
-            <label for="lastName">الاسم الأخير</label>
-            <input id="lastName" type="text" formControlName="lastName">
+            <label for="confirmNewPassword">تأكيد كلمة المرور الجديدة</label>
+            <input id="confirmNewPassword" type="password" formControlName="confirmPassword">
+            @if (passwordErrorMessage('confirmPassword'); as error) {
+              <small class="text-danger d-block mt-2 validation-msg">{{ error }}</small>
+            }
+            @if (passwordsMismatchMessage(); as error) {
+              <small class="text-danger d-block mt-2 validation-msg">{{ error }}</small>
+            }
           </div>
-        </div>
-
-        <div class="rw-field">
-          <label for="email">البريد الإلكتروني</label>
-          <input id="email" type="email" formControlName="email">
-        </div>
-
-        <div class="rw-field">
-          <label for="bio">نبذة تعريفية</label>
-          <textarea id="bio" formControlName="bio"></textarea>
         </div>
 
         <div class="form-actions">
-          <button type="submit" class="rw-btn rw-btn--dark">حفظ التغييرات</button>
+          <button type="submit" class="rw-btn rw-btn--dark">تغيير كلمة المرور</button>
         </div>
       </form>
     </div>

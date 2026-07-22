@@ -7,15 +7,15 @@
 
   <form [formGroup]="form" (ngSubmit)="onSubmit()">
     <div class="mb-3">
-      <label class="form-label" for="email">البريد الإلكتروني</label>
+      <label class="form-label" for="identifier">البريد الإلكتروني أو اسم المستخدم</label>
       <input
-        id="email"
-        type="email"
+        id="identifier"
+        type="text"
         class="form-control"
-        placeholder="name@company.com"
-        formControlName="email" />
-      @if (errorMessage('email'); as emailError) {
-        <small class="text-danger d-block mt-2 validation-msg">{{ emailError }}</small>
+        placeholder="name@company.com أو username"
+        formControlName="identifier" />
+      @if (errorMessage('identifier'); as identifierError) {
+        <small class="text-danger d-block mt-2 validation-msg">{{ identifierError }}</small>
       }
     </div>
 

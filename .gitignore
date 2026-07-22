@@ -8,6 +8,7 @@ graphify-out
 .claude
 CLAUDE.md
 appsettings.Development.json
+wwwroot/media
 
 # User-specific files
 *.rsuser

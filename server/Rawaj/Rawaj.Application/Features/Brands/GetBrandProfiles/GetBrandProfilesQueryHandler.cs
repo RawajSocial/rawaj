@@ -18,8 +18,6 @@ public class GetBrandProfilesQueryHandler(
 
         var brandsQuery = dbContext.TenantBrandProfiles.Where(b => b.TenantId == tenantId);
 
-        // Owner/Admin manage every brand in the tenant; Editor/Viewer only see brands they were
-        // explicitly invited to (TenantMemberBrandAccess).
         if (!currentTenantContext.Role!.Value.HasAtLeast(TenantMemberRole.Admin))
         {
             var userId = currentUserService.UserId!.Value;
@@ -38,7 +36,11 @@ public class GetBrandProfilesQueryHandler(
                 b.Description,
                 b.BrandVoice,
                 b.Status,
-                b.BrandInfo?.IsDefault ?? false))
+                b.BrandInfo?.IsDefault ?? false,
+                b.BrandInfo?.Tagline,
+                b.BrandInfo?.Industry,
+                b.BrandInfo?.Colors ?? [],
+                b.BrandInfo?.LogoUrl))
             .ToList();
 
         return Result<List<BrandProfileSummary>>.Success(brandProfiles);

@@ -8,4 +8,8 @@ public record BrandProfileSummary(
     string? Description,
     BrandVoice? BrandVoice,
     BrandProfileStatus Status,
-    bool IsDefault);
+    bool IsDefault,
+    string? Tagline,
+    string? Industry,
+    List<string> Colors,
+    string? LogoUrl);

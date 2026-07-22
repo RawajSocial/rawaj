@@ -16,6 +16,6 @@ public class GetMyProfileQueryHandler(IIdentityService identityService, ICurrent
         }
 
         return Result<GetMyProfileResponse>.Success(
-            new GetMyProfileResponse(user.Id, user.Email, user.FullName, user.AvatarUrl, user.PreferredLanguage));
+            new GetMyProfileResponse(user.Id, user.Email, user.Username, user.FullName, user.AvatarUrl, user.PreferredLanguage));
     }
 }

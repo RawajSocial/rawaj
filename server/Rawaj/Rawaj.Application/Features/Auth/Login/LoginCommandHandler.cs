@@ -11,16 +11,16 @@ public class LoginCommandHandler(
 {
     public async Task<Result<LoginResponse>> Handle(LoginCommand request, CancellationToken cancellationToken)
     {
-        var user = await identityService.FindByEmailAsync(request.Email, cancellationToken);
+        var user = await identityService.FindByEmailOrUsernameAsync(request.Identifier, cancellationToken);
         if (user is null || !user.IsActive)
         {
-            return Result<LoginResponse>.Failure("Invalid email or password.");
+            return Result<LoginResponse>.Failure("Invalid email/username or password.");
         }
 
         var passwordValid = await identityService.CheckPasswordAsync(user.Id, request.Password, cancellationToken);
         if (!passwordValid)
         {
-            return Result<LoginResponse>.Failure("Invalid email or password.");
+            return Result<LoginResponse>.Failure("Invalid email/username or password.");
         }
 
         await identityService.UpdateLastLoginAsync(user.Id, cancellationToken);

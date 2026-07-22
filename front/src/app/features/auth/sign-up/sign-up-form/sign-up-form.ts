@@ -8,6 +8,7 @@ import { TenantService } from '../../../../core/tenant/tenant.service';
 import { ErrorModalService } from '../../../../services/error-modal.service';
 import { LoaderService } from '../../../../services/loader.service';
 import { extractApiErrorMessage, applyFieldErrors } from '../../../../core/auth/api-error.util';
+import { usernameValidators } from '../../../../core/auth/username.validators';
 
 @Component({
   selector: 'app-sign-up-form',
@@ -33,6 +34,7 @@ export class SignUpForm {
     this.form = this.fb.nonNullable.group({
       firstName: ['', [Validators.required]],
       lastName: ['', [Validators.required]],
+      username: ['', usernameValidators],
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(8)]],
       confirmPassword: ['', [Validators.required, Validators.minLength(8)]],
@@ -47,7 +49,7 @@ export class SignUpForm {
       return;
     }
 
-    const { firstName, lastName, email, password, confirmPassword } = this.form.getRawValue();
+    const { firstName, lastName, username, email, password, confirmPassword } = this.form.getRawValue();
     if (password !== confirmPassword) {
       return;
     }
@@ -55,7 +57,7 @@ export class SignUpForm {
     const fullName = `${firstName} ${lastName}`.trim();
 
     this.loaderService.show();
-    this.authService.register({ email, password, fullName, preferredLanguage: 'Ar' }).subscribe({
+    this.authService.register({ email, username, password, fullName, preferredLanguage: 'Ar' }).subscribe({
       next: res => {
         this.loaderService.hide();
         if (res.status !== 'success' || !res.data) {
@@ -64,6 +66,7 @@ export class SignUpForm {
         }
 
         this.tenantService.refresh().subscribe();
+        this.authService.fetchMyProfile().subscribe();
         this.router.navigate(['/dashboard']);
       },
       error: err => {
@@ -80,6 +83,7 @@ export class SignUpForm {
     controlName:
       | 'firstName'
       | 'lastName'
+      | 'username'
       | 'email'
       | 'password'
       | 'confirmPassword'
@@ -90,6 +94,12 @@ export class SignUpForm {
     const messagesByControl = {
       firstName: { required: 'الاسم الأول مطلوب.' },
       lastName: { required: 'الاسم الأخير مطلوب.' },
+      username: {
+        required: 'اسم المستخدم مطلوب.',
+        minlength: 'اسم المستخدم يجب أن يكون 3 أحرف على الأقل.',
+        maxlength: 'اسم المستخدم يجب ألا يتجاوز 30 حرفًا.',
+        pattern: 'اسم المستخدم يجب أن يبدأ بحرف ويحتوي على أحرف/أرقام/underscore فقط.',
+      },
       email: {
         required: 'البريد الإلكتروني مطلوب.',
         email: 'أدخل بريدًا إلكترونيًا صحيحًا.',

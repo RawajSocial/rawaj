@@ -2,6 +2,7 @@ using System.Text.Json;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Rawaj.Application.Features.Brands.ArchiveBrandProfile;
 using Rawaj.Application.Features.Brands.CreateBrandProfile;
 using Rawaj.Application.Features.Brands.GenerateOnboardingQuestions;
 using Rawaj.Application.Features.Brands.GetBrandProfile;
@@ -82,6 +83,16 @@ public class BrandProfilesController(ISender sender) : ControllerBase
         return result.Succeeded
             ? Ok(ApiResponse<UpdateBrandProfileResponse>.Success(result.Data!))
             : BadRequest(ApiResponse<UpdateBrandProfileResponse>.Fail(result.ErrorMessage!));
+    }
+
+    [HttpPost("{brandProfileId:guid}/archive")]
+    public async Task<IActionResult> Archive(Guid brandProfileId, CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new ArchiveBrandProfileCommand(brandProfileId), cancellationToken);
+
+        return result.Succeeded
+            ? Ok(ApiResponse<bool>.Success(result.Data))
+            : BadRequest(ApiResponse<bool>.Fail(result.ErrorMessage!));
     }
 
     public record GenerateOnboardingQuestionsRequest(JsonElement OnboardingContext);

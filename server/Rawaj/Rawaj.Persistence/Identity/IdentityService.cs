@@ -8,17 +8,12 @@ namespace Rawaj.Persistence.Identity;
 
 public class IdentityService(UserManager<ApplicationUser> userManager) : IIdentityService
 {
-    public async Task<IdentityRegisterResult> CreateUserAsync(
-        string email,
-        string password,
-        string fullName,
-        Language preferredLanguage,
-        CancellationToken cancellationToken)
+    public async Task<IdentityRegisterResult> CreateUserAsync(string email, string username, string password, string fullName, Language preferredLanguage, CancellationToken cancellationToken)
     {
         var user = new ApplicationUser
         {
             Id = Guid.NewGuid(),
-            UserName = email,
+            UserName = username,
             Email = email,
             FullName = fullName,
             PreferredLanguage = preferredLanguage,
@@ -28,17 +23,32 @@ public class IdentityService(UserManager<ApplicationUser> userManager) : IIdenti
         };
 
         var result = await userManager.CreateAsync(user, password);
-
         return result.Succeeded
             ? IdentityRegisterResult.Success(user.Id)
-            : IdentityRegisterResult.Failure(result.Errors.Select(e => e.Description).ToArray());
+            : IdentityRegisterResult.Failure(TranslateErrors(result.Errors));
     }
+
+    private static string[] TranslateErrors(IEnumerable<IdentityError> errors)
+        => errors
+            .Select(e => e.Code == "DuplicateUserName" ? "A user with this username already exists." : e.Description)
+            .ToArray();
 
     public async Task<ApplicationUserDto?> FindByEmailAsync(string email, CancellationToken cancellationToken)
     {
         var user = await userManager.FindByEmailAsync(email);
         return user is null ? null : ToDto(user);
     }
+
+    public async Task<ApplicationUserDto?> FindByUsernameAsync(string username, CancellationToken cancellationToken)
+    {
+        var user = await userManager.FindByNameAsync(username);
+        return user is null ? null : ToDto(user);
+    }
+
+    public Task<ApplicationUserDto?> FindByEmailOrUsernameAsync(string identifier, CancellationToken cancellationToken)
+        => identifier.Contains('@')
+            ? FindByEmailAsync(identifier, cancellationToken)
+            : FindByUsernameAsync(identifier, cancellationToken);
 
     public async Task<ApplicationUserDto?> FindByIdAsync(Guid userId, CancellationToken cancellationToken)
     {
@@ -62,8 +72,26 @@ public class IdentityService(UserManager<ApplicationUser> userManager) : IIdenti
         return user is not null && user.IsActive && await userManager.CheckPasswordAsync(user, password);
     }
 
-    public async Task<bool> UpdateProfileAsync(
-        Guid userId, string fullName, Language preferredLanguage, string? avatarUrl, CancellationToken cancellationToken)
+    public async Task<IdentityUpdateProfileResult> UpdatePartialProfileAsync(Guid userId, string? fullName, string? username, Language? preferredLanguage, CancellationToken cancellationToken)
+    {
+        var user = await userManager.FindByIdAsync(userId.ToString());
+        if (user is null)
+        {
+            return IdentityUpdateProfileResult.Failure(["User not found."]);
+        }
+
+        if (fullName is not null) user.FullName = fullName;
+        if (username is not null) user.UserName = username;
+        if (preferredLanguage is not null) user.PreferredLanguage = preferredLanguage.Value;
+        user.UpdatedAt = DateTime.UtcNow;
+
+        var result = await userManager.UpdateAsync(user);
+        return result.Succeeded
+            ? IdentityUpdateProfileResult.Success()
+            : IdentityUpdateProfileResult.Failure(TranslateErrors(result.Errors));
+    }
+
+    public async Task<bool> UpdateAvatarAsync(Guid userId, string? avatarUrl, CancellationToken cancellationToken)
     {
         var user = await userManager.FindByIdAsync(userId.ToString());
         if (user is null)
@@ -71,16 +99,13 @@ public class IdentityService(UserManager<ApplicationUser> userManager) : IIdenti
             return false;
         }
 
-        user.FullName = fullName;
-        user.PreferredLanguage = preferredLanguage;
         user.AvatarUrl = avatarUrl;
         user.UpdatedAt = DateTime.UtcNow;
         await userManager.UpdateAsync(user);
         return true;
     }
 
-    public async Task<IdentityChangePasswordResult> ChangePasswordAsync(
-        Guid userId, string currentPassword, string newPassword, CancellationToken cancellationToken)
+    public async Task<IdentityChangePasswordResult> ChangePasswordAsync(Guid userId, string currentPassword, string newPassword, CancellationToken cancellationToken)
     {
         var user = await userManager.FindByIdAsync(userId.ToString());
         if (user is null)
@@ -108,8 +133,7 @@ public class IdentityService(UserManager<ApplicationUser> userManager) : IIdenti
         await userManager.UpdateAsync(user);
     }
 
-    public async Task<(List<ApplicationUserDto> Users, int TotalCount)> ListUsersAsync(
-        int page, int pageSize, CancellationToken cancellationToken)
+    public async Task<(List<ApplicationUserDto> Users, int TotalCount)> ListUsersAsync(int page, int pageSize, CancellationToken cancellationToken)
     {
         var query = userManager.Users.OrderByDescending(u => u.CreatedAt);
 
@@ -140,6 +164,7 @@ public class IdentityService(UserManager<ApplicationUser> userManager) : IIdenti
     {
         Id = user.Id,
         Email = user.Email!,
+        Username = user.UserName!,
         FullName = user.FullName,
         AvatarUrl = user.AvatarUrl,
         PreferredLanguage = user.PreferredLanguage,

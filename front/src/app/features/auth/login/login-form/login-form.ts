@@ -31,7 +31,7 @@ export class LoginForm {
     private readonly formErrorsService: FormErrorsService,
   ) {
     this.form = this.fb.nonNullable.group({
-      email: ['', [Validators.required, Validators.email]],
+      identifier: ['', [Validators.required]],
       password: ['', [Validators.required, Validators.minLength(8)]],
       rememberMe: [false],
     });
@@ -44,10 +44,10 @@ export class LoginForm {
       return;
     }
 
-    const { email, password } = this.form.getRawValue();
+    const { identifier, password } = this.form.getRawValue();
 
     this.loaderService.show();
-    this.authService.login({ email, password }).subscribe({
+    this.authService.login({ identifier, password }).subscribe({
       next: res => {
         this.loaderService.hide();
         if (res.status !== 'success' || !res.data) {
@@ -55,24 +55,24 @@ export class LoginForm {
           return;
         }
         this.tenantService.refresh().subscribe();
+        this.authService.fetchMyProfile().subscribe();
         const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
         this.router.navigateByUrl(returnUrl ?? '/dashboard');
       },
       error: err => {
         this.loaderService.hide();
         applyFieldErrors(this.form, err);
-        this.errorModalService.show(extractApiErrorMessage(err, 'البريد الإلكتروني أو كلمة المرور غير صحيحة.'), {
+        this.errorModalService.show(extractApiErrorMessage(err, 'البريد الإلكتروني أو اسم المستخدم أو كلمة المرور غير صحيحة.'), {
           variant: 'error',
         });
       },
     });
   }
 
-  protected errorMessage(controlName: 'email' | 'password'): string | null {
-    if (controlName === 'email') {
-      return this.formErrorsService.getControlErrorMessage(this.form.controls.email, this.submitted(), {
-        required: 'البريد الإلكتروني مطلوب.',
-        email: 'أدخل بريدًا إلكترونيًا صحيحًا.',
+  protected errorMessage(controlName: 'identifier' | 'password'): string | null {
+    if (controlName === 'identifier') {
+      return this.formErrorsService.getControlErrorMessage(this.form.controls.identifier, this.submitted(), {
+        required: 'البريد الإلكتروني أو اسم المستخدم مطلوب.',
       });
     }
 

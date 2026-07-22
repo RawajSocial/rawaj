@@ -13,8 +13,7 @@ public class LocalFilePublicImageHostingService(IOptions<PublicImageHostingSetti
     {
         if (!IsConfigured)
         {
-            throw new InvalidOperationException(
-                "PublicImageHosting:PublicBaseUrl is not configured, so generated images have no publicly fetchable URL.");
+            throw new InvalidOperationException("PublicImageHosting:PublicBaseUrl is not configured, so generated images have no publicly fetchable URL.");
         }
 
         var extension = contentType.Split('/').LastOrDefault() ?? "jpg";

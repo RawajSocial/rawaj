@@ -74,20 +74,16 @@
     <!-- Profile -->
     <div class="header-dropdown profile-dropdown" [class.open]="profileOpen()">
       <button class="profile-btn" (click)="profileOpen.update(v => !v)">
-        <div class="profile-avatar-placeholder">
-          <i class="fa-solid fa-user"></i>
-        </div>
-        <span class="profile-name">Admin</span>
+        <app-avatar [src]="currentUser()?.avatarUrl" [alt]="currentUser()?.fullName ?? ''" size="sm" />
+        <span class="profile-name">{{ currentUser()?.fullName }}</span>
         <i class="fa-solid fa-chevron-down profile-caret"></i>
       </button>
       <div class="dropdown-panel profile-panel">
         <div class="profile-header-info">
-          <div class="profile-avatar-lg">
-            <i class="fa-solid fa-user"></i>
-          </div>
+          <app-avatar [src]="currentUser()?.avatarUrl" [alt]="currentUser()?.fullName ?? ''" size="md" />
           <div>
-            <p class="profile-name-lg">Admin123</p>
-            <span class="profile-role">مدير النظام</span>
+            <p class="profile-name-lg">{{ currentUser()?.username }}</p>
+            <span class="profile-role">{{ tenantRoleLabel() }}</span>
           </div>
         </div>
         <div class="panel-divider"></div>
@@ -104,7 +100,7 @@
           الفوترة
         </a>
         <div class="panel-divider"></div>
-        <a class="profile-menu-item profile-menu-item--danger" routerLink="/login" (click)="profileOpen.set(false)">
+        <a class="profile-menu-item profile-menu-item--danger" (click)="profileOpen.set(false); logout()">
           <i class="fa-solid fa-right-from-bracket"></i>
           تسجيل الخروج
         </a>

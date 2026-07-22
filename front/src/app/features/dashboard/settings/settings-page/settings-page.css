@@ -4,30 +4,112 @@
 .avatar-row {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 20px;
   padding-bottom: 20px;
   margin-bottom: 20px;
   border-bottom: 1px solid var(--color-border);
 }
 
-.settings-avatar {
-  width: 64px;
-  height: 64px;
-  flex-shrink: 0;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  background: linear-gradient(135deg, var(--color-secondary), var(--color-primary));
-  color: #fff;
-  font-size: 1.2rem;
+.avatar-info {
+  min-width: 0;
+}
+
+.avatar-info__name {
+  margin: 0;
+  font-size: var(--font-size-md);
   font-weight: var(--font-bold);
+  color: var(--color-dark);
+}
+
+.avatar-info__username {
+  margin: 2px 0 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.avatar-info__email {
+  margin: 2px 0 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
 }
 
 .avatar-hint {
-  margin: 8px 0 0;
+  margin: 10px 0 0;
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
 }
+
+.avatar-cancel-btn {
+  margin-top: 8px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--color-danger);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-semibold);
+  font-family: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.avatar-cancel-btn:hover { opacity: 0.8; }
+
+.avatar-delete-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 6px 12px;
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--color-danger);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-semibold);
+  font-family: inherit;
+  cursor: pointer;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.avatar-delete-btn:hover:not(:disabled) {
+  background: var(--color-danger);
+  color: #fff;
+}
+
+.avatar-delete-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ── Loading skeleton ── */
+@keyframes rw-pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+.skeleton-circle,
+.skeleton-line {
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-full);
+  animation: rw-pulse 1.4s ease-in-out infinite;
+}
+
+.skeleton-circle {
+  width: 96px;
+  height: 96px;
+  flex-shrink: 0;
+}
+
+.skeleton-line {
+  height: 12px;
+  border-radius: var(--radius-md);
+  margin-top: 8px;
+}
+
+.skeleton-line--name { width: 140px; margin-top: 0; height: 16px; }
+.skeleton-line--username { width: 100px; }
+.skeleton-line--email { width: 180px; }
+.skeleton-line--field { height: 40px; border-radius: var(--radius-md); }
 
 /* ── Form ── */
 .settings-form {
@@ -82,6 +164,17 @@
 
 @media (max-width: 576px) {
   .form-grid { grid-template-columns: 1fr; }
+
+  .avatar-row {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .avatar-info__name,
+  .avatar-info__username,
+  .avatar-info__email {
+    text-align: center;
+  }
 }
 
 /* ── Connected accounts ── */

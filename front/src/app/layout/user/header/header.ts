@@ -1,19 +1,33 @@
-import { Component, HostListener, computed, input, output, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Component, HostListener, computed, inject, input, output, signal } from '@angular/core';
+import { Router, RouterLink } from '@angular/router';
 import { TooltipDirective } from '../../../shared/directives/tooltip.directive';
+import { Avatar } from '../../../shared/components/avatar/avatar';
+import { AuthService } from '../../../core/auth/auth.service';
+import { TenantService } from '../../../core/tenant/tenant.service';
+import { TENANT_MEMBER_ROLE_LABELS } from '../../../model/tenant.model';
 
 @Component({
   selector: 'app-header',
   standalone: true,
-  imports: [RouterLink, TooltipDirective],
+  imports: [RouterLink, TooltipDirective, Avatar],
   templateUrl: './header.html',
   styleUrl: './header.css',
 })
 export class Header {
+  private readonly authService = inject(AuthService);
+  private readonly tenantService = inject(TenantService);
+  private readonly router = inject(Router);
+
   mobileMenuOpen = input(false);
 
   toggleSidebar = output<void>();
   toggleMobileMenu = output<void>();
+
+  protected readonly currentUser = this.authService.currentUser;
+  protected readonly tenantRoleLabel = computed(() => {
+    const role = this.tenantService.tenant()?.role;
+    return role ? TENANT_MEMBER_ROLE_LABELS[role] : null;
+  });
 
   searchQuery = signal('');
   notifOpen = signal(false);
@@ -43,5 +57,17 @@ export class Header {
       document.exitFullscreen();
       this.fullscreen.set(false);
     }
+  }
+
+  protected logout(): void {
+    this.authService.logout().subscribe({
+      next: () => this.finishLogout(),
+      error: () => this.finishLogout(),
+    });
+  }
+
+  private finishLogout(): void {
+    this.tenantService.clear();
+    this.router.navigate(['/login']);
   }
 }

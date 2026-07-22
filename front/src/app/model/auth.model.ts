@@ -4,6 +4,7 @@ export type AppLanguage = 'En' | 'Ar';
 /** POST /api/v1/auth/register — Rawaj.Application.Features.Auth.Register.RegisterCommand */
 export interface RegisterRequest {
   email: string;
+  username: string;
   password: string;
   fullName: string;
   preferredLanguage: AppLanguage;
@@ -20,7 +21,7 @@ export interface RegisterResponse {
 
 /** POST /api/v1/auth/login — Rawaj.Application.Features.Auth.Login.LoginCommand */
 export interface LoginRequest {
-  email: string;
+  identifier: string;
   password: string;
 }
 
@@ -43,6 +44,7 @@ export interface RefreshTokenResponse {
 export interface AccessTokenClaims {
   sub: string;
   email: string;
+  username: string;
   jti: string;
   full_name: string;
   preferred_language: AppLanguage;
@@ -52,13 +54,43 @@ export interface AccessTokenClaims {
   aud: string;
 }
 
-/** The app-facing shape derived from the decoded access token. */
+/** The app-facing shape derived from the decoded access token, optionally refined by `/users/me`. */
 export interface AuthUser {
   id: string;
   email: string;
+  username: string;
   fullName: string;
   preferredLanguage: AppLanguage;
   isPlatformAdmin: boolean;
+  avatarUrl?: string;
+}
+
+/** GET /api/v1/users/me — Rawaj.Application.Features.Users.GetMyProfile.GetMyProfileResponse */
+export interface MyProfileResponse {
+  userId: string;
+  email: string;
+  username: string;
+  fullName: string;
+  avatarUrl?: string;
+  preferredLanguage: AppLanguage;
+}
+
+/** PUT /api/v1/users/me — Rawaj.Application.Features.Users.UpdateMyProfile.UpdateMyProfileCommand */
+export interface UpdateMyProfileRequest {
+  fullName?: string;
+  username?: string;
+  preferredLanguage?: AppLanguage;
+}
+
+/** POST /api/v1/users/me/change-password — Rawaj.Application.Features.Users.ChangeMyPassword.ChangeMyPasswordCommand */
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+}
+
+/** POST /api/v1/users/me/avatar — Rawaj.Application.Features.Users.UpdateMyAvatar.UpdateMyAvatarResponse */
+export interface UpdateAvatarResponse {
+  avatarUrl: string;
 }
 
 /** Backend's generic `ApiResponse<T>` envelope (see Rawaj.Common.ApiResponse). */

@@ -1,0 +1,17 @@
+<app-modal-shell [open]="state().open" [maxWidth]="380" [title]="state().title" (closed)="respond(false)">
+  <p class="confirm-dialog__message">{{ state().message }}</p>
+
+  <div modal-footer class="confirm-dialog__footer">
+    <button type="button" class="confirm-dialog__btn confirm-dialog__btn--cancel" (click)="respond(false)">
+      {{ state().cancelLabel }}
+    </button>
+    <button
+      type="button"
+      class="confirm-dialog__btn confirm-dialog__btn--confirm"
+      [class.confirm-dialog__btn--danger]="state().variant === 'danger'"
+      (click)="respond(true)"
+    >
+      {{ state().confirmLabel }}
+    </button>
+  </div>
+</app-modal-shell>

@@ -1,12 +1,13 @@
 import { Component, inject, signal } from '@angular/core';
 import { NavigationCancel, NavigationEnd, NavigationError, NavigationStart, Router, RouterOutlet } from '@angular/router';
 import { ErrorModal } from './shared/components/error-modal/error-modal';
+import { ConfirmDialog } from './shared/components/confirm-dialog/confirm-dialog';
 import { PageLoader } from './shared/components/page-loader/page-loader';
 import { LoaderService } from './services/loader.service';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, ErrorModal, PageLoader],
+  imports: [RouterOutlet, ErrorModal, ConfirmDialog, PageLoader],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })

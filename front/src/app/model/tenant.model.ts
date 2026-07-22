@@ -1,6 +1,13 @@
 export type TenantType = 'Business' | 'Agency';
 export type TenantMemberRole = 'Owner' | 'Admin' | 'Editor' | 'Viewer';
 
+export const TENANT_MEMBER_ROLE_LABELS: Record<TenantMemberRole, string> = {
+  Owner: 'مالك',
+  Admin: 'مدير',
+  Editor: 'محرر',
+  Viewer: 'مشاهد',
+};
+
 export interface TenantSummary {
   tenantId: string;
   name: string;

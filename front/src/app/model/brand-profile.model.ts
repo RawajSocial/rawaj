@@ -4,7 +4,7 @@ export type BrandProfileStatus = 'active' | 'draft' | 'archived';
 
 export interface BrandProfile {
   id: string;
-  tenantId: string;
+  tenantId?: string;
   name: string;
   description?: string;
   brandVoice?: BrandVoice;
@@ -19,8 +19,31 @@ export interface BrandProfile {
   keywords: string[];
   location?: string;
   isDefault: boolean;
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+/** GET /api/v1/brand-profiles — Rawaj.Application.Features.Brands.GetBrandProfiles.BrandProfileSummary */
+export interface BrandProfileSummary {
+  brandProfileId: string;
+  name: string;
+  description?: string;
+  brandVoice?: BrandVoice;
+  status: BrandProfileStatus;
+  isDefault: boolean;
+  tagline?: string;
+  industry?: string;
+  colors: string[];
+  logoUrl?: string;
+}
+
+/** POST /api/v1/brand-profiles — Rawaj.Application.Features.Brands.CreateBrandProfile.CreateBrandProfileResponse */
+export interface CreateBrandProfileResponse {
+  brandProfileId: string;
+  tenantId: string;
+  name: string;
+  status: BrandProfileStatus;
+  isDefault: boolean;
 }
 
 export const BRAND_VOICE_LABELS: Record<BrandVoice, string> = {

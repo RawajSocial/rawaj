@@ -8,6 +8,8 @@ import { BrandVoice } from '../../../model/brand-profile.model';
 import { SeoService } from '../../../services/seo.service';
 import { TenantService } from '../../../core/tenant/tenant.service';
 import { ErrorModalService } from '../../../services/error-modal.service';
+import { LoaderService } from '../../../services/loader.service';
+import { extractApiErrorMessage } from '../../../core/auth/api-error.util';
 
 interface WizardStep {
   key: 'basics' | 'voice' | 'logo' | 'review';
@@ -32,6 +34,7 @@ export class BrandProfileCreatePage {
   private readonly brandProfileService = inject(BrandProfileService);
   private readonly tenantService = inject(TenantService);
   private readonly errorModalService = inject(ErrorModalService);
+  private readonly loaderService = inject(LoaderService);
   private readonly router = inject(Router);
   private readonly seo = inject(SeoService);
 
@@ -123,7 +126,7 @@ export class BrandProfileCreatePage {
       return;
     }
 
-    if (this.brandProfileService.profiles().length >= 1 && !this.tenantService.isAgency()) {
+    if (this.tenantService.brandProfileCount() >= this.tenantService.maxBrands() && !this.tenantService.isAgency()) {
       this.errorModalService.show(
         'حسابك الحالي كصاحب علامة تجارية يسمح بملف تعريف واحد فقط. رقِّ حسابك إلى وكالة تسويق لإدارة أكثر من علامة.',
         { variant: 'warning', title: 'يلزم ترقية الحساب' },
@@ -133,16 +136,35 @@ export class BrandProfileCreatePage {
     }
 
     const { name, tagline, industry, description, location } = this.basicsForm.getRawValue();
-    this.brandProfileService.create({
-      name,
-      tagline: tagline || undefined,
-      industry: industry || undefined,
-      description: description || undefined,
-      location: location || undefined,
-      brandVoice: this.selectedVoice(),
-      logoUrl: this.logoDataUrl() ?? undefined,
-    });
 
-    this.router.navigate(['/dashboard/brand-profiles']);
+    this.loaderService.show();
+    this.brandProfileService
+      .create({
+        name,
+        tagline: tagline || undefined,
+        industry: industry || undefined,
+        description: description || undefined,
+        location: location || undefined,
+        brandVoice: this.selectedVoice(),
+        logoUrl: this.logoDataUrl() ?? undefined,
+      })
+      .subscribe({
+        next: res => {
+          this.loaderService.hide();
+          if (res.status !== 'success' || !res.data) {
+            this.errorModalService.show(res.message ?? 'تعذّر إنشاء ملف العلامة التجارية.', { variant: 'error' });
+            return;
+          }
+          this.tenantService.refresh().subscribe();
+          this.router.navigate(['/dashboard/brand-profiles']);
+        },
+        error: err => {
+          this.loaderService.hide();
+          this.errorModalService.show(
+            extractApiErrorMessage(err, 'تعذّر إنشاء ملف العلامة التجارية. يرجى المحاولة مرة أخرى.'),
+            { variant: 'error' },
+          );
+        },
+      });
   }
 }

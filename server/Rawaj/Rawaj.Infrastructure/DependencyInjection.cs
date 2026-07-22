@@ -31,9 +31,6 @@ public static class DependencyInjection
         services.Configure<LinkedInOAuthSettings>(configuration.GetSection(LinkedInOAuthSettings.SectionName));
         services.Configure<PublicImageHostingSettings>(configuration.GetSection(PublicImageHostingSettings.SectionName));
 
-        // AI generation calls run much longer than a typical API request (image generation in
-        // particular), so they get generous timeouts; social platform calls are usually fast and
-        // keep closer to the resilience handler's defaults.
         services.AddResilientHttpClient("Groq", attemptTimeout: TimeSpan.FromSeconds(45), totalTimeout: TimeSpan.FromSeconds(120));
         services.AddResilientHttpClient("HuggingFace", attemptTimeout: TimeSpan.FromSeconds(60), totalTimeout: TimeSpan.FromSeconds(150));
         services.AddResilientHttpClient("Tavily", attemptTimeout: TimeSpan.FromSeconds(30), totalTimeout: TimeSpan.FromSeconds(60));
@@ -52,6 +49,7 @@ public static class DependencyInjection
         services.AddScoped<IWebScraperService, HtmlAgilityPackWebScraperService>();
         services.AddSingleton<ITokenEncryptor, AesTokenEncryptor>();
         services.AddSingleton<IPublicImageHostingService, LocalFilePublicImageHostingService>();
+        services.AddSingleton<IAvatarStorageService, LocalAvatarStorageService>();
 
         services.AddMemoryCache();
         services.AddSingleton<IOAuthStateStore, OAuthStateStore>();

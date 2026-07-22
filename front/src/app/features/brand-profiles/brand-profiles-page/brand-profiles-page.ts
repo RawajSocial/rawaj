@@ -6,6 +6,9 @@ import { CampaignService } from '../../../services/campaign.service';
 import { BRAND_PROFILE_STATUS_LABELS, BRAND_VOICE_LABELS } from '../../../model/brand-profile.model';
 import { SeoService } from '../../../services/seo.service';
 import { TooltipDirective } from '../../../shared/directives/tooltip.directive';
+import { ErrorModalService } from '../../../services/error-modal.service';
+import { LoaderService } from '../../../services/loader.service';
+import { extractApiErrorMessage } from '../../../core/auth/api-error.util';
 
 @Component({
   selector: 'app-brand-profiles-page',
@@ -18,6 +21,8 @@ export class BrandProfilesPage {
   private readonly brandProfileService = inject(BrandProfileService);
   private readonly campaignService = inject(CampaignService);
   private readonly seo = inject(SeoService);
+  private readonly errorModalService = inject(ErrorModalService);
+  private readonly loaderService = inject(LoaderService);
 
   protected readonly profiles = this.brandProfileService.profiles;
   protected readonly statusLabels = BRAND_PROFILE_STATUS_LABELS;
@@ -33,6 +38,8 @@ export class BrandProfilesPage {
       type: 'website',
       noIndex: true,
     });
+
+    this.brandProfileService.refresh().subscribe();
   }
 
   protected campaignCount(brandProfileId: string): number {
@@ -40,6 +47,21 @@ export class BrandProfilesPage {
   }
 
   protected archive(id: string): void {
-    this.brandProfileService.archive(id);
+    this.loaderService.show();
+    this.brandProfileService.archive(id).subscribe({
+      next: res => {
+        this.loaderService.hide();
+        if (res.status !== 'success') {
+          this.errorModalService.show(res.message ?? 'تعذّرت أرشفة ملف العلامة التجارية.', { variant: 'error' });
+        }
+      },
+      error: err => {
+        this.loaderService.hide();
+        this.errorModalService.show(
+          extractApiErrorMessage(err, 'تعذّرت أرشفة ملف العلامة التجارية. يرجى المحاولة مرة أخرى.'),
+          { variant: 'error' },
+        );
+      },
+    });
   }
 }

@@ -24,10 +24,30 @@ public class RegisterCommandHandlerTests
             identityService, Substitute.For<IJwtTokenGenerator>(), dbContext, new TenantProvisioningService(dbContext));
 
         var result = await handler.Handle(
-            new RegisterCommand(existing.Email, "P@ssw0rd1", "New Person", Language.En), CancellationToken.None);
+            new RegisterCommand(existing.Email, "newperson", "P@ssw0rd1", "New Person", Language.En), CancellationToken.None);
 
         Assert.False(result.Succeeded);
         Assert.Equal("A user with this email already exists.", result.ErrorMessage);
+    }
+
+    [Fact]
+    public async Task Handle_WithExistingUsername_Fails()
+    {
+        using var dbContext = TestDbContextFactory.Create();
+        var existing = new ApplicationUserDto { Id = Guid.NewGuid(), Email = "taken@example.com", Username = "takenname", FullName = "X", IsActive = true };
+
+        var identityService = Substitute.For<IIdentityService>();
+        identityService.FindByEmailAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns((ApplicationUserDto?)null);
+        identityService.FindByUsernameAsync(existing.Username, Arg.Any<CancellationToken>()).Returns(existing);
+
+        var handler = new RegisterCommandHandler(
+            identityService, Substitute.For<IJwtTokenGenerator>(), dbContext, new TenantProvisioningService(dbContext));
+
+        var result = await handler.Handle(
+            new RegisterCommand("new@example.com", existing.Username, "P@ssw0rd1", "New Person", Language.En), CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("A user with this username already exists.", result.ErrorMessage);
     }
 
     [Fact]
@@ -36,14 +56,15 @@ public class RegisterCommandHandlerTests
         using var dbContext = TestDbContextFactory.Create();
         var identityService = Substitute.For<IIdentityService>();
         identityService.FindByEmailAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns((ApplicationUserDto?)null);
-        identityService.CreateUserAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<Language>(), Arg.Any<CancellationToken>())
+        identityService.FindByUsernameAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns((ApplicationUserDto?)null);
+        identityService.CreateUserAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<Language>(), Arg.Any<CancellationToken>())
             .Returns(IdentityRegisterResult.Failure(["Password too weak."]));
 
         var handler = new RegisterCommandHandler(
             identityService, Substitute.For<IJwtTokenGenerator>(), dbContext, new TenantProvisioningService(dbContext));
 
         var result = await handler.Handle(
-            new RegisterCommand("new@example.com", "weak", "New Person", Language.En), CancellationToken.None);
+            new RegisterCommand("new@example.com", "newperson", "weak", "New Person", Language.En), CancellationToken.None);
 
         Assert.False(result.Succeeded);
         Assert.Equal("Password too weak.", result.ErrorMessage);
@@ -68,7 +89,8 @@ public class RegisterCommandHandlerTests
 
         var identityService = Substitute.For<IIdentityService>();
         identityService.FindByEmailAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns((ApplicationUserDto?)null);
-        identityService.CreateUserAsync("new@example.com", "P@ssw0rd1", "New Person", Language.En, Arg.Any<CancellationToken>())
+        identityService.FindByUsernameAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns((ApplicationUserDto?)null);
+        identityService.CreateUserAsync("new@example.com", "newperson", "P@ssw0rd1", "New Person", Language.En, Arg.Any<CancellationToken>())
             .Returns(IdentityRegisterResult.Success(newUserId));
 
         var jwtTokenGenerator = Substitute.For<IJwtTokenGenerator>();
@@ -78,7 +100,7 @@ public class RegisterCommandHandlerTests
             identityService, jwtTokenGenerator, dbContext, new TenantProvisioningService(dbContext));
 
         var result = await handler.Handle(
-            new RegisterCommand("new@example.com", "P@ssw0rd1", "New Person", Language.En), CancellationToken.None);
+            new RegisterCommand("new@example.com", "newperson", "P@ssw0rd1", "New Person", Language.En), CancellationToken.None);
 
         Assert.True(result.Succeeded);
         Assert.Equal(newUserId, result.Data!.UserId);

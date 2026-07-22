@@ -1,45 +1,9 @@
-import { Injectable, computed, signal } from '@angular/core';
-import { BrandProfile } from '../model/brand-profile.model';
-
-const MOCK_BRAND_PROFILES: BrandProfile[] = [
-  {
-    id: 'bp1',
-    tenantId: 't1',
-    name: 'رواج للتسويق الرقمي',
-    description: 'الهوية الرئيسية لوكالة رواج وعملائها في قطاع التجزئة.',
-    brandVoice: 'professional',
-    status: 'active',
-    tagline: 'نمو أذكى لعلامتك التجارية',
-    industry: 'retail',
-    targetAudience: 'الشباب والعائلات في الشرق الأوسط',
-    colors: ['#7C3AED', '#2563EB'],
-    logoUrl: '/assets/icons/brand.png',
-    websiteUrl: 'https://rawaj.app',
-    supportedLanguages: ['ar', 'en'],
-    keywords: ['تسويق رقمي', 'إعلانات', 'رمضان'],
-    isDefault: true,
-    createdAt: '2025-01-15T10:00:00',
-    updatedAt: '2025-06-01T10:00:00',
-  },
-  {
-    id: 'bp2',
-    tenantId: 't1',
-    name: 'عطور الشرق',
-    description: 'هوية علامة العطور الفاخرة الخاصة بالعميل.',
-    brandVoice: 'luxurious',
-    status: 'active',
-    tagline: 'عبق الأصالة',
-    industry: 'beauty',
-    targetAudience: 'محبي العطور الفاخرة',
-    colors: ['#B45309', '#1F2937'],
-    websiteUrl: 'https://perfumes-example.com',
-    supportedLanguages: ['ar'],
-    keywords: ['عطور', 'فخامة', 'هدايا'],
-    isDefault: false,
-    createdAt: '2025-03-20T10:00:00',
-    updatedAt: '2025-04-20T10:00:00',
-  },
-];
+import { Injectable, computed, inject, signal } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { map, Observable, of, switchMap, tap } from 'rxjs';
+import { environment } from '../../environments/environment';
+import { ApiResponse } from '../model/auth.model';
+import { BrandProfile, BrandProfileSummary, CreateBrandProfileResponse } from '../model/brand-profile.model';
 
 export interface CreateBrandProfileInput {
   name: string;
@@ -56,40 +20,59 @@ export interface CreateBrandProfileInput {
   location?: string;
 }
 
-/**
- * Mock-data mirror of the backend's `POST /api/v1/tenants/brand-profile`
- * endpoint (see `TenantBrandProfileResponse` / `CreateBrandProfileCommand`
- * on the server) — same field shape, so swapping this for a real HttpClient
- * call later is a drop-in change.
- */
+function toBrandProfile(summary: BrandProfileSummary): BrandProfile {
+  return {
+    id: summary.brandProfileId,
+    name: summary.name,
+    description: summary.description,
+    brandVoice: summary.brandVoice,
+    status: summary.status,
+    isDefault: summary.isDefault,
+    tagline: summary.tagline,
+    industry: summary.industry,
+    colors: summary.colors,
+    logoUrl: summary.logoUrl,
+    supportedLanguages: [],
+    keywords: [],
+  };
+}
+
 @Injectable({ providedIn: 'root' })
 export class BrandProfileService {
-  private readonly _profiles = signal<BrandProfile[]>(MOCK_BRAND_PROFILES);
+  private readonly http = inject(HttpClient);
+  private readonly baseUrl = `${environment.apiUrl}/brand-profiles`;
+
+  private readonly _profiles = signal<BrandProfile[]>([]);
   readonly profiles = this._profiles.asReadonly();
 
   getById(id: string) {
     return computed(() => this._profiles().find(p => p.id === id));
   }
 
-  create(input: CreateBrandProfileInput): BrandProfile {
-    const now = new Date().toISOString();
-    const profile: BrandProfile = {
-      id: 'bp' + Date.now(),
-      tenantId: 't1',
-      status: 'active',
-      colors: input.colors ?? [],
-      supportedLanguages: input.supportedLanguages ?? ['ar'],
-      keywords: input.keywords ?? [],
-      isDefault: this._profiles().length === 0,
-      createdAt: now,
-      updatedAt: now,
-      ...input,
-    };
-    this._profiles.update(list => [profile, ...list]);
-    return profile;
+  refresh(): Observable<ApiResponse<BrandProfileSummary[]>> {
+    return this.http.get<ApiResponse<BrandProfileSummary[]>>(this.baseUrl).pipe(
+      tap(res => {
+        if (res.data) this._profiles.set(res.data.map(toBrandProfile));
+      }),
+    );
   }
 
-  archive(id: string): void {
-    this._profiles.update(list => list.map(p => (p.id === id ? { ...p, status: 'archived' } : p)));
+  /** Runs `mutation`, then re-fetches the list on success so `profiles` always reflects server state. */
+  private mutateAndRefresh<T>(mutation: Observable<ApiResponse<T>>): Observable<ApiResponse<T>> {
+    return mutation.pipe(
+      switchMap(res => (res.data ? this.refresh().pipe(map(() => res)) : of(res))),
+    );
+  }
+
+  create(input: CreateBrandProfileInput): Observable<ApiResponse<CreateBrandProfileResponse>> {
+    return this.mutateAndRefresh(
+      this.http.post<ApiResponse<CreateBrandProfileResponse>>(this.baseUrl, input),
+    );
+  }
+
+  archive(id: string): Observable<ApiResponse<boolean>> {
+    return this.mutateAndRefresh(
+      this.http.post<ApiResponse<boolean>>(`${this.baseUrl}/${id}/archive`, {}),
+    );
   }
 }
