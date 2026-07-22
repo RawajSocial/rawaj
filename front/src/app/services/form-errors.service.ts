@@ -21,6 +21,10 @@ export class FormErrorsService {
       return null;
     }
 
+    if (control.errors?.['serverMessage']) {
+      return control.errors['serverMessage'] as string;
+    }
+
     if (control.errors?.['required']) {
       return messages.required ?? 'هذا الحقل مطلوب.';
     }

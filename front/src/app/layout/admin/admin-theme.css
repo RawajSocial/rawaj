@@ -1,43 +1,13 @@
 /* =========================================================
-   Admin theme — dark red palette, white text.
-   Scoped to `.admin-shell` so every dashboard-shared primitive
-   (.rw-card, .rw-btn, .rw-pill, .rw-field, .page-shell, ...) that
-   an admin page reuses automatically renders in this palette —
-   no need to re-style each component individually.
+   Admin theme.
+   Only the sidebar/header (styled directly in their own CSS)
+   use the dark-red palette. The content area keeps the app's
+   normal light theme — white cards, dark contrasting text —
+   so dashboard-shared primitives (.rw-card, .rw-btn, .rw-pill,
+   .page-shell, ...) render exactly as they do everywhere else.
 ========================================================= */
 
 .admin-shell {
-  --color-bg:             #2b0509;
-  --color-bg-secondary:   #3a0810;
-  --color-bg-tertiary:    #4a0e15;
-
-  --color-surface:        #3d0a10;
-  --color-surface-raised: #470d14;
-
-  --color-border:         rgba(255, 255, 255, 0.12);
-  --color-border-strong:  rgba(255, 255, 255, 0.22);
-
-  --color-dark:           #ffffff;
-  --color-dark-soft:      rgba(255, 255, 255, 0.85);
-  --color-dark-muted:     rgba(255, 255, 255, 0.6);
-
-  --color-text-primary:   #ffffff;
-  --color-text-secondary: rgba(255, 255, 255, 0.75);
-  --color-text-muted:     rgba(255, 255, 255, 0.55);
-
-  --color-primary:         #ef4444;
-  --color-primary-hover:   #f87171;
-  --color-primary-active:  #dc2626;
-  --color-primary-light:   rgba(239, 68, 68, 0.22);
-  --color-primary-subtle:  rgba(239, 68, 68, 0.14);
-
-  --color-secondary:         #dc2626;
-  --color-secondary-hover:   #f87171;
-  --color-secondary-active:  #b91c1c;
-  --color-secondary-light:   rgba(220, 38, 38, 0.22);
-  --color-secondary-subtle:  rgba(220, 38, 38, 0.14);
-
-  background: var(--color-bg);
-  color: var(--color-text-primary);
+  background: var(--color-bg-secondary);
   min-height: 100vh;
 }
