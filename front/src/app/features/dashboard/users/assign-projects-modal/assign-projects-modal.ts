@@ -8,9 +8,11 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
-import { TeamMember, TeamProject } from '../../../../model/team-member.model';
+import { BrandProfile } from '../../../../model/brand-profile.model';
 import { animateModalIn, animateModalOut } from '../../../../shared/utils/modal-motion';
 
+/** Assigns which brand profiles a team member can work on — repurposed from the old mock
+ *  "projects" concept now that مشاريعي/campaigns are real brand profiles, not invented projects. */
 @Component({
   selector: 'app-assign-projects-modal',
   imports: [],
@@ -20,8 +22,9 @@ import { animateModalIn, animateModalOut } from '../../../../shared/utils/modal-
 })
 export class AssignProjectsModal {
   readonly open = input.required<boolean>();
-  readonly member = input<TeamMember | null>(null);
-  readonly projects = input.required<TeamProject[]>();
+  readonly memberName = input<string>('');
+  readonly assignedBrandProfileIds = input<string[]>([]);
+  readonly brandProfiles = input.required<BrandProfile[]>();
 
   readonly closed = output<void>();
   readonly assigned = output<string[]>();
@@ -36,7 +39,7 @@ export class AssignProjectsModal {
     effect(() => {
       if (!this.open()) return;
       this.closing.set(false);
-      this.selectedIds.set(new Set(this.member()?.assignedProjectIds ?? []));
+      this.selectedIds.set(new Set(this.assignedBrandProfileIds()));
       queueMicrotask(() => {
         const panel = this.panelRef()?.nativeElement;
         const backdrop = this.backdropRef()?.nativeElement;
@@ -45,11 +48,11 @@ export class AssignProjectsModal {
     });
   }
 
-  protected toggle(projectId: string): void {
+  protected toggle(brandProfileId: string): void {
     this.selectedIds.update(current => {
       const next = new Set(current);
-      if (next.has(projectId)) next.delete(projectId);
-      else next.add(projectId);
+      if (next.has(brandProfileId)) next.delete(brandProfileId);
+      else next.add(brandProfileId);
       return next;
     });
   }

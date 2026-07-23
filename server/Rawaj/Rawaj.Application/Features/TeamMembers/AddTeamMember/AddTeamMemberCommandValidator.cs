@@ -20,5 +20,7 @@ public class AddTeamMemberCommandValidator : AbstractValidator<AddTeamMemberComm
             .Must(x => x.Count > 0)
             .WithMessage("Select at least one brand profile for this role.")
             .When(x => x.Role is TenantMemberRole.Editor or TenantMemberRole.Viewer);
+
+        RuleFor(x => x.AllocatedCoins).GreaterThanOrEqualTo(0);
     }
 }

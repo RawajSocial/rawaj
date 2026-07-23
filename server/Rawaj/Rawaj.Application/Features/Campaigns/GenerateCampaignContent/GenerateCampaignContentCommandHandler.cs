@@ -17,7 +17,8 @@ public class GenerateCampaignContentCommandHandler(
     ICurrentUserService currentUserService,
     ICurrentTenantContext currentTenantContext,
     IAiTextGenerationService textGenerationService,
-    IAiImageGenerationService imageGenerationService)
+    IAiImageGenerationService imageGenerationService,
+    ICoinCostProvider coinCostProvider)
     : IRequestHandler<GenerateCampaignContentCommand, Result<GenerateCampaignContentResponse>>
 {
     private const int MaxCompetitorInsights = 5;
@@ -27,6 +28,7 @@ public class GenerateCampaignContentCommandHandler(
     {
         var tenantId = currentTenantContext.TenantId!.Value;
         var userId = currentUserService.UserId!.Value;
+        var role = currentTenantContext.Role!.Value;
 
         var campaign = await dbContext.MarketingCampaigns
             .FirstOrDefaultAsync(c => c.Id == request.CampaignId && c.BrandProfile.TenantId == tenantId, cancellationToken);
@@ -43,6 +45,17 @@ public class GenerateCampaignContentCommandHandler(
         {
             return Result<GenerateCampaignContentResponse>.Failure(
                 $"Your subscription plan allows {creditsUsage.MaxCreditsMonthly} AI credits per month. Upgrade for more.");
+        }
+
+        // One flat charge for the whole batch, regardless of how many posts/images come out of
+        // it — the per-post cost accounting that GenerateContentItem/GenerateVisualAsset do would
+        // be unpredictable here up front, since the model decides how many posts to produce.
+        var coinCost = coinCostProvider.CampaignContentGeneration;
+        var coinBalance = await CoinPolicy.GetBalanceAsync(dbContext, tenantId, userId, role, cancellationToken);
+        if (coinBalance < coinCost)
+        {
+            return Result<GenerateCampaignContentResponse>.Failure(
+                $"You need {coinCost} coins to generate campaign content, but only have {coinBalance}.");
         }
 
         // Prefer the brand's actually-connected accounts over the campaign's TargetPlatforms -
@@ -122,6 +135,8 @@ public class GenerateCampaignContentCommandHandler(
             return Result<GenerateCampaignContentResponse>.Failure(
                 "Could not parse the AI-generated campaign posts. Please try again.");
         }
+
+        await CoinPolicy.TrySpendAsync(dbContext, tenantId, userId, role, coinCost, cancellationToken);
 
         var contentItemEntities = new List<ContentItem>();
         foreach (var draft in createdItems)

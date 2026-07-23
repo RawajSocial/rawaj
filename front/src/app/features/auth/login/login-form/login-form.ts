@@ -5,9 +5,14 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormErrorsService } from '../../../../services/form-errors.service';
 import { AuthService } from '../../../../core/auth/auth.service';
 import { TenantService } from '../../../../core/tenant/tenant.service';
-import { ErrorModalService } from '../../../../services/error-modal.service';
 import { LoaderService } from '../../../../services/loader.service';
-import { extractApiErrorMessage, applyFieldErrors } from '../../../../core/auth/api-error.util';
+import { applyAuthFailure, applyFieldErrors, hasFieldErrors } from '../../../../core/auth/api-error.util';
+
+/** Backend `Result.Failure` message (LoginCommandHandler) — shown inline under the password field
+ *  instead of a generic banner, matching the common "incorrect password" login UX pattern. */
+const LOGIN_FAILURE_FIELD_MAP: Record<string, string> = {
+  'Invalid email/username or password.': 'password',
+};
 
 @Component({
   selector: 'app-login-form',
@@ -18,10 +23,11 @@ import { extractApiErrorMessage, applyFieldErrors } from '../../../../core/auth/
 export class LoginForm {
   protected readonly form;
   protected readonly submitted = signal(false);
+  /** Non-field failure message (e.g. network error) shown as a small inline banner — never a modal. */
+  protected readonly formError = signal<string | null>(null);
 
   private readonly authService = inject(AuthService);
   private readonly tenantService = inject(TenantService);
-  private readonly errorModalService = inject(ErrorModalService);
   private readonly loaderService = inject(LoaderService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
@@ -31,14 +37,17 @@ export class LoginForm {
     private readonly formErrorsService: FormErrorsService,
   ) {
     this.form = this.fb.nonNullable.group({
+      // Login only requires a non-empty password server-side (LoginCommandValidator) — no
+      // minlength here, since an existing account's password could pre-date any length rule.
       identifier: ['', [Validators.required]],
-      password: ['', [Validators.required, Validators.minLength(8)]],
+      password: ['', [Validators.required]],
       rememberMe: [false],
     });
   }
 
   protected onSubmit(): void {
     this.submitted.set(true);
+    this.formError.set(null);
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
@@ -51,10 +60,10 @@ export class LoginForm {
       next: res => {
         this.loaderService.hide();
         if (res.status !== 'success' || !res.data) {
-          this.errorModalService.show(res.message ?? 'تعذّر تسجيل الدخول.', { variant: 'error' });
+          this.formError.set(res.message ?? 'تعذّر تسجيل الدخول. يرجى المحاولة مرة أخرى.');
           return;
         }
-        this.tenantService.refresh().subscribe();
+        this.tenantService.refreshMemberships().subscribe();
         this.authService.fetchMyProfile().subscribe();
         const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
         this.router.navigateByUrl(returnUrl ?? '/dashboard');
@@ -62,9 +71,14 @@ export class LoginForm {
       error: err => {
         this.loaderService.hide();
         applyFieldErrors(this.form, err);
-        this.errorModalService.show(extractApiErrorMessage(err, 'البريد الإلكتروني أو اسم المستخدم أو كلمة المرور غير صحيحة.'), {
-          variant: 'error',
-        });
+        // Field-level errors already show inline under their control. Anything else (invalid
+        // credentials, network/server errors) is resolved to an inline field message or a small
+        // banner by applyAuthFailure — never a popup modal.
+        if (!hasFieldErrors(err)) {
+          this.formError.set(
+            applyAuthFailure(this.form, err, LOGIN_FAILURE_FIELD_MAP, 'تعذّر تسجيل الدخول. يرجى المحاولة مرة أخرى.'),
+          );
+        }
       },
     });
   }
@@ -78,7 +92,6 @@ export class LoginForm {
 
     return this.formErrorsService.getControlErrorMessage(this.form.controls.password, this.submitted(), {
       required: 'كلمة المرور مطلوبة.',
-      minlength: 'كلمة المرور يجب أن تكون 8 أحرف على الأقل.',
     });
   }
 }

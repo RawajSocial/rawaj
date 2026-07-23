@@ -65,19 +65,13 @@ namespace Rawaj
             app.UseMiddleware<ExceptionHandlingMiddleware>();
 
             app.UseHttpsRedirection();
-
             app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false });
             app.MapHealthChecks("/health");
-
             app.UseStaticFiles();
-
             app.UseCors();
-
             app.UseAuthentication();
             app.UseAuthorization();
-
             app.MapControllers();
-
             app.Run();
         }
     }

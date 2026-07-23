@@ -19,7 +19,8 @@ public class RegenerateContentItemCommandHandler(
     IApplicationDbContext dbContext,
     ICurrentUserService currentUserService,
     ICurrentTenantContext currentTenantContext,
-    IAiTextGenerationService textGenerationService)
+    IAiTextGenerationService textGenerationService,
+    ICoinCostProvider coinCostProvider)
     : IRequestHandler<RegenerateContentItemCommand, Result<RegenerateContentItemResponse>>
 {
     public async Task<Result<RegenerateContentItemResponse>> Handle(
@@ -27,6 +28,7 @@ public class RegenerateContentItemCommandHandler(
     {
         var tenantId = currentTenantContext.TenantId!.Value;
         var userId = currentUserService.UserId!.Value;
+        var role = currentTenantContext.Role!.Value;
 
         var contentItem = await dbContext.ContentItems
             .FirstOrDefaultAsync(c => c.Id == request.ContentItemId && c.TenantId == tenantId, cancellationToken);
@@ -55,6 +57,14 @@ public class RegenerateContentItemCommandHandler(
         {
             return Result<RegenerateContentItemResponse>.Failure(
                 $"Your subscription plan allows {creditsUsage.MaxCreditsMonthly} AI credits per month. Upgrade for more.");
+        }
+
+        var coinCost = coinCostProvider.ContentGeneration;
+        var coinBalance = await CoinPolicy.GetBalanceAsync(dbContext, tenantId, userId, role, cancellationToken);
+        if (coinBalance < coinCost)
+        {
+            return Result<RegenerateContentItemResponse>.Failure(
+                $"You need {coinCost} coins to regenerate content, but only have {coinBalance}.");
         }
 
         var prompt = ContentPromptBuilder.BuildRevisionPrompt(brand, campaign, contentItem, request.Feedback);
@@ -108,6 +118,8 @@ public class RegenerateContentItemCommandHandler(
         contentItem.ReviewedBy = null;
         contentItem.ReviewedAt = null;
         contentItem.UpdatedAt = now;
+
+        await CoinPolicy.TrySpendAsync(dbContext, tenantId, userId, role, coinCost, cancellationToken);
 
         NotificationPublisher.Notify(
             dbContext,

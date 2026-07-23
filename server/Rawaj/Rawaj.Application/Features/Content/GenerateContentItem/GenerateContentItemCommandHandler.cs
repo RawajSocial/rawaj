@@ -15,7 +15,8 @@ public class GenerateContentItemCommandHandler(
     IApplicationDbContext dbContext,
     ICurrentUserService currentUserService,
     ICurrentTenantContext currentTenantContext,
-    IAiTextGenerationService textGenerationService)
+    IAiTextGenerationService textGenerationService,
+    ICoinCostProvider coinCostProvider)
     : IRequestHandler<GenerateContentItemCommand, Result<GenerateContentItemResponse>>
 {
     public async Task<Result<GenerateContentItemResponse>> Handle(
@@ -23,6 +24,7 @@ public class GenerateContentItemCommandHandler(
     {
         var tenantId = currentTenantContext.TenantId!.Value;
         var userId = currentUserService.UserId!.Value;
+        var role = currentTenantContext.Role!.Value;
 
         var brand = await dbContext.TenantBrandProfiles
             .FirstOrDefaultAsync(b => b.Id == request.BrandProfileId && b.TenantId == tenantId, cancellationToken);
@@ -47,6 +49,14 @@ public class GenerateContentItemCommandHandler(
         {
             return Result<GenerateContentItemResponse>.Failure(
                 $"Your subscription plan allows {creditsUsage.MaxCreditsMonthly} AI credits per month. Upgrade for more.");
+        }
+
+        var coinCost = coinCostProvider.ContentGeneration;
+        var coinBalance = await CoinPolicy.GetBalanceAsync(dbContext, tenantId, userId, role, cancellationToken);
+        if (coinBalance < coinCost)
+        {
+            return Result<GenerateContentItemResponse>.Failure(
+                $"You need {coinCost} coins to generate content, but only have {coinBalance}.");
         }
 
         var prompt = ContentPromptBuilder.BuildTextPrompt(
@@ -107,6 +117,8 @@ public class GenerateContentItemCommandHandler(
             UpdatedAt = now
         };
         dbContext.ContentItems.Add(contentItem);
+
+        await CoinPolicy.TrySpendAsync(dbContext, tenantId, userId, role, coinCost, cancellationToken);
 
         var contentSubject = campaign is not null ? $"for \"{campaign.Name}\"" : $"for {brand.Name}";
         NotificationPublisher.Notify(

@@ -1,4 +1,22 @@
-.rw-card { max-width: 860px; }
+/* ── Profile tab layout: profile + password stacked on the left, business info on the right ── */
+.profile-layout {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+.profile-layout__main,
+.profile-layout__side {
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 992px) {
+  .profile-layout {
+    grid-template-columns: 1fr;
+  }
+}
 
 /* ── Avatar row ── */
 .avatar-row {

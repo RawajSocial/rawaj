@@ -15,4 +15,13 @@ public class CurrentUserService(IHttpContextAccessor httpContextAccessor) : ICur
             return Guid.TryParse(value, out var userId) ? userId : null;
         }
     }
+
+    public Guid? RequestedTenantId
+    {
+        get
+        {
+            var value = httpContextAccessor.HttpContext?.Request.Headers["X-Tenant-Id"].FirstOrDefault();
+            return Guid.TryParse(value, out var tenantId) ? tenantId : null;
+        }
+    }
 }

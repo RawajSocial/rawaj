@@ -10,4 +10,6 @@ public record TeamMemberSummary(
     TenantMemberRole Role,
     InvitationStatus InvitationStatus,
     DateTime? JoinedAt,
-    List<Guid> BrandProfileIds);
+    List<Guid> BrandProfileIds,
+    int AllocatedCoins,
+    int SpentCoins);

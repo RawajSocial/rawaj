@@ -15,7 +15,8 @@ public class GenerateVisualAssetCommandHandler(
     IApplicationDbContext dbContext,
     ICurrentUserService currentUserService,
     ICurrentTenantContext currentTenantContext,
-    IAiImageGenerationService imageGenerationService)
+    IAiImageGenerationService imageGenerationService,
+    ICoinCostProvider coinCostProvider)
     : IRequestHandler<GenerateVisualAssetCommand, Result<GenerateVisualAssetResponse>>
 {
     public async Task<Result<GenerateVisualAssetResponse>> Handle(
@@ -23,6 +24,7 @@ public class GenerateVisualAssetCommandHandler(
     {
         var tenantId = currentTenantContext.TenantId!.Value;
         var userId = currentUserService.UserId!.Value;
+        var role = currentTenantContext.Role!.Value;
 
         var brand = await dbContext.TenantBrandProfiles
             .FirstOrDefaultAsync(b => b.Id == request.BrandProfileId && b.TenantId == tenantId, cancellationToken);
@@ -57,6 +59,14 @@ public class GenerateVisualAssetCommandHandler(
         {
             return Result<GenerateVisualAssetResponse>.Failure(
                 $"Your subscription plan allows {creditsUsage.MaxCreditsMonthly} AI credits per month. Upgrade for more.");
+        }
+
+        var coinCost = coinCostProvider.VisualGeneration;
+        var coinBalance = await CoinPolicy.GetBalanceAsync(dbContext, tenantId, userId, role, cancellationToken);
+        if (coinBalance < coinCost)
+        {
+            return Result<GenerateVisualAssetResponse>.Failure(
+                $"You need {coinCost} coins to generate an image, but only have {coinBalance}.");
         }
 
         var prompt = ContentPromptBuilder.BuildImagePrompt(brand, campaign, request.Type.ToString(), request.Prompt);
@@ -107,6 +117,8 @@ public class GenerateVisualAssetCommandHandler(
             CreatedAt = now
         };
         dbContext.VisualAssets.Add(visualAsset);
+
+        await CoinPolicy.TrySpendAsync(dbContext, tenantId, userId, role, coinCost, cancellationToken);
 
         var visualSubject = campaign is not null ? $"for \"{campaign.Name}\"" : $"for {brand.Name}";
         NotificationPublisher.Notify(

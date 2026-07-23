@@ -39,10 +39,11 @@ export class Header {
   fullscreen = signal(false);
   brandDropdownOpen = signal(false);
   campaignDropdownOpen = signal(false);
+  tenantDropdownOpen = signal(false);
 
-  // TODO: replace with the real balance once a billing/credits service exists.
-  private readonly creditBalance = signal(2450);
-  protected readonly creditBalanceLabel = computed(() => this.creditBalance().toLocaleString('ar-SA'));
+  protected readonly memberships = this.tenantService.memberships;
+  protected readonly activeTenantId = this.tenantService.activeTenantId;
+  protected readonly creditBalanceLabel = computed(() => this.tenantService.coinBalance().toLocaleString('ar-SA'));
 
   protected readonly selectedBrandLabel = computed(() =>
     this.brandContextService.selectedBrandProfile()?.name ?? 'اختر علامة تجارية',
@@ -69,6 +70,14 @@ export class Header {
     if (!target.closest('.campaign-dropdown')) {
       this.campaignDropdownOpen.set(false);
     }
+    if (!target.closest('.tenant-dropdown')) {
+      this.tenantDropdownOpen.set(false);
+    }
+  }
+
+  protected switchTenant(tenantId: string): void {
+    this.tenantService.switchTenant(tenantId);
+    this.tenantDropdownOpen.set(false);
   }
 
   protected selectBrandProfile(id: string): void {

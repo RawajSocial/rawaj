@@ -56,6 +56,46 @@
   font-size: var(--font-size-sm);
 }
 
+.password-checklist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.password-checklist li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-on-dark-secondary);
+  transition: color var(--transition-fast);
+}
+
+.password-checklist li.is-valid {
+  color: var(--color-success);
+}
+
+.password-checklist li.is-invalid {
+  color: var(--color-danger);
+}
+
+.password-checklist li i {
+  font-size: 0.8rem;
+}
+
+.form-error-banner {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  border-radius: 10px;
+  padding: 10px 14px;
+  color: #fca5a5;
+  font-size: var(--font-size-sm);
+  text-align: center;
+}
+
 .terms-row {
   display: flex;
   justify-content: flex-start;

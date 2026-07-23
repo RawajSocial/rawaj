@@ -175,6 +175,13 @@ export class AuthService {
     return this._refreshToken();
   }
 
+  /** Applies a session obtained from an endpoint other than /auth/login|register — e.g.
+   *  `AcceptInvitationAndRegisterResponse`, which registers-and-joins in one call and returns
+   *  tokens directly rather than through the usual login/register endpoints. */
+  applyExternalSession(accessToken: string, refreshToken: string): void {
+    this.storeSession(accessToken, refreshToken);
+  }
+
   private storeSession(accessToken: string, refreshToken: string): void {
     this._accessToken.set(accessToken);
     this._refreshToken.set(refreshToken);

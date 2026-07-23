@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Rawaj.Application.Common.Interfaces;
 using Rawaj.Application.Common.Models;
+using Rawaj.Application.Common.Validation;
 using Rawaj.Domain.ValueObjects;
 
 namespace Rawaj.Application.Features.Tenants.UpdateTenantProfile;
@@ -24,7 +25,7 @@ public class UpdateTenantProfileCommandHandler(
         profile.Industry = request.Industry ?? profile.Industry;
         profile.Country = request.Country ?? profile.Country;
         profile.City = request.City ?? profile.City;
-        profile.Website = request.Website ?? profile.Website;
+        profile.Website = request.Website is not null ? UrlNormalizer.EnsureScheme(request.Website) : profile.Website;
         tenant.TenantProfile = profile;
 
         var isNowComplete = !string.IsNullOrWhiteSpace(profile.Phone)

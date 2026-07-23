@@ -4,6 +4,7 @@ import { MediaService } from '../../../services/media.service';
 import { BrandProfileService } from '../../../services/brand-profile.service';
 import { CampaignService } from '../../../services/campaign.service';
 import { BrandContextService } from '../../../services/brand-context.service';
+import { TenantService } from '../../../core/tenant/tenant.service';
 import { SeoService } from '../../../services/seo.service';
 import { Breadcrumb } from '../../../shared/components/breadcrumb/breadcrumb';
 import {
@@ -53,9 +54,33 @@ export class ContentGenPage {
   private readonly brandProfileService = inject(BrandProfileService);
   private readonly campaignService = inject(CampaignService);
   private readonly brandContextService = inject(BrandContextService);
+  protected readonly tenantService = inject(TenantService);
   private readonly seo = inject(SeoService);
 
   readonly brandProfiles = this.brandProfileService.profiles;
+
+  // ── Wallet selector ──
+  // A member invited into someone else's tenant belongs to (at least) two: their own account and
+  // the tenant that invited them. Which one is active decides both which brand profiles are
+  // selectable above AND whose coin balance gets charged for this generation (CoinPolicy debits
+  // the ACTIVE tenant's wallet) — so this must be explicit, never silently defaulted.
+  readonly showWalletSelector = computed(() => this.tenantService.memberships().length > 1);
+  readonly activeMembership = computed(() =>
+    this.tenantService.memberships().find(m => m.tenantId === this.tenantService.activeTenantId()),
+  );
+  walletOpen = signal(false);
+
+  switchWallet(tenantId: string): void {
+    this.walletOpen.set(false);
+    if (tenantId === this.tenantService.activeTenantId()) return;
+    this.tenantService.switchTenant(tenantId);
+    // Brand/campaign selections belong to the PREVIOUS tenant — reset them, then reload the new
+    // tenant's lists (the brand-profile/campaign services are tenant-scoped via X-Tenant-Id).
+    this.formBrandProfileId.set('');
+    this.formCampaignId.set('');
+    this.brandProfileService.refresh().subscribe();
+    this.campaignService.refresh().subscribe();
+  }
 
   // ── Form signals ──
   genType      = signal<GenType>('static-ad');
@@ -137,6 +162,7 @@ export class ContentGenPage {
     if (!inDd('quality'))      this.qualityOpen.set(false);
     if (!inDd('brandprofile')) this.brandProfileOpen.set(false);
     if (!inDd('campaign'))     this.campaignOpen.set(false);
+    if (!inDd('wallet'))       this.walletOpen.set(false);
   }
 
   setBrandProfile(id: string): void {

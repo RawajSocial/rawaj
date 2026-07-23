@@ -2,7 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Rawaj.Application.Common.Interfaces;
 using Rawaj.Application.Common.Models;
-using Rawaj.Domain.Enums;
+using Rawaj.Application.Common.Policies;
 
 namespace Rawaj.Application.Features.Tenants.GetMyTenant;
 
@@ -17,21 +17,26 @@ public class GetMyTenantQueryHandler(IApplicationDbContext dbContext, ICurrentUs
             return Result<GetMyTenantResponse>.Failure("Unauthorized.");
         }
 
+        var resolved = await TenantResolutionPolicy.ResolveAsync(
+            dbContext, userId.Value, currentUserService.RequestedTenantId, cancellationToken);
+
+        if (resolved is null)
+        {
+            return Result<GetMyTenantResponse>.Failure("No organization found.");
+        }
+
         var row = await (
-            from member in dbContext.TenantMembers
-            join tenant in dbContext.Tenants on member.TenantId equals tenant.Id
+            from tenant in dbContext.Tenants
             join subscription in dbContext.Subscriptions on tenant.SubscriptionId equals subscription.Id
             join plan in dbContext.SubscriptionPlans on subscription.SubscriptionPlanId equals plan.Id
-            where member.UserId == userId && member.InvitationStatus == InvitationStatus.Accepted
+            where tenant.Id == resolved.TenantId
             select new
             {
                 tenant.Id,
                 tenant.Name,
                 tenant.Subdomain,
                 tenant.TenantType,
-                member.Role,
                 tenant.IsActive,
-                tenant.CoinBalance,
                 tenant.IsActivated,
                 PlanName = plan.Name,
                 plan.MaxBrands,
@@ -53,14 +58,19 @@ public class GetMyTenantQueryHandler(IApplicationDbContext dbContext, ICurrentUs
             .Select(b => (Guid?)b.Id)
             .FirstOrDefaultAsync(cancellationToken);
 
+        // The tenant pool (row.CoinBalance) is only the caller's own balance when they're the
+        // Owner/Admin — an invited Editor/Viewer must only ever see their own escrowed wallet,
+        // never the owner's full pool (same rule GetMyMembershipsQueryHandler applies).
+        var coinBalance = await CoinPolicy.GetBalanceAsync(dbContext, row.Id, userId.Value, resolved.Role, cancellationToken);
+
         var response = new GetMyTenantResponse(
             row.Id,
             row.Name,
             row.Subdomain,
             row.TenantType,
-            row.Role,
+            resolved.Role,
             row.IsActive,
-            row.CoinBalance,
+            coinBalance,
             row.IsActivated,
             row.PlanName,
             row.MaxBrands,

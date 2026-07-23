@@ -15,6 +15,7 @@ public interface IApplicationDbContext
     DbSet<Tenant> Tenants { get; }
     DbSet<TenantMember> TenantMembers { get; }
     DbSet<TenantMemberBrandAccess> TenantMemberBrandAccesses { get; }
+    DbSet<TenantInvitation> TenantInvitations { get; }
     DbSet<TenantBrandProfile> TenantBrandProfiles { get; }
     DbSet<SubscriptionPlan> SubscriptionPlans { get; }
     DbSet<Subscription> Subscriptions { get; }

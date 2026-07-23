@@ -33,6 +33,9 @@
         }
       </div>
     </div>
+    @if (fullNameTooLongMessage(); as fullNameError) {
+      <small class="text-danger d-block mt-2 mb-2 validation-msg">{{ fullNameError }}</small>
+    }
 
     <div class="mb-3">
       <label class="form-label" for="username">اسم المستخدم</label>
@@ -68,8 +71,29 @@
         class="form-control"
         placeholder="••••••••"
         formControlName="password" />
-      @if (errorMessage('password'); as passwordError) {
-        <small class="text-danger d-block mt-2 validation-msg">{{ passwordError }}</small>
+      @if (passwordTouched()) {
+        <ul class="password-checklist mt-2">
+          <li [class.is-valid]="passwordMeetsMinLength()" [class.is-invalid]="!passwordMeetsMinLength()">
+            <i class="fa-solid" [class.fa-circle-check]="passwordMeetsMinLength()" [class.fa-circle-xmark]="!passwordMeetsMinLength()"></i>
+            8 أحرف على الأقل
+          </li>
+          <li [class.is-valid]="passwordHasUppercase()" [class.is-invalid]="!passwordHasUppercase()">
+            <i class="fa-solid" [class.fa-circle-check]="passwordHasUppercase()" [class.fa-circle-xmark]="!passwordHasUppercase()"></i>
+            حرف كبير واحد على الأقل (A-Z)
+          </li>
+          <li [class.is-valid]="passwordHasLowercase()" [class.is-invalid]="!passwordHasLowercase()">
+            <i class="fa-solid" [class.fa-circle-check]="passwordHasLowercase()" [class.fa-circle-xmark]="!passwordHasLowercase()"></i>
+            حرف صغير واحد على الأقل (a-z)
+          </li>
+          <li [class.is-valid]="passwordHasDigit()" [class.is-invalid]="!passwordHasDigit()">
+            <i class="fa-solid" [class.fa-circle-check]="passwordHasDigit()" [class.fa-circle-xmark]="!passwordHasDigit()"></i>
+            رقم واحد على الأقل (0-9)
+          </li>
+          <li [class.is-valid]="passwordHasSpecialChar()" [class.is-invalid]="!passwordHasSpecialChar()">
+            <i class="fa-solid" [class.fa-circle-check]="passwordHasSpecialChar()" [class.fa-circle-xmark]="!passwordHasSpecialChar()"></i>
+            رمز خاص واحد على الأقل (!@#$...)
+          </li>
+        </ul>
       }
     </div>
 
@@ -102,6 +126,10 @@
     </div>
     @if (errorMessage('termsAccepted'); as termsAcceptedError) {
       <small class="text-danger d-block mt-2 mb-3 validation-msg">{{ termsAcceptedError }}</small>
+    }
+
+    @if (formError(); as formErrorMessage) {
+      <div class="form-error-banner mb-3">{{ formErrorMessage }}</div>
     }
 
     <button class="btn login-btn w-100" type="submit">إنشاء الحساب</button>

@@ -2,38 +2,60 @@
   <app-page-header
     title="مشاريعي"
     [breadcrumbs]="[{ label: 'نظرة عامة', link: '/dashboard' }, { label: 'مشاريعي' }]"
-    subtitle="المشاريع التي تمت دعوتك للعمل عليها ضمن فريق الوكالة." />
+    subtitle="العلامات التجارية التي يمكنك العمل عليها وحملاتها." />
 
-  @if (currentUser(); as me) {
+  @if (!tenantService.isOwnTenantActivated()) {
     <div class="rw-card invite-banner">
       <span class="invite-banner-icon"><i class="fa-solid fa-user-check"></i></span>
       <div class="invite-banner-body">
-        <p class="invite-banner-title">منضم كـ {{ roleLabels[me.role] }}</p>
-        <p class="rw-card__hint">{{ myProjects().length }} مشروع مُسند إليك حاليًا</p>
+        <p class="invite-banner-title">منضم كعضو فريق</p>
+        <p class="rw-card__hint">
+          حسابك الخاص لم يُفعَّل بعد، لكن يمكنك العمل هنا على العلامات التجارية المسندة إليك ضمن هذا الفريق.
+        </p>
       </div>
-      <span class="rw-pill"
-            [class.rw-pill--success]="me.status === 'active'"
-            [class.rw-pill--warning]="me.status === 'pending'"
-            [class.rw-pill--danger]="me.status === 'suspended'">
-        {{ statusLabels[me.status] }}
-      </span>
     </div>
   }
 
-  @if (myProjects().length === 0) {
+  @if (!loading() && brandProfiles().length === 0) {
     <div class="empty-state">
       <div class="empty-icon"><i class="fa-solid fa-folder-open"></i></div>
-      <h3>لا توجد مشاريع مُسندة إليك بعد</h3>
-      <p>سيقوم مدير الوكالة بإسناد المشاريع إليك فور تحديدها.</p>
+      <h3>لا توجد علامات تجارية مُتاحة لك بعد</h3>
+      <p>سيقوم مدير الفريق بمنحك صلاحية الوصول لعلامة تجارية فور تحديدها.</p>
     </div>
-  } @else {
+  } @else if (!loading()) {
     <div class="projects-grid">
-      @for (project of myProjects(); track project.id) {
+      @for (brand of brandProfiles(); track brand.id) {
         <div class="rw-card project-card">
-          <span class="project-icon"><i class="fa-solid fa-diagram-project"></i></span>
-          <h3 class="project-name">{{ project.name }}</h3>
-          <a class="project-link" routerLink="/dashboard/campaigns">
-            عرض الحملات المرتبطة
+          <span class="project-icon">
+            @if (brand.logoUrl) {
+              <img [src]="brand.logoUrl" [alt]="brand.name" />
+            } @else {
+              <i class="fa-solid fa-copyright"></i>
+            }
+          </span>
+          <h3 class="project-name">{{ brand.name }}</h3>
+          <span class="rw-pill"
+                [class.rw-pill--success]="brand.status === 'active'"
+                [class.rw-pill--warning]="brand.status === 'draft'"
+                [class.rw-pill--danger]="brand.status === 'archived'">
+            {{ statusLabels[brand.status] }}
+          </span>
+
+          @if (campaignsFor(brand.id).length === 0) {
+            <p class="rw-card__hint">لا توجد حملات لهذه العلامة بعد.</p>
+          } @else {
+            <ul class="campaign-mini-list">
+              @for (campaign of campaignsFor(brand.id).slice(0, 3); track campaign.id) {
+                <li>
+                  <a [routerLink]="['/dashboard/campaigns', campaign.id]">{{ campaign.name }}</a>
+                  <span class="campaign-status-pill">{{ campaignStatusLabels[campaign.status] }}</span>
+                </li>
+              }
+            </ul>
+          }
+
+          <a class="project-link" [routerLink]="['/dashboard/campaigns']" [queryParams]="{ brandProfileId: brand.id }">
+            عرض كل الحملات ({{ campaignsFor(brand.id).length }})
             <i class="fa-solid fa-arrow-left"></i>
           </a>
         </div>

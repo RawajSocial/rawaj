@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Rawaj.Application.Common.Interfaces;
 using Rawaj.Application.Common.Models;
+using Rawaj.Application.Common.Validation;
 using Rawaj.Domain.Entities.Tenants;
 using Rawaj.Domain.Enums;
 using Rawaj.Domain.ValueObjects;
@@ -48,7 +49,7 @@ public class CreateBrandProfileCommandHandler(IApplicationDbContext dbContext, I
                 TargetAudience = request.TargetAudience,
                 Colors = request.Colors ?? [],
                 LogoUrl = request.LogoUrl,
-                WebsiteUrl = request.WebsiteUrl,
+                WebsiteUrl = UrlNormalizer.EnsureScheme(request.WebsiteUrl),
                 SupportedLanguages = request.SupportedLanguages ?? [],
                 Keywords = request.Keywords ?? [],
                 Location = request.Location,

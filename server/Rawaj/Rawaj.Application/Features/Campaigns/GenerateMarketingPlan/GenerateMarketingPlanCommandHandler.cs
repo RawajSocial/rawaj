@@ -21,7 +21,8 @@ public class GenerateMarketingPlanCommandHandler(
     IApplicationDbContext dbContext,
     ICurrentUserService currentUserService,
     ICurrentTenantContext currentTenantContext,
-    IAiTextGenerationService textGenerationService)
+    IAiTextGenerationService textGenerationService,
+    ICoinCostProvider coinCostProvider)
     : IRequestHandler<GenerateMarketingPlanCommand, Result<GenerateMarketingPlanResponse>>
 {
     private const int MaxCompetitorInsights = 5;
@@ -31,6 +32,7 @@ public class GenerateMarketingPlanCommandHandler(
     {
         var tenantId = currentTenantContext.TenantId!.Value;
         var userId = currentUserService.UserId!.Value;
+        var role = currentTenantContext.Role!.Value;
 
         var campaign = await dbContext.MarketingCampaigns
             .FirstOrDefaultAsync(c => c.Id == request.CampaignId && c.BrandProfile.TenantId == tenantId, cancellationToken);
@@ -47,6 +49,14 @@ public class GenerateMarketingPlanCommandHandler(
         {
             return Result<GenerateMarketingPlanResponse>.Failure(
                 $"Your subscription plan allows {creditsUsage.MaxCreditsMonthly} AI credits per month. Upgrade for more.");
+        }
+
+        var coinCost = coinCostProvider.MarketingPlanGeneration;
+        var coinBalance = await CoinPolicy.GetBalanceAsync(dbContext, tenantId, userId, role, cancellationToken);
+        if (coinBalance < coinCost)
+        {
+            return Result<GenerateMarketingPlanResponse>.Failure(
+                $"You need {coinCost} coins to generate a marketing plan, but only have {coinBalance}.");
         }
 
         var competitorInsights = await dbContext.RagDocuments
@@ -89,6 +99,8 @@ public class GenerateMarketingPlanCommandHandler(
         campaign.AiPlanJson = generation.Text!;
         campaign.AiGeneratedAt = now;
         campaign.UpdatedAt = now;
+
+        await CoinPolicy.TrySpendAsync(dbContext, tenantId, userId, role, coinCost, cancellationToken);
 
         NotificationPublisher.Notify(
             dbContext,

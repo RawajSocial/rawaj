@@ -3,23 +3,15 @@
     <!-- Header -->
     <div class="page-top">
       <div>
-        <h5 class="page-title">{{ m.name }}</h5>
-        <app-breadcrumb [items]="[{ label: 'نظرة عامة', link: '/dashboard' }, { label: 'المستخدمون', link: '/dashboard/users' }, { label: m.name }]" />
+        <h5 class="page-title">{{ m.fullName }}</h5>
+        <app-breadcrumb [items]="[{ label: 'نظرة عامة', link: '/dashboard' }, { label: 'المستخدمون', link: '/dashboard/users' }, { label: m.fullName }]" />
         <p class="page-subtitle">{{ m.email }}</p>
       </div>
 
       <div class="header-actions">
-        <button type="button" class="btn-outline" (click)="resetModalOpen.set(true)">
-          <i class="fa-solid fa-key"></i>
-          إعادة تعيين كلمة المرور
-        </button>
-        <button type="button" class="btn-outline" (click)="editModalOpen.set(true)">
-          <i class="fa-solid fa-pen"></i>
-          تعديل
-        </button>
         <button type="button" class="btn-danger" (click)="deleteMember()">
           <i class="fa-solid fa-trash"></i>
-          حذف
+          إزالة من الفريق
         </button>
       </div>
     </div>
@@ -35,126 +27,120 @@
         <p class="profile-card__hint">معلومات العضو الأساسية</p>
 
         <div class="profile-identity">
-          <span class="user-avatar user-avatar--lg" [style.background]="m.avatarColor">{{ initials(m.name) }}</span>
+          <span class="user-avatar user-avatar--lg">{{ initials(m.fullName) }}</span>
           <div>
-            <p class="identity-name">{{ m.name }}</p>
+            <p class="identity-name">{{ m.fullName }}</p>
             <p class="identity-email">{{ m.email }}</p>
-            <span class="role-badge" [class]="'role-badge--' + m.role">{{ roleLabels[m.role] }}</span>
+            <span class="status-badge" [class]="'status-badge--' + m.invitationStatus.toLowerCase()">{{ statusLabels[m.invitationStatus] }}</span>
           </div>
         </div>
 
         <dl class="detail-list">
           <div class="detail-row">
-            <dt>القسم</dt>
-            <dd>{{ m.department }}</dd>
-          </div>
-        </dl>
-      </div>
-
-      <!-- Account Details -->
-      <div class="profile-card">
-        <div class="profile-card__header">
-          <i class="fa-solid fa-envelope"></i>
-          <h3>تفاصيل الحساب</h3>
-        </div>
-        <p class="profile-card__hint">حالة الحساب والنشاط</p>
-
-        <dl class="detail-list">
-          <div class="detail-row">
-            <dt>الحالة</dt>
+            <dt>الدور</dt>
             <dd>
-              <button type="button" class="status-badge status-badge--clickable" [class]="'status-badge--' + m.status" (click)="toggleSuspend()">
-                {{ statusLabels[m.status] }}
-              </button>
+              <select class="form-control form-control--sm" [value]="m.role" (change)="changeRole($any($event.target).value)">
+                @for (opt of roleOptions; track opt.value) {
+                  <option [value]="opt.value">{{ opt.label }}</option>
+                }
+              </select>
             </dd>
           </div>
           <div class="detail-row">
-            <dt>القسم</dt>
-            <dd>{{ m.department }}</dd>
-          </div>
-          <div class="detail-row">
             <dt>تاريخ الانضمام</dt>
-            <dd>{{ m.joinDate }}</dd>
+            <dd>{{ m.joinedAt ? (m.joinedAt | date: 'mediumDate') : 'بانتظار القبول' }}</dd>
           </div>
-          <div class="detail-row">
-            <dt>آخر نشاط</dt>
-            <dd>{{ m.lastActiveAt }}</dd>
-          </div>
-          @if (m.lastPasswordResetAt) {
-            <div class="detail-row">
-              <dt>آخر إعادة تعيين لكلمة المرور</dt>
-              <dd>{{ m.lastPasswordResetAt }}</dd>
-            </div>
-          }
         </dl>
       </div>
 
-      <!-- Credit usage -->
+      <!-- Coins wallet -->
       <div class="profile-card">
         <div class="profile-card__header">
-          <i class="fa-solid fa-bolt"></i>
-          <h3>استهلاك الرصيد</h3>
-        </div>
-        <p class="profile-card__hint">استخدام الذكاء الاصطناعي الشهري</p>
-
-        <div class="credit-summary">
-          <span class="credit-used">{{ m.creditUsage.used | number }}</span>
-          <span class="credit-limit">/ {{ m.creditUsage.limit | number }} نقطة</span>
-        </div>
-        <div class="credit-track">
-          <div class="credit-fill" #creditBar [class.credit-fill--warn]="creditPercent() >= 80"></div>
-        </div>
-        <p class="credit-percent">{{ creditPercent() }}٪ من الرصيد الشهري مُستخدم</p>
-      </div>
-
-      <!-- Permissions -->
-      <div class="profile-card profile-card--wide">
-        <div class="profile-card__header">
-          <i class="fa-solid fa-shield-halved"></i>
-          <h3>الصلاحيات</h3>
-        </div>
-        <p class="profile-card__hint">الوصول والصلاحيات الممنوحة</p>
-
-        <div class="permissions-grid">
-          @for (row of permissionRows; track row.manageKey) {
-            <button
-              type="button"
-              class="permission-pill"
-              [class.granted]="m.permissions[row.manageKey]"
-              (click)="togglePermission(row.manageKey)">
-              {{ row.manageLabel }}
-            </button>
-            @if (row.viewKey) {
-              <button
-                type="button"
-                class="permission-pill"
-                [class.granted]="m.permissions[row.viewKey]"
-                (click)="togglePermission(row.viewKey)">
-                {{ row.viewLabel }}
-              </button>
-            }
-          }
-        </div>
-      </div>
-
-      <!-- Assigned projects -->
-      <div class="profile-card profile-card--wide">
-        <div class="profile-card__header">
-          <i class="fa-solid fa-diagram-project"></i>
-          <h3>المشاريع المُعيَّنة</h3>
-          <button type="button" class="btn-outline btn-outline--sm" (click)="assignModalOpen.set(true)">
-            <i class="fa-solid fa-plus"></i>
-            تعيين
+          <i class="fa-solid fa-coins"></i>
+          <h3>محفظة الكوينز</h3>
+          <button type="button" class="btn-outline btn-outline--sm" (click)="openCoinsEdit()">
+            <i class="fa-solid fa-pen"></i>
+            تعديل
           </button>
         </div>
-        <p class="profile-card__hint">المشاريع التي يعمل عليها هذا العضو</p>
+        <p class="profile-card__hint">
+          كوينز هذا العضو مخصصة من رصيد مؤسستك — لا يرى العضو رصيد المؤسسة الكامل، فقط ما خُصص له.
+        </p>
 
-        @if (assignedProjectNames().length === 0) {
-          <p class="no-projects">لم يتم تعيين أي مشروع بعد.</p>
+        <div class="credit-summary">
+          <span class="credit-used">{{ m.spentCoins | number }}</span>
+          <span class="credit-limit">/ {{ m.allocatedCoins | number }} كوين مخصص</span>
+        </div>
+        <div class="credit-track">
+          <div class="credit-fill" #coinBar [class.credit-fill--warn]="coinPercent() >= 80"></div>
+        </div>
+        <p class="credit-percent">{{ coinPercent() }}٪ من الكوينز المخصصة مُستخدم</p>
+
+        @if (coinsEditOpen()) {
+          <div class="coins-edit">
+            <label for="coins-edit-input">الرصيد المخصص الجديد</label>
+            <div class="coins-edit__row">
+              <input
+                id="coins-edit-input"
+                type="number"
+                min="0"
+                step="1"
+                class="form-control"
+                [value]="coinsInputValue()"
+                (input)="coinsInputValue.set($any($event.target).valueAsNumber || 0)" />
+              <button type="button" class="btn-brand btn-brand--sm" (click)="saveCoinsEdit()">حفظ</button>
+              <button type="button" class="btn-outline btn-outline--sm" (click)="coinsEditOpen.set(false)">إلغاء</button>
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- Assigned brand profiles -->
+      <div class="profile-card profile-card--wide">
+        <div class="profile-card__header">
+          <i class="fa-solid fa-copyright"></i>
+          <h3>العلامات التجارية المسموح بها</h3>
+          <button type="button" class="btn-outline btn-outline--sm" (click)="assignModalOpen.set(true)">
+            <i class="fa-solid fa-plus"></i>
+            تعديل
+          </button>
+        </div>
+        <p class="profile-card__hint">العلامات التجارية التي يمكن لهذا العضو توليد المحتوى والحملات لها</p>
+
+        @if (assignedBrandNames().length === 0) {
+          <p class="no-projects">لم يُمنح الوصول لأي علامة تجارية بعد.</p>
         } @else {
           <div class="project-chips">
-            @for (name of assignedProjectNames(); track name) {
+            @for (name of assignedBrandNames(); track name) {
               <span class="project-chip">{{ name }}</span>
+            }
+          </div>
+        }
+      </div>
+
+      <!-- Activity log -->
+      <div class="profile-card profile-card--wide">
+        <div class="profile-card__header">
+          <i class="fa-solid fa-clock-rotate-left"></i>
+          <h3>سجل النشاط</h3>
+        </div>
+        <p class="profile-card__hint">آخر ما قام به هذا العضو أو حدث بشأنه</p>
+
+        @if (!activityLoading() && activityItems().length === 0) {
+          <p class="no-projects">لا يوجد نشاط مسجل بعد.</p>
+        } @else {
+          <div class="activity-list activity-list--compact">
+            @for (item of activityItems(); track item.id) {
+              <div class="activity-row">
+                <div class="activity-icon"><i class="fa-solid fa-clock-rotate-left"></i></div>
+                <div class="activity-body">
+                  <p class="activity-title">{{ teamActivityLabel(item.action) }}</p>
+                  @if (item.message) {
+                    <p class="activity-message">{{ item.message }}</p>
+                  }
+                  <p class="activity-meta">{{ item.createdAt | date: 'medium' }}</p>
+                </div>
+              </div>
             }
           </div>
         }
@@ -163,24 +149,13 @@
     </div>
   </div>
 
-  <app-user-form-modal
-    [open]="editModalOpen()"
-    [member]="m"
-    (closed)="editModalOpen.set(false)"
-    (save)="onEditSaved($event)" />
-
-  <app-reset-password-modal
-    [open]="resetModalOpen()"
-    [member]="m"
-    (closed)="resetModalOpen.set(false)"
-    (resetConfirmed)="onPasswordReset($event)" />
-
   <app-assign-projects-modal
     [open]="assignModalOpen()"
-    [member]="m"
-    [projects]="projects()"
+    [memberName]="m.fullName"
+    [assignedBrandProfileIds]="m.brandProfileIds"
+    [brandProfiles]="brandProfiles()"
     (closed)="assignModalOpen.set(false)"
-    (assigned)="onProjectsAssigned($event)" />
+    (assigned)="onBrandsAssigned($event)" />
 } @else {
   <div class="page-shell">
     <p class="not-found">هذا العضو غير موجود.</p>

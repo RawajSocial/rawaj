@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Rawaj.Application.Common.Interfaces;
 using Rawaj.Application.Common.Models;
+using Rawaj.Application.Common.Validation;
 using Rawaj.Domain.ValueObjects;
 
 namespace Rawaj.Application.Features.Brands.UpdateBrandProfile;
@@ -42,7 +43,7 @@ public class UpdateBrandProfileCommandHandler(IApplicationDbContext dbContext, I
         if (request.TargetAudience is not null) brandProfile.BrandInfo.TargetAudience = request.TargetAudience;
         if (request.Colors is not null) brandProfile.BrandInfo.Colors = request.Colors;
         if (request.LogoUrl is not null) brandProfile.BrandInfo.LogoUrl = request.LogoUrl;
-        if (request.WebsiteUrl is not null) brandProfile.BrandInfo.WebsiteUrl = request.WebsiteUrl;
+        if (request.WebsiteUrl is not null) brandProfile.BrandInfo.WebsiteUrl = UrlNormalizer.EnsureScheme(request.WebsiteUrl);
         if (request.SupportedLanguages is not null) brandProfile.BrandInfo.SupportedLanguages = request.SupportedLanguages;
         if (request.Keywords is not null) brandProfile.BrandInfo.Keywords = request.Keywords;
 

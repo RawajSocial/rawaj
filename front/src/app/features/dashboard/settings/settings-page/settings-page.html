@@ -12,6 +12,8 @@
 
   <!-- ── Profile ── -->
   @if (tab() === 'profile') {
+    <div class="profile-layout">
+    <div class="profile-layout__main">
     <div class="rw-card">
       <div class="rw-card__header">
         <h3 class="rw-card__title">الملف الشخصي</h3>
@@ -86,15 +88,12 @@
             </div>
             <div class="rw-field">
               <label for="preferredLanguage">اللغة المفضلة</label>
-              <select id="preferredLanguage" formControlName="preferredLanguage">
-                <option value="Ar">العربية</option>
-                <option value="En">English</option>
-              </select>
+              <app-select-dropdown id="preferredLanguage" formControlName="preferredLanguage" [options]="languageOptions" />
             </div>
           </div>
 
           <div class="form-actions">
-            <button type="submit" class="rw-btn rw-btn--dark" [disabled]="!canSaveProfile()">حفظ التغييرات</button>
+            <button type="submit" class="rw-btn rw-btn--primary" [disabled]="!canSaveProfile()">حفظ التغييرات</button>
           </div>
         </form>
       } @else {
@@ -119,7 +118,7 @@
       }
     </div>
 
-    <div class="rw-card">
+    <div class="rw-card mt-4">
       <div class="rw-card__header">
         <h3 class="rw-card__title">كلمة المرور</h3>
         <p class="rw-card__hint">حدّث كلمة مرور حسابك</p>
@@ -155,11 +154,13 @@
         </div>
 
         <div class="form-actions">
-          <button type="submit" class="rw-btn rw-btn--dark">تغيير كلمة المرور</button>
+          <button type="submit" class="rw-btn rw-btn--primary">تغيير كلمة المرور</button>
         </div>
       </form>
     </div>
+    </div>
 
+    <div class="profile-layout__side">
     <div class="rw-card">
       <div class="rw-card__header">
         <h3 class="rw-card__title">بيانات النشاط التجاري</h3>
@@ -177,10 +178,16 @@
           <div class="rw-field">
             <label for="phone">رقم الهاتف</label>
             <input id="phone" type="tel" formControlName="phone">
+            @if (businessErrorMessage('phone'); as error) {
+              <small class="text-danger d-block mt-2 validation-msg">{{ error }}</small>
+            }
           </div>
           <div class="rw-field">
             <label for="industry">المجال</label>
             <input id="industry" type="text" formControlName="industry">
+            @if (businessErrorMessage('industry'); as error) {
+              <small class="text-danger d-block mt-2 validation-msg">{{ error }}</small>
+            }
           </div>
         </div>
 
@@ -188,22 +195,33 @@
           <div class="rw-field">
             <label for="country">الدولة</label>
             <input id="country" type="text" formControlName="country">
+            @if (businessErrorMessage('country'); as error) {
+              <small class="text-danger d-block mt-2 validation-msg">{{ error }}</small>
+            }
           </div>
           <div class="rw-field">
             <label for="city">المدينة</label>
             <input id="city" type="text" formControlName="city">
+            @if (businessErrorMessage('city'); as error) {
+              <small class="text-danger d-block mt-2 validation-msg">{{ error }}</small>
+            }
           </div>
         </div>
 
         <div class="rw-field">
           <label for="website">الموقع الإلكتروني</label>
-          <input id="website" type="url" formControlName="website" placeholder="https://example.com">
+          <input id="website" type="text" formControlName="website" placeholder="example.com أو https://example.com">
+          @if (businessErrorMessage('website'); as error) {
+            <small class="text-danger d-block mt-2 validation-msg">{{ error }}</small>
+          }
         </div>
 
         <div class="form-actions">
-          <button type="submit" class="rw-btn rw-btn--dark">حفظ بيانات النشاط</button>
+          <button type="submit" class="rw-btn rw-btn--primary">حفظ بيانات النشاط</button>
         </div>
       </form>
+    </div>
+    </div>
     </div>
   }
 
