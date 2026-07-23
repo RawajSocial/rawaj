@@ -13,6 +13,13 @@ public class TenantMember : BaseEntity
     public DateTime? JoinedAt { get; set; }
     public DateTime CreatedAt { get; set; }
 
+    /// <summary>
+    /// Coins escrowed out of the tenant owner's <see cref="Tenant.CoinBalance"/> for this member to
+    /// spend (Owner/Admin have no wallet of their own — they spend directly from the tenant pool).
+    /// </summary>
+    public int AllocatedCoins { get; set; }
+    public int SpentCoins { get; set; }
+
     public Tenant Tenant { get; set; } = null!;
     public ICollection<TenantMemberBrandAccess> BrandAccesses { get; set; } = [];
 }

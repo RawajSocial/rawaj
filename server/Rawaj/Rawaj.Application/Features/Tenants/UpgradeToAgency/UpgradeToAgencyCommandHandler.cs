@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Rawaj.Application.Common.Interfaces;
 using Rawaj.Application.Common.Models;
+using Rawaj.Application.Common.Validation;
 using Rawaj.Domain.Entities.Billing;
 using Rawaj.Domain.Enums;
 using Rawaj.Domain.ValueObjects;
@@ -63,7 +64,7 @@ public class UpgradeToAgencyCommandHandler(
         profile.Industry = request.Industry ?? profile.Industry;
         profile.Country = request.Country ?? profile.Country;
         profile.City = request.City ?? profile.City;
-        profile.Website = request.Website ?? profile.Website;
+        profile.Website = request.Website is not null ? UrlNormalizer.EnsureScheme(request.Website) : profile.Website;
         profile.AgencySize = request.AgencySize;
         profile.ServicesOffered = request.ServicesOffered;
         tenant.TenantProfile = profile;

@@ -4,16 +4,19 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import { PageHeader } from '../../../../shared/components/page-header/page-header';
 import { FileUpload } from '../../../../shared/components/file-upload/file-upload';
+import { SelectDropdown, SelectOption } from '../../../../shared/components/select-dropdown/select-dropdown';
 import { SeoService } from '../../../../services/seo.service';
 import { TenantService } from '../../../../core/tenant/tenant.service';
 import { AuthService } from '../../../../core/auth/auth.service';
 import { BrandProfileService } from '../../../../services/brand-profile.service';
 import { ErrorModalService } from '../../../../services/error-modal.service';
+import { CelebrationModalService } from '../../../../services/celebration-modal.service';
 import { ConfirmDialogService } from '../../../../services/confirm-dialog.service';
 import { LoaderService } from '../../../../services/loader.service';
 import { FormErrorsService } from '../../../../services/form-errors.service';
 import { extractApiErrorMessage, applyFieldErrors } from '../../../../core/auth/api-error.util';
 import { usernameValidators } from '../../../../core/auth/username.validators';
+import { urlValidator } from '../../../../shared/validators/url.validator';
 import { UpdateMyProfileRequest } from '../../../../model/auth.model';
 
 type SettingsTab = 'profile' | 'preferences' | 'connections';
@@ -41,9 +44,14 @@ const CONNECT_PLATFORMS: ConnectPlatform[] = [
   { key: 'youtube',   label: 'يوتيوب',    icon: 'fa-brands fa-youtube',     color: 'var(--color-youtube)' },
 ];
 
+const LANGUAGE_OPTIONS: SelectOption[] = [
+  { value: 'Ar', label: 'العربية' },
+  { value: 'En', label: 'English' },
+];
+
 @Component({
   selector: 'app-settings-page',
-  imports: [PageHeader, ReactiveFormsModule, FileUpload],
+  imports: [PageHeader, ReactiveFormsModule, FileUpload, SelectDropdown],
   templateUrl: './settings-page.html',
   styleUrls: ['../../dashboard-shared.css', './settings-page.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -54,9 +62,12 @@ export class SettingsPage {
   private readonly authService = inject(AuthService);
   private readonly brandProfileService = inject(BrandProfileService);
   private readonly errorModalService = inject(ErrorModalService);
+  private readonly celebrationModalService = inject(CelebrationModalService);
   private readonly confirmDialogService = inject(ConfirmDialogService);
   private readonly loaderService = inject(LoaderService);
   private readonly formErrorsService = inject(FormErrorsService);
+
+  protected readonly languageOptions = LANGUAGE_OPTIONS;
 
   protected readonly currentUser = this.authService.currentUser;
   protected readonly profileLoaded = computed(() => !!this.currentUser());
@@ -124,12 +135,13 @@ export class SettingsPage {
     email: [{ value: '', disabled: true }],
   });
 
+  protected readonly businessSubmitted = signal(false);
   protected readonly businessForm = this.fb.nonNullable.group({
-    phone: [''],
-    industry: [''],
-    country: [''],
-    city: [''],
-    website: [''],
+    phone: ['', [Validators.maxLength(30)]],
+    industry: ['', [Validators.maxLength(100)]],
+    country: ['', [Validators.maxLength(100)]],
+    city: ['', [Validators.maxLength(100)]],
+    website: ['', [urlValidator]],
   });
 
   protected readonly passwordSubmitted = signal(false);
@@ -375,24 +387,47 @@ export class SettingsPage {
     });
   }
 
+  protected businessErrorMessage(controlName: 'phone' | 'industry' | 'country' | 'city' | 'website'): string | null {
+    const messages = {
+      phone: { maxlength: 'رقم الهاتف يجب ألا يتجاوز 30 رقمًا.' },
+      industry: { maxlength: 'المجال يجب ألا يتجاوز 100 حرف.' },
+      country: { maxlength: 'الدولة يجب ألا تتجاوز 100 حرف.' },
+      city: { maxlength: 'المدينة يجب ألا تتجاوز 100 حرف.' },
+      website: { invalidUrl: 'أدخل رابطًا صحيحًا، مثل example.com أو https://example.com.' },
+    } as const;
+    return this.formErrorsService.getControlErrorMessage(
+      this.businessForm.controls[controlName],
+      this.businessSubmitted(),
+      messages[controlName],
+    );
+  }
+
   protected saveBusinessProfile(): void {
+    this.businessSubmitted.set(true);
+    if (this.businessForm.invalid) {
+      this.businessForm.markAllAsTouched();
+      return;
+    }
+
     const wasActivated = this.isActivated();
     this.loaderService.show();
     this.tenantService.updateProfile(this.businessForm.getRawValue()).subscribe({
       next: res => {
         this.loaderService.hide();
         if (res.status === 'success' && res.data?.activationRewardGranted && !wasActivated) {
-          this.errorModalService.show('تم تفعيل حسابك بنجاح! حصلت على 50 كوين مكافأة.', {
-            variant: 'success',
-            title: 'تم تفعيل الحساب',
-          });
-        } else if (res.status !== 'success') {
+          this.celebrationModalService.show('لقد حصلت على 50 كوين مكافأة لتفعيل حسابك بنجاح!', 'مبروك! تم تفعيل حسابك');
+        } else if (res.status === 'success') {
+          this.errorModalService.show('تم حفظ بيانات النشاط بنجاح.', { variant: 'success' });
+        } else {
           this.errorModalService.show(res.message ?? 'تعذّر حفظ بيانات النشاط.', { variant: 'error' });
         }
       },
-      error: () => {
+      error: err => {
         this.loaderService.hide();
-        this.errorModalService.show('تعذّر حفظ بيانات النشاط. يرجى المحاولة مرة أخرى.', { variant: 'error' });
+        applyFieldErrors(this.businessForm, err);
+        this.errorModalService.show(extractApiErrorMessage(err, 'تعذّر حفظ بيانات النشاط. يرجى المحاولة مرة أخرى.'), {
+          variant: 'error',
+        });
       },
     });
   }

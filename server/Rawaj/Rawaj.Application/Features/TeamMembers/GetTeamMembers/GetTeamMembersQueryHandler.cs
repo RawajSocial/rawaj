@@ -25,6 +25,8 @@ public class GetTeamMembersQueryHandler(
                 m.Role,
                 m.InvitationStatus,
                 m.JoinedAt,
+                m.AllocatedCoins,
+                m.SpentCoins,
                 BrandProfileIds = m.BrandAccesses.Select(a => a.BrandProfileId).ToList(),
             })
             .ToListAsync(cancellationToken);
@@ -38,7 +40,8 @@ public class GetTeamMembersQueryHandler(
             {
                 var user = usersById[m.UserId];
                 return new TeamMemberSummary(
-                    m.Id, user.Id, user.Email, user.FullName, m.Role, m.InvitationStatus, m.JoinedAt, m.BrandProfileIds);
+                    m.Id, user.Id, user.Email, user.FullName, m.Role, m.InvitationStatus, m.JoinedAt, m.BrandProfileIds,
+                    m.AllocatedCoins, m.SpentCoins);
             })
             .ToList();
 

@@ -21,7 +21,8 @@ public class RegisterCommandHandlerTests
         identityService.FindByEmailAsync(existing.Email, Arg.Any<CancellationToken>()).Returns(existing);
 
         var handler = new RegisterCommandHandler(
-            identityService, Substitute.For<IJwtTokenGenerator>(), dbContext, new TenantProvisioningService(dbContext));
+            identityService, Substitute.For<IJwtTokenGenerator>(), dbContext, new TenantProvisioningService(dbContext),
+            Substitute.For<IEmailService>());
 
         var result = await handler.Handle(
             new RegisterCommand(existing.Email, "newperson", "P@ssw0rd1", "New Person", Language.En), CancellationToken.None);
@@ -41,7 +42,8 @@ public class RegisterCommandHandlerTests
         identityService.FindByUsernameAsync(existing.Username, Arg.Any<CancellationToken>()).Returns(existing);
 
         var handler = new RegisterCommandHandler(
-            identityService, Substitute.For<IJwtTokenGenerator>(), dbContext, new TenantProvisioningService(dbContext));
+            identityService, Substitute.For<IJwtTokenGenerator>(), dbContext, new TenantProvisioningService(dbContext),
+            Substitute.For<IEmailService>());
 
         var result = await handler.Handle(
             new RegisterCommand("new@example.com", existing.Username, "P@ssw0rd1", "New Person", Language.En), CancellationToken.None);
@@ -61,7 +63,8 @@ public class RegisterCommandHandlerTests
             .Returns(IdentityRegisterResult.Failure(["Password too weak."]));
 
         var handler = new RegisterCommandHandler(
-            identityService, Substitute.For<IJwtTokenGenerator>(), dbContext, new TenantProvisioningService(dbContext));
+            identityService, Substitute.For<IJwtTokenGenerator>(), dbContext, new TenantProvisioningService(dbContext),
+            Substitute.For<IEmailService>());
 
         var result = await handler.Handle(
             new RegisterCommand("new@example.com", "newperson", "weak", "New Person", Language.En), CancellationToken.None);
@@ -97,7 +100,8 @@ public class RegisterCommandHandlerTests
         jwtTokenGenerator.GenerateToken(Arg.Any<ApplicationUserDto>()).Returns("fake-access-token");
 
         var handler = new RegisterCommandHandler(
-            identityService, jwtTokenGenerator, dbContext, new TenantProvisioningService(dbContext));
+            identityService, jwtTokenGenerator, dbContext, new TenantProvisioningService(dbContext),
+            Substitute.For<IEmailService>());
 
         var result = await handler.Handle(
             new RegisterCommand("new@example.com", "newperson", "P@ssw0rd1", "New Person", Language.En), CancellationToken.None);

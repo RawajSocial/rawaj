@@ -1,173 +1,153 @@
-import { Injectable, computed, signal } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable, map, of, switchMap, tap } from 'rxjs';
+import { environment } from '../../environments/environment';
+import { ApiResponse } from '../model/auth.model';
+import { TenantMemberRole } from '../model/tenant.model';
 import {
-  ROLE_PERMISSION_PRESETS,
-  TeamMember,
-  TeamMemberPermissions,
-  TeamMemberRole,
-  TeamProject,
+  AcceptInvitationAndRegisterRequest,
+  AcceptInvitationAndRegisterResponse,
+  AddTeamMemberRequest,
+  AddTeamMemberResponse,
+  AllocateCoinsResponse,
+  InvitationDetailsResponse,
+  PendingInvitationSummary,
+  PendingInviteSummary,
+  TeamActivityPageResponse,
+  TeamMemberSummary,
+  UpdateTeamMemberRequest,
+  UpdateTeamMemberResponse,
 } from '../model/team-member.model';
 
-const MOCK_PROJECTS: TeamProject[] = [
-  { id: 'p1', name: 'حملة رمضان الكريم ٢٠٢٥' },
-  { id: 'p2', name: 'إطلاق منتج العيد' },
-  { id: 'p3', name: 'حملة الصيف — التوعية' },
-  { id: 'p4', name: 'محتوى إنستغرام الأسبوعي' },
-  { id: 'p5', name: 'إعلانات تيك توك — الجمعة البيضاء' },
-];
-
-const MOCK_MEMBERS: TeamMember[] = [
-  {
-    id: 'u1',
-    name: 'سارة الأحمد',
-    email: 'sara@agency.com',
-    avatarColor: 'linear-gradient(135deg, #7C3AED, #2563EB)',
-    role: 'admin',
-    status: 'active',
-    department: 'الإدارة',
-    joinDate: '2025-01-10',
-    lastActiveAt: 'منذ ساعتين',
-    assignedProjectIds: ['p1', 'p2', 'p3'],
-    permissions: ROLE_PERMISSION_PRESETS.admin,
-    creditUsage: { used: 8200, limit: 10000 },
-  },
-  {
-    id: 'u2',
-    name: 'عمر خالد',
-    email: 'omar@agency.com',
-    avatarColor: 'linear-gradient(135deg, #FACC15, #F97316)',
-    role: 'editor',
-    status: 'active',
-    department: 'التسويق',
-    joinDate: '2025-02-05',
-    lastActiveAt: 'منذ 5 دقائق',
-    assignedProjectIds: ['p1', 'p4'],
-    permissions: ROLE_PERMISSION_PRESETS.editor,
-    creditUsage: { used: 3400, limit: 5000 },
-  },
-  {
-    id: 'u3',
-    name: 'ليلى ناصر',
-    email: 'laila@agency.com',
-    avatarColor: 'linear-gradient(135deg, #0EA5E9, #06B6D4)',
-    role: 'moderator',
-    status: 'pending',
-    department: 'الدعم',
-    joinDate: '2025-06-01',
-    lastActiveAt: 'لم يسجّل الدخول بعد',
-    assignedProjectIds: [],
-    permissions: ROLE_PERMISSION_PRESETS.moderator,
-    creditUsage: { used: 0, limit: 2000 },
-    invitedAt: '2025-06-01',
-  },
-  {
-    id: 'u4',
-    name: 'يوسف حسن',
-    email: 'youssef@agency.com',
-    avatarColor: 'linear-gradient(135deg, #16A34A, #22C55E)',
-    role: 'viewer',
-    status: 'suspended',
-    department: 'المبيعات',
-    joinDate: '2024-11-20',
-    lastActiveAt: 'منذ أسبوعين',
-    assignedProjectIds: ['p2'],
-    permissions: ROLE_PERMISSION_PRESETS.viewer,
-    creditUsage: { used: 900, limit: 2000 },
-  },
-];
-
+/** Real HTTP-backed team/collaboration service — replaces the old in-memory mock. All list state
+ *  is tenant-scoped (the active `X-Tenant-Id` is attached by `tenantInterceptor`), so callers must
+ *  `refresh()` again after switching tenants. */
 @Injectable({ providedIn: 'root' })
 export class TeamMemberService {
-  private readonly _members = signal<TeamMember[]>(MOCK_MEMBERS);
+  private readonly http = inject(HttpClient);
+  private readonly baseUrl = `${environment.apiUrl}/team-members`;
+
+  private readonly _members = signal<TeamMemberSummary[]>([]);
   readonly members = this._members.asReadonly();
 
-  readonly projects = signal<TeamProject[]>(MOCK_PROJECTS);
+  private readonly _pendingInvitations = signal<PendingInvitationSummary[]>([]);
+  readonly pendingInvitations = this._pendingInvitations.asReadonly();
 
-  readonly activeCount = computed(() => this._members().filter(m => m.status === 'active').length);
-  readonly pendingCount = computed(() => this._members().filter(m => m.status === 'pending').length);
+  private readonly _myPendingInvites = signal<PendingInviteSummary[]>([]);
+  readonly myPendingInvites = this._myPendingInvites.asReadonly();
 
-  // TODO: replace with the real authenticated session once auth exists —
-  // this stands in for "who am I" so invited-marketer views (e.g. "my
-  // projects") have someone to resolve assignments against.
-  readonly currentUserId = signal('u2');
-  readonly currentUser = computed(() => this._members().find(m => m.id === this.currentUserId()));
+  readonly acceptedCount = computed(() => this._members().filter(m => m.invitationStatus === 'Accepted').length);
+  readonly pendingCount = computed(
+    () => this._members().filter(m => m.invitationStatus === 'Pending').length + this._pendingInvitations().length,
+  );
 
   getById(id: string) {
-    return computed(() => this._members().find(m => m.id === id));
+    return computed(() => this._members().find(m => m.tenantMemberId === id));
   }
 
-  projectNames(ids: string[]): string[] {
-    const all = this.projects();
-    return ids.map(id => all.find(p => p.id === id)?.name).filter((n): n is string => !!n);
-  }
-
-  inviteMember(data: { name: string; email: string; role: TeamMemberRole; department: string }): TeamMember {
-    const member: TeamMember = {
-      id: 'u' + Date.now(),
-      name: data.name,
-      email: data.email,
-      avatarColor: this.randomAvatarColor(),
-      role: data.role,
-      status: 'pending',
-      department: data.department,
-      joinDate: new Date().toISOString().slice(0, 10),
-      lastActiveAt: 'لم يسجّل الدخول بعد',
-      assignedProjectIds: [],
-      permissions: ROLE_PERMISSION_PRESETS[data.role],
-      creditUsage: { used: 0, limit: 2000 },
-      invitedAt: new Date().toISOString().slice(0, 10),
-    };
-    this._members.update(list => [member, ...list]);
-    return member;
-  }
-
-  updateMember(id: string, changes: Partial<Pick<TeamMember, 'name' | 'email' | 'role' | 'department'>>): void {
-    this._members.update(list =>
-      list.map(m => {
-        if (m.id !== id) return m;
-        const next = { ...m, ...changes };
-        if (changes.role && changes.role !== m.role) {
-          next.permissions = ROLE_PERMISSION_PRESETS[changes.role];
+  /** Refreshes the member list and the admin's pending-invitation (no-account-yet) list together,
+   *  since the users-page needs both to render "الكل" without a flash of missing rows. */
+  refresh(): Observable<[ApiResponse<TeamMemberSummary[]>, ApiResponse<PendingInvitationSummary[]>]> {
+    const members$ = this.http.get<ApiResponse<TeamMemberSummary[]>>(this.baseUrl).pipe(
+      tap(res => {
+        if (res.data) this._members.set(res.data);
+      }),
+    );
+    const invitations$ = this.http.get<ApiResponse<PendingInvitationSummary[]>>(`${this.baseUrl}/invitations`).pipe(
+      tap(res => {
+        if (res.data) this._pendingInvitations.set(res.data);
+      }),
+    );
+    return new Observable(subscriber => {
+      let a: ApiResponse<TeamMemberSummary[]> | undefined;
+      let b: ApiResponse<PendingInvitationSummary[]> | undefined;
+      const done = () => {
+        if (a && b) {
+          subscriber.next([a, b]);
+          subscriber.complete();
         }
-        return next;
+      };
+      members$.subscribe({
+        next: r => { a = r; done(); },
+        error: e => subscriber.error(e),
+      });
+      invitations$.subscribe({
+        next: r => { b = r; done(); },
+        error: e => subscriber.error(e),
+      });
+    });
+  }
+
+  /** Invites addressed to the current signed-in user (across every tenant) — "you've been invited". */
+  refreshMyPendingInvites(): Observable<ApiResponse<PendingInviteSummary[]>> {
+    return this.http.get<ApiResponse<PendingInviteSummary[]>>(`${this.baseUrl}/pending-invites`).pipe(
+      tap(res => {
+        if (res.data) this._myPendingInvites.set(res.data);
       }),
     );
   }
 
-  updatePermissions(id: string, permissions: TeamMemberPermissions): void {
-    this._members.update(list => list.map(m => (m.id === id ? { ...m, permissions } : m)));
-  }
-
-  removeMember(id: string): void {
-    this._members.update(list => list.filter(m => m.id !== id));
-  }
-
-  suspendMember(id: string): void {
-    this._members.update(list => list.map(m => (m.id === id ? { ...m, status: 'suspended' } : m)));
-  }
-
-  reactivateMember(id: string): void {
-    this._members.update(list => list.map(m => (m.id === id ? { ...m, status: 'active' } : m)));
-  }
-
-  /** Admin sets a brand-new password for the member (the original invite-set password is never known to the admin). */
-  resetPassword(id: string, _newPassword: string): void {
-    this._members.update(list =>
-      list.map(m => (m.id === id ? { ...m, lastPasswordResetAt: new Date().toISOString().slice(0, 10) } : m)),
+  private mutateAndRefresh<T>(mutation: Observable<ApiResponse<T>>): Observable<ApiResponse<T>> {
+    return mutation.pipe(
+      switchMap(res => (res.data ? this.refresh().pipe(map(() => res)) : of(res))),
     );
   }
 
-  assignProjects(id: string, projectIds: string[]): void {
-    this._members.update(list => list.map(m => (m.id === id ? { ...m, assignedProjectIds: projectIds } : m)));
+  invite(request: AddTeamMemberRequest): Observable<ApiResponse<AddTeamMemberResponse>> {
+    return this.mutateAndRefresh(this.http.post<ApiResponse<AddTeamMemberResponse>>(this.baseUrl, request));
   }
 
-  private randomAvatarColor(): string {
-    const palettes = [
-      'linear-gradient(135deg, #7C3AED, #2563EB)',
-      'linear-gradient(135deg, #FACC15, #F97316)',
-      'linear-gradient(135deg, #0EA5E9, #06B6D4)',
-      'linear-gradient(135deg, #16A34A, #22C55E)',
-      'linear-gradient(135deg, #EC4899, #F43F5E)',
-    ];
-    return palettes[Math.floor(Math.random() * palettes.length)];
+  updateMember(tenantMemberId: string, request: UpdateTeamMemberRequest): Observable<ApiResponse<UpdateTeamMemberResponse>> {
+    return this.mutateAndRefresh(
+      this.http.put<ApiResponse<UpdateTeamMemberResponse>>(`${this.baseUrl}/${tenantMemberId}`, request),
+    );
+  }
+
+  allocateCoins(tenantMemberId: string, newAllocation: number): Observable<ApiResponse<AllocateCoinsResponse>> {
+    return this.mutateAndRefresh(
+      this.http.post<ApiResponse<AllocateCoinsResponse>>(`${this.baseUrl}/${tenantMemberId}/coins`, { newAllocation }),
+    );
+  }
+
+  removeMember(tenantMemberId: string): Observable<ApiResponse<boolean>> {
+    return this.mutateAndRefresh(this.http.delete<ApiResponse<boolean>>(`${this.baseUrl}/${tenantMemberId}`));
+  }
+
+  revokeInvitation(invitationId: string): Observable<ApiResponse<boolean>> {
+    return this.mutateAndRefresh(this.http.delete<ApiResponse<boolean>>(`${this.baseUrl}/invitations/${invitationId}`));
+  }
+
+  acceptInvite(tenantMemberId: string): Observable<ApiResponse<boolean>> {
+    return this.http.post<ApiResponse<boolean>>(`${this.baseUrl}/${tenantMemberId}/accept`, {});
+  }
+
+  declineInvite(tenantMemberId: string): Observable<ApiResponse<boolean>> {
+    return this.http.post<ApiResponse<boolean>>(`${this.baseUrl}/${tenantMemberId}/decline`, {});
+  }
+
+  getActivity(page = 1, pageSize = 20, userId?: string): Observable<ApiResponse<TeamActivityPageResponse>> {
+    let url = `${this.baseUrl}/activity?page=${page}&pageSize=${pageSize}`;
+    if (userId) url += `&userId=${encodeURIComponent(userId)}`;
+    return this.http.get<ApiResponse<TeamActivityPageResponse>>(url);
+  }
+
+  /** Anonymous — backs the public `/invite?token=...` page, works for both invite kinds. */
+  getInvitationDetails(token: string): Observable<ApiResponse<InvitationDetailsResponse>> {
+    return this.http.get<ApiResponse<InvitationDetailsResponse>>(`${this.baseUrl}/invitations/${encodeURIComponent(token)}`);
+  }
+
+  /** Anonymous — registers a brand-new invitee and accepts the invite in one call. */
+  acceptInvitationAndRegister(
+    token: string,
+    request: Omit<AcceptInvitationAndRegisterRequest, 'token'>,
+  ): Observable<ApiResponse<AcceptInvitationAndRegisterResponse>> {
+    return this.http.post<ApiResponse<AcceptInvitationAndRegisterResponse>>(
+      `${this.baseUrl}/invitations/${encodeURIComponent(token)}/accept`,
+      request,
+    );
+  }
+
+  roleLabel(role: TenantMemberRole): string {
+    return { Owner: 'مالك', Admin: 'مدير', Editor: 'محرر', Viewer: 'مشاهد' }[role];
   }
 }

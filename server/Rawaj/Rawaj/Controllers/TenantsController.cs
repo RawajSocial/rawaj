@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Rawaj.Application.Features.Tenants.CreateTenant;
+using Rawaj.Application.Features.Tenants.GetMyMemberships;
 using Rawaj.Application.Features.Tenants.GetMyTenant;
 using Rawaj.Application.Features.Tenants.UpdateTenantProfile;
 using Rawaj.Application.Features.Tenants.UpgradeToAgency;
@@ -22,6 +23,16 @@ public class TenantsController(ISender sender) : ControllerBase
         return result.Succeeded
             ? Ok(ApiResponse<CreateTenantResponse>.Success(result.Data!))
             : BadRequest(ApiResponse<CreateTenantResponse>.Fail(result.ErrorMessage!));
+    }
+
+    [HttpGet("memberships")]
+    public async Task<IActionResult> GetMemberships(CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new GetMyMembershipsQuery(), cancellationToken);
+
+        return result.Succeeded
+            ? Ok(ApiResponse<List<MembershipSummary>>.Success(result.Data!))
+            : BadRequest(ApiResponse<List<MembershipSummary>>.Fail(result.ErrorMessage!));
     }
 
     [HttpGet("me")]

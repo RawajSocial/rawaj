@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Rawaj.Application.Common.Interfaces;
 using Rawaj.Application.Common.Models;
+using Rawaj.Application.Common.Policies;
 using Rawaj.Domain.Enums;
 
 namespace Rawaj.Application.Features.TeamMembers.AcceptInvite;
@@ -29,6 +30,10 @@ public class AcceptInviteCommandHandler(IApplicationDbContext dbContext, ICurren
 
         tenantMember.InvitationStatus = InvitationStatus.Accepted;
         tenantMember.JoinedAt = DateTime.UtcNow;
+
+        AuditLogger.Log(
+            dbContext, tenantMember.TenantId, userId, "team.invite_accepted",
+            entityType: "tenant_member", entityId: tenantMember.Id);
 
         await dbContext.SaveChangesAsync(cancellationToken);
 

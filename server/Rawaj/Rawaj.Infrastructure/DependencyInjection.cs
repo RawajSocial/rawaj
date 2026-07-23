@@ -7,6 +7,7 @@ using Rawaj.Domain.Enums;
 using Rawaj.Infrastructure.Ai;
 using Rawaj.Infrastructure.Auth;
 using Rawaj.Infrastructure.BackgroundJobs;
+using Rawaj.Infrastructure.Email;
 using Rawaj.Infrastructure.Media;
 using Rawaj.Infrastructure.Resilience;
 using Rawaj.Infrastructure.Scraping;
@@ -30,6 +31,12 @@ public static class DependencyInjection
         services.Configure<MetaOAuthSettings>(configuration.GetSection(MetaOAuthSettings.SectionName));
         services.Configure<LinkedInOAuthSettings>(configuration.GetSection(LinkedInOAuthSettings.SectionName));
         services.Configure<PublicImageHostingSettings>(configuration.GetSection(PublicImageHostingSettings.SectionName));
+        services.Configure<EmailSettings>(configuration.GetSection(EmailSettings.SectionName));
+        services.AddScoped<IEmailService, SmtpEmailService>();
+        services.Configure<FrontendSettings>(configuration.GetSection(FrontendSettings.SectionName));
+        services.AddScoped<IFrontendUrlProvider, FrontendUrlProvider>();
+        services.Configure<CoinCostSettings>(configuration.GetSection(CoinCostSettings.SectionName));
+        services.AddScoped<ICoinCostProvider>(sp => sp.GetRequiredService<IOptions<CoinCostSettings>>().Value);
 
         services.AddResilientHttpClient("Groq", attemptTimeout: TimeSpan.FromSeconds(45), totalTimeout: TimeSpan.FromSeconds(120));
         services.AddResilientHttpClient("HuggingFace", attemptTimeout: TimeSpan.FromSeconds(60), totalTimeout: TimeSpan.FromSeconds(150));

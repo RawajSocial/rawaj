@@ -62,6 +62,34 @@
             </div>
           </div>
 
+          <!-- محفظة الكوينز (تظهر فقط لأعضاء ينتمون لأكثر من مؤسسة) -->
+          @if (showWalletSelector()) {
+            <div class="mb-3">
+              <label class="form-label-sm">
+                <i class="fa-solid fa-coins"></i>
+                سيتم توليد المحتوى وخصم الكوينز من حساب
+              </label>
+              <div class="dropdown" [class.open]="walletOpen()" data-dd="wallet">
+                <button type="button" class="dropdown-trigger form-control form-control-sm" (click)="walletOpen.update(v => !v)">
+                  <span class="dropdown-label">
+                    @if (activeMembership(); as m) {
+                      {{ m.isOwner ? 'حسابي الخاص' : m.name }} — {{ m.myCoinBalance.toLocaleString('ar-SA') }} كوين
+                    }
+                  </span>
+                  <span class="dropdown-icon"><i class="fa-solid fa-chevron-down"></i></span>
+                </button>
+                <div class="dropdown-menu">
+                  @for (m of tenantService.memberships(); track m.tenantId) {
+                    <button type="button" class="dropdown-option" [class.active]="m.tenantId === tenantService.activeTenantId()" (click)="switchWallet(m.tenantId)">
+                      {{ m.isOwner ? 'حسابي الخاص' : m.name }}
+                      <span class="text-muted" style="font-size:.75rem"> — {{ m.myCoinBalance.toLocaleString('ar-SA') }} كوين</span>
+                    </button>
+                  }
+                </div>
+              </div>
+            </div>
+          }
+
           <!-- ملف العلامة التجارية + الحملة -->
           <div class="row g-2 mb-3">
             <div class="col-6">

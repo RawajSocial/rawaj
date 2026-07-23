@@ -2,7 +2,6 @@ import {
   ChangeDetectionStrategy,
   Component,
   ElementRef,
-  computed,
   effect,
   input,
   output,
@@ -10,16 +9,19 @@ import {
   viewChild,
 } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { TeamMember, TeamMemberRole } from '../../../../model/team-member.model';
+import { TenantMemberRole } from '../../../../model/tenant.model';
+import { BrandProfile } from '../../../../model/brand-profile.model';
 import { animateModalIn, animateModalOut } from '../../../../shared/utils/modal-motion';
 
 export interface UserFormValue {
-  name: string;
   email: string;
-  role: TeamMemberRole;
-  department: string;
+  role: TenantMemberRole;
+  brandProfileIds: string[];
+  allocatedCoins: number;
 }
 
+/** Invite-only modal — an existing member's role/brand-access/coins are edited from the profile
+ *  page instead (there's no in-place "edit" here since email can never change once invited). */
 @Component({
   selector: 'app-user-form-modal',
   imports: [ReactiveFormsModule],
@@ -29,51 +31,51 @@ export interface UserFormValue {
 })
 export class UserFormModal {
   readonly open = input.required<boolean>();
-  readonly member = input<TeamMember | null>(null);
+  readonly brandProfiles = input<BrandProfile[]>([]);
 
   readonly closed = output<void>();
   readonly save = output<UserFormValue>();
 
-  protected readonly mode = computed<'invite' | 'edit'>(() => (this.member() ? 'edit' : 'invite'));
-
   private readonly panelRef = viewChild<ElementRef<HTMLElement>>('panel');
   private readonly backdropRef = viewChild<ElementRef<HTMLElement>>('backdrop');
   private readonly closing = signal(false);
+  protected readonly submitted = signal(false);
+  protected readonly selectedBrandIds = signal<Set<string>>(new Set());
 
-  protected readonly roleOptions: { value: TeamMemberRole; label: string }[] = [
-    { value: 'admin', label: 'مدير' },
-    { value: 'editor', label: 'محرر' },
-    { value: 'moderator', label: 'مشرف' },
-    { value: 'viewer', label: 'مشاهد' },
+  protected readonly roleOptions: { value: TenantMemberRole; label: string }[] = [
+    { value: 'Admin', label: 'مدير' },
+    { value: 'Editor', label: 'محرر' },
+    { value: 'Viewer', label: 'مشاهد' },
   ];
 
   private readonly fb = new FormBuilder();
   protected readonly form = this.fb.nonNullable.group({
-    name: ['', [Validators.required, Validators.minLength(2)]],
     email: ['', [Validators.required, Validators.email]],
-    role: ['editor' as TeamMemberRole, [Validators.required]],
-    department: ['', [Validators.required]],
+    role: ['Editor' as TenantMemberRole, [Validators.required]],
+    allocatedCoins: [0, [Validators.required, Validators.min(0)]],
   });
 
   constructor() {
     effect(() => {
-      const m = this.member();
-      this.form.reset({
-        name: m?.name ?? '',
-        email: m?.email ?? '',
-        role: m?.role ?? 'editor',
-        department: m?.department ?? '',
-      });
-    });
-
-    effect(() => {
       if (!this.open()) return;
       this.closing.set(false);
+      this.submitted.set(false);
+      this.selectedBrandIds.set(new Set());
+      this.form.reset({ email: '', role: 'Editor', allocatedCoins: 0 });
       queueMicrotask(() => {
         const panel = this.panelRef()?.nativeElement;
         const backdrop = this.backdropRef()?.nativeElement;
         if (panel && backdrop) animateModalIn(panel, backdrop);
       });
+    });
+  }
+
+  protected toggleBrand(brandProfileId: string): void {
+    this.selectedBrandIds.update(current => {
+      const next = new Set(current);
+      if (next.has(brandProfileId)) next.delete(brandProfileId);
+      else next.add(brandProfileId);
+      return next;
     });
   }
 
@@ -90,10 +92,17 @@ export class UserFormModal {
   }
 
   protected submit(): void {
-    if (this.form.invalid) {
+    this.submitted.set(true);
+    if (this.form.invalid || this.selectedBrandIds().size === 0) {
       this.form.markAllAsTouched();
       return;
     }
-    this.save.emit(this.form.getRawValue());
+    const value = this.form.getRawValue();
+    this.save.emit({
+      email: value.email,
+      role: value.role,
+      allocatedCoins: value.allocatedCoins,
+      brandProfileIds: Array.from(this.selectedBrandIds()),
+    });
   }
 }

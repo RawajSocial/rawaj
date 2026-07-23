@@ -63,3 +63,17 @@ export interface UpgradeToAgencyResponse {
 }
 
 export const AGENCY_UPGRADE_REQUIRED_SENTINEL = 'AGENCY_UPGRADE_REQUIRED';
+
+/** GET /tenants/memberships — every tenant the current user belongs to (their own auto-provisioned
+ *  tenant plus any tenant they've accepted an invite into). `myCoinBalance` is always the CALLING
+ *  member's own spendable balance (the tenant pool for Owner/Admin, their own wallet otherwise) —
+ *  never the other members' balances. */
+export interface TenantMembership {
+  tenantId: string;
+  name: string;
+  tenantType: TenantType;
+  role: TenantMemberRole;
+  isOwner: boolean;
+  isActivated: boolean;
+  myCoinBalance: number;
+}

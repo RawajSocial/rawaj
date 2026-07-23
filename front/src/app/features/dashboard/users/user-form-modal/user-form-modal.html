@@ -2,7 +2,7 @@
   <div class="rw-modal-backdrop" #backdrop (click)="requestClose()">
     <div class="rw-modal-panel" #panel (click)="$event.stopPropagation()">
       <div class="rw-modal-header">
-        <h3>{{ mode() === 'invite' ? 'دعوة عضو جديد' : 'تعديل بيانات العضو' }}</h3>
+        <h3>دعوة عضو جديد</h3>
         <button type="button" class="rw-modal-close" (click)="requestClose()" aria-label="إغلاق">
           <i class="fa-solid fa-xmark"></i>
         </button>
@@ -10,18 +10,12 @@
 
       <form [formGroup]="form" (ngSubmit)="submit()" class="rw-modal-body">
         <div class="form-field">
-          <label for="member-name">الاسم الكامل</label>
-          <input id="member-name" type="text" class="form-control" formControlName="name" placeholder="مثال: سارة الأحمد">
-          @if (form.controls.name.touched && form.controls.name.invalid) {
-            <span class="field-error">الرجاء إدخال اسم صحيح</span>
-          }
-        </div>
-
-        <div class="form-field">
           <label for="member-email">البريد الإلكتروني</label>
-          <input id="member-email" type="email" class="form-control" formControlName="email" placeholder="name@agency.com" [readonly]="mode() === 'edit'">
-          @if (form.controls.email.touched && form.controls.email.invalid) {
-            <span class="field-error">الرجاء إدخال بريد إلكتروني صحيح</span>
+          <input id="member-email" type="email" class="form-control" formControlName="email" placeholder="name@example.com">
+          @if ((form.controls.email.touched || submitted()) && form.controls.email.invalid) {
+            <span class="field-error">
+              {{ form.controls.email.errors?.['required'] ? 'البريد الإلكتروني مطلوب.' : 'الرجاء إدخال بريد إلكتروني صحيح.' }}
+            </span>
           }
         </div>
 
@@ -36,23 +30,49 @@
           </div>
 
           <div class="form-field">
-            <label for="member-department">القسم</label>
-            <input id="member-department" type="text" class="form-control" formControlName="department" placeholder="مثال: التسويق">
+            <label for="member-coins">الكوينز المخصصة</label>
+            <input id="member-coins" type="number" min="0" step="1" class="form-control" formControlName="allocatedCoins">
+            @if ((form.controls.allocatedCoins.touched || submitted()) && form.controls.allocatedCoins.invalid) {
+              <span class="field-error">أدخل عددًا صحيحًا لا يقل عن صفر.</span>
+            }
           </div>
         </div>
 
-        @if (mode() === 'invite') {
-          <p class="form-hint">
-            <i class="fa-solid fa-circle-info"></i>
-            سيتم إرسال دعوة عبر البريد الإلكتروني ليقوم العضو بإنشاء كلمة المرور الخاصة به بنفسه.
-          </p>
-        }
+        <div class="form-field">
+          <label>العلامات التجارية المسموح بالعمل عليها</label>
+          @if (brandProfiles().length === 0) {
+            <p class="form-hint">
+              <i class="fa-solid fa-circle-info"></i>
+              أنشئ ملف علامة تجارية أولًا قبل دعوة أعضاء فريق.
+            </p>
+          } @else {
+            <div class="project-list">
+              @for (brand of brandProfiles(); track brand.id) {
+                <label class="project-option" [class.checked]="selectedBrandIds().has(brand.id)">
+                  <input
+                    type="checkbox"
+                    [checked]="selectedBrandIds().has(brand.id)"
+                    (change)="toggleBrand(brand.id)">
+                  <span class="project-check"><i class="fa-solid fa-check"></i></span>
+                  <span class="project-name">{{ brand.name }}</span>
+                </label>
+              }
+            </div>
+          }
+          @if (submitted() && selectedBrandIds().size === 0) {
+            <span class="field-error">اختر علامة تجارية واحدة على الأقل.</span>
+          }
+        </div>
+
+        <p class="form-hint">
+          <i class="fa-solid fa-circle-info"></i>
+          سيتم خصم الكوينز المخصصة فورًا من رصيد مؤسستك. سيصل بريد إلكتروني للعضو لإنشاء حساب جديد
+          (إن لم يكن لديه حساب) أو لقبول الدعوة (إن كان لديه حساب بالفعل).
+        </p>
 
         <div class="rw-modal-footer">
           <button type="button" class="btn-outline" (click)="requestClose()">إلغاء</button>
-          <button type="submit" class="btn-brand">
-            {{ mode() === 'invite' ? 'إرسال الدعوة' : 'حفظ التعديلات' }}
-          </button>
+          <button type="submit" class="btn-brand">إرسال الدعوة</button>
         </div>
       </form>
     </div>

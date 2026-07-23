@@ -1,4 +1,5 @@
 using MediatR;
+using Rawaj.Application.Common.Email;
 using Rawaj.Application.Common.Interfaces;
 using Rawaj.Application.Common.Models;
 using Rawaj.Application.Common.Policies;
@@ -11,7 +12,8 @@ public class RegisterCommandHandler(
     IIdentityService identityService,
     IJwtTokenGenerator jwtTokenGenerator,
     IApplicationDbContext dbContext,
-    TenantProvisioningService tenantProvisioningService)
+    TenantProvisioningService tenantProvisioningService,
+    IEmailService emailService)
     : IRequestHandler<RegisterCommand, Result<RegisterResponse>>
 {
     public async Task<Result<RegisterResponse>> Handle(RegisterCommand request, CancellationToken cancellationToken)
@@ -58,6 +60,10 @@ public class RegisterCommandHandler(
         var accessToken = jwtTokenGenerator.GenerateToken(userDto);
         var refreshToken = RefreshTokenPolicy.Issue(dbContext, userDto.Id, jwtTokenGenerator.RefreshTokenExpiryDays);
         await dbContext.SaveChangesAsync(cancellationToken);
+
+        var welcomeEmail = EmailTemplates.Welcome(userDto.FullName);
+        await emailService.SendEmailAsync(
+            userDto.Email, welcomeEmail.Subject, welcomeEmail.Html, welcomeEmail.PlainText, cancellationToken);
 
         return Result<RegisterResponse>.Success(
             new RegisterResponse(userDto.Id, userDto.Email, userDto.FullName, accessToken, refreshToken));

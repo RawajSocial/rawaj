@@ -5,15 +5,18 @@ import { catchError, firstValueFrom, of } from 'rxjs';
 
 import { routes } from './app.routes';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
+import { tenantInterceptor } from './core/interceptors/tenant.interceptor';
 import { AuthService } from './core/auth/auth.service';
+import { TenantService } from './core/tenant/tenant.service';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes),
-    provideHttpClient(withInterceptors([authInterceptor])),
+    provideHttpClient(withInterceptors([authInterceptor, tenantInterceptor])),
     provideAppInitializer(() => {
       const authService = inject(AuthService);
+      const tenantService = inject(TenantService);
       const router = inject(Router);
 
       if (!authService.accessToken()) return Promise.resolve();
@@ -30,7 +33,12 @@ export const appConfig: ApplicationConfig = {
             return of(null);
           }),
         ),
-      );
+      ).then(() => {
+        if (!authService.isAuthenticated()) return;
+        // Populates memberships (and picks/keeps an active tenant) before any tenant-scoped
+        // request fires, so the X-Tenant-Id header is correct from the very first navigation.
+        return firstValueFrom(tenantService.refreshMemberships().pipe(catchError(() => of(null))));
+      });
     }),
   ]
 };

@@ -42,13 +42,23 @@
   box-shadow: var(--shadow-xs);
 }
 
-/* ── Table ── */
+/* ── Table ──
+   Horizontal scroll is responsive-only: at desktop width the row-action tooltip `::after` boxes
+   (position:absolute, white-space:nowrap, only visibility:hidden) still inflate scrollWidth, so an
+   unconditional `overflow-x: auto` shows a permanent bar even though nothing actually overflows
+   visually. `overflow: visible` lets tooltips escape the container at desktop width; the scrollbar
+   only comes back under the breakpoint where `min-width: 720px` on the table genuinely overflows. */
 .users-table-wrap {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: 16px;
-  overflow: hidden;
-  overflow-x: auto;
+  overflow: visible;
+}
+
+@media (max-width: 992px) {
+  .users-table-wrap {
+    overflow-x: auto;
+  }
 }
 
 .users-table {
@@ -68,12 +78,19 @@
 }
 
 .user-row {
-  cursor: pointer;
   transition: background-color var(--transition-fast);
 }
 
-.user-row:hover {
+.user-row--clickable {
+  cursor: pointer;
+}
+
+.user-row--clickable:hover {
   background: var(--color-bg-secondary);
+}
+
+.user-avatar {
+  background: linear-gradient(135deg, var(--color-secondary), var(--color-primary));
 }
 
 .user-row td {
@@ -139,9 +156,9 @@
   box-shadow: var(--shadow-tag);
 }
 
+.role-badge--owner    { background: var(--color-dark); }
 .role-badge--admin    { background: var(--color-dark); }
 .role-badge--editor   { background: var(--color-primary); }
-.role-badge--moderator{ background: color-mix(in srgb, var(--color-accent) 85%, var(--color-dark-muted)); }
 .role-badge--viewer   { background: var(--color-text-secondary); }
 
 /* ── Status badge ── */
@@ -155,9 +172,73 @@
   box-shadow: var(--shadow-tag);
 }
 
-.status-badge--active    { background: var(--color-success); }
-.status-badge--pending   { background: color-mix(in srgb, var(--color-accent) 85%, var(--color-dark-muted)); }
-.status-badge--suspended { background: var(--color-danger); }
+.status-badge--accepted { background: var(--color-success); }
+.status-badge--pending  { background: color-mix(in srgb, var(--color-accent) 85%, var(--color-dark-muted)); }
+.status-badge--declined { background: var(--color-danger); }
+
+/* ── Activity log tab ── */
+.activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  padding: 6px 20px;
+}
+
+.activity-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.activity-row:last-child {
+  border-bottom: none;
+}
+
+.activity-icon {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-bg-secondary);
+  color: var(--color-secondary);
+  font-size: .85rem;
+}
+
+.activity-body {
+  min-width: 0;
+}
+
+.activity-title {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-dark);
+  margin: 0 0 2px;
+}
+
+.activity-message {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  margin: 0 0 4px;
+}
+
+.activity-meta {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.activity-load-more {
+  display: flex;
+  justify-content: center;
+  margin-top: 16px;
+}
 
 /* ── Actions ── */
 .actions-cell {

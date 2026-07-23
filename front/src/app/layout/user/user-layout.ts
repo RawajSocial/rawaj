@@ -31,7 +31,7 @@ export class UserLayout implements OnInit {
     });
 
     if (!this.tenantService.tenant()) {
-      this.tenantService.refresh().subscribe();
+      this.tenantService.refreshMemberships().subscribe();
     }
 
     // Load brand profiles + campaigns once, then pick a default brand for the

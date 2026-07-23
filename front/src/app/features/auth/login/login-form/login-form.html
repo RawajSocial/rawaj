@@ -47,6 +47,10 @@
       </label>
     </div>
 
+    @if (formError(); as formErrorMessage) {
+      <div class="form-error-banner mb-3">{{ formErrorMessage }}</div>
+    }
+
     <button class="btn login-btn w-100" type="submit">تسجيل الدخول</button>
   </form>
 

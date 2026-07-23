@@ -176,6 +176,17 @@
   font-weight: var(--font-semibold);
 }
 
+.context-item__badge {
+  display: inline-block;
+  margin-inline-start: 6px;
+  padding: 1px 8px;
+  border-radius: var(--radius-full, 999px);
+  background: var(--color-bg-secondary);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-medium);
+}
+
 @media (max-width: 768px) {
   .brand-dropdown,
   .campaign-dropdown,

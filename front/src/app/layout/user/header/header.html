@@ -1,9 +1,9 @@
 <header class="dash-header">
   <div class="header-start">
-    <button class="header-btn sidebar-toggle-btn" (click)="toggleSidebar.emit()" appTooltip="تبديل الشريط الجانبي" aria-label="تبديل الشريط الجانبي">
+    <button class="header-btn sidebar-toggle-btn" (click)="toggleSidebar.emit()" appTooltip="تبديل الشريط الجانبي" position="bottom" aria-label="تبديل الشريط الجانبي">
       <i class="fa-solid fa-bars"></i>
     </button>
-    <button class="header-btn mobile-menu-btn" (click)="toggleMobileMenu.emit()" appTooltip="القائمة" aria-label="القائمة">
+    <button class="header-btn mobile-menu-btn" (click)="toggleMobileMenu.emit()" appTooltip="القائمة" position="bottom" aria-label="القائمة">
       <i class="fa-solid" [class.fa-bars]="!mobileMenuOpen()" [class.fa-xmark]="mobileMenuOpen()"></i>
     </button>
     <div class="header-search">
@@ -15,6 +15,33 @@
         (input)="searchQuery.set($any($event.target).value)"
       />
     </div>
+
+    <!-- Tenant/organization switcher — only shown when the user belongs to more than one -->
+    @if (memberships().length > 1) {
+      <div class="header-dropdown tenant-dropdown" [class.open]="tenantDropdownOpen()">
+        <button class="context-btn" (click)="tenantDropdownOpen.update(v => !v)">
+          <i class="fa-solid fa-building"></i>
+          <span class="context-btn__label">
+            {{ memberships().find(m => m.tenantId === activeTenantId())?.name ?? 'اختر المؤسسة' }}
+          </span>
+          <i class="fa-solid fa-chevron-down context-btn__caret"></i>
+        </button>
+        <div class="dropdown-panel context-panel">
+          @for (m of memberships(); track m.tenantId) {
+            <button
+              type="button"
+              class="context-item"
+              [class.active]="m.tenantId === activeTenantId()"
+              (click)="switchTenant(m.tenantId)">
+              {{ m.name }}
+              @if (m.isOwner) {
+                <span class="context-item__badge">حسابك</span>
+              }
+            </button>
+          }
+        </div>
+      </div>
+    }
 
     <!-- Brand profile selector -->
     @if (brandProfileService.profiles().length > 1) {
@@ -84,7 +111,7 @@
       <span class="credit-chip__amount">{{ creditBalanceLabel() }}</span>
     </a>
 
-    <button class="header-btn" (click)="toggleFullscreen()" appTooltip="ملء الشاشة" aria-label="ملء الشاشة">
+    <button class="header-btn" (click)="toggleFullscreen()" appTooltip="ملء الشاشة" position="bottom" aria-label="ملء الشاشة">
       <i class="fa-solid" [class.fa-expand]="!fullscreen()" [class.fa-compress]="fullscreen()"></i>
     </button>
 

@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Rawaj.Domain.Entities.Platform;
+using Rawaj.Domain.Entities.Tenants;
 using Rawaj.Persistence.Identity;
 
 namespace Rawaj.Persistence.Configurations.Platform;
@@ -24,5 +25,12 @@ public class AuditLogConfiguration : IEntityTypeConfiguration<AuditLog>
             .WithMany()
             .HasForeignKey(l => l.UserId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne<Tenant>()
+            .WithMany()
+            .HasForeignKey(l => l.TenantId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(l => l.TenantId);
     }
 }
