@@ -53,7 +53,7 @@ public class RegisterCommandHandler(
 
         var subdomain = TenantProvisioningService.GenerateSubdomain(request.Email);
         await tenantProvisioningService.ProvisionAsync(
-            userDto.Id, request.FullName, subdomain, TenantType.Business, cancellationToken, createDefaultBrandProfile: true);
+            userDto.Id, request.FullName, subdomain, TenantType.Business, cancellationToken, createDefaultBrandProfile: false);
 
         var accessToken = jwtTokenGenerator.GenerateToken(userDto);
         var refreshToken = RefreshTokenPolicy.Issue(dbContext, userDto.Id, jwtTokenGenerator.RefreshTokenExpiryDays);

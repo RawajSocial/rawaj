@@ -4,6 +4,7 @@ import { map, Observable, of, switchMap, tap } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { ApiResponse } from '../model/auth.model';
 import { BrandProfile, BrandProfileSummary, CreateBrandProfileResponse } from '../model/brand-profile.model';
+import { resolveMediaUrl } from '../core/auth/media-url.util';
 
 export interface CreateBrandProfileInput {
   name: string;
@@ -31,7 +32,7 @@ function toBrandProfile(summary: BrandProfileSummary): BrandProfile {
     tagline: summary.tagline,
     industry: summary.industry,
     colors: summary.colors,
-    logoUrl: summary.logoUrl,
+    logoUrl: resolveMediaUrl(summary.logoUrl),
     supportedLanguages: [],
     keywords: [],
   };
@@ -68,6 +69,13 @@ export class BrandProfileService {
     return this.mutateAndRefresh(
       this.http.post<ApiResponse<CreateBrandProfileResponse>>(this.baseUrl, input),
     );
+  }
+
+  /** Uploads a logo file and resolves to the stored `/media/...` path (in the response body). */
+  uploadLogo(file: File): Observable<ApiResponse<{ logoUrl: string }>> {
+    const formData = new FormData();
+    formData.append('logo', file);
+    return this.http.post<ApiResponse<{ logoUrl: string }>>(`${this.baseUrl}/logo`, formData);
   }
 
   archive(id: string): Observable<ApiResponse<boolean>> {

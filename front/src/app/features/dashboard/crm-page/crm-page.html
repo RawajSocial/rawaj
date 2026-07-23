@@ -4,6 +4,17 @@
     [breadcrumbs]="[{ label: 'نظرة عامة', link: '/dashboard' }, { label: 'لوحة التحكم' }]"
     subtitle="نظرة شاملة على أداء حساباتك على مواقع التواصل الاجتماعي." />
 
+  @if (brandProfileCount() === 0) {
+    <a routerLink="/dashboard/brand-profiles/new" class="quick-action-card quick-action-card--reward d-flex align-items-center gap-3 p-3">
+      <span class="quick-action-card__icon"><i class="fa-solid fa-lock"></i></span>
+      <div class="quick-action-card__text">
+        <span class="quick-action-card__title">أنشئ ملف علامتك التجارية أولاً</span>
+        <span class="quick-action-card__desc">لعرض إحصائيات لوحة التحكم واستخدام الحملات والإعلانات والوسائط، أنشئ ملف علامة تجارية.</span>
+      </div>
+      <i class="fa-solid fa-arrow-left quick-action-card__arrow"></i>
+    </a>
+  }
+
   <!-- Quick actions -->
   <div class="row row-cols-1 row-cols-md-2 g-3">
     <div class="col">
@@ -32,7 +43,7 @@
 
   <!-- Social platform filter -->
   <div class="platform-filter d-flex align-items-center flex-wrap gap-2">
-    @for (t of filterTabs; track t.key) {
+    @for (t of filterTabs(); track t.key) {
       <button type="button" class="platform-chip d-inline-flex align-items-center gap-2 py-2 px-3"
               [class.active]="platformFilter() === t.key"
               [class.platform-chip--tiktok]="t.key === 'tiktok'"
@@ -64,14 +75,14 @@
   <!-- Charts Row -->
   <div class="row g-3">
     <div class="col-12 chart-col d-flex flex-column">
-      <app-balance-chart class="flex-grow-1 d-flex flex-column" />
+      <app-balance-chart class="flex-grow-1 d-flex flex-column" [points]="dashboardService.charts()?.points ?? []" (daysChange)="onChartDaysChange($event)" />
     </div>
   </div>
 
   <!-- Platform breakdown + top posts -->
   <div class="row g-3">
     <div class="col-lg-6 d-flex flex-column">
-      <app-platform-performance-card class="flex-grow-1 d-flex flex-column" [platforms]="platforms" />
+      <app-platform-performance-card class="flex-grow-1 d-flex flex-column" [platforms]="platforms()" />
     </div>
     <div class="col-lg-6 d-flex flex-column">
       <app-top-posts-card class="flex-grow-1 d-flex flex-column" [posts]="topPostsView()" />
@@ -79,5 +90,5 @@
   </div>
 
   <!-- Meta analytics (placeholder — awaiting Meta Business account connection) -->
-  <app-meta-analytics-card [widgets]="metaWidgets" />
+  <app-meta-analytics-card [widgets]="metaWidgets()" />
 </div>

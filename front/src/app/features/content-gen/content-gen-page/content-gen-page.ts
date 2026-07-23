@@ -3,6 +3,7 @@ import { RouterLink } from '@angular/router';
 import { MediaService } from '../../../services/media.service';
 import { BrandProfileService } from '../../../services/brand-profile.service';
 import { CampaignService } from '../../../services/campaign.service';
+import { BrandContextService } from '../../../services/brand-context.service';
 import { SeoService } from '../../../services/seo.service';
 import { Breadcrumb } from '../../../shared/components/breadcrumb/breadcrumb';
 import {
@@ -51,6 +52,7 @@ export class ContentGenPage {
 
   private readonly brandProfileService = inject(BrandProfileService);
   private readonly campaignService = inject(CampaignService);
+  private readonly brandContextService = inject(BrandContextService);
   private readonly seo = inject(SeoService);
 
   readonly brandProfiles = this.brandProfileService.profiles;
@@ -65,7 +67,9 @@ export class ContentGenPage {
   formTextType = signal<TextType>('caption');
   formPlatform = signal('instagram');
   formQuality  = signal('high');
-  formBrandProfileId = signal('');
+  // Seeded from the global header brand selection; "no campaign" (`''`) is
+  // always the default here regardless of the global campaign filter.
+  formBrandProfileId = signal(this.brandContextService.selectedBrandProfileId() ?? '');
   formCampaignId      = signal('');
   formAssets   = signal<GeneratedAsset[]>([]);
 

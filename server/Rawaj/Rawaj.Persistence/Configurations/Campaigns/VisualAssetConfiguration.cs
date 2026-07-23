@@ -30,7 +30,7 @@ public class VisualAssetConfiguration : IEntityTypeConfiguration<VisualAsset>
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne(v => v.BrandProfile)
-            .WithMany()
+            .WithMany(b => b.VisualAssets)
             .HasForeignKey(v => v.BrandProfileId)
             .OnDelete(DeleteBehavior.Restrict);
 

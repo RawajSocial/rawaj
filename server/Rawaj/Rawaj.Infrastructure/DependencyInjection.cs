@@ -49,7 +49,7 @@ public static class DependencyInjection
         services.AddScoped<IWebScraperService, HtmlAgilityPackWebScraperService>();
         services.AddSingleton<ITokenEncryptor, AesTokenEncryptor>();
         services.AddSingleton<IPublicImageHostingService, LocalFilePublicImageHostingService>();
-        services.AddSingleton<IAvatarStorageService, LocalAvatarStorageService>();
+        services.AddSingleton<ILocalImageStorageService, LocalImageStorageService>();
 
         services.AddMemoryCache();
         services.AddSingleton<IOAuthStateStore, OAuthStateStore>();

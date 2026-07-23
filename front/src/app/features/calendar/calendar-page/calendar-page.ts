@@ -1,10 +1,16 @@
-import { Component, HostListener, computed, inject, signal } from '@angular/core';
+import { Component, HostListener, computed, effect, inject, signal } from '@angular/core';
 import { ScheduledPost } from '../../../model/scheduled-post.model';
 import { CampaignPlatform } from '../../../model/campaign.model';
 import { PostModal } from '../post-modal/post-modal';
 import { PageHeader } from '../../../shared/components/page-header/page-header';
+import { BrandLock } from '../../../shared/components/brand-lock/brand-lock';
 import { SeoService } from '../../../services/seo.service';
 import { ScheduledPostService } from '../../../services/scheduled-post.service';
+import { CampaignService } from '../../../services/campaign.service';
+import { BrandContextService } from '../../../services/brand-context.service';
+import { TenantService } from '../../../core/tenant/tenant.service';
+import { ErrorModalService } from '../../../services/error-modal.service';
+import { Router } from '@angular/router';
 
 export type ViewMode = 'month' | 'week' | 'day' | 'list';
 
@@ -18,22 +24,21 @@ const PLATFORM_CFG: Record<CampaignPlatform, { icon: string; color: string; labe
   linkedin:  { icon: 'fa-brands fa-linkedin-in', color: 'var(--color-linkedin)',  label: 'لينكد إن' },
 };
 
-const MOCK_CAMPAIGNS = [
-  { id: '1', name: 'حملة رمضان الكريم' },
-  { id: '2', name: 'إطلاق منتج العيد' },
-  { id: '3', name: 'حملة الصيف' },
-];
-
 @Component({
   selector: 'app-calendar-page',
   standalone: true,
-  imports: [PostModal, PageHeader],
+  imports: [PostModal, PageHeader, BrandLock],
   templateUrl: './calendar-page.html',
   styleUrls: ['../../../features/on-boarding/onboarding-shared.css', './calendar-page.css'],
 })
 export class CalendarPage {
   private readonly seo = inject(SeoService);
   private readonly scheduledPostService = inject(ScheduledPostService);
+  private readonly campaignService = inject(CampaignService);
+  protected readonly brandContextService = inject(BrandContextService);
+  private readonly tenantService = inject(TenantService);
+  private readonly errorModalService = inject(ErrorModalService);
+  private readonly router = inject(Router);
 
   constructor() {
     this.seo.setPageSeo({
@@ -45,18 +50,34 @@ export class CalendarPage {
       type: 'website',
       noIndex: true,
     });
+
+    // The header is the single source of truth for brand/campaign — refetch
+    // scheduled posts whenever either global selection changes.
+    effect(() => {
+      const brandId = this.brandContextService.selectedBrandProfileId();
+      const campaignId = this.brandContextService.selectedCampaignId();
+      if (!brandId) return;
+      this.scheduledPostService.refresh(brandId, campaignId).subscribe();
+    });
   }
 
   readonly viewMode       = signal<ViewMode>('month');
   readonly currentDate    = signal(new Date(2026, 5, 4)); // June 4 2026
-  readonly campaignFilter = signal<string>('all');
   readonly campaignOpen   = signal(false);
   readonly selectedPost   = signal<ScheduledPost | null>(null);
   readonly selectedDay    = signal<Date | null>(null);
   readonly posts          = this.scheduledPostService.posts;
+  readonly brandProfileCount = this.tenantService.brandProfileCount;
 
   readonly platformCfg  = PLATFORM_CFG;
-  readonly campaigns     = MOCK_CAMPAIGNS;
+  /** This brand's campaigns, sourced from the header's global selection — kept
+   *  as a page-local quick-filter chip, but it reads/writes the same global
+   *  BrandContextService state (no separate page-local filter state). */
+  readonly campaigns = computed(() => {
+    const bp = this.brandContextService.selectedBrandProfileId();
+    return bp ? this.campaignService.byBrandProfile(bp)() : [];
+  });
+  readonly campaignFilter = this.brandContextService.selectedCampaignId;
   readonly dayNames      = ['أحد', 'إثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة', 'سبت'];
 
   @HostListener('document:click', ['$event'])
@@ -223,11 +244,12 @@ export class CalendarPage {
   }
 
   get campaignLabel(): string {
-    return MOCK_CAMPAIGNS.find(c => c.id === this.campaignFilter())?.name ?? 'جميع الحملات';
+    if (this.campaignFilter() === 'all') return 'جميع الحملات';
+    return this.campaigns().find(c => c.id === this.campaignFilter())?.name ?? 'جميع الحملات';
   }
 
   setCampaign(id: string): void {
-    this.campaignFilter.set(id);
+    this.brandContextService.setCampaign(id);
     this.campaignOpen.set(false);
   }
 
@@ -241,12 +263,24 @@ export class CalendarPage {
   closeModal(): void { this.selectedPost.set(null); }
 
   savePost(updated: ScheduledPost): void {
+    if (!this.requireBrandProfile()) return;
     this.scheduledPostService.update(updated);
     this.selectedPost.set(null);
   }
 
   deletePost(id: string): void {
+    if (!this.requireBrandProfile()) return;
     this.scheduledPostService.remove(id);
     this.selectedPost.set(null);
+  }
+
+  private requireBrandProfile(): boolean {
+    if (this.tenantService.brandProfileCount() > 0) return true;
+    this.errorModalService.show(
+      'يجب إنشاء ملف علامة تجارية أولاً لاستخدام هذه الميزة.',
+      { variant: 'warning', title: 'يلزم إنشاء ملف علامة تجارية' },
+    );
+    this.router.navigate(['/dashboard/brand-profiles/new']);
+    return false;
   }
 }

@@ -1,7 +1,7 @@
 <div class="chart-card">
   <div class="chart-header">
     <div class="chart-header-start">
-      <h4 class="chart-title">نظرة عامة على الرصيد</h4>
+      <h4 class="chart-title">الوصول والانطباعات عبر الزمن</h4>
     </div>
     <div class="chart-header-end">
       <div class="chart-filters">
@@ -74,11 +74,11 @@
   <div class="chart-legend">
     <span class="legend-item legend-revenue">
       <span class="legend-dot"></span>
-      إجمالي الإيرادات: {{ totalRevenue }}
+      إجمالي الوصول: {{ totalRevenue() }}
     </span>
     <span class="legend-item legend-expense">
       <span class="legend-dot"></span>
-      إجمالي المصروفات: {{ totalExpenses }}
+      إجمالي الانطباعات: {{ totalExpenses() }}
     </span>
   </div>
 </div>

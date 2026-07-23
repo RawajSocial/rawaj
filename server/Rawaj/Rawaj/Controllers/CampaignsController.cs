@@ -2,11 +2,13 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Rawaj.Application.Common.Models;
+using Rawaj.Application.Features.Campaigns.ArchiveCampaign;
 using Rawaj.Application.Features.Campaigns.CreateCampaign;
 using Rawaj.Application.Features.Campaigns.GenerateCampaignContent;
 using Rawaj.Application.Features.Campaigns.GenerateMarketingPlan;
 using Rawaj.Application.Features.Campaigns.GetCampaign;
 using Rawaj.Application.Features.Campaigns.GetCampaigns;
+using Rawaj.Application.Features.Campaigns.UpdateCampaign;
 using Rawaj.Common;
 using Rawaj.Domain.Enums;
 
@@ -48,6 +50,28 @@ public class CampaignsController(ISender sender) : ControllerBase
             : NotFound(ApiResponse<GetCampaignResponse>.Fail(result.ErrorMessage!));
     }
 
+    [HttpPut("{campaignId:guid}")]
+    public async Task<IActionResult> Update(Guid campaignId, [FromBody] UpdateCampaignRequest request, CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(
+            new UpdateCampaignCommand(campaignId, request.Name, request.Status, request.StartDate, request.EndDate, request.BudgetAmount),
+            cancellationToken);
+
+        return result.Succeeded
+            ? Ok(ApiResponse<GetCampaignResponse>.Success(result.Data!))
+            : BadRequest(ApiResponse<GetCampaignResponse>.Fail(result.ErrorMessage!));
+    }
+
+    [HttpPost("{campaignId:guid}/archive")]
+    public async Task<IActionResult> Archive(Guid campaignId, CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new ArchiveCampaignCommand(campaignId), cancellationToken);
+
+        return result.Succeeded
+            ? Ok(ApiResponse<bool>.Success(result.Data!))
+            : BadRequest(ApiResponse<bool>.Fail(result.ErrorMessage!));
+    }
+
     [HttpPost("{campaignId:guid}/generate-plan")]
     public async Task<IActionResult> GeneratePlan(Guid campaignId, CancellationToken cancellationToken)
     {
@@ -74,4 +98,7 @@ public class CampaignsController(ISender sender) : ControllerBase
 
     public record GenerateCampaignContentRequest(
         int PostCount, Language Language, bool IncludeImages = true, ContentTemplateStyle TemplateStyle = ContentTemplateStyle.Auto);
+
+    public record UpdateCampaignRequest(
+        string? Name, CampaignStatus? Status, DateOnly? StartDate, DateOnly? EndDate, decimal? BudgetAmount);
 }

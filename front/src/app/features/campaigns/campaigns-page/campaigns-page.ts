@@ -1,15 +1,19 @@
 import { Component, HostListener, computed, inject, signal } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { CampaignCard } from '../campaign-card/campaign-card';
 import { CampaignStatus, CampaignPlatform } from '../../../model/campaign.model';
 import { SeoService } from '../../../services/seo.service';
 import { CampaignService } from '../../../services/campaign.service';
+import { ErrorModalService } from '../../../services/error-modal.service';
+import { extractApiErrorMessage } from '../../../core/auth/api-error.util';
 import { Breadcrumb } from '../../../shared/components/breadcrumb/breadcrumb';
+import { BrandLock } from '../../../shared/components/brand-lock/brand-lock';
+import { TenantService } from '../../../core/tenant/tenant.service';
 
 @Component({
   selector: 'app-campaigns-page',
   standalone: true,
-  imports: [RouterLink, CampaignCard, Breadcrumb],
+  imports: [CampaignCard, Breadcrumb, BrandLock],
   templateUrl: './campaigns-page.html',
   styleUrls: ['../../../features/on-boarding/onboarding-shared.css', './campaigns-page.css'],
 })
@@ -17,6 +21,8 @@ export class CampaignsPage {
   private readonly seo = inject(SeoService);
   private readonly campaignService = inject(CampaignService);
   private readonly router = inject(Router);
+  private readonly errorModalService = inject(ErrorModalService);
+  private readonly tenantService = inject(TenantService);
 
   constructor() {
     this.seo.setPageSeo({
@@ -31,6 +37,7 @@ export class CampaignsPage {
   }
 
   protected readonly campaigns = this.campaignService.campaigns;
+  protected readonly brandProfileCount = this.tenantService.brandProfileCount;
   protected readonly searchQuery    = signal('');
   protected readonly statusFilter   = signal<CampaignStatus | 'all'>('all');
   protected readonly platformFilter = signal<CampaignPlatform | 'all'>('all');
@@ -82,14 +89,35 @@ export class CampaignsPage {
   protected get platformLabel(): string { return this.platformOptions.find(o => o.value === this.platformFilter())?.label ?? ''; }
 
   protected pauseCampaign(id: string): void {
-    this.campaignService.pause(id);
+    if (!this.requireBrandProfile()) return;
+    this.campaignService.update(id, { status: 'Paused' }).subscribe({
+      error: err => this.errorModalService.show(extractApiErrorMessage(err, 'تعذّر إيقاف الحملة.'), { variant: 'error' }),
+    });
   }
 
   protected resumeCampaign(id: string): void {
-    this.campaignService.resume(id);
+    if (!this.requireBrandProfile()) return;
+    this.campaignService.update(id, { status: 'Active' }).subscribe({
+      error: err => this.errorModalService.show(extractApiErrorMessage(err, 'تعذّر تفعيل الحملة.'), { variant: 'error' }),
+    });
   }
 
   protected viewCampaign(id: string): void {
     this.router.navigate(['/dashboard/campaigns', id]);
+  }
+
+  protected startNewCampaign(): void {
+    if (!this.requireBrandProfile()) return;
+    this.router.navigate(['/on-boarding']);
+  }
+
+  private requireBrandProfile(): boolean {
+    if (this.tenantService.brandProfileCount() > 0) return true;
+    this.errorModalService.show(
+      'يجب إنشاء ملف علامة تجارية أولاً لاستخدام هذه الميزة.',
+      { variant: 'warning', title: 'يلزم إنشاء ملف علامة تجارية' },
+    );
+    this.router.navigate(['/dashboard/brand-profiles/new']);
+    return false;
   }
 }

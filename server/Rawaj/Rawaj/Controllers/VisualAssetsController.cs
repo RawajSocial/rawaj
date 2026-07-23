@@ -24,11 +24,12 @@ public class VisualAssetsController(ISender sender) : ControllerBase
             : BadRequest(ApiResponse<GenerateVisualAssetResponse>.Fail(result.ErrorMessage!));
     }
 
-    [HttpGet("campaign/{campaignId:guid}")]
-    public async Task<IActionResult> GetByCampaign(
-        Guid campaignId, [FromQuery] int page = 1, [FromQuery] int pageSize = 20, CancellationToken cancellationToken = default)
+    [HttpGet]
+    public async Task<IActionResult> GetAll(
+        [FromQuery] Guid brandProfileId, [FromQuery] Guid? campaignId, [FromQuery] int page = 1, [FromQuery] int pageSize = 20,
+        CancellationToken cancellationToken = default)
     {
-        var result = await sender.Send(new GetVisualAssetsQuery(campaignId, page, pageSize), cancellationToken);
+        var result = await sender.Send(new GetVisualAssetsQuery(brandProfileId, campaignId, page, pageSize), cancellationToken);
 
         return result.Succeeded
             ? Ok(ApiResponse<PagedResult<VisualAssetSummary>>.Success(result.Data!))

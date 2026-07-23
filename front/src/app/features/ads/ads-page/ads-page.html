@@ -5,10 +5,12 @@
       <h5 class="page-title">منشوراتك</h5>
       <app-breadcrumb [items]="[{ label: 'نظرة عامة', link: '/dashboard' }, { label: 'الحملات', link: '/dashboard/campaigns' }, { label: 'المنشورات' }]" />
     </div>
-    <a routerLink="/on-boarding" class="btn-new-ad">
-      <i class="fa-solid fa-plus"></i>
-      إنشاء منشور جديد
-    </a>
+    @if (brandProfileCount() > 0) {
+      <button type="button" (click)="startNewCampaign()" class="btn-new-ad">
+        <i class="fa-solid fa-plus"></i>
+        إنشاء منشور جديد
+      </button>
+    }
   </div>
 
   <!-- Filters bar -->
@@ -95,10 +97,12 @@
         }
       </p>
       @if (!searchQuery() && statusFilter() === 'all' && platformFilter() === 'all' && formatFilter() === 'all') {
-        <a routerLink="/on-boarding" class="btn-new-ad">
-          <i class="fa-solid fa-rocket"></i>
-          ابدأ حملة جديدة
-        </a>
+        <app-brand-lock [locked]="brandProfileCount() === 0">
+          <button type="button" (click)="startNewCampaign()" class="btn-new-ad">
+            <i class="fa-solid fa-rocket"></i>
+            ابدأ حملة جديدة
+          </button>
+        </app-brand-lock>
       }
     </div>
 

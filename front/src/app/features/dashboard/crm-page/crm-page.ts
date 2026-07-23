@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { KpiCard } from '../kpi-card/kpi-card';
 import { BalanceChart } from '../balance-chart/balance-chart';
@@ -8,15 +8,29 @@ import { TopPostsCard } from './top-posts-card/top-posts-card';
 import { MetaAnalyticsCard } from './meta-analytics-card/meta-analytics-card';
 import { SeoService } from '../../../services/seo.service';
 import { TenantService } from '../../../core/tenant/tenant.service';
-import { KpiData, MetaWidget, PlatformKey, PlatformStat, TopPost, TopPostView, compactNumber } from './crm-page.model';
+import { BrandContextService } from '../../../services/brand-context.service';
+import { DashboardService } from '../../../services/dashboard.service';
+import { BackendSocialPlatform } from '../../../model/content-item.model';
+import { KpiData, MetaWidget, PlatformKey, PlatformStat, TopPostView, compactNumber } from './crm-page.model';
 
-const PLATFORM_STATS: PlatformStat[] = [
-  { key: 'instagram', label: 'إنستغرام', icon: 'fa-brands fa-instagram',  color: 'var(--color-instagram)', followers: 48200, reach: 512000, engagementRate: 5.4, posts: 46, change: 12.4 },
-  { key: 'tiktok',    label: 'تيك توك',  icon: 'fa-brands fa-tiktok',      color: 'var(--color-tiktok)',    followers: 63500, reach: 890000, engagementRate: 7.8, posts: 31, change: 24.1 },
-  { key: 'facebook',  label: 'فيسبوك',   icon: 'fa-brands fa-facebook-f', color: 'var(--color-facebook)',  followers: 29800, reach: 240000, engagementRate: 3.1, posts: 38, change: 4.6 },
-  { key: 'snapchat',  label: 'سناب شات', icon: 'fa-brands fa-snapchat',    color: 'var(--color-snapchat)',  followers: 15400, reach: 132000, engagementRate: 4.2, posts: 22, change: -1.8 },
-  { key: 'linkedin',  label: 'لينكدإن',  icon: 'fa-brands fa-linkedin-in', color: 'var(--color-linkedin)',  followers: 8600,  reach: 61000,  engagementRate: 2.4, posts: 14, change: 6.9 },
-];
+const PLATFORM_CFG: Record<Exclude<PlatformKey, 'all'>, { label: string; icon: string; color: string }> = {
+  instagram: { label: 'إنستغرام', icon: 'fa-brands fa-instagram',  color: 'var(--color-instagram)' },
+  tiktok:    { label: 'تيك توك',  icon: 'fa-brands fa-tiktok',      color: 'var(--color-tiktok)' },
+  facebook:  { label: 'فيسبوك',   icon: 'fa-brands fa-facebook-f', color: 'var(--color-facebook)' },
+  youtube:   { label: 'يوتيوب',   icon: 'fa-brands fa-youtube',     color: 'var(--color-youtube)' },
+  x:         { label: 'إكس',      icon: 'fa-brands fa-x-twitter',   color: 'var(--color-x)' },
+  linkedin:  { label: 'لينكدإن',  icon: 'fa-brands fa-linkedin-in', color: 'var(--color-linkedin)' },
+  snapchat:  { label: 'سناب شات', icon: 'fa-brands fa-snapchat',    color: 'var(--color-snapchat)' },
+};
+
+const BACKEND_PLATFORM_TO_KEY: Record<BackendSocialPlatform, Exclude<PlatformKey, 'all'>> = {
+  Instagram: 'instagram',
+  Facebook: 'facebook',
+  Tiktok: 'tiktok',
+  Youtube: 'youtube',
+  Twitter: 'x',
+  Linkedin: 'linkedin',
+};
 
 @Component({
   selector: 'app-crm-page',
@@ -29,8 +43,11 @@ const PLATFORM_STATS: PlatformStat[] = [
 export class CrmPage {
   private readonly seo = inject(SeoService);
   private readonly tenantService = inject(TenantService);
+  protected readonly brandContextService = inject(BrandContextService);
+  protected readonly dashboardService = inject(DashboardService);
 
   protected readonly isActivated = this.tenantService.isActivated;
+  protected readonly brandProfileCount = this.tenantService.brandProfileCount;
 
   constructor() {
     this.seo.setPageSeo({
@@ -42,21 +59,53 @@ export class CrmPage {
       type: 'website',
       noIndex: true,
     });
+
+    // BrandContextService (fed by the header) is the dashboard's only source of brand/campaign
+    // selection — changing either refetches every widget below.
+    effect(() => {
+      const brandId = this.brandContextService.selectedBrandProfileId();
+      const campaignId = this.brandContextService.selectedCampaignId();
+      if (!brandId) return;
+      this.dashboardService.refresh(brandId, campaignId).subscribe();
+    });
   }
 
-  protected readonly platforms = PLATFORM_STATS;
   protected readonly platformFilter = signal<PlatformKey>('all');
 
-  protected readonly filterTabs: { key: PlatformKey; label: string; icon: string; color: string }[] = [
+  /** Per-platform stats derived from the overview's platform breakdown. Followers/posts/change
+   *  aren't returned by the aggregate endpoint (no per-platform follower count or historical
+   *  comparison exists yet) so those default to 0 until a richer analytics projection exists. */
+  protected readonly platforms = computed<PlatformStat[]>(() => {
+    const overview = this.dashboardService.overview();
+    if (!overview) return [];
+    return overview.platformBreakdown.map(p => {
+      const key = BACKEND_PLATFORM_TO_KEY[p.platform];
+      const cfg = PLATFORM_CFG[key];
+      return {
+        key,
+        label: cfg.label,
+        icon: cfg.icon,
+        color: cfg.color,
+        followers: 0,
+        reach: p.reach,
+        engagementRate: overview.averageEngagementRate ?? 0,
+        posts: this.dashboardService.recentContent().filter(c => BACKEND_PLATFORM_TO_KEY[c.platform] === key).length,
+        change: 0,
+      };
+    });
+  });
+
+  protected readonly filterTabs = computed<{ key: PlatformKey; label: string; icon: string; color: string }[]>(() => [
     { key: 'all', label: 'كل المنصات', icon: 'fa-layer-group', color: 'var(--color-dark)' },
-    ...PLATFORM_STATS.map(p => ({ key: p.key as PlatformKey, label: p.label, icon: p.icon, color: p.color })),
-  ];
+    ...this.platforms().map(p => ({ key: p.key as PlatformKey, label: p.label, icon: p.icon, color: p.color })),
+  ]);
 
   /** Aggregate or single-platform stats depending on the active filter. */
   private readonly activeStats = computed(() => {
     const f = this.platformFilter();
-    if (f !== 'all') return PLATFORM_STATS.find(p => p.key === f)!;
-    const sum = PLATFORM_STATS.reduce(
+    const list = this.platforms();
+    if (f !== 'all') return list.find(p => p.key === f);
+    const sum = list.reduce(
       (acc, p) => ({
         followers: acc.followers + p.followers,
         reach: acc.reach + p.reach,
@@ -69,61 +118,69 @@ export class CrmPage {
       followers: sum.followers,
       reach: sum.reach,
       posts: sum.posts,
-      engagementRate: +(sum.engWeighted / sum.reach).toFixed(1),
-      change: 11.2,
+      engagementRate: sum.reach > 0 ? +(sum.engWeighted / sum.reach).toFixed(1) : 0,
+      change: 0,
     };
   });
 
   protected readonly kpis = computed<KpiData[]>(() => {
+    const overview = this.dashboardService.overview();
     const s = this.activeStats();
     return [
-      { title: 'إجمالي المتابعين', value: compactNumber(s.followers),   icon: 'fa-users',       iconBg: 'rgb(94 0 255 / 12%)', iconColor: '#5e00ff', change: s.change,  accentColor: '#5e00ff' },
-      { title: 'مدى الوصول الشهري', value: compactNumber(s.reach),       icon: 'fa-bullseye',    iconBg: 'rgba(37,99,235,0.12)',  iconColor: '#0050ff', change: 18.6,      accentColor: '#0050ff' },
-      { title: 'معدل التفاعل',       value: s.engagementRate + '%',      icon: 'fa-heart',       iconBg: 'rgb(255 0 126 / 12%)', iconColor: '#ff007e', change: 2.3,       accentColor: '#EC4899' },
-      { title: 'المنشورات المنشورة', value: String(s.posts),             icon: 'fa-paper-plane', iconBg: 'rgb(0 255 94 / 12%)',  iconColor: '#00f85c', change: 5.1,       accentColor: '#00f85c' },
+      { title: 'إجمالي المتابعين', value: compactNumber(s?.followers ?? 0), icon: 'fa-users',       iconBg: 'rgb(94 0 255 / 12%)',  iconColor: '#5e00ff', change: s?.change ?? 0, accentColor: '#5e00ff' },
+      { title: 'مدى الوصول الشهري', value: compactNumber(s?.reach ?? overview?.totalReach ?? 0), icon: 'fa-bullseye', iconBg: 'rgba(37,99,235,0.12)', iconColor: '#0050ff', change: 0, accentColor: '#0050ff' },
+      { title: 'معدل التفاعل',       value: (overview?.averageEngagementRate ?? 0) + '%', icon: 'fa-heart',       iconBg: 'rgb(255 0 126 / 12%)', iconColor: '#ff007e', change: 0, accentColor: '#EC4899' },
+      { title: 'المنشورات المنشورة', value: String(overview?.postsTracked ?? 0),           icon: 'fa-paper-plane', iconBg: 'rgb(0 255 94 / 12%)',  iconColor: '#00f85c', change: 0, accentColor: '#00f85c' },
     ];
   });
 
-  protected readonly metaWidgets: MetaWidget[] = [
-    {
-      label: 'إعلانات Meta',
-      icon: 'fa-brands fa-meta',
-      metrics: [
-        { label: 'الإنفاق الإعلاني', value: '$1,240' },
-        { label: 'الظهور (Impressions)', value: '486K' },
-        { label: 'تكلفة الألف ظهور', value: '$8.4' },
-        { label: 'العائد على الإنفاق', value: '3.2x' },
-      ],
-    },
-    {
-      label: 'رؤى إنستغرام',
-      icon: 'fa-brands fa-instagram',
-      metrics: [
-        { label: 'زيارات الملف الشخصي', value: '9.6K' },
-        { label: 'تفاعل الستوري', value: '4.1%' },
-        { label: 'نقرات الرابط', value: '512' },
-        { label: 'المتابعون الجدد', value: '+327' },
-      ],
-    },
-  ];
+  /** Placeholder until a real Meta Business connection exists (same intent as the original
+   *  hardcoded widget) — populated with real overview totals instead of fake per-platform numbers. */
+  protected readonly metaWidgets = computed<MetaWidget[]>(() => {
+    const overview = this.dashboardService.overview();
+    if (!overview) return [];
+    return [
+      {
+        label: 'نظرة عامة على الأداء',
+        icon: 'fa-solid fa-chart-line',
+        metrics: [
+          { label: 'الظهور (Impressions)', value: compactNumber(overview.totalImpressions) },
+          { label: 'الإعجابات', value: compactNumber(overview.totalLikes) },
+          { label: 'التعليقات', value: compactNumber(overview.totalComments) },
+          { label: 'المشاركات', value: compactNumber(overview.totalShares) },
+        ],
+      },
+    ];
+  });
 
-  private readonly topPosts: TopPost[] = [
-    { id: 't1', platform: 'tiktok',    content: 'تحدي الصيف — شارك مقطعك وستظهر على صفحتنا 🌊', reach: 312000, engagement: 41200 },
-    { id: 't2', platform: 'instagram', content: 'منتجنا الجديد وصل أخيراً! كن أول من يجربه 🎉',   reach: 128000, engagement: 15400 },
-    { id: 't3', platform: 'facebook',  content: 'عروض رمضان لا تفوتك! تسوق الآن بأفضل الأسعار',   reach: 96000,  engagement: 7200 },
-    { id: 't4', platform: 'snapchat',  content: 'قصة حصرية: كواليس إطلاق منتجنا الجديد 👻',       reach: 54000,  engagement: 4800 },
-  ];
-
-  /** Top posts with each post's platform icon/color already resolved, so
-   *  the display component doesn't need the full platform list too. */
-  protected readonly topPostsView = computed<TopPostView[]>(() =>
-    this.topPosts.map(post => {
-      const cfg = PLATFORM_STATS.find(p => p.key === post.platform)!;
-      return { ...post, icon: cfg.icon, color: cfg.color };
-    }),
-  );
+  protected readonly topPostsView = computed<TopPostView[]>(() => {
+    const overview = this.dashboardService.overview();
+    if (!overview) return [];
+    return overview.topPosts.map(post => {
+      const key = BACKEND_PLATFORM_TO_KEY[post.platform];
+      const cfg = PLATFORM_CFG[key];
+      return {
+        id: post.scheduledPostId,
+        platform: key,
+        content: post.title ?? post.content,
+        reach: post.reach,
+        engagement: Math.round((post.reach * (post.engagementRate ?? 0)) / 100) || post.likes,
+        icon: cfg.icon,
+        color: cfg.color,
+      };
+    });
+  });
 
   protected setFilter(key: PlatformKey): void {
     this.platformFilter.set(key);
+  }
+
+  /** BalanceChart's range chips (1M/6M/1Y/ALL) re-request the charts widget with a different
+   *  day-window — everything else on the dashboard stays as-is. */
+  protected onChartDaysChange(days: number): void {
+    const brandId = this.brandContextService.selectedBrandProfileId();
+    const campaignId = this.brandContextService.selectedCampaignId();
+    if (!brandId) return;
+    this.dashboardService.refresh(brandId, campaignId, days).subscribe();
   }
 }

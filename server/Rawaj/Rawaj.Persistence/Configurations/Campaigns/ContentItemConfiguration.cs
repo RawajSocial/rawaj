@@ -37,7 +37,7 @@ public class ContentItemConfiguration : IEntityTypeConfiguration<ContentItem>
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne(c => c.BrandProfile)
-            .WithMany()
+            .WithMany(b => b.ContentItems)
             .HasForeignKey(c => c.BrandProfileId)
             .OnDelete(DeleteBehavior.Restrict);
 

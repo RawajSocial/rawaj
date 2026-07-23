@@ -8,6 +8,7 @@ using Rawaj.Application.Features.Brands.GenerateOnboardingQuestions;
 using Rawaj.Application.Features.Brands.GetBrandProfile;
 using Rawaj.Application.Features.Brands.GetBrandProfiles;
 using Rawaj.Application.Features.Brands.UpdateBrandProfile;
+using Rawaj.Application.Features.Brands.UploadBrandLogo;
 using Rawaj.Common;
 using Rawaj.Domain.Enums;
 
@@ -26,6 +27,20 @@ public class BrandProfilesController(ISender sender) : ControllerBase
         return result.Succeeded
             ? Ok(ApiResponse<CreateBrandProfileResponse>.Success(result.Data!))
             : BadRequest(ApiResponse<CreateBrandProfileResponse>.Fail(result.ErrorMessage!));
+    }
+
+    [HttpPost("logo")]
+    public async Task<IActionResult> UploadLogo(IFormFile logo, CancellationToken cancellationToken)
+    {
+        await using var stream = new MemoryStream();
+        await logo.CopyToAsync(stream, cancellationToken);
+
+        var command = new UploadBrandLogoCommand(stream.ToArray(), logo.ContentType, logo.FileName);
+        var result = await sender.Send(command, cancellationToken);
+
+        return result.Succeeded
+            ? Ok(ApiResponse<UploadBrandLogoResponse>.Success(result.Data!))
+            : BadRequest(ApiResponse<UploadBrandLogoResponse>.Fail(result.ErrorMessage!));
     }
 
     [HttpGet]

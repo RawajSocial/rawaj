@@ -1,25 +1,88 @@
-import { Injectable, computed, signal } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable, tap } from 'rxjs';
+import { environment } from '../../environments/environment';
+import { ApiResponse } from '../model/auth.model';
+import { PagedResult } from '../model/paged-result.model';
 import { Ad, AdStatus } from '../model/ad.model';
+import { CampaignPlatform } from '../model/campaign.model';
+import { BackendSocialPlatform } from '../model/content-item.model';
+import { ScheduledPostSummary } from '../model/scheduled-post.model';
+import { CampaignService } from './campaign.service';
 
-const MOCK_ADS: Ad[] = [
-  { id: 'a1', name: 'إعلان الشريحة الرئيسية — رمضان',   campaignId: '1', campaignName: 'حملة رمضان الكريم ٢٠٢٥',   platforms: ['instagram', 'facebook'], status: 'active',    format: 'carousel', impressions: 184000, clicks: 4700,  ctr: 2.55, spend: 3200, cpc: 0.68, createdAt: '2025-03-01T08:30:00', postUrl: 'https://instagram.com/p/rawaj-a1' },
-  { id: 'a2', name: 'فيديو قصير — منتج العيد',            campaignId: '1', campaignName: 'حملة رمضان الكريم ٢٠٢٥',   platforms: ['tiktok', 'instagram'],   status: 'active',    format: 'reel',     impressions: 210000, clicks: 5800,  ctr: 2.76, spend: 2800, cpc: 0.48, createdAt: '2025-03-05T16:00:00', postUrl: 'https://tiktok.com/@rawaj/video/a2' },
-  { id: 'a3', name: 'منشور نصي — خصم ٣٠٪',                campaignId: '1', campaignName: 'حملة رمضان الكريم ٢٠٢٥',   platforms: ['facebook'],              status: 'paused',    format: 'text',     impressions: 86000,  clicks: 1900,  ctr: 2.21, spend: 1300, cpc: 0.68, createdAt: '2025-03-10T09:00:00', postUrl: 'https://facebook.com/rawaj/posts/a3' },
-  { id: 'a4', name: 'إعلان منتج العيد — فيسبوك',          campaignId: '2', campaignName: 'إطلاق منتج العيد',          platforms: ['facebook', 'instagram', 'linkedin'], status: 'paused', format: 'image',    impressions: 120000, clicks: 3100,  ctr: 2.58, spend: 1800, cpc: 0.58, createdAt: '2025-04-10T14:00:00', imageUrl: '/ads/Product 1.jpg', postUrl: 'https://facebook.com/rawaj/posts/a4' },
-  { id: 'a5', name: 'فيديو تعريفي — سناب شات',            campaignId: '2', campaignName: 'إطلاق منتج العيد',          platforms: ['snapchat'],              status: 'pending',   format: 'video',    impressions: 100000, clicks: 2500,  ctr: 2.50, spend: 1400, cpc: 0.56, createdAt: '2025-04-12T11:00:00' },
-  { id: 'a6', name: 'إعلان الوعي — يوتيوب',               campaignId: '3', campaignName: 'حملة الصيف — التوعية',      platforms: ['youtube'],               status: 'pending',   format: 'video',    impressions: 0,      clicks: 0,     ctr: 0,    spend: 0,    cpc: 0,    createdAt: '2025-05-15T10:00:00' },
-  { id: 'a7', name: 'صورة العطر الجديد',                   campaignId: '2', campaignName: 'إطلاق منتج العيد',          platforms: ['instagram', 'x'],        status: 'completed', format: 'image',    impressions: 96000,  clicks: 2600,  ctr: 2.71, spend: 1550, cpc: 0.60, createdAt: '2025-04-20T13:00:00', imageUrl: '/ads/perfume.jpeg', postUrl: 'https://instagram.com/p/rawaj-a7' },
-];
+const PLATFORM_MAP: Record<BackendSocialPlatform, CampaignPlatform> = {
+  Instagram: 'instagram',
+  Facebook: 'facebook',
+  Tiktok: 'tiktok',
+  Youtube: 'youtube',
+  Twitter: 'x',
+  Linkedin: 'linkedin',
+};
 
+const STATUS_MAP: Record<ScheduledPostSummary['status'], AdStatus> = {
+  Pending: 'pending',
+  Published: 'completed',
+  Failed: 'rejected',
+  Cancelled: 'paused',
+};
+
+/**
+ * "My Ads" is backed by ScheduledPost + its PostAnalytics (no dedicated `Ad`
+ * entity exists — see feature plan). The scheduled-posts summary doesn't carry
+ * post copy/spend, so those UI-only fields default to a stand-in/0 until a
+ * richer projection exists.
+ */
 @Injectable({ providedIn: 'root' })
 export class AdService {
-  private readonly _ads = signal<Ad[]>(MOCK_ADS);
+  private readonly http = inject(HttpClient);
+  private readonly campaignService = inject(CampaignService);
+  private readonly baseUrl = `${environment.apiUrl}/scheduled-posts`;
+
+  private readonly _ads = signal<Ad[]>([]);
   readonly ads = this._ads.asReadonly();
+
+  private toAd(s: ScheduledPostSummary): Ad {
+    const campaign = s.campaignId ? this.campaignService.getById(s.campaignId)() : undefined;
+    const impressions = s.impressions ?? 0;
+    const clicks = s.clicks ?? 0;
+    return {
+      id: s.scheduledPostId,
+      name: `منشور ${s.accountName}`,
+      campaignId: s.campaignId ?? '',
+      campaignName: campaign?.name ?? 'بدون حملة',
+      platforms: [PLATFORM_MAP[s.platform] ?? 'instagram'],
+      status: STATUS_MAP[s.status] ?? 'pending',
+      format: 'text',
+      impressions,
+      clicks,
+      ctr: impressions > 0 ? +((clicks / impressions) * 100).toFixed(2) : 0,
+      spend: 0,
+      cpc: 0,
+      createdAt: s.scheduledAt,
+    };
+  }
 
   getById(id: string) {
     return computed(() => this._ads().find(a => a.id === id));
   }
 
+  refresh(
+    brandProfileId: string,
+    campaignId?: string | 'all',
+    page = 1,
+    pageSize = 100,
+  ): Observable<ApiResponse<PagedResult<ScheduledPostSummary>>> {
+    let url = `${this.baseUrl}?brandProfileId=${encodeURIComponent(brandProfileId)}&page=${page}&pageSize=${pageSize}`;
+    if (campaignId && campaignId !== 'all') url += `&campaignId=${encodeURIComponent(campaignId)}`;
+    return this.http.get<ApiResponse<PagedResult<ScheduledPostSummary>>>(url).pipe(
+      tap(res => {
+        if (res.data) this._ads.set(res.data.items.map(s => this.toAd(s)));
+      }),
+    );
+  }
+
+  /** Local-only optimistic toggle — there's no generic pause/resume endpoint for scheduled
+   *  posts today (only cancel/publish-now), so this does not persist to the backend. */
   toggle(id: string): void {
     this._ads.update(list =>
       list.map(a => (a.id === id ? { ...a, status: (a.status === 'active' ? 'paused' : 'active') as AdStatus } : a)),

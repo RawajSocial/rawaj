@@ -79,6 +79,8 @@ public class SchedulePostCommandHandler(
             ContentItemId = contentItem.Id,
             VisualAssetId = request.VisualAssetId,
             SocialAccountId = socialAccount.Id,
+            BrandProfileId = contentItem.BrandProfileId ?? socialAccount.BrandProfileId,
+            CampaignId = contentItem.CampaignId,
             ScheduledAt = request.ScheduledAt,
             AiSuggestedTime = request.AiSuggestedTime,
             Status = ScheduledPostStatus.Pending,

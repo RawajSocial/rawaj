@@ -1,12 +1,10 @@
-import { Component, computed, signal } from '@angular/core';
+import { Component, computed, input, output, signal } from '@angular/core';
+import { DashboardChartPoint } from '../../../model/dashboard.model';
+import { compactNumber } from '../crm-page/crm-page.model';
 
 type FilterKey = '1Y' | '6M' | '1M' | 'ALL';
 
-interface ChartDataset {
-  revenue: number[];
-  expenses: number[];
-  labels: string[];
-}
+const FILTER_DAYS: Record<FilterKey, number> = { '1M': 30, '6M': 180, '1Y': 365, ALL: 730 };
 
 @Component({
   selector: 'app-balance-chart',
@@ -16,51 +14,44 @@ interface ChartDataset {
   styleUrl: './balance-chart.css',
 })
 export class BalanceChart {
+  /** Real time-series data from `DashboardService.charts()`. Empty until the dashboard loads. */
+  readonly points = input<DashboardChartPoint[]>([]);
+  /** Emits the number of days to request when the user picks a different range chip;
+   *  the parent (CrmPage) re-calls `DashboardService.refresh(...)` with this value. */
+  readonly daysChange = output<number>();
+
   activeFilter = signal<FilterKey>('1Y');
-
-  private readonly allData: Record<FilterKey, ChartDataset> = {
-    '1Y': {
-      labels: ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'],
-      revenue: [55, 70, 60, 80, 72, 90, 85, 95, 78, 88, 92, 100],
-      expenses: [40, 45, 50, 42, 55, 48, 60, 52, 58, 50, 62, 55],
-    },
-    '6M': {
-      labels: ['يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'],
-      revenue: [85, 95, 78, 88, 92, 100],
-      expenses: [60, 52, 58, 50, 62, 55],
-    },
-    '1M': {
-      labels: ['الأسبوع 1', 'الأسبوع 2', 'الأسبوع 3', 'الأسبوع 4'],
-      revenue: [88, 94, 90, 100],
-      expenses: [55, 60, 58, 62],
-    },
-    'ALL': {
-      labels: ['2020', '2021', '2022', '2023', '2024', '2025'],
-      revenue: [40, 55, 65, 75, 88, 100],
-      expenses: [30, 38, 45, 50, 56, 60],
-    },
-  };
-
-  currentData = computed(() => this.allData[this.activeFilter()]);
 
   readonly W = 800;
   readonly H = 250;
   readonly PAD = 20;
 
-  revenuePath = computed(() => this.buildPath(this.currentData().revenue));
-  revenueAreaPath = computed(() => this.buildAreaPath(this.currentData().revenue));
-  expensePath = computed(() => this.buildPath(this.currentData().expenses));
+  private readonly reachSeries = computed(() => this.points().map(p => p.reach));
+  private readonly impressionsSeries = computed(() => this.points().map(p => p.impressions));
+
+  private readonly maxValue = computed(() => {
+    const all = [...this.reachSeries(), ...this.impressionsSeries()];
+    return all.length ? Math.max(...all, 1) : 1;
+  });
+
+  revenuePath = computed(() => this.buildPath(this.reachSeries()));
+  revenueAreaPath = computed(() => this.buildAreaPath(this.reachSeries()));
+  expensePath = computed(() => this.buildPath(this.impressionsSeries()));
 
   xLabels = computed(() => {
-    const labels = this.currentData().labels;
-    return labels.map((label, i) => ({
-      label,
-      x: this.PAD + (i / (labels.length - 1)) * (this.W - this.PAD * 2),
+    const pts = this.points();
+    if (pts.length < 2) return [];
+    return pts.map((p, i) => ({
+      label: new Date(p.date).toLocaleDateString('ar-SA', { day: 'numeric', month: 'short' }),
+      x: this.PAD + (i / (pts.length - 1)) * (this.W - this.PAD * 2),
     }));
   });
 
+  totalRevenue = computed(() => compactNumber(this.reachSeries().reduce((a, v) => a + v, 0)));
+  totalExpenses = computed(() => compactNumber(this.impressionsSeries().reduce((a, v) => a + v, 0)));
+
   private scaleY(value: number): number {
-    const max = 120;
+    const max = this.maxValue();
     return this.H - this.PAD - ((value / max) * (this.H - this.PAD * 2));
   }
 
@@ -92,8 +83,6 @@ export class BalanceChart {
 
   setFilter(f: FilterKey): void {
     this.activeFilter.set(f);
+    this.daysChange.emit(FILTER_DAYS[f]);
   }
-
-  totalRevenue = '795.69 ألف $';
-  totalExpenses = '415.37 ألف $';
 }

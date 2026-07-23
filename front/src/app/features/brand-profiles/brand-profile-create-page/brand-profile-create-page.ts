@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { of, switchMap, throwError } from 'rxjs';
 import { PageHeader } from '../../../shared/components/page-header/page-header';
 import { FileUpload } from '../../../shared/components/file-upload/file-upload';
 import { BrandProfileService } from '../../../services/brand-profile.service';
@@ -64,6 +65,7 @@ export class BrandProfileCreatePage {
   protected readonly selectedVoice = signal<BrandVoice>('professional');
   protected readonly logoDataUrl = signal<string | null>(null);
   protected readonly logoFileName = signal<string | null>(null);
+  private readonly logoFile = signal<File | null>(null);
 
   constructor() {
     this.seo.setPageSeo({
@@ -83,6 +85,8 @@ export class BrandProfileCreatePage {
 
   protected onLogoSelected(file: File): void {
     this.logoFileName.set(file.name);
+    this.logoFile.set(file);
+    // Data URL is used only for the in-wizard preview; the actual file is uploaded on submit.
     const reader = new FileReader();
     reader.onload = e => this.logoDataUrl.set(e.target?.result as string);
     reader.readAsDataURL(file);
@@ -91,6 +95,7 @@ export class BrandProfileCreatePage {
   protected onLogoCleared(): void {
     this.logoDataUrl.set(null);
     this.logoFileName.set(null);
+    this.logoFile.set(null);
   }
 
   protected get isBasicsValid(): boolean {
@@ -137,17 +142,34 @@ export class BrandProfileCreatePage {
 
     const { name, tagline, industry, description, location } = this.basicsForm.getRawValue();
 
+    // Upload the logo file first (if any) so the brand profile stores a short /media/ path
+    // instead of the base64 preview data URL, then create the profile with that path.
+    const file = this.logoFile();
+    const logoUrl$ = file
+      ? this.brandProfileService.uploadLogo(file).pipe(
+          switchMap(res =>
+            res.status === 'success' && res.data
+              ? of<string | undefined>(res.data.logoUrl)
+              : throwError(() => new Error(res.message ?? 'تعذّر رفع الشعار.')),
+          ),
+        )
+      : of<string | undefined>(undefined);
+
     this.loaderService.show();
-    this.brandProfileService
-      .create({
-        name,
-        tagline: tagline || undefined,
-        industry: industry || undefined,
-        description: description || undefined,
-        location: location || undefined,
-        brandVoice: this.selectedVoice(),
-        logoUrl: this.logoDataUrl() ?? undefined,
-      })
+    logoUrl$
+      .pipe(
+        switchMap(logoUrl =>
+          this.brandProfileService.create({
+            name,
+            tagline: tagline || undefined,
+            industry: industry || undefined,
+            description: description || undefined,
+            location: location || undefined,
+            brandVoice: this.selectedVoice(),
+            logoUrl,
+          }),
+        ),
+      )
       .subscribe({
         next: res => {
           this.loaderService.hide();

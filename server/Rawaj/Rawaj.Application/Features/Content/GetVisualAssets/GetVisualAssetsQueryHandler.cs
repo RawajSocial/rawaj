@@ -5,23 +5,16 @@ using Rawaj.Application.Common.Models;
 
 namespace Rawaj.Application.Features.Content.GetVisualAssets;
 
-public class GetVisualAssetsQueryHandler(IApplicationDbContext dbContext, ICurrentTenantContext currentTenantContext)
+public class GetVisualAssetsQueryHandler(IApplicationDbContext dbContext)
     : IRequestHandler<GetVisualAssetsQuery, Result<PagedResult<VisualAssetSummary>>>
 {
     public async Task<Result<PagedResult<VisualAssetSummary>>> Handle(GetVisualAssetsQuery request, CancellationToken cancellationToken)
     {
-        var tenantId = currentTenantContext.TenantId!.Value;
         var (page, pageSize) = PaginationDefaults.Clamp(request.Page, request.PageSize);
 
-        var campaignBelongsToTenant = await dbContext.MarketingCampaigns
-            .AnyAsync(c => c.Id == request.CampaignId && c.BrandProfile.TenantId == tenantId, cancellationToken);
-        if (!campaignBelongsToTenant)
-        {
-            return Result<PagedResult<VisualAssetSummary>>.Failure("Campaign not found.");
-        }
-
         var query = dbContext.VisualAssets
-            .Where(a => a.CampaignId == request.CampaignId)
+            .Where(a => a.BrandProfileId == request.BrandProfileId)
+            .Where(a => request.CampaignId == null || a.CampaignId == request.CampaignId)
             .OrderByDescending(a => a.CreatedAt);
 
         var totalCount = await query.CountAsync(cancellationToken);

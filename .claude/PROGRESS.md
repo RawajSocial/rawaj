@@ -30,7 +30,7 @@ this file is the "what happened and what's next" log, not the style guide.
 - `core/guards/` — `auth.guard.ts`, `admin.guard.ts`, `guest.guard.ts` (functional guards, `CanActivateFn`/`CanMatchFn`).
 - `core/interceptors/` — `auth.interceptor.ts` (attaches bearer token, one silent refresh-and-retry on 401).
 - `model/` — plain interfaces/types, one file per domain (`auth.model.ts`, `tenant.model.ts`, `social-account.model.ts`, `campaign.model.ts`, `brand-profile.model.ts`, `admin.model.ts`, `generated-item.model.ts`, `team-member.model.ts`, etc.). Auth/tenant/social-account model types are named to mirror the backend's C# records exactly (see below).
-- `services/` — most are still **mock data stores**: `private signal<T[]>` + `.asReadonly()` + `getById()` computed + plain mutation methods (`CampaignService`, `AdService`, `BrandProfileService`, `TeamMemberService`, `MediaService`, `AdminService`). `AuthService`/`TenantService`/`SocialAccountService` (all in `core/`, not `services/`) are the real, HTTP-backed exceptions.
+- `services/` — several are still **mock data stores**: `private signal<T[]>` + `.asReadonly()` + `getById()` computed + plain mutation methods (`CampaignService`, `AdService`, `TeamMemberService`, `MediaService`, `AdminService`). Real, HTTP-backed exceptions: `AuthService`/`TenantService`/`SocialAccountService` (in `core/`) and `BrandProfileService` (in `services/`, now HTTP-backed — see item 12).
 - `routes/` — `user.routes.ts` (children of `/dashboard`) and `admin.routes.ts` (children of `/admin`), composed by `app.routes.ts`.
 - `environments/` — `environment.ts`/`.development.ts`/`.production.ts`, holds `apiUrl` (`https://localhost:7206/api/v1` in dev). Any new env-specific value goes here, in all three files.
 
@@ -78,11 +78,26 @@ Layered/CQRS solution:
     - Settings profile tab gained a second card ("بيانات النشاط التجاري": phone/industry/country/city/website) wired to `tenantService.updateProfile()`, with a success modal on activation reward.
     - Billing page now shows the real `planName`/`coinBalance` from `TenantService` (invoices/usage bars stay mock).
     - Brand-profile creation page: added an optional `Location` field with the requested Arabic tip ("هذه المعلومة سوف تساعد رواج في تحليل المنافسين"); since brand-profiles remain a **mock** module this pass, the "upgrade required" gate on submit checks the mock service's local profile count + `tenantService.isAgency()` client-side (not the backend sentinel yet — that only takes effect once brand-profiles are wired to real HTTP).
+12. **Brand profiles wired to real backend** (no longer mock):
+    - `services/brand-profile.service.ts` now hits the live API — `refresh()` (`GET /brand-profiles`, maps `BrandProfileSummary` → `BrandProfile`), `create()` (`POST /brand-profiles`), `archive()` (`POST /brand-profiles/{id}/archive`), all funneled through a `mutateAndRefresh` helper that re-fetches the list on success so the `profiles` signal always mirrors server state. The old local `signal<BrandProfile[]>` mock store is gone.
+    - The create wizard's "upgrade required" gate now reads the backend's real state via `tenantService` (`brandProfileCount()` / `maxBrands()` / `isAgency()`) instead of a client-side mock count.
+13. **Brand-profile requirement gating** (new tenants start with **zero** brand profiles):
+    - Backend: `RegisterCommandHandler` now provisions with `createDefaultBrandProfile: false` — a fresh signup gets a tenant + subscription + Owner member but **no** brand profile (reverses item 11's "one default `TenantBrandProfile`"). `CreateTenantCommandHandler` is untouched.
+    - Frontend rule: navigation and page content stay **fully unrestricted** — every sidebar item is clickable, every route reachable, every page renders its normal layout/lists/cards. Only the brand-*dependent actions* are gated when `tenantService.brandProfileCount() === 0`, reusing the existing brand-cap pattern from `brand-profile-create-page.ts` inline (an `ErrorModalService.show(...)` warning + `router.navigate(['/dashboard/brand-profiles/new'])`) — no new shared component/directive.
+    - Gated actions: campaigns-page (`startNewCampaign`, pause/resume), ads-page + ad-detail-page (`toggleStatus`), calendar-page (`savePost`/`deletePost`), marketing-plan-page (`goToOnboarding`/`remake`). Read-only detail/my-media pages were left alone (no mutating action to gate).
+    - `crm-page` shows a "أنشئ ملف علامتك التجارية أولاً" CTA banner (reusing the reward-card style) while `brandProfileCount() === 0`; the header brand selector gains a third branch rendering an "أنشئ ملف علامة تجارية" link when the profiles list is empty.
+    - **Content Generation is the sole exception** — it stays fully usable with zero brand profiles (already defaulted its brand id to `''`, no change needed).
+14. **Brand-profile logos stored as files, not base64** (mirrors the user-avatar mechanism):
+    - Previously the create wizard embedded the logo as a base64 `data:` URL in `BrandInfo.LogoUrl`. Now the file uploads to disk and only a short relative path is persisted.
+    - Backend: generalized the avatar storage — `IAvatarStorageService`/`LocalAvatarStorageService` → `ILocalImageStorageService`/`LocalImageStorageService` with a `subfolder` param (`SaveAsync`/`DeleteAsync`; avatars keep their existing on-disk location); the two avatar handlers + DI registration were updated. New `Features/Brands/UploadBrandLogo/` (command/handler/response/validator, Admin-only, 5 MB cap, jpeg/png/webp/**svg**) + `POST /brand-profiles/logo` (accepts `IFormFile`, saves to `wwwroot/media/brandprofiles/logourls/`, returns `/media/brandprofiles/logourls/{file}`). The `LogoUrl` rule in the Create/Update brand-profile validators was relaxed to accept root-relative `/media/` paths (it required an absolute URI, which the new path would have failed; legacy `data:` URLs still pass).
+    - Frontend: `BrandProfileService.uploadLogo(file)` (posts `FormData`), and `toBrandProfile` now resolves `logoUrl` through `resolveMediaUrl` (so `/media/...` paths resolve to the API origin in dev; legacy base64 values pass through unchanged). The wizard keeps the data URL for preview only, captures the real `File`, and on submit uploads it first then creates the profile with the returned path.
+    - **Onboarding wizard's logo is out of scope** — it only ever stored the file *name*, never binary, so it wasn't touched.
+15. **Dead auth nav links fixed**: the login page's "إنشاء حساب" link and the sign-up page's "تسجيل الدخول" link were `<a href="#">` placeholders with no routing. Added `RouterLink` to both standalone form components' `imports` and pointed them at `/sign-up` and `/login`.
 
 ## What's real vs. still mock
 
-- **Real (hits the live API)**: register, login, refresh-token, logout, tenant auto-provisioning, `GetMyTenant`, `UpdateTenantProfile`, `UpgradeToAgency`, social-account connect/list/disconnect (OAuth).
-- **Everything else is still mock-data-driven** (local signals, no HTTP calls): campaigns, ads, brand profiles (including their per-brand social-connection UI in the Settings "connections" tab, which is separate from the new real `/dashboard/social-accounts` page), team members/users, media/content-gen library, and the entire admin dashboard (stats/users/tenants/plans/settings) — even though the backend already has real endpoints for brand profiles (`GetBrandProfiles`, `GetBrandProfileById`, `CreateBrandProfile`, `UpdateBrandProfile`, `ArchiveBrandProfile`, `UploadBrandImage`, `RemoveBrandImage`), campaigns (`GetCampaigns`, the `CreateCampaignStep1..7` flow), and admin (`GetPlatformStats`, `GetUsers`, `GetTenants`, `SetUserActive`). Wiring each of these up is the natural "next module."
+- **Real (hits the live API)**: register, login, refresh-token, logout, tenant auto-provisioning, `GetMyTenant`, `UpdateTenantProfile`, `UpgradeToAgency`, social-account connect/list/disconnect (OAuth), **brand profiles** (list/create/archive + logo upload; see items 12–14).
+- **Everything else is still mock-data-driven** (local signals, no HTTP calls): campaigns, ads, the per-brand social-connection UI in the Settings "connections" tab (separate from the real `/dashboard/social-accounts` page), team members/users, media/content-gen library, and the entire admin dashboard (stats/users/tenants/plans/settings) — even though the backend already has real endpoints for campaigns (`GetCampaigns`, the `CreateCampaignStep1..7` flow) and admin (`GetPlatformStats`, `GetUsers`, `GetTenants`, `SetUserActive`). Wiring each of these up is the natural "next module."
 
 ## Known issues / things to fix, not forget
 
@@ -93,14 +108,18 @@ Layered/CQRS solution:
 - CORS is already fully open in `Program.cs` (`AllowAnyOrigin/AllowAnyMethod/AllowAnyHeader`) — no backend change needed there for local frontend↔backend calls.
 - **LinkedIn OAuth is still a placeholder credential** in both `appsettings.json` and `appsettings.Development.json` (only Meta/Facebook has a real app configured) — the "ربط الحساب" button for LinkedIn on `/dashboard/social-accounts` will reach the redirect but fail on LinkedIn's side until a real app is registered.
 - **No coin-spend hook exists yet.** Tenants are granted starting/reward coins, but nothing deducts them — the natural place is wherever AI content/campaign generation gets wired to real HTTP (content-gen is still mock), not this pass.
-- The brand-profile "upgrade required" gate is currently enforced **client-side against the mock brand-profile count**, not the backend's real `AGENCY_UPGRADE_REQUIRED` sentinel — once brand-profiles are wired to real HTTP, switch the check to read that sentinel from the API response instead.
 - The auth-module frontend changes were previously flagged as uncommitted directly on `dev` — since resolved (branched, committed, pushed as `feature/auth-module-real-backend-integration`); this session's tenant-lifecycle work should follow the same branch-and-push pattern.
+- Items 12–15 (brand profiles → real HTTP, requirement gating, logo file storage, auth nav-link fixes) are **done in the working tree but not yet committed** — both `dotnet build` and `ng build` pass. Follow the same branch-and-push pattern before continuing.
+- The brand-profile logo upload endpoint is standalone ("save file, return URL") and is **not** tied to any brand row, so abandoning the create wizard after uploading a logo leaves an orphan file under `wwwroot/media/brandprofiles/logourls/` — acceptable for now (matches how avatar uploads behave), but a cleanup pass could prune unreferenced logos later. The onboarding wizard still only records a logo *filename*, not a real uploaded file — wiring it to this same endpoint is a follow-up.
 
 ## Suggested next module
 
-Brand profiles remain the natural next module to wire to real HTTP — the
-backend already has full CRUD + image upload, and this session's tenant work
-already depends on `defaultBrandProfileId` from `GetMyTenant`, so switching
-`BrandProfileService` from its mock signal store to real `HttpClient` calls
-would also let the "upgrade required" gate and the Settings "connections" tab
-(agency per-brand social connections) become fully real in one pass.
+Brand profiles are now real (items 12–14), so **campaigns** are the natural
+next module to wire to real HTTP — the backend already has `GetCampaigns` and
+the `CreateCampaignStep1..7` flow, and campaigns hang off a brand profile
+(`Campaign.brandProfileId`), which is now live. Wiring `CampaignService` from
+its mock signal store to real `HttpClient` calls would also make the
+brand-dependent gating in item 13 (campaigns/ads/calendar) operate on real
+data end-to-end. Runner-up: the Settings "connections" tab (agency per-brand
+social connections) is still mock and could be unified with the real
+`/dashboard/social-accounts` OAuth flow.

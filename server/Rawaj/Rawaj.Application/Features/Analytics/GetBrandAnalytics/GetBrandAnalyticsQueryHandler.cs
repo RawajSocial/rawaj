@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Rawaj.Application.Common.Interfaces;
 using Rawaj.Application.Common.Models;
+using Rawaj.Application.Features.Analytics.Common;
 
 namespace Rawaj.Application.Features.Analytics.GetBrandAnalytics;
 
@@ -23,34 +24,9 @@ public class GetBrandAnalyticsQueryHandler(IApplicationDbContext dbContext, ICur
             return Result<BrandAnalyticsOverview>.Failure("Brand profile not found.");
         }
 
-        var snapshots = await dbContext.PostAnalytics
-            .Where(a => a.ScheduledPost.ContentItem.BrandProfileId == request.BrandProfileId)
-            .OrderByDescending(a => a.RecordedAt)
-            .Select(a => new
-            {
-                a.ScheduledPostId,
-                a.Platform,
-                a.Impressions,
-                a.Reach,
-                a.Likes,
-                a.Comments,
-                a.Shares,
-                a.EngagementRate,
-                ContentItemId = a.ScheduledPost.ContentItemId,
-                Title = a.ScheduledPost.ContentItem.Title,
-                Content = a.ScheduledPost.ContentItem.Content,
-            })
-            .ToListAsync(cancellationToken);
-
-        var latestPerPost = snapshots
-            .GroupBy(a => a.ScheduledPostId)
-            .Select(g => g.First())
-            .ToList();
-
-        var engagementRates = latestPerPost
-            .Where(p => p.EngagementRate.HasValue)
-            .Select(p => p.EngagementRate!.Value)
-            .ToList();
+        var latestPerPost = await PostAnalyticsAggregation.GetLatestPerPostAsync(
+            dbContext.PostAnalytics.Where(a => a.ScheduledPost.ContentItem.BrandProfileId == request.BrandProfileId),
+            cancellationToken);
 
         var platformBreakdown = latestPerPost
             .GroupBy(p => p.Platform)
@@ -80,7 +56,7 @@ public class GetBrandAnalyticsQueryHandler(IApplicationDbContext dbContext, ICur
             latestPerPost.Sum(p => p.Likes ?? 0),
             latestPerPost.Sum(p => p.Comments ?? 0),
             latestPerPost.Sum(p => p.Shares ?? 0),
-            engagementRates.Count > 0 ? Math.Round(engagementRates.Average(), 4) : null,
+            PostAnalyticsAggregation.AverageEngagementRate(latestPerPost),
             platformBreakdown,
             topPosts);
 

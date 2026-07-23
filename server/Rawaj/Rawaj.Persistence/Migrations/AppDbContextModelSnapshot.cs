@@ -832,6 +832,12 @@ namespace Rawaj.Persistence.Migrations
                     b.Property<bool>("AiSuggestedTime")
                         .HasColumnType("bit");
 
+                    b.Property<Guid>("BrandProfileId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CampaignId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid>("ContentItemId")
                         .HasColumnType("uniqueidentifier");
 
@@ -869,6 +875,10 @@ namespace Rawaj.Persistence.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("BrandProfileId");
+
+                    b.HasIndex("CampaignId");
 
                     b.HasIndex("ContentItemId");
 
@@ -1289,7 +1299,7 @@ namespace Rawaj.Persistence.Migrations
             modelBuilder.Entity("Rawaj.Domain.Entities.Campaigns.ContentItem", b =>
                 {
                     b.HasOne("Rawaj.Domain.Entities.Tenants.TenantBrandProfile", "BrandProfile")
-                        .WithMany()
+                        .WithMany("ContentItems")
                         .HasForeignKey("BrandProfileId")
                         .OnDelete(DeleteBehavior.Restrict);
 
@@ -1339,7 +1349,7 @@ namespace Rawaj.Persistence.Migrations
             modelBuilder.Entity("Rawaj.Domain.Entities.Campaigns.MarketingCampaign", b =>
                 {
                     b.HasOne("Rawaj.Domain.Entities.Tenants.TenantBrandProfile", "BrandProfile")
-                        .WithMany()
+                        .WithMany("Campaigns")
                         .HasForeignKey("BrandProfileId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
@@ -1356,7 +1366,7 @@ namespace Rawaj.Persistence.Migrations
             modelBuilder.Entity("Rawaj.Domain.Entities.Campaigns.VisualAsset", b =>
                 {
                     b.HasOne("Rawaj.Domain.Entities.Tenants.TenantBrandProfile", "BrandProfile")
-                        .WithMany()
+                        .WithMany("VisualAssets")
                         .HasForeignKey("BrandProfileId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
@@ -1415,6 +1425,17 @@ namespace Rawaj.Persistence.Migrations
 
             modelBuilder.Entity("Rawaj.Domain.Entities.SocialMedia.ScheduledPost", b =>
                 {
+                    b.HasOne("Rawaj.Domain.Entities.Tenants.TenantBrandProfile", "BrandProfile")
+                        .WithMany()
+                        .HasForeignKey("BrandProfileId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Rawaj.Domain.Entities.Campaigns.MarketingCampaign", "Campaign")
+                        .WithMany()
+                        .HasForeignKey("CampaignId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("Rawaj.Domain.Entities.Campaigns.ContentItem", "ContentItem")
                         .WithMany()
                         .HasForeignKey("ContentItemId")
@@ -1431,6 +1452,10 @@ namespace Rawaj.Persistence.Migrations
                         .WithMany()
                         .HasForeignKey("VisualAssetId")
                         .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("BrandProfile");
+
+                    b.Navigation("Campaign");
 
                     b.Navigation("ContentItem");
 
@@ -1556,6 +1581,15 @@ namespace Rawaj.Persistence.Migrations
                     b.Navigation("BrandProfiles");
 
                     b.Navigation("Members");
+                });
+
+            modelBuilder.Entity("Rawaj.Domain.Entities.Tenants.TenantBrandProfile", b =>
+                {
+                    b.Navigation("Campaigns");
+
+                    b.Navigation("ContentItems");
+
+                    b.Navigation("VisualAssets");
                 });
 
             modelBuilder.Entity("Rawaj.Domain.Entities.Tenants.TenantMember", b =>

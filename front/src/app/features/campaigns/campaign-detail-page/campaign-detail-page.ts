@@ -25,7 +25,7 @@ const PLATFORM_META: Record<CampaignPlatform, PlatformMeta> = {
 };
 
 const STATUS_LABELS: Record<CampaignStatus, string> = {
-  active: 'نشطة', paused: 'موقوفة', completed: 'مكتملة', draft: 'مسودة',
+  active: 'نشطة', paused: 'موقوفة', completed: 'مكتملة', draft: 'مسودة', archived: 'مؤرشفة',
 };
 
 const OBJECTIVE_LABELS: Record<CampaignObjective, string> = {

@@ -1,7 +1,11 @@
 import { Component, OnInit, effect, inject, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { forkJoin } from 'rxjs';
 import { SeoService } from '../../services/seo.service';
 import { TenantService } from '../../core/tenant/tenant.service';
+import { BrandProfileService } from '../../services/brand-profile.service';
+import { CampaignService } from '../../services/campaign.service';
+import { BrandContextService } from '../../services/brand-context.service';
 import { Header } from './header/header';
 import { Sidebar } from './sidebar/sidebar';
 
@@ -17,6 +21,9 @@ export class UserLayout implements OnInit {
   mobileOverlayOpen = signal(false);
 
   private readonly tenantService = inject(TenantService);
+  private readonly brandProfileService = inject(BrandProfileService);
+  private readonly campaignService = inject(CampaignService);
+  private readonly brandContextService = inject(BrandContextService);
 
   constructor(private readonly seo: SeoService) {
     effect(() => {
@@ -26,6 +33,13 @@ export class UserLayout implements OnInit {
     if (!this.tenantService.tenant()) {
       this.tenantService.refresh().subscribe();
     }
+
+    // Load brand profiles + campaigns once, then pick a default brand for the
+    // global header selector (only if nothing is already selected/persisted).
+    forkJoin([this.brandProfileService.refresh(), this.campaignService.refresh()]).subscribe({
+      next: () => this.brandContextService.initDefault(),
+      error: () => { /* header selectors just stay empty; pages surface their own errors */ },
+    });
   }
 
   ngOnInit(): void {

@@ -1,0 +1,53 @@
+/* Mirrors the lock/overlay style of meta-analytics-card: real content blurred
+   behind a translucent overlay carrying a lock icon, message and CTA pill. */
+
+.brand-lock {
+  border-radius: inherit;
+}
+
+.brand-lock--locked .brand-lock__content {
+  filter: blur(3px);
+  opacity: 0.55;
+  pointer-events: none;
+  user-select: none;
+}
+
+.brand-lock__overlay {
+  inset: 0;
+  gap: 8px;
+  background: color-mix(in srgb, var(--color-surface) 78%, transparent);
+  backdrop-filter: blur(1px);
+  border-radius: inherit;
+}
+
+.brand-lock__overlay i {
+  font-size: 1.4rem;
+  color: var(--color-text-muted);
+}
+
+.brand-lock__overlay p {
+  margin: 0;
+  max-width: 240px;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
+
+.brand-lock__btn {
+  margin-top: 4px;
+  padding: 7px 18px;
+  border: none;
+  border-radius: var(--radius-full);
+  background: linear-gradient(135deg, var(--color-secondary), var(--color-primary));
+  color: #fff;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-semibold);
+  font-family: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform var(--transition-fast);
+}
+
+.brand-lock__btn:hover {
+  transform: translateY(-1px);
+  color: #fff;
+}

@@ -2,14 +2,14 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Rawaj.Application.Common.Interfaces;
 using Rawaj.Application.Common.Models;
+using Rawaj.Application.Features.Analytics.Common;
 
 namespace Rawaj.Application.Features.Analytics.GetCampaignAnalytics;
 
 /// <summary>
-/// Aggregates the latest analytics snapshot per post in a campaign. Picking "latest per group" is
-/// not translatable to a single SQL query against the JSON-free PostAnalytics table in a portable
-/// way here, so snapshots are materialized first and the latest-per-post reduction happens
-/// in-memory.
+/// Aggregates the latest analytics snapshot per post in a campaign via the shared
+/// PostAnalyticsAggregation helper (also used by GetBrandAnalyticsQueryHandler and the Dashboard
+/// query slice).
 /// </summary>
 public class GetCampaignAnalyticsQueryHandler(IApplicationDbContext dbContext, ICurrentTenantContext currentTenantContext)
     : IRequestHandler<GetCampaignAnalyticsQuery, Result<CampaignAnalyticsSummary>>
@@ -25,30 +25,25 @@ public class GetCampaignAnalyticsQueryHandler(IApplicationDbContext dbContext, I
             return Result<CampaignAnalyticsSummary>.Failure("Campaign not found.");
         }
 
-        var snapshots = await dbContext.PostAnalytics
-            .Where(a => a.ScheduledPost.ContentItem.CampaignId == request.CampaignId)
-            .OrderByDescending(a => a.RecordedAt)
-            .Select(a => new PostAnalyticsSnapshot(
-                a.Id,
-                a.ScheduledPostId,
-                a.Platform,
-                a.RecordedAt,
-                a.Impressions,
-                a.Reach,
-                a.Likes,
-                a.Comments,
-                a.Shares,
-                a.Saves,
-                a.Clicks,
-                a.EngagementRate))
-            .ToListAsync(cancellationToken);
+        var latestPerPost = await PostAnalyticsAggregation.GetLatestPerPostAsync(
+            dbContext.PostAnalytics.Where(a => a.ScheduledPost.ContentItem.CampaignId == request.CampaignId),
+            cancellationToken);
 
-        var latestPerPost = snapshots
-            .GroupBy(a => a.ScheduledPostId)
-            .Select(g => g.First())
+        var posts = latestPerPost
+            .Select(p => new PostAnalyticsSnapshot(
+                p.Id,
+                p.ScheduledPostId,
+                p.Platform,
+                p.RecordedAt,
+                p.Impressions,
+                p.Reach,
+                p.Likes,
+                p.Comments,
+                p.Shares,
+                p.Saves,
+                p.Clicks,
+                p.EngagementRate))
             .ToList();
-
-        var engagementRates = latestPerPost.Where(p => p.EngagementRate.HasValue).Select(p => p.EngagementRate!.Value).ToList();
 
         var summary = new CampaignAnalyticsSummary(
             request.CampaignId,
@@ -58,8 +53,8 @@ public class GetCampaignAnalyticsQueryHandler(IApplicationDbContext dbContext, I
             latestPerPost.Sum(p => p.Likes ?? 0),
             latestPerPost.Sum(p => p.Comments ?? 0),
             latestPerPost.Sum(p => p.Shares ?? 0),
-            engagementRates.Count > 0 ? Math.Round(engagementRates.Average(), 4) : null,
-            latestPerPost);
+            PostAnalyticsAggregation.AverageEngagementRate(latestPerPost),
+            posts);
 
         return Result<CampaignAnalyticsSummary>.Success(summary);
     }

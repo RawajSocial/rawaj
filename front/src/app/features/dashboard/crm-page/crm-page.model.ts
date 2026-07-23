@@ -1,4 +1,4 @@
-export type PlatformKey = 'all' | 'instagram' | 'facebook' | 'tiktok' | 'snapchat' | 'linkedin';
+export type PlatformKey = 'all' | 'instagram' | 'facebook' | 'tiktok' | 'youtube' | 'x' | 'linkedin' | 'snapchat';
 
 export interface PlatformStat {
   key: Exclude<PlatformKey, 'all'>;

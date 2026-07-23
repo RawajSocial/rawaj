@@ -22,7 +22,7 @@ public class MarketingCampaignConfiguration : IEntityTypeConfiguration<Marketing
         builder.Property(c => c.AiPlanJson).HasColumnType("nvarchar(max)");
 
         builder.HasOne(c => c.BrandProfile)
-            .WithMany()
+            .WithMany(b => b.Campaigns)
             .HasForeignKey(c => c.BrandProfileId)
             .OnDelete(DeleteBehavior.Restrict);
 

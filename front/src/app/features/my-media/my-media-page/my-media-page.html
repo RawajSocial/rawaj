@@ -3,8 +3,8 @@
   <!-- Page header -->
   <div class="page-top">
     <div>
-      <h5 class="page-title">إعلاناتي</h5>
-      <app-breadcrumb [items]="[{ label: 'نظرة عامة', link: '/dashboard' }, { label: 'إعلاناتي' }]" />
+      <h5 class="page-title">مكتبة الوسائط</h5>
+      <app-breadcrumb [items]="[{ label: 'نظرة عامة', link: '/dashboard' }, { label: 'مكتبة الوسائط' }]" />
     </div>
     <a routerLink="/dashboard/content-gen" class="btn-new-gen">
       <i class="fa-solid fa-wand-magic-sparkles"></i>
@@ -20,35 +20,6 @@
     (filterTypeChange)="filterType.set($event)"
     (searchQueryChange)="searchQuery.set($event)">
   </app-media-toolbar>
-
-  <!-- Brand profile / campaign filters -->
-  <div class="brand-campaign-filters">
-    <div class="dropdown" [class.open]="brandProfileFilterOpen()" data-dd="brandprofile">
-      <button type="button" class="dropdown-trigger form-control form-control-sm" (click)="brandProfileFilterOpen.update(v => !v)">
-        <span class="dropdown-label">{{ brandProfileFilterLabel() }}</span>
-        <span class="dropdown-icon"><i class="fa-solid fa-chevron-down"></i></span>
-      </button>
-      <div class="dropdown-menu">
-        <button type="button" class="dropdown-option" [class.active]="!brandProfileFilter()" (click)="setBrandProfileFilter('')">كل العلامات التجارية</button>
-        @for (bp of brandProfiles(); track bp.id) {
-          <button type="button" class="dropdown-option" [class.active]="brandProfileFilter() === bp.id" (click)="setBrandProfileFilter(bp.id)">{{ bp.name }}</button>
-        }
-      </div>
-    </div>
-
-    <div class="dropdown" [class.open]="campaignFilterOpen()" data-dd="campaign">
-      <button type="button" class="dropdown-trigger form-control form-control-sm" (click)="campaignFilterOpen.update(v => !v)">
-        <span class="dropdown-label">{{ campaignFilterLabel() }}</span>
-        <span class="dropdown-icon"><i class="fa-solid fa-chevron-down"></i></span>
-      </button>
-      <div class="dropdown-menu">
-        <button type="button" class="dropdown-option" [class.active]="!campaignFilter()" (click)="setCampaignFilter('')">كل الحملات</button>
-        @for (c of availableCampaignsForFilter(); track c.id) {
-          <button type="button" class="dropdown-option" [class.active]="campaignFilter() === c.id" (click)="setCampaignFilter(c.id)">{{ c.name }}</button>
-        }
-      </div>
-    </div>
-  </div>
 
   <!-- Empty state -->
   @if (filteredItems().length === 0) {

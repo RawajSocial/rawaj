@@ -1,4 +1,5 @@
 import { CampaignPlatform } from './campaign.model';
+import { BackendSocialPlatform } from './content-item.model';
 
 export type PostStatus = 'scheduled' | 'published' | 'failed' | 'draft';
 export type MediaType  = 'image' | 'video' | 'carousel' | 'reel' | 'story';
@@ -14,4 +15,25 @@ export interface ScheduledPost {
   status: PostStatus;
   hashtags?: string[];
   estimatedReach?: number;
+}
+
+/** GET /api/v1/scheduled-posts — Rawaj.Application.Features.Scheduling.GetScheduledPosts.ScheduledPostSummary */
+export interface ScheduledPostSummary {
+  scheduledPostId: string;
+  contentItemId: string;
+  brandProfileId: string;
+  campaignId?: string | null;
+  platform: BackendSocialPlatform;
+  accountName: string;
+  scheduledAt: string;
+  status: 'Pending' | 'Published' | 'Failed' | 'Cancelled';
+  publishedAt?: string | null;
+  errorMessage?: string | null;
+  impressions?: number | null;
+  reach?: number | null;
+  likes?: number | null;
+  comments?: number | null;
+  shares?: number | null;
+  clicks?: number | null;
+  engagementRate?: number | null;
 }

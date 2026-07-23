@@ -1,11 +1,13 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { PageHeader } from '../../../shared/components/page-header/page-header';
 import { KpiCard } from '../../dashboard/kpi-card/kpi-card';
 import { AdService } from '../../../services/ad.service';
 import { Ad, AdFormat, AdStatus } from '../../../model/ad.model';
 import { CampaignPlatform } from '../../../model/campaign.model';
 import { SeoService } from '../../../services/seo.service';
+import { TenantService } from '../../../core/tenant/tenant.service';
+import { ErrorModalService } from '../../../services/error-modal.service';
 
 interface PlatformMeta {
   icon: string;
@@ -43,6 +45,9 @@ export class AdDetailPage {
   private readonly route = inject(ActivatedRoute);
   private readonly adService = inject(AdService);
   private readonly seo = inject(SeoService);
+  private readonly tenantService = inject(TenantService);
+  private readonly errorModalService = inject(ErrorModalService);
+  private readonly router = inject(Router);
 
   protected readonly adId = this.route.snapshot.paramMap.get('id') ?? '';
   protected readonly ad = this.adService.getById(this.adId);
@@ -89,6 +94,14 @@ export class AdDetailPage {
   }
 
   protected toggleStatus(): void {
+    if (this.tenantService.brandProfileCount() === 0) {
+      this.errorModalService.show(
+        'يجب إنشاء ملف علامة تجارية أولاً لاستخدام هذه الميزة.',
+        { variant: 'warning', title: 'يلزم إنشاء ملف علامة تجارية' },
+      );
+      this.router.navigate(['/dashboard/brand-profiles/new']);
+      return;
+    }
     this.adService.toggle(this.adId);
   }
 }

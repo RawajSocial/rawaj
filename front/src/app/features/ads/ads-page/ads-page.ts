@@ -1,16 +1,20 @@
-import { Component, HostListener, computed, inject, signal } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { Component, HostListener, computed, effect, inject, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import { AdCard } from '../ad-card/ad-card';
 import { AdStatus, AdFormat } from '../../../model/ad.model';
 import { CampaignPlatform } from '../../../model/campaign.model';
 import { SeoService } from '../../../services/seo.service';
 import { AdService } from '../../../services/ad.service';
+import { BrandContextService } from '../../../services/brand-context.service';
 import { Breadcrumb } from '../../../shared/components/breadcrumb/breadcrumb';
+import { BrandLock } from '../../../shared/components/brand-lock/brand-lock';
+import { TenantService } from '../../../core/tenant/tenant.service';
+import { ErrorModalService } from '../../../services/error-modal.service';
 
 @Component({
   selector: 'app-ads-page',
   standalone: true,
-  imports: [RouterLink, AdCard, Breadcrumb],
+  imports: [AdCard, Breadcrumb, BrandLock],
   templateUrl: './ads-page.html',
   styleUrls: ['../../../features/on-boarding/onboarding-shared.css', './ads-page.css'],
 })
@@ -18,6 +22,9 @@ export class AdsPage {
   private readonly seo = inject(SeoService);
   private readonly adService = inject(AdService);
   private readonly router = inject(Router);
+  private readonly brandContextService = inject(BrandContextService);
+  private readonly tenantService = inject(TenantService);
+  private readonly errorModalService = inject(ErrorModalService);
 
   constructor() {
     this.seo.setPageSeo({
@@ -29,9 +36,18 @@ export class AdsPage {
       type: 'website',
       noIndex: true,
     });
+
+    // Header brand/campaign selection is the single source of truth — refetch on change.
+    effect(() => {
+      const brandId = this.brandContextService.selectedBrandProfileId();
+      const campaignId = this.brandContextService.selectedCampaignId();
+      if (!brandId) return;
+      this.adService.refresh(brandId, campaignId).subscribe();
+    });
   }
 
   protected readonly ads            = this.adService.ads;
+  protected readonly brandProfileCount = this.tenantService.brandProfileCount;
   protected readonly searchQuery    = signal('');
   protected readonly statusFilter   = signal<AdStatus | 'all'>('all');
   protected readonly platformFilter = signal<CampaignPlatform | 'all'>('all');
@@ -92,5 +108,20 @@ export class AdsPage {
 
   protected viewAd(id: string): void {
     this.router.navigate(['/dashboard/ads', id]);
+  }
+
+  protected startNewCampaign(): void {
+    if (!this.requireBrandProfile()) return;
+    this.router.navigate(['/on-boarding']);
+  }
+
+  private requireBrandProfile(): boolean {
+    if (this.tenantService.brandProfileCount() > 0) return true;
+    this.errorModalService.show(
+      'يجب إنشاء ملف علامة تجارية أولاً لاستخدام هذه الميزة.',
+      { variant: 'warning', title: 'يلزم إنشاء ملف علامة تجارية' },
+    );
+    this.router.navigate(['/dashboard/brand-profiles/new']);
+    return false;
   }
 }

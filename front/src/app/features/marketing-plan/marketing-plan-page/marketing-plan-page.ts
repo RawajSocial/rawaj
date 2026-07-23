@@ -6,7 +6,11 @@ import { MpEmptyState } from '../mp-empty-state/mp-empty-state';
 import { MpGenerating } from '../mp-generating/mp-generating';
 import { MpPlansList } from '../mp-plans-list/mp-plans-list';
 import { MpPlanDetail } from '../mp-plan-detail/mp-plan-detail';
+import { BrandLock } from '../../../shared/components/brand-lock/brand-lock';
 import { SeoService } from '../../../services/seo.service';
+import { BrandContextService } from '../../../services/brand-context.service';
+import { TenantService } from '../../../core/tenant/tenant.service';
+import { ErrorModalService } from '../../../services/error-modal.service';
 
 // ──── Loading stages ────────────────────────────────────────────────────────
 export interface Stage {
@@ -170,6 +174,11 @@ export interface SavedPlan {
   createdAt: number;
   name: string;
   data: OnboardingSnap;
+  /** Brand/campaign this plan is associated with, when known. Marketing Plans stays
+   *  campaign-only (no dedicated backend entity yet) — existing plans predating this
+   *  association stay visible under every brand/campaign selection. */
+  brandProfileId?: string;
+  campaignId?: string;
 }
 
 interface OnboardingSnap {
@@ -212,7 +221,7 @@ interface OnboardingSnap {
 @Component({
   selector: 'app-marketing-plan-page',
   standalone: true,
-  imports: [MpEmptyState, MpGenerating, MpPlansList, MpPlanDetail],
+  imports: [MpEmptyState, MpGenerating, MpPlansList, MpPlanDetail, BrandLock],
   templateUrl: './marketing-plan-page.html',
   styleUrl: './marketing-plan-page.css',
 })
@@ -221,8 +230,12 @@ export class MarketingPlanPage {
   private readonly media      = inject(MediaService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly seo        = inject(SeoService);
+  private readonly brandContextService = inject(BrandContextService);
+  private readonly tenantService = inject(TenantService);
+  private readonly errorModalService = inject(ErrorModalService);
 
   readonly stages = STAGES;
+  readonly brandProfileCount = this.tenantService.brandProfileCount;
 
   // ── Phase ──
   readonly phase = signal<'empty' | 'generating' | 'plans' | 'detail'>('generating');
@@ -235,6 +248,19 @@ export class MarketingPlanPage {
   // ── Plans ──
   readonly savedPlans   = signal<SavedPlan[]>([]);
   readonly activePlanId = signal<string | null>(null);
+
+  /** The plans list respects the header's global brand/campaign filter. Plans that predate
+   *  brand/campaign association (no `brandProfileId` set) stay visible under any selection —
+   *  see the note on `SavedPlan`. "All Campaigns" aggregates every campaign of the brand. */
+  readonly visiblePlans = computed(() => {
+    const brandId = this.brandContextService.selectedBrandProfileId();
+    const campaignId = this.brandContextService.selectedCampaignId();
+    return this.savedPlans().filter(p => {
+      const brandMatch = !p.brandProfileId || !brandId || p.brandProfileId === brandId;
+      const campaignMatch = campaignId === 'all' || !p.campaignId || p.campaignId === campaignId;
+      return brandMatch && campaignMatch;
+    });
+  });
 
   // ── Detail data ──
   private readonly snap      = signal<OnboardingSnap>({});
@@ -307,7 +333,10 @@ export class MarketingPlanPage {
   }
 
   // ── Nav ──
-  goToOnboarding(): void { void this.router.navigate(['/rawaj-onboarding']); }
+  goToOnboarding(): void {
+    if (!this.requireBrandProfile()) return;
+    void this.router.navigate(['/rawaj-onboarding']);
+  }
 
   backToPlans(): void { this.phase.set('plans'); }
 
@@ -324,6 +353,7 @@ export class MarketingPlanPage {
 
   // ── Actions ──
   remake(): void {
+    if (!this.requireBrandProfile()) return;
     const snap   = this.snap();
     const months = this.parseMonths(snap);
     this.completedCount.set(0);
@@ -352,6 +382,16 @@ export class MarketingPlanPage {
       ));
       try { localStorage.setItem('rawaj.plans', JSON.stringify(this.savedPlans())); } catch { /* noop */ }
     }
+  }
+
+  private requireBrandProfile(): boolean {
+    if (this.tenantService.brandProfileCount() > 0) return true;
+    this.errorModalService.show(
+      'يجب إنشاء ملف علامة تجارية أولاً لاستخدام هذه الميزة.',
+      { variant: 'warning', title: 'يلزم إنشاء ملف علامة تجارية' },
+    );
+    void this.router.navigate(['/dashboard/brand-profiles/new']);
+    return false;
   }
 
   // ──── Private helpers ──────────────────────────────────────────────────────

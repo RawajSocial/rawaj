@@ -5,9 +5,11 @@ using Rawaj.Application.Common.Models;
 namespace Rawaj.Application.Features.Users.DeleteMyAvatar;
 
 public class DeleteMyAvatarCommandHandler(
-    IIdentityService identityService, IAvatarStorageService avatarStorageService, ICurrentUserService currentUserService)
+    IIdentityService identityService, ILocalImageStorageService imageStorageService, ICurrentUserService currentUserService)
     : IRequestHandler<DeleteMyAvatarCommand, Result<bool>>
 {
+    private const string AvatarsSubfolder = "avatars";
+
     public async Task<Result<bool>> Handle(DeleteMyAvatarCommand request, CancellationToken cancellationToken)
     {
         var userId = currentUserService.UserId!.Value;
@@ -20,7 +22,7 @@ public class DeleteMyAvatarCommandHandler(
 
         if (!string.IsNullOrWhiteSpace(user.AvatarUrl))
         {
-            await avatarStorageService.DeleteAvatarAsync(user.AvatarUrl, cancellationToken);
+            await imageStorageService.DeleteAsync(user.AvatarUrl, AvatarsSubfolder, cancellationToken);
         }
 
         await identityService.UpdateAvatarAsync(userId, null, cancellationToken);

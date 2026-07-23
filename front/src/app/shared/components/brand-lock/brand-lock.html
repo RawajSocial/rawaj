@@ -1,0 +1,10 @@
+<div class="brand-lock position-relative overflow-hidden" [class.brand-lock--locked]="locked()">
+  <div class="brand-lock__content"><ng-content /></div>
+  @if (locked()) {
+    <div class="brand-lock__overlay position-absolute d-flex flex-column align-items-center justify-content-center text-center p-4">
+      <i class="fa-solid fa-lock"></i>
+      <p>{{ message() }}</p>
+      <a routerLink="/dashboard/brand-profiles/new" class="brand-lock__btn">{{ ctaLabel() }}</a>
+    </div>
+  }
+</div>

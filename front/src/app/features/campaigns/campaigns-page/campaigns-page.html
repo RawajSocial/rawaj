@@ -5,10 +5,12 @@
       <h5 class="page-title">حملاتك التسويقية</h5>
       <app-breadcrumb [items]="[{ label: 'نظرة عامة', link: '/dashboard' }, { label: 'الحملات' }]" />
     </div>
-    <a routerLink="/on-boarding" class="btn-new-camp">
-      <i class="fa-solid fa-plus"></i>
-      ابدأ حملة جديدة
-    </a>
+    @if (brandProfileCount() > 0) {
+      <button type="button" (click)="startNewCampaign()" class="btn-new-camp">
+        <i class="fa-solid fa-plus"></i>
+        ابدأ حملة جديدة
+      </button>
+    }
   </div>
 
   <!-- Filters bar -->
@@ -70,10 +72,12 @@
       <div class="empty-icon"><i class="fa-solid fa-bullhorn"></i></div>
       <h3>لا توجد حملات بعد</h3>
       <p>ابدأ حملتك التسويقية الأولى وابدأ في الوصول لجمهورك المستهدف.</p>
-      <a routerLink="/on-boarding" class="btn-new-camp">
-        <i class="fa-solid fa-rocket"></i>
-        ابدأ حملتك الأولى
-      </a>
+      <app-brand-lock [locked]="brandProfileCount() === 0">
+        <button type="button" (click)="startNewCampaign()" class="btn-new-camp">
+          <i class="fa-solid fa-rocket"></i>
+          ابدأ حملتك الأولى
+        </button>
+      </app-brand-lock>
     </div>
 
   } @else if (filtered().length === 0) {
@@ -86,11 +90,13 @@
   } @else {
     <div class="camps-grid">
       <!-- Start new campaign card (always first) -->
-      <a routerLink="/on-boarding" class="new-camp-card">
-        <div class="new-camp-icon"><i class="fa-solid fa-plus"></i></div>
-        <span class="new-camp-label">ابدأ حملة جديدة</span>
-        <span class="new-camp-sub">أنشئ حملة احترافية بخطوات بسيطة</span>
-      </a>
+      <app-brand-lock [locked]="brandProfileCount() === 0">
+        <button type="button" (click)="startNewCampaign()" class="new-camp-card">
+          <div class="new-camp-icon"><i class="fa-solid fa-plus"></i></div>
+          <span class="new-camp-label">ابدأ حملة جديدة</span>
+          <span class="new-camp-sub">أنشئ حملة احترافية بخطوات بسيطة</span>
+        </button>
+      </app-brand-lock>
 
       @for (camp of filtered(); track camp.id) {
         <app-campaign-card

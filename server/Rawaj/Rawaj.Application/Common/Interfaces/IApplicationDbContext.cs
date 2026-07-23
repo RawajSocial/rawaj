@@ -29,6 +29,7 @@ public interface IApplicationDbContext
     DbSet<ScheduledPost> ScheduledPosts { get; }
     DbSet<PostAnalytics> PostAnalytics { get; }
     DbSet<Notification> Notifications { get; }
+    DbSet<AuditLog> AuditLogs { get; }
     DbSet<RefreshToken> RefreshTokens { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);

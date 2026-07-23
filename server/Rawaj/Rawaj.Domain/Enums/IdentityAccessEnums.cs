@@ -19,7 +19,7 @@ public enum BrandVoice
     Playful,
     Bold,
     Friendly,
-    Formal
+    Luxurious
 }
 
 public enum BrandProfileStatus

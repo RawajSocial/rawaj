@@ -30,5 +30,15 @@ public class ScheduledPostConfiguration : IEntityTypeConfiguration<ScheduledPost
             .WithMany(a => a.ScheduledPosts)
             .HasForeignKey(s => s.SocialAccountId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(s => s.BrandProfile)
+            .WithMany()
+            .HasForeignKey(s => s.BrandProfileId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(s => s.Campaign)
+            .WithMany()
+            .HasForeignKey(s => s.CampaignId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

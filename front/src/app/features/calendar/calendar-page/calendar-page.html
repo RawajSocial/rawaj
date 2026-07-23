@@ -40,7 +40,7 @@
           <button type="button" class="dropdown-option" [class.active]="campaignFilter() === 'all'" (click)="setCampaign('all')">
             جميع الحملات
           </button>
-          @for (c of campaigns; track c.id) {
+          @for (c of campaigns(); track c.id) {
             <button type="button" class="dropdown-option" [class.active]="campaignFilter() === c.id" (click)="setCampaign(c.id)">
               {{ c.name }}
             </button>
@@ -269,10 +269,12 @@
             </span>
           </div>
           <div class="side-panel-actions">
-            <button type="button" class="side-add-btn" (click)="goToDay(day)">
-              <i class="fa-solid fa-plus"></i>
-              إضافة
-            </button>
+            <app-brand-lock [locked]="brandProfileCount() === 0">
+              <button type="button" class="side-add-btn" (click)="goToDay(day)">
+                <i class="fa-solid fa-plus"></i>
+                إضافة
+              </button>
+            </app-brand-lock>
             <button type="button" class="side-close-btn" (click)="selectedDay.set(null)" title="إغلاق">
               <i class="fa-solid fa-xmark"></i>
             </button>

@@ -14,7 +14,8 @@ public class GetContentItemsQueryHandler(IApplicationDbContext dbContext, ICurre
         var (page, pageSize) = PaginationDefaults.Clamp(request.Page, request.PageSize);
 
         var query = dbContext.ContentItems
-            .Where(c => c.CampaignId == request.CampaignId && c.TenantId == tenantId)
+            .Where(c => c.BrandProfileId == request.BrandProfileId && c.TenantId == tenantId)
+            .Where(c => request.CampaignId == null || c.CampaignId == request.CampaignId)
             .OrderByDescending(c => c.CreatedAt);
 
         var totalCount = await query.CountAsync(cancellationToken);

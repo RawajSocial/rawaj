@@ -1,4 +1,5 @@
 using Rawaj.Domain.Common;
+using Rawaj.Domain.Entities.Campaigns;
 using Rawaj.Domain.Enums;
 using Rawaj.Domain.ValueObjects;
 
@@ -16,4 +17,7 @@ public class TenantBrandProfile : BaseEntity
     public DateTime UpdatedAt { get; set; }
 
     public Tenant Tenant { get; set; } = null!;
+    public ICollection<MarketingCampaign> Campaigns { get; set; } = [];
+    public ICollection<ContentItem> ContentItems { get; set; } = [];
+    public ICollection<VisualAsset> VisualAssets { get; set; } = [];
 }

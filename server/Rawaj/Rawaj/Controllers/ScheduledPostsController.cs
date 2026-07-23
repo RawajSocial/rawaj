@@ -29,9 +29,10 @@ public class ScheduledPostsController(ISender sender) : ControllerBase
 
     [HttpGet]
     public async Task<IActionResult> GetAll(
-        [FromQuery] Guid? campaignId, [FromQuery] int page = 1, [FromQuery] int pageSize = 20, CancellationToken cancellationToken = default)
+        [FromQuery] Guid brandProfileId, [FromQuery] Guid? campaignId, [FromQuery] int page = 1, [FromQuery] int pageSize = 20,
+        CancellationToken cancellationToken = default)
     {
-        var result = await sender.Send(new GetScheduledPostsQuery(campaignId, page, pageSize), cancellationToken);
+        var result = await sender.Send(new GetScheduledPostsQuery(brandProfileId, campaignId, page, pageSize), cancellationToken);
 
         return result.Succeeded
             ? Ok(ApiResponse<PagedResult<ScheduledPostSummary>>.Success(result.Data!))

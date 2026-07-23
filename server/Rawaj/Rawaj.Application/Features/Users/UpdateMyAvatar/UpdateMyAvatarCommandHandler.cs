@@ -5,14 +5,16 @@ using Rawaj.Application.Common.Models;
 namespace Rawaj.Application.Features.Users.UpdateMyAvatar;
 
 public class UpdateMyAvatarCommandHandler(
-    IAvatarStorageService avatarStorageService, IIdentityService identityService, ICurrentUserService currentUserService)
+    ILocalImageStorageService imageStorageService, IIdentityService identityService, ICurrentUserService currentUserService)
     : IRequestHandler<UpdateMyAvatarCommand, Result<UpdateMyAvatarResponse>>
 {
+    private const string AvatarsSubfolder = "avatars";
+
     public async Task<Result<UpdateMyAvatarResponse>> Handle(UpdateMyAvatarCommand request, CancellationToken cancellationToken)
     {
         var userId = currentUserService.UserId!.Value;
 
-        var avatarUrl = await avatarStorageService.SaveAvatarAsync(request.Content, request.ContentType, cancellationToken);
+        var avatarUrl = await imageStorageService.SaveAsync(request.Content, request.ContentType, AvatarsSubfolder, cancellationToken);
 
         var updated = await identityService.UpdateAvatarAsync(userId, avatarUrl, cancellationToken);
         if (!updated)
