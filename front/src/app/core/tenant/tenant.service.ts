@@ -83,6 +83,12 @@ export class TenantService {
             coinBalance: res.data!.coinBalance,
             ...request,
           });
+          // `isOwnTenantActivated` reads this array, not `_tenant` — without patching it here it
+          // stays stale (activation guards keep redirecting to /dashboard/locked) until the next
+          // full `refreshMemberships()` call, i.e. next login.
+          this._memberships.update(members =>
+            members.map(m => (m.tenantId === res.data!.tenantId ? { ...m, isActivated: res.data!.isActivated } : m)),
+          );
         }
       }),
     );
