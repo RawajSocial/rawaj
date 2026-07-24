@@ -22,5 +22,13 @@ public class AddTeamMemberCommandValidator : AbstractValidator<AddTeamMemberComm
             .When(x => x.Role is TenantMemberRole.Editor or TenantMemberRole.Viewer);
 
         RuleFor(x => x.AllocatedCoins).GreaterThanOrEqualTo(0);
+
+        // Admins spend directly from the tenant's pool (see CoinPolicy) and AllocateCoins refuses
+        // to manage a wallet for them — any coins "allocated" to an Admin here would leave the pool
+        // and become permanently unspendable/unreturnable.
+        RuleFor(x => x.AllocatedCoins)
+            .Equal(0)
+            .WithMessage("Admins spend directly from the organization's balance and can't be allocated a separate wallet.")
+            .When(x => x.Role == TenantMemberRole.Admin);
     }
 }

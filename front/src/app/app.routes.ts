@@ -26,6 +26,11 @@ export const routes: Routes = [
       import('./features/auth/invite-login/invite-login').then((m) => m.InviteLogin),
   },
   {
+    path: 'pricing',
+    loadComponent: () =>
+      import('./features/pricing/pricing-page/pricing-page').then((m) => m.PricingPage),
+  },
+  {
     path: 'upgrade-tenant',
     canActivate: [authGuard],
     loadComponent: () =>

@@ -11,6 +11,7 @@ export interface PlatformBreakdownItem {
 export interface TopPostItem {
   scheduledPostId: string;
   contentItemId: string;
+  campaignId?: string | null;
   platform: BackendSocialPlatform;
   title?: string | null;
   content: string;

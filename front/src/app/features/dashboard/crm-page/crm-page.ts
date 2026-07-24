@@ -161,6 +161,7 @@ export class CrmPage {
       const cfg = PLATFORM_CFG[key];
       return {
         id: post.scheduledPostId,
+        campaignId: post.campaignId,
         platform: key,
         content: post.title ?? post.content,
         reach: post.reach,

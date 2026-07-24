@@ -5,7 +5,10 @@
   </div>
   <div class="top-posts d-flex flex-column">
     @for (post of posts(); track post.id) {
-      <div class="top-post d-flex align-items-start">
+      <a
+        class="top-post d-flex align-items-start"
+        [class.top-post-linked]="!!post.campaignId"
+        [routerLink]="post.campaignId ? ['/dashboard/campaigns', post.campaignId, 'posts', post.id] : null">
         <span class="top-post-icon rounded-circle flex-shrink-0 text-white d-flex align-items-center justify-content-center"
               [style.background]="post.color">
           <i class="{{ post.icon }}"></i>
@@ -17,7 +20,7 @@
             <span><i class="fa-solid fa-heart"></i> {{ compact(post.engagement) }}</span>
           </div>
         </div>
-      </div>
+      </a>
     }
   </div>
 </div>

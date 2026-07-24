@@ -19,6 +19,9 @@ export interface TenantSummary {
   isActivated: boolean;
   planName: string;
   maxBrands: number;
+  maxUsers: number;
+  extraBrandsPurchased: number;
+  extraMarketeersPurchased: number;
   brandProfileCount: number;
   defaultBrandProfileId: string | null;
   phone: string | null;

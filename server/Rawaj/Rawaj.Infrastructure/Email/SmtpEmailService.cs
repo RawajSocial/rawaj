@@ -21,6 +21,9 @@ namespace Rawaj.Infrastructure.Email;
 /// </summary>
 public partial class SmtpEmailService(IOptions<EmailSettings> settings, ILogger<SmtpEmailService> logger) : IEmailService
 {
+    public bool IsConfigured =>
+        !string.IsNullOrWhiteSpace(settings.Value.SenderEmail) && !string.IsNullOrWhiteSpace(settings.Value.SenderPassword);
+
     public async Task SendEmailAsync(
         string toEmail, string subject, string htmlBody, string? plainTextBody = null, CancellationToken cancellationToken = default)
     {

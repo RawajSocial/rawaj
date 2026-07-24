@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Rawaj.Application.Common.Interfaces;
 using Rawaj.Application.Common.Models;
+using Rawaj.Application.Common.Policies;
 using Rawaj.Domain.Entities.Campaigns;
 using Rawaj.Domain.Enums;
 
@@ -17,28 +18,22 @@ public class CreateCampaignCommandHandler(
     {
         var tenantId = currentTenantContext.TenantId!.Value;
 
-        var brandProfileBelongsToTenant = await dbContext.TenantBrandProfiles
-            .AnyAsync(b => b.Id == request.BrandProfileId && b.TenantId == tenantId, cancellationToken);
-        if (!brandProfileBelongsToTenant)
+        var brand = await dbContext.TenantBrandProfiles
+            .FirstOrDefaultAsync(b => b.Id == request.BrandProfileId && b.TenantId == tenantId, cancellationToken);
+        if (brand is null)
         {
             return Result<CreateCampaignResponse>.Failure("Brand profile not found.");
         }
 
-        var plan = await (
+        // Every plan (including Free) now allows at least one campaign a month — campaign creation
+        // is no longer gated behind a paid subscription.
+        var maxCampaignsMonthly = await (
             from tenant in dbContext.Tenants
             join subscription in dbContext.Subscriptions on tenant.SubscriptionId equals subscription.Id
             join subscriptionPlan in dbContext.SubscriptionPlans on subscription.SubscriptionPlanId equals subscriptionPlan.Id
             where tenant.Id == tenantId
-            select new { subscriptionPlan.Cost, subscriptionPlan.MaxCampaignsMonthly }
+            select subscriptionPlan.MaxCampaignsMonthly
         ).FirstAsync(cancellationToken);
-
-        if (plan.Cost <= 0)
-        {
-            return Result<CreateCampaignResponse>.Failure(
-                "Creating campaigns requires an active paid subscription. Upgrade your plan to launch campaigns.");
-        }
-
-        var maxCampaignsMonthly = plan.MaxCampaignsMonthly;
 
         var now = DateTime.UtcNow;
         var monthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
@@ -58,11 +53,13 @@ public class CreateCampaignCommandHandler(
             .Distinct()
             .ToList();
 
+        var userId = currentUserService.UserId!.Value;
+
         var campaign = new MarketingCampaign
         {
             Id = Guid.NewGuid(),
             BrandProfileId = request.BrandProfileId,
-            CreatedBy = currentUserService.UserId!.Value,
+            CreatedBy = userId,
             Name = request.Name,
             Objective = request.Objective,
             TargetPlatforms = targetPlatforms,
@@ -71,11 +68,25 @@ public class CreateCampaignCommandHandler(
             BudgetAmount = request.BudgetAmount,
             BudgetCurrency = request.BudgetCurrency,
             Status = CampaignStatus.Draft,
+            BriefJson = request.BriefJson,
             CreatedAt = now,
             UpdatedAt = now
         };
 
         dbContext.MarketingCampaigns.Add(campaign);
+
+        NotificationPublisher.Notify(
+            dbContext, userId, brand.Id,
+            NotificationType.Success, NotificationCategory.System,
+            "Campaign created",
+            $"\"{campaign.Name}\" was created for {brand.Name}.",
+            campaign.Id, "marketing_campaign");
+
+        AuditLogger.Log(
+            dbContext, tenantId, userId, "campaign.created",
+            message: $"Created campaign \"{campaign.Name}\" for {brand.Name}.",
+            entityType: "marketing_campaign", entityId: campaign.Id, brandProfileId: brand.Id);
+
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return Result<CreateCampaignResponse>.Success(

@@ -49,6 +49,10 @@ export interface AddTeamMemberResponse {
   email: string;
   role: TenantMemberRole;
   requiresRegistration: boolean;
+  /** False when the backend's SMTP sender isn't configured yet — the invite record was still
+   *  created, but no email was actually attempted. Surfaced so "invite succeeded" never looks
+   *  identical to "invite succeeded and an email is on its way." */
+  emailConfigured: boolean;
 }
 
 /** GET /team-members/pending-invites — invites addressed to the CURRENT user (across tenants),

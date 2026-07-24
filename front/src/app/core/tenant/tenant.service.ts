@@ -32,6 +32,9 @@ export class TenantService {
   readonly defaultBrandProfileId = computed(() => this._tenant()?.defaultBrandProfileId ?? null);
   readonly brandProfileCount = computed(() => this._tenant()?.brandProfileCount ?? 0);
   readonly maxBrands = computed(() => this._tenant()?.maxBrands ?? 1);
+  readonly maxUsers = computed(() => this._tenant()?.maxUsers ?? 1);
+  readonly extraBrandsPurchased = computed(() => this._tenant()?.extraBrandsPurchased ?? 0);
+  readonly extraMarketeersPurchased = computed(() => this._tenant()?.extraMarketeersPurchased ?? 0);
 
   /** Whether the user's OWN tenant (the one they own, not necessarily the active one) is
    *  activated — used to gate pages while an invited member's own business info is incomplete. */

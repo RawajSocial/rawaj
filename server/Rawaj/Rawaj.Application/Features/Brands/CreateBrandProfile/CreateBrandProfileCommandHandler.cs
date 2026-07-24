@@ -21,7 +21,7 @@ public class CreateBrandProfileCommandHandler(IApplicationDbContext dbContext, I
             join subscription in dbContext.Subscriptions on tenant.SubscriptionId equals subscription.Id
             join plan in dbContext.SubscriptionPlans on subscription.SubscriptionPlanId equals plan.Id
             where tenant.Id == tenantId
-            select plan.MaxBrands
+            select plan.MaxBrands + tenant.ExtraBrandsPurchased
         ).FirstAsync(cancellationToken);
 
         var existingBrandCount = await dbContext.TenantBrandProfiles

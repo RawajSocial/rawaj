@@ -41,6 +41,8 @@ public class AppDbContext : IdentityUserContext<ApplicationUser, Guid>, IApplica
 
     public DbSet<SubscriptionPlan> SubscriptionPlans => Set<SubscriptionPlan>();
     public DbSet<Subscription> Subscriptions => Set<Subscription>();
+    public DbSet<CoinPackage> CoinPackages => Set<CoinPackage>();
+    public DbSet<BillingTransaction> BillingTransactions => Set<BillingTransaction>();
 
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();

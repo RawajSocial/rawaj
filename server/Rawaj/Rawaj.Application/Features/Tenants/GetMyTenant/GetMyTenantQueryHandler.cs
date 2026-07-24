@@ -40,6 +40,9 @@ public class GetMyTenantQueryHandler(IApplicationDbContext dbContext, ICurrentUs
                 tenant.IsActivated,
                 PlanName = plan.Name,
                 plan.MaxBrands,
+                plan.MaxUsers,
+                tenant.ExtraBrandsPurchased,
+                tenant.ExtraMarketeersPurchased,
                 tenant.TenantProfile
             }
         ).FirstOrDefaultAsync(cancellationToken);
@@ -74,6 +77,9 @@ public class GetMyTenantQueryHandler(IApplicationDbContext dbContext, ICurrentUs
             row.IsActivated,
             row.PlanName,
             row.MaxBrands,
+            row.MaxUsers,
+            row.ExtraBrandsPurchased,
+            row.ExtraMarketeersPurchased,
             brandProfileCount,
             defaultBrandProfileId,
             row.TenantProfile?.Phone,

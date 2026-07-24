@@ -1,0 +1,147 @@
+<div class="pricing-page">
+  <header class="pricing-page__topbar">
+    <a routerLink="/" class="pricing-page__logo">رواج</a>
+    @if (authService.isAuthenticated()) {
+      <a routerLink="/dashboard" class="rw-btn rw-btn--outline">لوحة التحكم</a>
+    } @else {
+      <div class="pricing-page__topbar-actions">
+        <a routerLink="/login" class="rw-btn rw-btn--outline">تسجيل الدخول</a>
+        <a routerLink="/sign-up" class="rw-btn rw-btn--primary">ابدأ مجانًا</a>
+      </div>
+    }
+  </header>
+
+  <div class="pricing-page__hero">
+    <h1>الأسعار والباقات</h1>
+    <p>باقات اشتراك شهرية بلا التزام سنوي، وحزم كوينز تُضاف فورًا — كل الأسعار هنا حقيقية ومطابقة لما سيُخصم فعليًا.</p>
+  </div>
+
+  <!-- Subscription plans -->
+  <section class="pricing-page__section">
+    <h2 class="pricing-page__section-title">باقات الاشتراك</h2>
+    <div class="plans-grid">
+      @for (plan of plansWithDescriptions(); track plan.subscriptionPlanId) {
+        <div class="rw-card plan-card" [class.plan-card--featured]="plan.name === 'Pro'">
+          @if (plan.name === 'Pro') {
+            <span class="plan-card__badge">الأكثر طلبًا</span>
+          }
+          <h3 class="plan-card__name">{{ plan.name }}</h3>
+          <div class="plan-card__price">
+            @if (plan.cost > 0) {
+              <span class="plan-card__amount">${{ plan.cost }}</span>
+              <span class="plan-card__period">/ شهريًا</span>
+            } @else {
+              <span class="plan-card__amount">مجانية</span>
+            }
+          </div>
+          <p class="plan-card__desc">{{ plan.description }}</p>
+
+          <ul class="plan-card__list">
+            <li><i class="fa-solid fa-check"></i>حتى {{ plan.maxBrands }} علامة تجارية</li>
+            <li><i class="fa-solid fa-check"></i>حتى {{ plan.maxUsers - 1 }} مسوّق مدعو</li>
+            <li><i class="fa-solid fa-check"></i>حتى {{ plan.maxCampaignsMonthly }} حملة شهريًا</li>
+            <li><i class="fa-solid fa-check"></i>{{ plan.maxAiCreditsMonthly }} نقطة ذكاء اصطناعي شهريًا</li>
+            @if (plan.coinUsageDiscountPercent > 0) {
+              <li class="plan-card__discount"><i class="fa-solid fa-percent"></i>خصم {{ plan.coinUsageDiscountPercent }}٪ على كل استهلاك كوينز</li>
+            }
+            @for (f of plan.features; track f) {
+              <li><i class="fa-solid fa-check"></i>{{ f }}</li>
+            }
+          </ul>
+
+          <a [routerLink]="planCtaTarget()" class="rw-btn rw-btn--primary plan-card__cta">
+            {{ plan.cost > 0 ? 'اشترك في ' + plan.name : 'ابدأ مجانًا' }}
+          </a>
+          <p class="plan-card__note">{{ planCtaNote(plan.cost) }}</p>
+        </div>
+      }
+    </div>
+  </section>
+
+  <!-- Coin packages -->
+  @if (publicPricing(); as pricing) {
+    <section class="pricing-page__section">
+      <h2 class="pricing-page__section-title">حزم الكوينز</h2>
+      <p class="pricing-page__section-hint">
+        الكوينز هي وقود توليد المحتوى والصور والحملات بالذكاء الاصطناعي — اشترِ حزمة أو أدخل مبلغًا مخصصًا من صفحة الفوترة بعد التسجيل.
+      </p>
+      <div class="packages-grid">
+        @for (pkg of pricing.coinPackages; track pkg.coinPackageId) {
+          <div class="rw-card package-card">
+            <span class="package-card__name">{{ pkg.name }}</span>
+            <span class="package-card__coins">{{ pkg.coins.toLocaleString('ar-SA') }}</span>
+            @if (pkg.bonusCoins > 0) {
+              <span class="package-card__bonus">+ {{ pkg.bonusCoins.toLocaleString('ar-SA') }} مكافأة مجانية</span>
+            }
+            <span class="package-card__price">${{ pkg.priceUsd }}</span>
+            <p class="package-card__note">سيُضاف {{ (pkg.coins + pkg.bonusCoins).toLocaleString('ar-SA') }} كوين فورًا مقابل ${{ pkg.priceUsd }}.</p>
+          </div>
+        }
+        <div class="rw-card package-card package-card--custom">
+          <span class="package-card__name">مبلغ مخصص</span>
+          <span class="package-card__coins">أي عدد</span>
+          <span class="package-card__price">${{ pricing.customCoinPricePerCoin }} / كوين</span>
+          <p class="package-card__note">اختر أي عدد كوينز تريده من صفحة الفوترة بعد التسجيل.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Add-ons -->
+    <section class="pricing-page__section">
+      <h2 class="pricing-page__section-title">إضافات</h2>
+      <div class="addons-grid">
+        <div class="rw-card addon-card">
+          <i class="fa-solid fa-copyright"></i>
+          <div>
+            <span class="addon-card__name">علامة تجارية إضافية</span>
+            <span class="addon-card__price">${{ pricing.extraBrandPriceUsd }} / شهريًا لكل علامة</span>
+          </div>
+        </div>
+        <div class="rw-card addon-card">
+          <i class="fa-solid fa-user-plus"></i>
+          <div>
+            <span class="addon-card__name">مسوّق إضافي</span>
+            <span class="addon-card__price">${{ pricing.extraMarketeerPriceUsd }} / شهريًا لكل عضو</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- AI feature price list -->
+    <section class="pricing-page__section">
+      <h2 class="pricing-page__section-title">أسعار ميزات الذكاء الاصطناعي (بالكوينز)</h2>
+      <p class="pricing-page__section-hint">
+        الأسعار الظاهرة هنا هي الأسعار الأساسية قبل خصم باقتك — أصحاب باقات Plus وPro وUltra يدفعون أقل تلقائيًا.
+      </p>
+      <div class="ai-price-table-wrap">
+        <table class="ai-price-table">
+          <thead>
+            <tr>
+              <th>الميزة</th>
+              <th>التكلفة</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of aiFeatureRows(); track row.label) {
+              <tr>
+                <td>{{ row.label }}</td>
+                <td class="ai-price-table__cost">{{ row.cost.toLocaleString('ar-SA') }} كوين</td>
+                <td>
+                  @if (row.comingSoon) {
+                    <span class="rw-pill rw-pill--warning">قريبًا</span>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  }
+
+  <div class="pricing-page__footer-cta">
+    <h2>جاهز تبدأ؟</h2>
+    <a routerLink="/sign-up" class="rw-btn rw-btn--primary">أنشئ حسابك المجاني الآن</a>
+  </div>
+</div>

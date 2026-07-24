@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Rawaj.Application.Common.Interfaces;
 using Rawaj.Application.Common.Models;
 using Rawaj.Application.Features.Campaigns.GetCampaign;
+using Rawaj.Domain.Enums;
 
 namespace Rawaj.Application.Features.Campaigns.UpdateCampaign;
 
@@ -25,6 +26,15 @@ public class UpdateCampaignCommandHandler(IApplicationDbContext dbContext, ICurr
         if (request.StartDate is not null) campaign.StartDate = request.StartDate;
         if (request.EndDate is not null) campaign.EndDate = request.EndDate;
         if (request.BudgetAmount is not null) campaign.BudgetAmount = request.BudgetAmount;
+        if (request.Objective is not null) campaign.Objective = request.Objective;
+        if (request.BudgetCurrency is not null) campaign.BudgetCurrency = request.BudgetCurrency;
+        if (request.TargetPlatforms is not null)
+        {
+            campaign.TargetPlatforms = request.TargetPlatforms
+                .Select(p => Enum.Parse<SocialPlatform>(p, true).ToString())
+                .Distinct()
+                .ToList();
+        }
         campaign.UpdatedAt = DateTime.UtcNow;
 
         await dbContext.SaveChangesAsync(cancellationToken);
@@ -42,6 +52,10 @@ public class UpdateCampaignCommandHandler(IApplicationDbContext dbContext, ICurr
             campaign.Status,
             campaign.AiPlanJson,
             campaign.AiGeneratedAt,
+            campaign.BriefJson,
+            campaign.CompetitorResearchJson,
+            campaign.DiagnosisJson,
+            campaign.PlanApprovedAt,
             campaign.CreatedAt,
             campaign.UpdatedAt);
 

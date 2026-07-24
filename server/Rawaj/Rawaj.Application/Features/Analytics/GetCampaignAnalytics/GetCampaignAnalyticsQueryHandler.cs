@@ -25,8 +25,11 @@ public class GetCampaignAnalyticsQueryHandler(IApplicationDbContext dbContext, I
             return Result<CampaignAnalyticsSummary>.Failure("Campaign not found.");
         }
 
+        // Scoped via ScheduledPost.CampaignId (denormalized at schedule time) rather than
+        // ScheduledPost.ContentItem.CampaignId, so this can never silently diverge from how the
+        // Dashboard and GetScheduledPosts queries scope the same posts.
         var latestPerPost = await PostAnalyticsAggregation.GetLatestPerPostAsync(
-            dbContext.PostAnalytics.Where(a => a.ScheduledPost.ContentItem.CampaignId == request.CampaignId),
+            dbContext.PostAnalytics.Where(a => a.ScheduledPost.CampaignId == request.CampaignId),
             cancellationToken);
 
         var posts = latestPerPost

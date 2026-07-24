@@ -83,4 +83,15 @@ export class BrandProfileService {
       this.http.post<ApiResponse<boolean>>(`${this.baseUrl}/${id}/archive`, {}),
     );
   }
+
+  /** Real AI follow-up questions for the onboarding wizard's step-7 chat (3–8 questions, each with
+   *  3 quick-reply suggestions) — grounded in whatever the wizard has collected so far. Charges
+   *  AI Reasoning Conversation coins. `onboardingContext` is passed through as raw JSON. */
+  generateOnboardingQuestions(
+    brandProfileId: string, onboardingContext: unknown,
+  ): Observable<ApiResponse<{ questionsJson: string }>> {
+    return this.http.post<ApiResponse<{ questionsJson: string }>>(
+      `${this.baseUrl}/${brandProfileId}/onboarding-questions`, { onboardingContext },
+    );
+  }
 }

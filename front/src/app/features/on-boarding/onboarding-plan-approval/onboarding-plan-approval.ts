@@ -1,4 +1,10 @@
 import { Component, DestroyRef, inject, input, OnInit, output, signal, computed } from '@angular/core';
+import { CampaignService } from '../../../services/campaign.service';
+import { ErrorModalService } from '../../../services/error-modal.service';
+import { extractApiErrorMessage } from '../../../core/auth/api-error.util';
+import {
+  BusinessDiagnosis, CampaignStrategy, CompetitorResearch,
+} from '../../../model/campaign.model';
 
 // ──── Platform & content metadata ─────────────────────────────────────────
 const PLATFORM_META: Record<string, { icon: string; color: string; lightColor: string; label: string }> = {
@@ -38,23 +44,34 @@ const SUCCESS_METRICS_MAP: Record<string, { label: string; target: string; icon:
   styleUrl: './onboarding-plan-approval.css',
 })
 export class OnboardingPlanApproval implements OnInit {
-  readonly data    = input<ApprovalOnboardingData | null>(null);
-  readonly approve = output<void>();
-  readonly back    = output<void>();
+  readonly data       = input<ApprovalOnboardingData | null>(null);
+  readonly campaignId = input<string | null>(null);
+  readonly approve    = output<void>();
+  readonly back       = output<void>();
 
   private readonly destroyRef = inject(DestroyRef);
+  private readonly campaignService = inject(CampaignService);
+  private readonly errorModalService = inject(ErrorModalService);
 
   protected readonly phase       = signal<'loading' | 'plan'>('loading');
   protected readonly loadingStep = signal(0);
 
   protected readonly loadingMessages = [
-    'تحليل بيانات علامتك التجارية...',
-    'دراسة الجمهور المستهدف...',
-    'بناء استراتيجية المحتوى...',
-    'توزيع الميزانية بذكاء...',
-    'إعداد جدول النشر الأسبوعي...',
-    'صياغة الرؤى والتوصيات...',
+    'البحث عن المنافسين في نفس نشاطك...',
+    'تحليل ما فهمناه عن نشاطك...',
+    'بناء استراتيجية الحملة الكاملة...',
   ];
+
+  // ── Real AI pipeline state (research → diagnosis → strategy) ──
+  protected readonly competitorResearch = signal<CompetitorResearch | null>(null);
+  protected readonly diagnosis          = signal<BusinessDiagnosis | null>(null);
+  protected readonly strategy           = signal<CampaignStrategy | null>(null);
+  protected readonly pipelineError      = signal<string | null>(null);
+
+  protected readonly refineFeedback = signal('');
+  protected readonly refining       = signal(false);
+  protected readonly approving      = signal(false);
+  protected readonly approved       = signal(false);
 
   protected readonly plan = computed<GeneratedPlan>(() => {
     const d        = this.data() ?? {};
@@ -80,23 +97,90 @@ export class OnboardingPlanApproval implements OnInit {
   });
 
   ngOnInit(): void {
-    const total = this.loadingMessages.length;
-    let current = 0;
+    const campaignId = this.campaignId();
+    if (!campaignId) {
+      // No real campaign to run the pipeline against (shouldn't happen from the wizard, but keep
+      // the page usable rather than stuck on a loader forever).
+      this.pipelineError.set('تعذّر العثور على الحملة. عد للخطوة السابقة وحاول مرة أخرى.');
+      this.phase.set('plan');
+      return;
+    }
+    this.runPipeline(campaignId);
+  }
 
-    const tick = () => {
-      current++;
-      if (current < total) {
-        this.loadingStep.set(current);
-        const id = setTimeout(tick, 480);
-        this.destroyRef.onDestroy(() => clearTimeout(id));
-      } else {
-        const id = setTimeout(() => this.phase.set('plan'), 650);
-        this.destroyRef.onDestroy(() => clearTimeout(id));
-      }
-    };
+  /** Runs the real research → diagnosis → strategy pipeline once, in order, against the campaign
+   *  the wizard just created. Competitor research is best-effort and never blocks progress — a
+   *  Tavily failure just means the "unavailable" note renders instead of competitor cards. */
+  private runPipeline(campaignId: string): void {
+    this.loadingStep.set(0);
+    this.campaignService.researchCompetitors(campaignId).subscribe({
+      next: res => {
+        if (res.data) {
+          this.competitorResearch.set(this.parseJson<CompetitorResearch>(res.data.competitorResearchJson));
+        }
+        this.runDiagnosis(campaignId);
+      },
+      error: () => this.runDiagnosis(campaignId), // best-effort — proceed regardless
+    });
+  }
 
-    const id = setTimeout(tick, 480);
-    this.destroyRef.onDestroy(() => clearTimeout(id));
+  private runDiagnosis(campaignId: string): void {
+    this.loadingStep.set(1);
+    this.campaignService.diagnoseBusiness(campaignId).subscribe({
+      next: res => {
+        if (res.data) this.diagnosis.set(this.parseJson<BusinessDiagnosis>(res.data.diagnosisJson));
+        this.runStrategy(campaignId);
+      },
+      error: err => {
+        this.pipelineError.set(extractApiErrorMessage(err, 'تعذّر إعداد تحليل النشاط.'));
+        this.runStrategy(campaignId); // still attempt the strategy — diagnosis is advisory input to it
+      },
+    });
+  }
+
+  private runStrategy(campaignId: string): void {
+    this.loadingStep.set(2);
+    this.campaignService.generatePlan(campaignId).subscribe({
+      next: res => {
+        if (res.data) this.strategy.set(this.parseJson<CampaignStrategy>(res.data.aiPlanJson));
+        this.phase.set('plan');
+      },
+      error: err => {
+        this.pipelineError.set(extractApiErrorMessage(err, 'تعذّر توليد الاستراتيجية. يمكنك المحاولة مجدداً أو المتابعة بالخطة الأولية.'));
+        this.phase.set('plan');
+      },
+    });
+  }
+
+  private parseJson<T>(raw: string | null | undefined): T | null {
+    if (!raw) return null;
+    try { return JSON.parse(raw) as T; } catch { return null; }
+  }
+
+  /** "عدّل الخطة" — free-text refinement of the just-generated strategy (AI Reasoning Conversation). */
+  protected submitRefine(): void {
+    const campaignId = this.campaignId();
+    const feedback = this.refineFeedback().trim();
+    if (!campaignId || !feedback || this.refining()) return;
+
+    this.refining.set(true);
+    this.campaignService.refinePlan(campaignId, feedback).subscribe({
+      next: res => {
+        this.refining.set(false);
+        if (res.data) {
+          this.strategy.set(this.parseJson<CampaignStrategy>(res.data.aiPlanJson));
+          this.refineFeedback.set('');
+        }
+      },
+      error: err => {
+        this.refining.set(false);
+        this.errorModalService.show(extractApiErrorMessage(err, 'تعذّر تعديل الخطة.'), { variant: 'error' });
+      },
+    });
+  }
+
+  protected updateRefineFeedback(value: string): void {
+    this.refineFeedback.set(value);
   }
 
   // ──── Helpers ─────────────────────────────────────────────────────────────
@@ -328,8 +412,25 @@ export class OnboardingPlanApproval implements OnInit {
     return insights.slice(0, 4);
   }
 
-  onApprove(): void { this.approve.emit(); }
-  onBack(): void    { this.back.emit(); }
+  onApprove(): void {
+    const campaignId = this.campaignId();
+    if (!campaignId || this.approving()) return;
+
+    this.approving.set(true);
+    this.campaignService.approvePlan(campaignId).subscribe({
+      next: () => {
+        this.approving.set(false);
+        this.approved.set(true);
+        this.approve.emit();
+      },
+      error: err => {
+        this.approving.set(false);
+        this.errorModalService.show(extractApiErrorMessage(err, 'تعذّر اعتماد الخطة.'), { variant: 'error' });
+      },
+    });
+  }
+
+  onBack(): void { this.back.emit(); }
 }
 
 // ──── Types ────────────────────────────────────────────────────────────────

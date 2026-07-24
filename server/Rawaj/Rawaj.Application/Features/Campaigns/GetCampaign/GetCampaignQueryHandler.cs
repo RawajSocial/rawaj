@@ -27,6 +27,10 @@ public class GetCampaignQueryHandler(IApplicationDbContext dbContext, ICurrentTe
                 c.Status,
                 c.AiPlanJson,
                 c.AiGeneratedAt,
+                c.BriefJson,
+                c.CompetitorResearchJson,
+                c.DiagnosisJson,
+                c.PlanApprovedAt,
                 c.CreatedAt,
                 c.UpdatedAt))
             .FirstOrDefaultAsync(cancellationToken);

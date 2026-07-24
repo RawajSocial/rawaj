@@ -1,0 +1,312 @@
+.pricing-page {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 24px 20px 80px;
+}
+
+.pricing-page__topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0 40px;
+}
+
+.pricing-page__logo {
+  font-size: 1.4rem;
+  font-weight: var(--font-bold);
+  color: var(--color-dark);
+  text-decoration: none;
+}
+
+.pricing-page__topbar-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.pricing-page__hero {
+  text-align: center;
+  margin-bottom: 48px;
+}
+
+.pricing-page__hero h1 {
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-bold);
+  color: var(--color-dark);
+  margin: 0 0 10px;
+}
+
+.pricing-page__hero p {
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.pricing-page__section {
+  margin-bottom: 56px;
+}
+
+.pricing-page__section-title {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-bold);
+  color: var(--color-dark);
+  margin: 0 0 8px;
+  text-align: center;
+}
+
+.pricing-page__section-hint {
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  max-width: 620px;
+  margin: 0 auto 28px;
+}
+
+/* ── Plans ── */
+.plans-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+
+.plan-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.plan-card--featured {
+  border-color: var(--color-secondary);
+  box-shadow: 0 20px 45px rgba(124, 58, 237, .18);
+}
+
+.plan-card__badge {
+  position: absolute;
+  top: -12px;
+  right: 20px;
+  background: linear-gradient(135deg, var(--color-secondary), var(--color-primary));
+  color: #fff;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-bold);
+  padding: 4px 14px;
+  border-radius: var(--radius-full);
+}
+
+.plan-card__name {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-bold);
+  color: var(--color-dark);
+  margin: 0 0 10px;
+}
+
+.plan-card__price {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.plan-card__amount {
+  font-size: 1.8rem;
+  font-weight: var(--font-bold);
+  color: var(--color-dark);
+}
+
+.plan-card__period {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.plan-card__desc {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  min-height: 4.2em;
+  margin-bottom: 16px;
+}
+
+.plan-card__list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
+.plan-card__list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.plan-card__list li i { color: var(--color-success); font-size: .75rem; }
+
+.plan-card__discount i { color: var(--color-secondary) !important; }
+.plan-card__discount { color: var(--color-dark) !important; font-weight: var(--font-semibold); }
+
+.plan-card__cta {
+  display: block;
+  text-align: center;
+}
+
+.plan-card__note {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  text-align: center;
+  margin: 8px 0 0;
+  line-height: 1.5;
+}
+
+/* ── Coin packages ── */
+.packages-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
+}
+
+.package-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+}
+
+.package-card__name {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-bold);
+  color: var(--color-dark);
+}
+
+.package-card__coins {
+  font-size: 1.5rem;
+  font-weight: var(--font-bold);
+  color: var(--color-secondary);
+}
+
+.package-card__bonus {
+  font-size: var(--font-size-xs);
+  color: var(--color-success);
+  font-weight: var(--font-semibold);
+}
+
+.package-card__price {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-semibold);
+  color: var(--color-dark);
+}
+
+.package-card__note {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  margin: 4px 0 0;
+  line-height: 1.5;
+}
+
+/* ── Add-ons ── */
+.addons-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.addon-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.addon-card i {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--color-secondary-subtle);
+  color: var(--color-secondary);
+  font-size: 1.1rem;
+}
+
+.addon-card__name {
+  display: block;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-dark);
+}
+
+.addon-card__price {
+  display: block;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+/* ── AI price table ── */
+.ai-price-table-wrap {
+  max-width: 720px;
+  margin: 0 auto;
+  overflow-x: auto;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+}
+
+.ai-price-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 480px;
+}
+
+.ai-price-table thead th {
+  text-align: start;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-muted);
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.ai-price-table td {
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--color-border);
+  font-size: var(--font-size-sm);
+  color: var(--color-dark);
+}
+
+.ai-price-table tbody tr:last-child td { border-bottom: none; }
+
+.ai-price-table__cost {
+  font-weight: var(--font-semibold);
+  color: var(--color-secondary);
+}
+
+/* ── Footer CTA ── */
+.pricing-page__footer-cta {
+  text-align: center;
+  padding: 48px 24px;
+  background: linear-gradient(135deg, var(--color-secondary-subtle), transparent);
+  border-radius: 24px;
+}
+
+.pricing-page__footer-cta h2 {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-bold);
+  color: var(--color-dark);
+  margin: 0 0 16px;
+}
+
+@media (max-width: 992px) {
+  .plans-grid { grid-template-columns: repeat(2, 1fr); }
+  .packages-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (max-width: 640px) {
+  .plans-grid { grid-template-columns: 1fr; }
+  .packages-grid { grid-template-columns: repeat(2, 1fr); }
+  .addons-grid { grid-template-columns: 1fr; }
+}

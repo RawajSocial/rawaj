@@ -20,6 +20,9 @@ public class MarketingCampaignConfiguration : IEntityTypeConfiguration<Marketing
         builder.Property(c => c.BudgetCurrency).HasMaxLength(5);
         builder.Property(c => c.Status).HasConversion<string>().HasMaxLength(20).IsRequired();
         builder.Property(c => c.AiPlanJson).HasColumnType("nvarchar(max)");
+        builder.Property(c => c.BriefJson).HasColumnType("nvarchar(max)");
+        builder.Property(c => c.CompetitorResearchJson).HasColumnType("nvarchar(max)");
+        builder.Property(c => c.DiagnosisJson).HasColumnType("nvarchar(max)");
 
         builder.HasOne(c => c.BrandProfile)
             .WithMany(b => b.Campaigns)

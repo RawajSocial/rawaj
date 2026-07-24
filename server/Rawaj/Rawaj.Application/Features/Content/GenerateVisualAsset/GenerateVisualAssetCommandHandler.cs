@@ -61,7 +61,13 @@ public class GenerateVisualAssetCommandHandler(
                 $"Your subscription plan allows {creditsUsage.MaxCreditsMonthly} AI credits per month. Upgrade for more.");
         }
 
-        var coinCost = coinCostProvider.VisualGeneration;
+        var tenant = await dbContext.Tenants.FirstAsync(t => t.Id == tenantId, cancellationToken);
+
+        // New-tenant free trial (pricing sheet section 3.2): the first 5 image generations are free.
+        var usesFreeTrial = tenant.FreeImageGenerationsRemaining > 0;
+        var coinCost = usesFreeTrial
+            ? 0
+            : await CoinPricingPolicy.GetDiscountedCostAsync(dbContext, tenantId, coinCostProvider.VisualGeneration, cancellationToken);
         var coinBalance = await CoinPolicy.GetBalanceAsync(dbContext, tenantId, userId, role, cancellationToken);
         if (coinBalance < coinCost)
         {
@@ -118,7 +124,14 @@ public class GenerateVisualAssetCommandHandler(
         };
         dbContext.VisualAssets.Add(visualAsset);
 
-        await CoinPolicy.TrySpendAsync(dbContext, tenantId, userId, role, coinCost, cancellationToken);
+        if (usesFreeTrial)
+        {
+            tenant.FreeImageGenerationsRemaining--;
+        }
+        else
+        {
+            await CoinPolicy.TrySpendAsync(dbContext, tenantId, userId, role, coinCost, cancellationToken);
+        }
 
         var visualSubject = campaign is not null ? $"for \"{campaign.Name}\"" : $"for {brand.Name}";
         NotificationPublisher.Notify(

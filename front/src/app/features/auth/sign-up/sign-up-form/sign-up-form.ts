@@ -9,6 +9,7 @@ import { LoaderService } from '../../../../services/loader.service';
 import { applyAuthFailure, applyFieldErrors, hasFieldErrors } from '../../../../core/auth/api-error.util';
 import { usernameValidators } from '../../../../core/auth/username.validators';
 import { passwordValidators } from '../../../../core/auth/password.validators';
+import { CelebrationModalService } from '../../../../services/celebration-modal.service';
 
 /** Mirrors RegisterCommandValidator's `RuleFor(x => x.FullName).MaximumLength(150)` — the backend
  *  validates the combined `firstName + ' ' + lastName` string sent as one FullName field. */
@@ -38,6 +39,7 @@ export class SignUpForm {
   private readonly authService = inject(AuthService);
   private readonly tenantService = inject(TenantService);
   private readonly loaderService = inject(LoaderService);
+  private readonly celebrationModalService = inject(CelebrationModalService);
 
   constructor(
     private readonly fb: FormBuilder,
@@ -83,6 +85,8 @@ export class SignUpForm {
 
         this.tenantService.refreshMemberships().subscribe();
         this.authService.fetchMyProfile().subscribe();
+        // Matches TenantProvisioningService.StartingCoinBalance on the backend.
+        this.celebrationModalService.show('حصلت على 100 كوين مجانية لتبدأ بها في توليد المحتوى!', 'مرحبًا بك في رواج!');
         this.router.navigate(['/dashboard']);
       },
       error: err => {

@@ -4,7 +4,10 @@ import { Observable, tap } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { ApiResponse } from '../model/auth.model';
 import { PagedResult } from '../model/paged-result.model';
-import { ContentItemSummary } from '../model/content-item.model';
+import {
+  ContentItemSummary, GenerateContentItemInput, GenerateContentItemResponse,
+  RegenerateContentItemResponse, ReviewContentItemResponse,
+} from '../model/content-item.model';
 
 @Injectable({ providedIn: 'root' })
 export class ContentItemService {
@@ -32,5 +35,24 @@ export class ContentItemService {
 
   clear(): void {
     this._items.set([]);
+  }
+
+  /** Real single-item text generation (توليد المحتوى) — charges coins (first 5/month free). */
+  generate(input: GenerateContentItemInput): Observable<ApiResponse<GenerateContentItemResponse>> {
+    return this.http.post<ApiResponse<GenerateContentItemResponse>>(`${this.baseUrl}/generate`, input);
+  }
+
+  /** Accept/refuse a draft — flips its status to Approved or Rejected. */
+  review(contentItemId: string, approve: boolean): Observable<ApiResponse<ReviewContentItemResponse>> {
+    return this.http.post<ApiResponse<ReviewContentItemResponse>>(
+      `${this.baseUrl}/${contentItemId}/review`, { approve },
+    );
+  }
+
+  /** Regenerates a draft's copy from free-text feedback, resetting it back to Draft for re-review. */
+  regenerate(contentItemId: string, feedback: string): Observable<ApiResponse<RegenerateContentItemResponse>> {
+    return this.http.post<ApiResponse<RegenerateContentItemResponse>>(
+      `${this.baseUrl}/${contentItemId}/regenerate`, { feedback },
+    );
   }
 }

@@ -11,6 +11,7 @@ export interface ScheduledPost {
   platform: CampaignPlatform;
   content: string;
   mediaType?: MediaType;
+  imageUrl?: string;
   scheduledAt: string; // ISO: "2026-06-04T10:30:00"
   status: PostStatus;
   hashtags?: string[];
@@ -36,4 +37,14 @@ export interface ScheduledPostSummary {
   shares?: number | null;
   clicks?: number | null;
   engagementRate?: number | null;
+  /** The real post copy, joined from ContentItem. */
+  content: string;
+  /** The specific visual asset attached at scheduling time, if any. */
+  imageUrl?: string | null;
+}
+
+/** POST /api/v1/scheduled-posts/{id}/cancel — CancelScheduledPostResponse */
+export interface CancelScheduledPostResponse {
+  scheduledPostId: string;
+  status: ScheduledPostSummary['status'];
 }

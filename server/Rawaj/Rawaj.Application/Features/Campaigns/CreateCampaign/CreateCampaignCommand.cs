@@ -13,7 +13,10 @@ public record CreateCampaignCommand(
     DateOnly? StartDate,
     DateOnly? EndDate,
     decimal? BudgetAmount,
-    string? BudgetCurrency) : IRequest<Result<CreateCampaignResponse>>, IRequireTenantRole, IRequireBrandAccess
+    string? BudgetCurrency,
+    /// <summary>The onboarding wizard's collected brief/answers, as opaque JSON — see
+    /// <see cref="Rawaj.Domain.Entities.Campaigns.MarketingCampaign.BriefJson"/>.</summary>
+    string? BriefJson = null) : IRequest<Result<CreateCampaignResponse>>, IRequireTenantRole, IRequireBrandAccess
 {
     public TenantMemberRole MinimumRole => TenantMemberRole.Editor;
 }

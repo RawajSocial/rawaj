@@ -178,6 +178,114 @@ namespace Rawaj.Persistence.Migrations
                     b.ToTable("refresh_tokens", (string)null);
                 });
 
+            modelBuilder.Entity("Rawaj.Domain.Entities.Billing.BillingTransaction", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("AmountUsd")
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<int?>("CoinsGranted")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "CreatedAt");
+
+                    b.ToTable("billing_transactions", (string)null);
+                });
+
+            modelBuilder.Entity("Rawaj.Domain.Entities.Billing.CoinPackage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("BonusCoins")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Coins")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<decimal>("PriceUsd")
+                        .HasColumnType("decimal(10,2)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("coin_packages", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("00000000-0000-0000-0000-000000000101"),
+                            BonusCoins = 0,
+                            Coins = 5000,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Name = "Starter",
+                            PriceUsd = 50m
+                        },
+                        new
+                        {
+                            Id = new Guid("00000000-0000-0000-0000-000000000102"),
+                            BonusCoins = 1000,
+                            Coins = 10000,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Name = "Growth",
+                            PriceUsd = 100m
+                        },
+                        new
+                        {
+                            Id = new Guid("00000000-0000-0000-0000-000000000103"),
+                            BonusCoins = 3000,
+                            Coins = 20000,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Name = "Business",
+                            PriceUsd = 200m
+                        },
+                        new
+                        {
+                            Id = new Guid("00000000-0000-0000-0000-000000000104"),
+                            BonusCoins = 8000,
+                            Coins = 40000,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Name = "Enterprise",
+                            PriceUsd = 400m
+                        });
+                });
+
             modelBuilder.Entity("Rawaj.Domain.Entities.Billing.Subscription", b =>
                 {
                     b.Property<Guid>("Id")
@@ -199,6 +307,9 @@ namespace Rawaj.Persistence.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<DateTime>("CurrentPeriodStart")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("LastCoinGrantAt")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Status")
@@ -238,6 +349,9 @@ namespace Rawaj.Persistence.Migrations
                         .HasMaxLength(10)
                         .HasColumnType("nvarchar(10)");
 
+                    b.Property<int>("CoinUsageDiscountPercent")
+                        .HasColumnType("int");
+
                     b.Property<decimal>("Cost")
                         .HasColumnType("decimal(10,2)");
 
@@ -274,6 +388,9 @@ namespace Rawaj.Persistence.Migrations
                     b.Property<int>("MaxUsers")
                         .HasColumnType("int");
 
+                    b.Property<int>("MonthlyCoinGrant")
+                        .HasColumnType("int");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -291,6 +408,7 @@ namespace Rawaj.Persistence.Migrations
                         {
                             Id = new Guid("00000000-0000-0000-0000-000000000001"),
                             BillingCycle = "Monthly",
+                            CoinUsageDiscountPercent = 0,
                             Cost = 0m,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Currency = "USD",
@@ -298,28 +416,69 @@ namespace Rawaj.Persistence.Migrations
                             IsActive = true,
                             MaxAiCreditsMonthly = 50,
                             MaxBrands = 1,
-                            MaxCampaignsMonthly = 0,
+                            MaxCampaignsMonthly = 1,
                             MaxScheduledPosts = 10,
                             MaxSocialAccounts = 2,
-                            MaxUsers = 3,
+                            MaxUsers = 2,
+                            MonthlyCoinGrant = 100,
                             Name = "Free"
+                        },
+                        new
+                        {
+                            Id = new Guid("00000000-0000-0000-0000-000000000003"),
+                            BillingCycle = "Monthly",
+                            CoinUsageDiscountPercent = 10,
+                            Cost = 99m,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Currency = "USD",
+                            Features = "[\"priority_support\"]",
+                            IsActive = true,
+                            MaxAiCreditsMonthly = 1000,
+                            MaxBrands = 10,
+                            MaxCampaignsMonthly = 50,
+                            MaxScheduledPosts = 200,
+                            MaxSocialAccounts = 10,
+                            MaxUsers = 9,
+                            MonthlyCoinGrant = 10000,
+                            Name = "Plus"
                         },
                         new
                         {
                             Id = new Guid("00000000-0000-0000-0000-000000000002"),
                             BillingCycle = "Monthly",
-                            Cost = 49.99m,
+                            CoinUsageDiscountPercent = 18,
+                            Cost = 249m,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Currency = "USD",
                             Features = "[\"priority_support\",\"advanced_analytics\"]",
                             IsActive = true,
-                            MaxAiCreditsMonthly = 1000,
-                            MaxBrands = 5,
-                            MaxCampaignsMonthly = 50,
-                            MaxScheduledPosts = 200,
-                            MaxSocialAccounts = 10,
-                            MaxUsers = 10,
+                            MaxAiCreditsMonthly = 5000,
+                            MaxBrands = 30,
+                            MaxCampaignsMonthly = 150,
+                            MaxScheduledPosts = 1000,
+                            MaxSocialAccounts = 30,
+                            MaxUsers = 26,
+                            MonthlyCoinGrant = 30000,
                             Name = "Pro"
+                        },
+                        new
+                        {
+                            Id = new Guid("00000000-0000-0000-0000-000000000004"),
+                            BillingCycle = "Monthly",
+                            CoinUsageDiscountPercent = 30,
+                            Cost = 599m,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Currency = "USD",
+                            Features = "[\"priority_support\",\"advanced_analytics\",\"dedicated_account_manager\"]",
+                            IsActive = true,
+                            MaxAiCreditsMonthly = 20000,
+                            MaxBrands = 100,
+                            MaxCampaignsMonthly = 500,
+                            MaxScheduledPosts = 5000,
+                            MaxSocialAccounts = 100,
+                            MaxUsers = 101,
+                            MonthlyCoinGrant = 80000,
+                            Name = "Ultra"
                         });
                 });
 
@@ -555,6 +714,9 @@ namespace Rawaj.Persistence.Migrations
                     b.Property<Guid>("BrandProfileId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("BriefJson")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<decimal?>("BudgetAmount")
                         .HasColumnType("decimal(12,2)");
 
@@ -562,11 +724,17 @@ namespace Rawaj.Persistence.Migrations
                         .HasMaxLength(5)
                         .HasColumnType("nvarchar(5)");
 
+                    b.Property<string>("CompetitorResearchJson")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<Guid>("CreatedBy")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("DiagnosisJson")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateOnly?>("EndDate")
                         .HasColumnType("date");
@@ -578,6 +746,9 @@ namespace Rawaj.Persistence.Migrations
 
                     b.Property<string>("Objective")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("PlanApprovedAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<DateOnly?>("StartDate")
                         .HasColumnType("date");
@@ -964,6 +1135,21 @@ namespace Rawaj.Persistence.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<int>("ExtraBrandsPurchased")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ExtraMarketeersPurchased")
+                        .HasColumnType("int");
+
+                    b.Property<int>("FreeContentGenerationsRemaining")
+                        .HasColumnType("int");
+
+                    b.Property<int>("FreeImageGenerationsRemaining")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("FreeMarketingPlanUsed")
+                        .HasColumnType("bit");
+
                     b.Property<bool>("IsActivated")
                         .HasColumnType("bit");
 
@@ -1326,6 +1512,17 @@ namespace Rawaj.Persistence.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("Rawaj.Domain.Entities.Billing.BillingTransaction", b =>
+                {
+                    b.HasOne("Rawaj.Domain.Entities.Tenants.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Tenant");
                 });
 
             modelBuilder.Entity("Rawaj.Domain.Entities.Billing.Subscription", b =>

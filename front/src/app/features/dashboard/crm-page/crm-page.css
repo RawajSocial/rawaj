@@ -60,6 +60,23 @@
 }
 
 /* ── Platform filter chip ── */
+.campaign-switcher__label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-secondary);
+}
+
+.campaign-switcher__select {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-dark);
+  font-size: var(--font-size-sm);
+  font-family: inherit;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
 .platform-chip {
   --chip-color: var(--color-dark);
   border: 1px solid var(--color-border);

@@ -15,6 +15,13 @@ public class SubscriptionPlan : BaseEntity
     public int MaxAiCreditsMonthly { get; set; }
     public int MaxScheduledPosts { get; set; }
     public int MaxSocialAccounts { get; set; }
+    /// <summary>Percentage discount (0-100) applied to every coin cost for tenants on this plan
+    /// (see <see cref="Rawaj.Application.Common.Policies.CoinPricingPolicy"/>).</summary>
+    public int CoinUsageDiscountPercent { get; set; }
+    /// <summary>Coins credited to the tenant's pool whenever they subscribe to this plan (see
+    /// <c>ChangeSubscriptionPlanCommandHandler</c>) — at most once per billing period, tracked via
+    /// <see cref="Subscription.LastCoinGrantAt"/>.</summary>
+    public int MonthlyCoinGrant { get; set; }
     public List<string> Features { get; set; } = [];
     public bool IsActive { get; set; }
     public DateTime CreatedAt { get; set; }

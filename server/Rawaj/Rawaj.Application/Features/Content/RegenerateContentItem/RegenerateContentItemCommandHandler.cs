@@ -42,15 +42,13 @@ public class RegenerateContentItemCommandHandler(
             return Result<RegenerateContentItemResponse>.Failure("Published content cannot be regenerated.");
         }
 
-        if (contentItem.CampaignId is null)
-        {
-            return Result<RegenerateContentItemResponse>.Failure("Standalone trial content cannot be regenerated.");
-        }
-
-        var campaign = await dbContext.MarketingCampaigns
-            .FirstAsync(c => c.Id == contentItem.CampaignId, cancellationToken);
+        // Standalone content-gen output (CampaignId is null) is allowed to regenerate too — only
+        // the prompt drops its "Campaign: ..." line when there isn't one (see BuildRevisionPrompt).
+        var campaign = contentItem.CampaignId.HasValue
+            ? await dbContext.MarketingCampaigns.FirstOrDefaultAsync(c => c.Id == contentItem.CampaignId, cancellationToken)
+            : null;
         var brand = await dbContext.TenantBrandProfiles
-            .FirstAsync(b => b.Id == campaign.BrandProfileId, cancellationToken);
+            .FirstAsync(b => b.Id == contentItem.BrandProfileId, cancellationToken);
 
         var creditsUsage = await AiCreditsPolicy.GetUsageAsync(dbContext, tenantId, cancellationToken);
         if (!creditsUsage.HasCreditsRemaining)
@@ -59,7 +57,9 @@ public class RegenerateContentItemCommandHandler(
                 $"Your subscription plan allows {creditsUsage.MaxCreditsMonthly} AI credits per month. Upgrade for more.");
         }
 
-        var coinCost = coinCostProvider.ContentGeneration;
+        // Regeneration never draws on the free-trial quota (GenerateContentItem does) — otherwise
+        // repeated edits on the same item could be used to keep re-earning free generations.
+        var coinCost = await CoinPricingPolicy.GetDiscountedCostAsync(dbContext, tenantId, coinCostProvider.ContentGeneration, cancellationToken);
         var coinBalance = await CoinPolicy.GetBalanceAsync(dbContext, tenantId, userId, role, cancellationToken);
         if (coinBalance < coinCost)
         {
@@ -121,6 +121,7 @@ public class RegenerateContentItemCommandHandler(
 
         await CoinPolicy.TrySpendAsync(dbContext, tenantId, userId, role, coinCost, cancellationToken);
 
+        var contentSubject = campaign is not null ? $"for \"{campaign.Name}\"" : $"for {brand.Name}";
         NotificationPublisher.Notify(
             dbContext,
             userId,
@@ -128,7 +129,7 @@ public class RegenerateContentItemCommandHandler(
             NotificationType.Info,
             NotificationCategory.ReviewNeeded,
             "Revised content ready for review",
-            $"Revision #{revisionNumber} of your {contentItem.ContentType} for \"{campaign.Name}\" is ready for review.",
+            $"Revision #{revisionNumber} of your {contentItem.ContentType} {contentSubject} is ready for review.",
             contentItem.Id,
             "content_item");
 

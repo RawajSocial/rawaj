@@ -10,9 +10,16 @@
   padding: 12px;
   border-radius: 12px;
   transition: background-color var(--transition-fast);
+  text-decoration: none;
+  color: inherit;
+  cursor: default;
 }
 
-.top-post:hover {
+.top-post-linked {
+  cursor: pointer;
+}
+
+.top-post-linked:hover {
   background: var(--color-bg-secondary);
 }
 

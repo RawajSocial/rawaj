@@ -2,6 +2,23 @@
   <div class="onboarding-layout">
     <app-onboarding-sidebar [currentStep]="currentStep()" class="d-lg-block d-none" [totalSteps]="totalSteps" />
     <section class="onboarding-main">
+      @if (currentStep() === 1 && brandProfiles().length > 1) {
+        <div class="onboarding-brand-picker" dir="rtl">
+          <p class="onboarding-brand-picker__label">هذه الحملة ستُنشأ لأي علامة تجارية؟</p>
+          <div class="onboarding-brand-picker__list">
+            @for (bp of brandProfiles(); track bp.id) {
+              <button
+                type="button"
+                class="onboarding-brand-picker__chip"
+                [class.active]="bp.id === selectedBrandProfileId()"
+                (click)="selectBrandProfile(bp.id)">
+                {{ bp.name }}
+              </button>
+            }
+          </div>
+        </div>
+      }
+
       @switch (currentStep()) {
 
         @case (1) {
@@ -68,6 +85,8 @@
             [currentStep]="currentStep()"
             [totalSteps]="totalSteps"
             [data]="onboardingData()"
+            [brandProfileId]="selectedBrandProfileId()"
+            [submitting]="creatingCampaign()"
             (dataChange)="updateOnboardingData($event)"
             (finish)="finishOnboarding()"
             (back)="goToPreviousStep()" />
@@ -76,6 +95,7 @@
         @case (8) {
           <app-onboarding-plan-approval
             [data]="onboardingData()"
+            [campaignId]="campaignId()"
             (approve)="approvePlan()"
             (back)="goToPreviousStep()" />
         }

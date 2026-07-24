@@ -25,6 +25,8 @@ public class GetSubscriptionPlansQueryHandler(IApplicationDbContext dbContext)
                 p.MaxAiCreditsMonthly,
                 p.MaxScheduledPosts,
                 p.MaxSocialAccounts,
+                p.CoinUsageDiscountPercent,
+                p.MonthlyCoinGrant,
                 p.Features))
             .ToListAsync(cancellationToken);
 

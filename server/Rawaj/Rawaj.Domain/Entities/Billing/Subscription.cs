@@ -15,6 +15,10 @@ public class Subscription : BaseEntity
     public DateTime? TrialEndsAt { get; set; }
     public DateTime? CancelledAt { get; set; }
     public DateTime CreatedAt { get; set; }
+    /// <summary>When this subscription's plan last granted <see cref="SubscriptionPlan.MonthlyCoinGrant"/>
+    /// coins — null until the first grant. Prevents re-selecting the same plan from re-granting coins
+    /// within the same billing period.</summary>
+    public DateTime? LastCoinGrantAt { get; set; }
 
     public SubscriptionPlan SubscriptionPlan { get; set; } = null!;
 }

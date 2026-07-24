@@ -15,5 +15,9 @@ public record GetCampaignResponse(
     CampaignStatus Status,
     string? AiPlanJson,
     DateTime? AiGeneratedAt,
+    string? BriefJson,
+    string? CompetitorResearchJson,
+    string? DiagnosisJson,
+    DateTime? PlanApprovedAt,
     DateTime CreatedAt,
     DateTime UpdatedAt);

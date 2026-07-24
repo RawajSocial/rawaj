@@ -36,9 +36,9 @@
         </div>
       }
 
-      @if (!done() && !loading()) {
+      @if (!loading() && !done() && currentQuestion()) {
         <div class="ai-msg ai-msg-assistant">
-          <div class="ai-bubble">{{ currentQuestion().question }}</div>
+          <div class="ai-bubble">{{ currentQuestion()!.question }}</div>
         </div>
       }
 
@@ -51,11 +51,17 @@
           </div>
         </div>
       }
+
+      @if (!loading() && loadError()) {
+        <div class="ai-msg ai-msg-assistant">
+          <div class="ai-bubble">{{ loadError() }}</div>
+        </div>
+      }
     </div>
 
 
 
-    @if (!done() && !loading()) {
+    @if (!loading() && !done() && currentQuestion()) {
       <div class="ai-input-row">
         <div class="ai-input-wrap">
           <span class="ai-input-icon" aria-hidden="true"><i class="fa-solid fa-paper-plane"></i></span>
@@ -71,18 +77,18 @@
 
       <span class="ai-suggestions-label">إجابات مقترحة</span>
       <div class="ai-suggestions">
-        @for (suggestion of currentQuestion().suggestions; track suggestion) {
+        @for (suggestion of currentQuestion()!.suggestions; track suggestion) {
           <button type="button" class="chip ai-chip" (click)="submitAnswer(suggestion)">{{ suggestion }}</button>
         }
       </div>
     }
 
-    @if (done()) {
+    @if (!loading() && (done() || (questions().length === 0 && loadError()))) {
       <div class="ai-complete">
         <p>شكراً! تم استلام إجاباتك ويجري الآن بناء استراتيجيتك.</p>
       </div>
     }
-        @if (!done()) {
+    @if (!loading() && !done() && questions().length > 0) {
       <div class="ai-question-count">سؤال {{ currentIndex() + 1 }} من {{ totalQuestions() }}</div>
     }
   </div>
@@ -90,6 +96,6 @@
   <app-onboarding-step-actions
     (back)="onBack()"
     (next)="onFinish()"
-    [nextDisabled]="!done()"
-    nextLabel="ابدأ رحلتك مع رواج" />
+    [nextDisabled]="loading() || submitting() || (!done() && questions().length > 0)"
+    [nextLabel]="submitting() ? 'جاري إنشاء الحملة...' : 'ابدأ رحلتك مع رواج'" />
 </section>

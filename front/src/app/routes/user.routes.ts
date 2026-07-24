@@ -48,6 +48,12 @@ export const userRoutes: Routes = [
       import('../features/campaigns/campaign-calendar-page/campaign-calendar-page').then((m) => m.CampaignCalendarPage),
   },
   {
+    path: 'campaigns/:id/content',
+    canActivate: [activationGuard],
+    loadComponent: () =>
+      import('../features/campaigns/campaign-content-page/campaign-content-page').then((m) => m.CampaignContentPage),
+  },
+  {
     path: 'campaigns/:id/posts/:postId',
     canActivate: [activationGuard],
     loadComponent: () =>

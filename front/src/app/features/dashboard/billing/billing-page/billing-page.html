@@ -1,8 +1,8 @@
 <div class="page-shell">
   <app-page-header
-    title="الفوترة"
+    title="الفوترة والاشتراك"
     [breadcrumbs]="[{ label: 'نظرة عامة', link: '/dashboard' }, { label: 'الفوترة' }]"
-    subtitle="إدارة اشتراكك وطرق الدفع." />
+    subtitle="إدارة باقتك، رصيد الكوينز، والإضافات." />
 
   <div class="billing-grid">
     <!-- Current plan -->
@@ -10,97 +10,220 @@
       <div class="plan-head">
         <div>
           <h3 class="rw-card__title">الباقة الحالية</h3>
-          <p class="rw-card__hint">أنت مشترك في باقة {{ tenant()?.planName ?? '—' }}</p>
+          <p class="rw-card__hint">أنت مشترك في باقة {{ subscription()?.planName ?? tenant()?.planName ?? '—' }}</p>
         </div>
-        <span class="rw-pill rw-pill--success">{{ tenant()?.planName ?? '—' }}</span>
+        <span class="rw-pill rw-pill--success">{{ subscription()?.planName ?? '—' }}</span>
       </div>
 
       <div class="plan-price">
-        <span class="plan-amount"><i class="fa-solid fa-coins"></i> {{ coinBalance() }}</span>
-        <span class="plan-period">كوين متاح</span>
+        <span class="plan-amount">
+          @if ((subscription()?.planCost ?? 0) > 0) { ${{ subscription()?.planCost }} } @else { مجانًا }
+        </span>
+        @if ((subscription()?.planCost ?? 0) > 0) { <span class="plan-period">/ شهريًا</span> }
       </div>
 
-      <ul class="plan-features">
-        @for (f of planFeatures; track f) {
-          <li><i class="fa-solid fa-check"></i>{{ f }}</li>
-        }
-      </ul>
+      @if (currentPlan(); as cp) {
+        <ul class="plan-features">
+          <li><i class="fa-solid fa-check"></i>حتى {{ cp.maxBrands }} علامة تجارية</li>
+          <li><i class="fa-solid fa-check"></i>حتى {{ cp.maxUsers - 1 }} مسوّق مدعو</li>
+          @if (cp.coinUsageDiscountPercent > 0) {
+            <li><i class="fa-solid fa-check"></i>خصم {{ cp.coinUsageDiscountPercent }}٪ على استهلاك الكوينز</li>
+          }
+          @for (f of cp.features; track f) {
+            <li><i class="fa-solid fa-check"></i>{{ f }}</li>
+          }
+        </ul>
+      }
 
       <div class="plan-actions">
-        <button type="button" class="rw-btn rw-btn--dark">ترقية الباقة</button>
-        <button type="button" class="rw-btn rw-btn--outline">إلغاء الاشتراك</button>
+        <button type="button" class="rw-btn rw-btn--primary" (click)="openPlanPicker()">ترقية الباقة</button>
+        @if ((subscription()?.planCost ?? 0) > 0) {
+          <button type="button" class="rw-btn rw-btn--outline" (click)="cancelSubscription()">إلغاء الاشتراك</button>
+        }
       </div>
+
+      @if (planPickerOpen()) {
+        <div class="plan-picker">
+          <div class="plan-picker__grid">
+            @for (p of plans(); track p.subscriptionPlanId) {
+              <button
+                type="button"
+                class="plan-picker__option"
+                [class.selected]="selectedPlanId() === p.subscriptionPlanId"
+                [class.current]="p.subscriptionPlanId === subscription()?.subscriptionPlanId"
+                (click)="selectPlan(p)">
+                <span class="plan-picker__name">{{ p.name }}</span>
+                <span class="plan-picker__price">{{ p.cost > 0 ? '$' + p.cost + '/شهر' : 'مجانًا' }}</span>
+                <span class="plan-picker__meta">{{ p.maxBrands }} علامة · {{ p.maxUsers - 1 }} مسوّق</span>
+                @if (p.coinUsageDiscountPercent > 0) {
+                  <span class="plan-picker__discount">خصم {{ p.coinUsageDiscountPercent }}٪ على الكوينز</span>
+                }
+              </button>
+            }
+          </div>
+
+          @if (needsAgencyInfo()) {
+            <div class="plan-picker__agency-fields">
+              <p class="form-hint">
+                <i class="fa-solid fa-circle-info"></i>
+                بما أنك ستنتقل من الباقة المجانية، أخبرنا قليلًا عن وكالتك.
+              </p>
+              <div class="form-field">
+                <label for="agency-size">حجم الوكالة</label>
+                <select id="agency-size" class="form-control" [ngModel]="agencySize()" (ngModelChange)="agencySize.set($event)">
+                  <option value="" disabled>اختر الحجم</option>
+                  @for (opt of agencySizeOptions; track opt) {
+                    <option [value]="opt">{{ opt }}</option>
+                  }
+                </select>
+              </div>
+              <div class="form-field">
+                <label for="agency-services">الخدمات المقدّمة (مفصولة بفاصلة)</label>
+                <input
+                  id="agency-services"
+                  type="text"
+                  class="form-control"
+                  placeholder="تصميم، إدارة حملات، تصوير..."
+                  [ngModel]="servicesOfferedInput()"
+                  (ngModelChange)="servicesOfferedInput.set($event)" />
+              </div>
+            </div>
+          }
+
+          <div class="plan-picker__actions">
+            <button type="button" class="rw-btn rw-btn--outline" (click)="planPickerOpen.set(false)">إلغاء</button>
+            <button type="button" class="rw-btn rw-btn--primary" [disabled]="!selectedPlanId()" (click)="confirmPlanChange()">
+              متابعة الاشتراك
+            </button>
+          </div>
+        </div>
+      }
     </div>
 
-    <!-- Payment + usage -->
+    <!-- Usage -->
     <div class="rw-card">
       <div class="rw-card__header">
-        <h3 class="rw-card__title">طريقة الدفع</h3>
-        <p class="rw-card__hint">إدارة تفاصيل الدفع</p>
+        <h3 class="rw-card__title">الاستهلاك الشهري</h3>
+        <p class="rw-card__hint">نقاط الذكاء الاصطناعي المستخدمة هذا الشهر</p>
       </div>
-
-      <div class="payment-method">
-        <span class="payment-icon"><i class="fa-solid fa-credit-card"></i></span>
-        <div>
-          <span class="payment-card">فيزا تنتهي بـ 4242</span>
-          <span class="payment-exp">تنتهي 12/2028</span>
-        </div>
-      </div>
-      <button type="button" class="rw-btn rw-btn--outline payment-update">تحديث طريقة الدفع</button>
 
       <div class="usage-block">
-        <h4 class="usage-title">الاستهلاك</h4>
-        @for (m of usage(); track m.label) {
+        @if (aiCreditsUsage(); as usage) {
           <div class="usage-row">
             <div class="usage-row-head">
-              <span class="usage-label">{{ m.label }}</span>
-              <span class="usage-value">{{ m.used }} / {{ m.limit }} {{ m.unit }}</span>
+              <span class="usage-label">نقاط الذكاء الاصطناعي</span>
+              <span class="usage-value">{{ usage.usedThisMonth }} / {{ usage.maxCreditsMonthly }}</span>
             </div>
             <div class="usage-track">
-              <div class="usage-fill" [class.warn]="percent(m) >= 80" [style.width.%]="percent(m)"></div>
+              <div class="usage-fill" [class.warn]="aiCreditsPercent() >= 80" [style.width.%]="aiCreditsPercent()"></div>
             </div>
           </div>
         }
+        <div class="usage-row">
+          <div class="usage-row-head">
+            <span class="usage-label">رصيد الكوينز</span>
+            <span class="usage-value">{{ coinBalance().toLocaleString('ar-SA') }} كوين</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Add-ons -->
+      <div class="addons-block">
+        <h4 class="usage-title">إضافات</h4>
+        <div class="addon-row">
+          <div>
+            <span class="addon-name">علامة تجارية إضافية</span>
+            <span class="addon-count">لديك {{ tenant()?.extraBrandsPurchased ?? 0 }} إضافية</span>
+          </div>
+          <button type="button" class="rw-btn rw-btn--outline rw-btn--sm" (click)="buyAddOn('ExtraBrand', 'علامة تجارية إضافية', 5)">
+            $5/شهر
+          </button>
+        </div>
+        <div class="addon-row">
+          <div>
+            <span class="addon-name">مسوّق إضافي</span>
+            <span class="addon-count">لديك {{ tenant()?.extraMarketeersPurchased ?? 0 }} إضافي</span>
+          </div>
+          <button type="button" class="rw-btn rw-btn--outline rw-btn--sm" (click)="buyAddOn('ExtraMarketeer', 'مسوّق إضافي', 3)">
+            $3/شهر
+          </button>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- Invoices -->
+  <!-- Buy coins -->
   <div class="rw-card">
     <div class="rw-card__header">
-      <h3 class="rw-card__title">سجل الفواتير</h3>
-      <p class="rw-card__hint">فواتيرك ومدفوعاتك الأخيرة</p>
+      <h3 class="rw-card__title">شراء كوينز</h3>
+      <p class="rw-card__hint">اشترِ رصيد كوينز إضافي لاستخدامه في توليد المحتوى والصور والحملات.</p>
     </div>
 
-    <div class="invoice-table-wrap">
-      <table class="invoice-table">
-        <thead>
-          <tr>
-            <th>التاريخ</th>
-            <th>الوصف</th>
-            <th>الحالة</th>
-            <th>المبلغ</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (inv of invoices(); track inv.date) {
-            <tr>
-              <td class="muted-cell">{{ inv.date }}</td>
-              <td>{{ inv.desc }}</td>
-              <td>
-                <span class="rw-pill" [class.rw-pill--success]="inv.status === 'paid'" [class.rw-pill--warning]="inv.status === 'pending'">
-                  {{ inv.status === 'paid' ? 'مدفوعة' : 'معلّقة' }}
-                </span>
-              </td>
-              <td class="amount-cell">{{ inv.amount }}</td>
-              <td class="invoice-dl">
-                <button type="button" class="dl-btn" appTooltip="تحميل الفاتورة" aria-label="تحميل الفاتورة"><i class="fa-solid fa-download"></i></button>
-              </td>
-            </tr>
+    <div class="packages-grid">
+      @for (pkg of pricing()?.coinPackages ?? []; track pkg.coinPackageId) {
+        <div class="package-card">
+          <span class="package-name">{{ pkg.name }}</span>
+          <span class="package-coins">{{ pkg.coins.toLocaleString('ar-SA') }}</span>
+          @if (pkg.bonusCoins > 0) {
+            <span class="package-bonus">+ {{ pkg.bonusCoins.toLocaleString('ar-SA') }} مكافأة</span>
           }
-        </tbody>
-      </table>
+          <span class="package-price">${{ pkg.priceUsd }}</span>
+          <button type="button" class="rw-btn rw-btn--primary" (click)="buyPackage(pkg.coinPackageId, pkg.name, pkg.priceUsd)">
+            شراء
+          </button>
+        </div>
+      }
+
+      <div class="package-card package-card--custom">
+        <span class="package-name">مبلغ مخصص</span>
+        <input
+          type="number"
+          min="1"
+          step="1"
+          class="form-control"
+          placeholder="عدد الكوينز"
+          [ngModel]="customCoins()"
+          (ngModelChange)="customCoins.set($event)" />
+        <span class="package-price">
+          @if (customCoins()) { ${{ (customCoins()! * (pricing()?.customCoinPricePerCoin ?? 0.01)).toFixed(2) }} }
+        </span>
+        <button type="button" class="rw-btn rw-btn--primary" (click)="buyCustomCoins()">شراء</button>
+      </div>
     </div>
+  </div>
+
+  <!-- Billing history -->
+  <div class="rw-card">
+    <div class="rw-card__header">
+      <h3 class="rw-card__title">سجل الفوترة</h3>
+      <p class="rw-card__hint">مشترياتك وتغييرات باقتك الأخيرة</p>
+    </div>
+
+    @if (!historyLoading() && history().length === 0) {
+      <p class="rw-card__hint">لا توجد عمليات بعد.</p>
+    } @else {
+      <div class="invoice-table-wrap">
+        <table class="invoice-table">
+          <thead>
+            <tr>
+              <th>التاريخ</th>
+              <th>النوع</th>
+              <th>الوصف</th>
+              <th>المبلغ</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of history(); track item.id) {
+              <tr>
+                <td class="muted-cell">{{ item.createdAt | date: 'mediumDate' }}</td>
+                <td><span class="rw-pill rw-pill--info">{{ transactionTypeLabels[item.type] }}</span></td>
+                <td>{{ item.description }}</td>
+                <td class="amount-cell">{{ item.amountUsd > 0 ? '$' + item.amountUsd.toFixed(2) : 'مجانًا' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
   </div>
 </div>

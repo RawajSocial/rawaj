@@ -14,4 +14,6 @@ public record SubscriptionPlanSummary(
     int MaxAiCreditsMonthly,
     int MaxScheduledPosts,
     int MaxSocialAccounts,
+    int CoinUsageDiscountPercent,
+    int MonthlyCoinGrant,
     List<string> Features);

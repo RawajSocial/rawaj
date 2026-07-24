@@ -210,12 +210,19 @@ export class UsersPage {
         next: res => {
           this.inviteModalOpen.set(false);
           if (res.status === 'success') {
-            this.errorModalService.show(
-              res.data?.requiresRegistration
-                ? 'تم إرسال دعوة بالبريد الإلكتروني — سينضم العضو فور إنشاء حسابه.'
-                : 'تم إرسال الدعوة بنجاح، بانتظار قبول العضو.',
-              { variant: 'success' },
-            );
+            if (res.data && !res.data.emailConfigured) {
+              this.errorModalService.show(
+                'تم إنشاء الدعوة بنجاح، لكن لم يتم إعداد البريد الإلكتروني على الخادم بعد — لن يصل بريد للعضو. أبلغ مدير النظام لإعداد بيانات البريد الإلكتروني.',
+                { variant: 'warning' },
+              );
+            } else {
+              this.errorModalService.show(
+                res.data?.requiresRegistration
+                  ? 'تم إرسال دعوة بالبريد الإلكتروني — سينضم العضو فور إنشاء حسابه.'
+                  : 'تم إرسال الدعوة بنجاح، بانتظار قبول العضو.',
+                { variant: 'success' },
+              );
+            }
             queueMicrotask(() => this.animateRows());
           } else {
             this.errorModalService.show(res.message ?? 'تعذّر إرسال الدعوة.');

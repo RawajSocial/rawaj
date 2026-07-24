@@ -37,6 +37,11 @@ public class GenerateCampaignContentCommandHandler(
             return Result<GenerateCampaignContentResponse>.Failure("Campaign not found.");
         }
 
+        if (campaign.PlanApprovedAt is null)
+        {
+            return Result<GenerateCampaignContentResponse>.Failure("Approve the campaign strategy before generating content.");
+        }
+
         var brand = await dbContext.TenantBrandProfiles
             .FirstAsync(b => b.Id == campaign.BrandProfileId, cancellationToken);
 
@@ -50,7 +55,7 @@ public class GenerateCampaignContentCommandHandler(
         // One flat charge for the whole batch, regardless of how many posts/images come out of
         // it — the per-post cost accounting that GenerateContentItem/GenerateVisualAsset do would
         // be unpredictable here up front, since the model decides how many posts to produce.
-        var coinCost = coinCostProvider.CampaignContentGeneration;
+        var coinCost = await CoinPricingPolicy.GetDiscountedCostAsync(dbContext, tenantId, coinCostProvider.CampaignContentGeneration, cancellationToken);
         var coinBalance = await CoinPolicy.GetBalanceAsync(dbContext, tenantId, userId, role, cancellationToken);
         if (coinBalance < coinCost)
         {

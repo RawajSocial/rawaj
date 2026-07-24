@@ -2,12 +2,14 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Rawaj.Application.Common.Interfaces;
 using Rawaj.Application.Common.Models;
+using Rawaj.Application.Common.Policies;
 using Rawaj.Domain.Entities.Tenants;
 using Rawaj.Domain.Enums;
 
 namespace Rawaj.Application.Features.TeamMembers.UpdateTeamMember;
 
-public class UpdateTeamMemberCommandHandler(IApplicationDbContext dbContext, ICurrentTenantContext currentTenantContext)
+public class UpdateTeamMemberCommandHandler(
+    IApplicationDbContext dbContext, ICurrentUserService currentUserService, ICurrentTenantContext currentTenantContext)
     : IRequestHandler<UpdateTeamMemberCommand, Result<UpdateTeamMemberResponse>>
 {
     public async Task<Result<UpdateTeamMemberResponse>> Handle(UpdateTeamMemberCommand request, CancellationToken cancellationToken)
@@ -39,6 +41,12 @@ public class UpdateTeamMemberCommandHandler(IApplicationDbContext dbContext, ICu
             }
         }
 
+        var previousRole = tenantMember.Role;
+        var previousBrandProfileIds = await dbContext.TenantMemberBrandAccesses
+            .Where(a => a.TenantMemberId == tenantMember.Id)
+            .Select(a => a.BrandProfileId)
+            .ToListAsync(cancellationToken);
+
         var existingAccesses = await dbContext.TenantMemberBrandAccesses
             .Where(a => a.TenantMemberId == tenantMember.Id)
             .ToListAsync(cancellationToken);
@@ -49,6 +57,21 @@ public class UpdateTeamMemberCommandHandler(IApplicationDbContext dbContext, ICu
 
         tenantMember.Role = request.Role;
 
+        // Promoting an Editor/Viewer to Admin moves their spending onto the tenant pool (see
+        // CoinPolicy) — without this, whatever was left in their escrowed wallet becomes
+        // permanently stranded, since Admins have no wallet and AllocateCoins refuses to touch them.
+        if (request.Role == TenantMemberRole.Admin && previousRole is TenantMemberRole.Editor or TenantMemberRole.Viewer)
+        {
+            var unspentAllocation = tenantMember.AllocatedCoins - tenantMember.SpentCoins;
+            if (unspentAllocation > 0)
+            {
+                var tenant = await dbContext.Tenants.FirstAsync(t => t.Id == tenantId, cancellationToken);
+                tenant.CoinBalance += unspentAllocation;
+            }
+            tenantMember.AllocatedCoins = 0;
+            tenantMember.SpentCoins = 0;
+        }
+
         var brandProfileIds = isBrandScopedRole ? request.BrandProfileIds.Distinct().ToList() : [];
         foreach (var brandProfileId in brandProfileIds)
         {
@@ -58,6 +81,21 @@ public class UpdateTeamMemberCommandHandler(IApplicationDbContext dbContext, ICu
                 TenantMemberId = tenantMember.Id,
                 BrandProfileId = brandProfileId,
             });
+        }
+
+        var userId = currentUserService.UserId;
+        if (previousRole != request.Role)
+        {
+            AuditLogger.Log(
+                dbContext, tenantId, userId, "team.role_changed",
+                message: $"Changed role from {previousRole} to {request.Role}.",
+                entityType: "tenant_member", entityId: tenantMember.Id);
+        }
+        if (!previousBrandProfileIds.OrderBy(x => x).SequenceEqual(brandProfileIds.OrderBy(x => x)))
+        {
+            AuditLogger.Log(
+                dbContext, tenantId, userId, "team.brand_access_changed",
+                entityType: "tenant_member", entityId: tenantMember.Id);
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);

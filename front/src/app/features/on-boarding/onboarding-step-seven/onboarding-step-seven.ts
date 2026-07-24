@@ -1,9 +1,11 @@
-import { Component, computed, input, OnInit, output, signal } from '@angular/core';
+import { Component, computed, inject, input, OnInit, output, signal } from '@angular/core';
 import { OnboardingStepHeader } from '../onboarding-step-header/onboarding-step-header';
 import { OnboardingStepActions } from '../onboarding-step-actions/onboarding-step-actions';
 import { StepBadge } from '../../../shared/components/step-badge/step-badge';
 import { StepHeading } from '../../../shared/components/step-heading/step-heading';
 import { GsapRevealDirective } from '../../../shared/directives/gsap-reveal.directive';
+import { BrandProfileService } from '../../../services/brand-profile.service';
+import { extractApiErrorMessage } from '../../../core/auth/api-error.util';
 
 @Component({
   selector: 'app-onboarding-step-seven',
@@ -15,40 +17,26 @@ export class OnboardingStepSeven implements OnInit {
   readonly currentStep = input(7);
   readonly totalSteps = input(7);
   readonly data = input<OnboardingData | null>(null);
+  readonly brandProfileId = input<string | null>(null);
+  /** True while the parent is creating the campaign after `finish` fires — keeps the button
+   *  showing a busy state instead of letting the user double-submit. */
+  readonly submitting = input(false);
   readonly finish = output<void>();
   readonly back = output<void>();
   readonly dataChange = output<Partial<OnboardingData>>();
 
-  protected readonly questions = signal<Question[]>([
-    {
-      question: 'هل لديك منافسون محددون تريد التميز عنهم؟',
-      suggestions: ['نعم، أعرفهم جيداً', 'السوق واسع ولم أحدد بعد', 'نعم لكن لم أحللهم'],
-    },
-    {
-      question: 'ما أكبر تحدٍ واجهته في التسويق حتى الآن؟',
-      suggestions: ['ضعف التفاعل', 'تحويل المتابعين لمبيعات', 'لم أبدأ بعد'],
-    },
-    {
-      question: 'كيف يصل معظم عملائك الحاليين إليك؟',
-      suggestions: ['توصيات شخصية', 'إنستغرام', 'إعلانات مدفوعة'],
-    },
-    {
-      question: 'هل تستخدم مؤثرين في التسويق؟',
-      suggestions: ['نعم وكانت ناجحة', 'جربت ولم تنجح', 'لا أعتمد على ذلك'],
-    },
-    {
-      question: 'هل هناك أي تفاصيل إضافية أو شيء مهم لم نذكره؟',
-      suggestions: ['لا، كل شيء واضح', 'نعم، لدي تفاصيل إضافية', 'غير متأكد'],
-    },
-  ]);
+  private readonly brandProfileService = inject(BrandProfileService);
+
+  protected readonly questions = signal<Question[]>([]);
+  protected readonly loadError = signal<string | null>(null);
 
   protected readonly currentIndex = signal(0);
   protected readonly answers     = signal<Answer[]>([]);
   protected readonly inputValue  = signal('');
-  protected readonly loading     = signal(false);
+  protected readonly loading     = signal(true);
 
   protected readonly currentQuestion = computed(() => this.questions()[this.currentIndex()] ?? null);
-  protected readonly done            = computed(() => this.currentIndex() >= this.questions().length);
+  protected readonly done            = computed(() => this.questions().length > 0 && this.currentIndex() >= this.questions().length);
   protected readonly totalQuestions  = computed(() => this.questions().length);
 
   // Personalized greeting using brand name from step 3
@@ -63,15 +51,52 @@ export class OnboardingStepSeven implements OnInit {
     const saved = this.data()?.strategistAnswers ?? [];
     if (saved.length > 0) {
       this.answers.set(saved);
-      const nextIdx = Math.min(saved.length, this.questions().length);
-      this.currentIndex.set(nextIdx);
-      if (nextIdx < this.questions().length) {
-        this.simulateThinking();
-      } else {
+    }
+    this.loadQuestions(saved.length);
+  }
+
+  /** Calls the real AI follow-up question generator (charges AI Reasoning Conversation coins),
+   *  passing everything collected in the wizard so far as context. `answeredCount` resumes past
+   *  whatever was already answered in a previous visit to this step. */
+  private loadQuestions(answeredCount: number): void {
+    const brandProfileId = this.brandProfileId();
+    if (!brandProfileId) {
+      this.loadError.set('يجب اختيار علامة تجارية أولاً.');
+      this.loading.set(false);
+      return;
+    }
+
+    this.loading.set(true);
+    this.brandProfileService.generateOnboardingQuestions(brandProfileId, this.data() ?? {}).subscribe({
+      next: res => {
         this.loading.set(false);
-      }
-    } else {
-      this.simulateThinking();
+        const parsed = this.parseQuestions(res.data?.questionsJson);
+        if (parsed.length === 0) {
+          this.loadError.set('تعذّر توليد الأسئلة. يمكنك المتابعة مباشرة.');
+          this.questions.set([]);
+          return;
+        }
+        this.questions.set(parsed);
+        this.currentIndex.set(Math.min(answeredCount, parsed.length));
+      },
+      error: err => {
+        this.loading.set(false);
+        this.loadError.set(extractApiErrorMessage(err, 'تعذّر توليد الأسئلة. يمكنك المتابعة مباشرة.'));
+        this.questions.set([]);
+      },
+    });
+  }
+
+  private parseQuestions(questionsJson: string | undefined): Question[] {
+    if (!questionsJson) return [];
+    try {
+      const parsed = JSON.parse(questionsJson);
+      if (!Array.isArray(parsed)) return [];
+      return parsed
+        .filter((q): q is Question => typeof q?.question === 'string')
+        .map(q => ({ question: q.question, suggestions: Array.isArray(q.suggestions) ? q.suggestions.slice(0, 3) : [] }));
+    } catch {
+      return [];
     }
   }
 
@@ -91,14 +116,6 @@ export class OnboardingStepSeven implements OnInit {
     this.dataChange.emit({ strategistAnswers: nextAnswers });
     this.inputValue.set('');
     this.currentIndex.update(idx => idx + 1);
-    if (!this.done()) {
-      this.simulateThinking();
-    }
-  }
-
-  private simulateThinking(): void {
-    this.loading.set(true);
-    setTimeout(() => this.loading.set(false), 650);
   }
 
   protected onFinish(): void { this.finish.emit(); }

@@ -29,17 +29,23 @@ public class AddTeamMemberCommandHandler(
             return Result<AddTeamMemberResponse>.Failure("Your organization doesn't have enough coins to allocate that amount.");
         }
 
+        var now = DateTime.UtcNow;
+
         var maxUsers = await (
             from t in dbContext.Tenants
             join subscription in dbContext.Subscriptions on t.SubscriptionId equals subscription.Id
             join plan in dbContext.SubscriptionPlans on subscription.SubscriptionPlanId equals plan.Id
             where t.Id == tenantId
             select plan.MaxUsers
-        ).FirstAsync(cancellationToken);
+        ).FirstAsync(cancellationToken) + tenant.ExtraMarketeersPurchased;
 
-        var currentMemberCount = await dbContext.TenantMembers.CountAsync(m => m.TenantId == tenantId, cancellationToken);
+        // Declined members/invitations don't hold a seat — otherwise a single decline would burn
+        // that seat forever. Expired invitations don't hold one either, since they can no longer be
+        // accepted and would otherwise sit blocking a re-invite indefinitely.
+        var currentMemberCount = await dbContext.TenantMembers
+            .CountAsync(m => m.TenantId == tenantId && m.InvitationStatus != InvitationStatus.Declined, cancellationToken);
         var pendingInvitationCount = await dbContext.TenantInvitations
-            .CountAsync(i => i.TenantId == tenantId && i.Status == InvitationStatus.Pending, cancellationToken);
+            .CountAsync(i => i.TenantId == tenantId && i.Status == InvitationStatus.Pending && i.ExpiresAt > now, cancellationToken);
 
         if (currentMemberCount + pendingInvitationCount >= maxUsers)
         {
@@ -62,17 +68,31 @@ public class AddTeamMemberCommandHandler(
         var inviter = await identityService.FindByIdAsync(inviterId, cancellationToken);
         var inviterName = inviter?.FullName ?? "A team admin";
         var roleLabel = RoleLabel(request.Role);
-        var now = DateTime.UtcNow;
 
         var targetUser = await identityService.FindByEmailAsync(request.Email, cancellationToken);
 
         if (targetUser is not null)
         {
-            var alreadyMember = await dbContext.TenantMembers
-                .AnyAsync(m => m.TenantId == tenantId && m.UserId == targetUser.Id, cancellationToken);
+            var alreadyMember = await dbContext.TenantMembers.AnyAsync(
+                m => m.TenantId == tenantId && m.UserId == targetUser.Id && m.InvitationStatus != InvitationStatus.Declined,
+                cancellationToken);
             if (alreadyMember)
             {
                 return Result<AddTeamMemberResponse>.Failure("This user is already a member of your organization.");
+            }
+
+            // Cross-check the other invite path: this email may have been invited before they had
+            // an account (a TenantInvitation row) and has since registered separately. Without this
+            // check, inviting them again here would create a second TenantMember and escrow coins a
+            // second time, while the original TenantInvitation rots forever (it can never be
+            // consumed once an account with this email exists).
+            var stalePendingInvitation = await dbContext.TenantInvitations.AnyAsync(
+                i => i.TenantId == tenantId && i.Email == request.Email && i.Status == InvitationStatus.Pending && i.ExpiresAt > now,
+                cancellationToken);
+            if (stalePendingInvitation)
+            {
+                return Result<AddTeamMemberResponse>.Failure(
+                    "An invitation is already pending for this email. Revoke it first, then invite again.");
             }
 
             var tenantMember = new TenantMember
@@ -123,11 +143,14 @@ public class AddTeamMemberCommandHandler(
             await emailService.SendEmailAsync(request.Email, email.Subject, email.Html, email.PlainText, cancellationToken);
 
             return Result<AddTeamMemberResponse>.Success(
-                new AddTeamMemberResponse(tenantMember.Id, null, targetUser.Email, tenantMember.Role, RequiresRegistration: false));
+                new AddTeamMemberResponse(
+                    tenantMember.Id, null, targetUser.Email, tenantMember.Role,
+                    RequiresRegistration: false, EmailConfigured: emailService.IsConfigured));
         }
 
-        var alreadyInvited = await dbContext.TenantInvitations
-            .AnyAsync(i => i.TenantId == tenantId && i.Email == request.Email && i.Status == InvitationStatus.Pending, cancellationToken);
+        var alreadyInvited = await dbContext.TenantInvitations.AnyAsync(
+            i => i.TenantId == tenantId && i.Email == request.Email && i.Status == InvitationStatus.Pending && i.ExpiresAt > now,
+            cancellationToken);
         if (alreadyInvited)
         {
             return Result<AddTeamMemberResponse>.Failure("An invitation is already pending for this email.");
@@ -165,7 +188,9 @@ public class AddTeamMemberCommandHandler(
         await emailService.SendEmailAsync(request.Email, newUserEmail.Subject, newUserEmail.Html, newUserEmail.PlainText, cancellationToken);
 
         return Result<AddTeamMemberResponse>.Success(
-            new AddTeamMemberResponse(null, invitation.Id, request.Email, request.Role, RequiresRegistration: true));
+            new AddTeamMemberResponse(
+                null, invitation.Id, request.Email, request.Role,
+                RequiresRegistration: true, EmailConfigured: emailService.IsConfigured));
     }
 
     private static string RoleLabel(TenantMemberRole role) => role switch
