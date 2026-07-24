@@ -9,6 +9,7 @@ import { ScheduledPostService } from '../../../services/scheduled-post.service';
 import { CampaignService } from '../../../services/campaign.service';
 import { BrandContextService } from '../../../services/brand-context.service';
 import { TenantService } from '../../../core/tenant/tenant.service';
+import { PermissionService } from '../../../core/tenant/permission.service';
 import { ErrorModalService } from '../../../services/error-modal.service';
 import { extractApiErrorMessage } from '../../../core/auth/api-error.util';
 import { Router } from '@angular/router';
@@ -38,6 +39,7 @@ export class CalendarPage {
   private readonly campaignService = inject(CampaignService);
   protected readonly brandContextService = inject(BrandContextService);
   private readonly tenantService = inject(TenantService);
+  protected readonly perms = inject(PermissionService);
   private readonly errorModalService = inject(ErrorModalService);
   private readonly router = inject(Router);
 
@@ -276,10 +278,20 @@ export class CalendarPage {
 
   closeModal(): void { this.selectedPost.set(null); }
 
-  savePost(updated: ScheduledPost): void {
+  reschedulePost(event: { id: string; scheduledAt: string }): void {
     if (!this.requireBrandProfile()) return;
-    this.scheduledPostService.update(updated);
-    this.selectedPost.set(null);
+    this.scheduledPostService.reschedule(event.id, event.scheduledAt).subscribe({
+      next: () => this.selectedPost.set(null),
+      error: err => this.errorModalService.show(extractApiErrorMessage(err, 'تعذّر تحديث موعد النشر.'), { variant: 'error' }),
+    });
+  }
+
+  publishPostNow(id: string): void {
+    if (!this.requireBrandProfile()) return;
+    this.scheduledPostService.publishNow(id).subscribe({
+      next: () => this.selectedPost.set(null),
+      error: err => this.errorModalService.show(extractApiErrorMessage(err, 'تعذّر نشر المنشور الآن.'), { variant: 'error' }),
+    });
   }
 
   deletePost(id: string): void {

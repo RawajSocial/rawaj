@@ -24,6 +24,11 @@ public class ReviewContentItemCommandHandler(
             return Result<ReviewContentItemResponse>.Failure("Content item not found.");
         }
 
+        if (contentItem.Status == ContentStatus.Published)
+        {
+            return Result<ReviewContentItemResponse>.Failure("Published content cannot be reviewed.");
+        }
+
         var now = DateTime.UtcNow;
 
         contentItem.Status = request.Approve ? ContentStatus.Approved : ContentStatus.Rejected;

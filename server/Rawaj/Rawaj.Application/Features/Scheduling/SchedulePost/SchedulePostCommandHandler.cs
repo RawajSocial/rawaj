@@ -72,8 +72,7 @@ public class SchedulePostCommandHandler(
 
         if (activeScheduledCount >= maxScheduledPosts)
         {
-            return Result<SchedulePostResponse>.Failure(
-                $"Your subscription plan allows a maximum of {maxScheduledPosts} scheduled post(s). Upgrade for more.");
+            return Result<SchedulePostResponse>.Failure(CoinPolicy.ScheduledPostCapMessage(maxScheduledPosts));
         }
 
         var coinCost = await CoinPricingPolicy.GetDiscountedCostAsync(dbContext, tenantId, coinCostProvider.Scheduling, cancellationToken);
@@ -81,7 +80,7 @@ public class SchedulePostCommandHandler(
         if (coinBalance < coinCost)
         {
             return Result<SchedulePostResponse>.Failure(
-                $"You need {coinCost} coins to schedule this post, but only have {coinBalance}.");
+                CoinPolicy.InsufficientCoinsMessage(coinCost, coinBalance, "schedule this post"));
         }
 
         var now = DateTime.UtcNow;
@@ -110,13 +109,16 @@ public class SchedulePostCommandHandler(
 
         if (!handoffResult.Succeeded)
         {
-            // The platform rejected or could not accept the schedule request; don't leave a
-            // phantom local-only row behind.
-            dbContext.ScheduledPosts.Remove(scheduledPost);
+            // Keep the row instead of deleting it - ExecuteAsync already marks it Failed with the
+            // real reason in most cases, but a defensive set here covers every failure branch, so
+            // the post stays visible (as Failed) on the calendar instead of vanishing.
+            scheduledPost.Status = ScheduledPostStatus.Failed;
+            scheduledPost.ErrorMessage = handoffResult.ErrorMessage ?? "Could not schedule with the platform.";
+            scheduledPost.UpdatedAt = DateTime.UtcNow;
             await dbContext.SaveChangesAsync(cancellationToken);
 
             return Result<SchedulePostResponse>.Failure(
-                $"Could not schedule with {socialAccount.Platform}: {handoffResult.ErrorMessage}");
+                $"Could not schedule with {socialAccount.Platform}: {scheduledPost.ErrorMessage}");
         }
 
         await CoinPolicy.TrySpendAsync(dbContext, tenantId, userId, role, coinCost, cancellationToken);

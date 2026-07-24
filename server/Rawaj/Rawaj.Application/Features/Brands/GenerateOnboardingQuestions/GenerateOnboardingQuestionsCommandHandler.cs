@@ -39,7 +39,7 @@ public class GenerateOnboardingQuestionsCommandHandler(
         if (coinBalance < coinCost)
         {
             return Result<GenerateOnboardingQuestionsResponse>.Failure(
-                $"You need {coinCost} coins to continue this conversation, but only have {coinBalance}.");
+                CoinPolicy.InsufficientCoinsMessage(coinCost, coinBalance, "continue this conversation"));
         }
 
         var prompt = ContentPromptBuilder.BuildOnboardingQuestionsPrompt(brand, request.OnboardingContextJson);

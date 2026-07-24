@@ -63,7 +63,7 @@ public class GenerateContentItemCommandHandler(
         if (coinBalance < coinCost)
         {
             return Result<GenerateContentItemResponse>.Failure(
-                $"You need {coinCost} coins to generate content, but only have {coinBalance}.");
+                CoinPolicy.InsufficientCoinsMessage(coinCost, coinBalance, "generate content"));
         }
 
         var prompt = ContentPromptBuilder.BuildTextPrompt(

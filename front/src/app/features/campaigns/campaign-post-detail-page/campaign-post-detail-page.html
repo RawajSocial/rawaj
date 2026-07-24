@@ -6,8 +6,8 @@
         [breadcrumbs]="[
           { label: 'نظرة عامة', link: '/dashboard' },
           { label: 'الحملات', link: '/dashboard/campaigns' },
-          { label: c.name, link: '/dashboard/campaigns/' + campaignId },
-          { label: 'التقويم', link: '/dashboard/campaigns/' + campaignId + '/calendar' },
+          { label: c.name, link: '/dashboard/campaigns/' + campaignId() },
+          { label: 'التقويم', link: '/dashboard/campaigns/' + campaignId() + '/calendar' },
           { label: 'تفاصيل المنشور' }
         ]" />
 
@@ -24,31 +24,11 @@
 
         <p class="post-detail-content">{{ p.content }}</p>
 
-        @if (p.hashtags?.length) {
-          <div class="post-detail-hashtags">
-            @for (tag of p.hashtags!; track tag) {
-              <span class="hashtag">{{ tag }}</span>
-            }
-          </div>
-        }
-
         <div class="post-detail-meta">
           <div class="meta-item">
             <span class="meta-label">موعد النشر</span>
             <span class="meta-value">{{ formatDateTime(p.scheduledAt) }}</span>
           </div>
-          @if (p.mediaType) {
-            <div class="meta-item">
-              <span class="meta-label">نوع الوسائط</span>
-              <span class="meta-value">{{ mediaTypeLabels[p.mediaType] }}</span>
-            </div>
-          }
-          @if (p.estimatedReach) {
-            <div class="meta-item">
-              <span class="meta-label">الوصول التقديري</span>
-              <span class="meta-value">{{ p.estimatedReach.toLocaleString('ar-SA') }}</span>
-            </div>
-          }
           <div class="meta-item">
             <span class="meta-label">الحملة</span>
             <span class="meta-value">{{ p.campaignName }}</span>
@@ -56,20 +36,123 @@
         </div>
 
         <div class="post-detail-actions">
-          <a class="rw-btn rw-btn--outline" [routerLink]="['/dashboard/campaigns', campaignId, 'calendar']">
+          <a class="rw-btn rw-btn--outline" [routerLink]="['/dashboard/campaigns', campaignId(), 'calendar']">
             <i class="fa-solid fa-arrow-right"></i>
             العودة إلى التقويم
           </a>
-          <button type="button" class="rw-btn rw-btn--outline delete-btn" (click)="deletePost()">
-            <i class="fa-solid fa-trash"></i>
-            حذف المنشور
-          </button>
+
+          @if (p.status === 'scheduled') {
+            <button type="button" class="rw-btn rw-btn--outline"
+              [class.is-perm-disabled]="!perms.canEdit()"
+              [attr.aria-disabled]="!perms.canEdit() || null"
+              [appTooltip]="perms.editDeniedReason()"
+              [disabled]="publishing()"
+              (click)="publishNow()">
+              @if (publishing()) {
+                <i class="fa-solid fa-circle-notch fa-spin"></i> جاري النشر...
+              } @else {
+                <i class="fa-solid fa-paper-plane"></i> نشر الآن
+              }
+            </button>
+
+            <button type="button" class="rw-btn rw-btn--outline"
+              [class.is-perm-disabled]="!perms.canEdit()"
+              [attr.aria-disabled]="!perms.canEdit() || null"
+              [appTooltip]="perms.editDeniedReason()"
+              (click)="startReschedule()">
+              <i class="fa-solid fa-clock-rotate-left"></i> إعادة جدولة
+            </button>
+          }
+
+          @if (perms.canEdit()) {
+            <button type="button" class="rw-btn rw-btn--outline delete-btn" (click)="deletePost()">
+              <i class="fa-solid fa-trash"></i>
+              حذف المنشور
+            </button>
+          }
         </div>
+
+        @if (reschedulingOpen()) {
+          <div class="reschedule-box">
+            <div class="reschedule-fields">
+              <label>
+                التاريخ
+                <input type="date" [value]="rescheduleDate()" (input)="updateRescheduleDate($any($event.target).value)" />
+              </label>
+              <label>
+                الوقت
+                <input type="time" [value]="rescheduleTime()" (input)="updateRescheduleTime($any($event.target).value)" />
+              </label>
+            </div>
+            <div class="reschedule-actions">
+              <button type="button" class="rw-btn rw-btn--outline" (click)="cancelReschedule()">إلغاء</button>
+              <button type="button" class="rw-btn rw-btn--primary" [disabled]="rescheduling()" (click)="submitReschedule()">
+                @if (rescheduling()) {
+                  <i class="fa-solid fa-circle-notch fa-spin"></i> جاري الحفظ...
+                } @else {
+                  حفظ الموعد الجديد
+                }
+              </button>
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- ── Post insights — real snapshots from AnalyticsService; unsupported/unavailable metrics
+           are labeled, never shown as a fabricated zero. ── -->
+      <div class="rw-card insights-card">
+        <div class="insights-head">
+          <h3>إحصاءات المنشور</h3>
+          @if (p.status === 'published') {
+            <button type="button" class="rw-btn rw-btn--outline"
+              [class.is-perm-disabled]="!perms.canEdit()"
+              [attr.aria-disabled]="!perms.canEdit() || null"
+              [appTooltip]="perms.editDeniedReason()"
+              [disabled]="syncing()"
+              (click)="syncAnalytics()">
+              @if (syncing()) {
+                <i class="fa-solid fa-circle-notch fa-spin"></i> جاري المزامنة...
+              } @else {
+                <i class="fa-solid fa-rotate"></i> مزامنة الآن
+              }
+            </button>
+          }
+        </div>
+
+        @if (analyticsUnsupportedNote()) {
+          <p class="insights-note">{{ analyticsUnsupportedNote() }}</p>
+        }
+
+        @if (latestSnapshot(); as snap) {
+          <div class="insights-grid">
+            <div class="insight-stat">
+              <span class="insight-num">{{ snap.likes ?? 0 }}</span>
+              <span class="insight-lbl">إعجابات</span>
+            </div>
+            <div class="insight-stat">
+              <span class="insight-num">{{ snap.comments ?? 0 }}</span>
+              <span class="insight-lbl">تعليقات</span>
+            </div>
+            <div class="insight-stat">
+              <span class="insight-num">{{ snap.shares ?? 0 }}</span>
+              <span class="insight-lbl">مشاركات</span>
+            </div>
+            <div class="insight-stat" [class.unavailable]="!reachAvailable()">
+              <span class="insight-num">{{ reachAvailable() ? snap.reach : '—' }}</span>
+              <span class="insight-lbl" appTooltip="يتطلب صلاحية إحصاءات موسّعة من المنصة لم تُفعّل بعد">مدى الوصول</span>
+            </div>
+          </div>
+          <p class="insights-updated">آخر تحديث: {{ formatShortDateTime(snap.recordedAt) }}</p>
+        } @else if (p.status === 'published') {
+          <p class="insights-empty">لا توجد بيانات إحصائية بعد — اضغط "مزامنة الآن" لجلبها.</p>
+        } @else {
+          <p class="insights-empty">ستتوفر الإحصاءات بعد نشر هذا المنشور.</p>
+        }
       </div>
     } @else {
       <div class="not-found">
         <h3>المنشور غير موجود</h3>
-        <a [routerLink]="['/dashboard/campaigns', campaignId, 'calendar']">العودة إلى التقويم</a>
+        <a [routerLink]="['/dashboard/campaigns', campaignId(), 'calendar']">العودة إلى التقويم</a>
       </div>
     }
   } @else {

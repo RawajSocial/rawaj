@@ -1,6 +1,9 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { Injectable, computed, effect, inject, signal } from '@angular/core';
 import { BrandProfileService } from './brand-profile.service';
 import { CampaignService } from './campaign.service';
+import { ContentItemService } from './content-item.service';
+import { ScheduledPostService } from './scheduled-post.service';
+import { CoinPricingService } from './coin-pricing.service';
 import { TenantService } from '../core/tenant/tenant.service';
 
 const BRAND_KEY = 'rawaj.brandContext.brandProfileId';
@@ -16,6 +19,9 @@ const CAMPAIGN_KEY = 'rawaj.brandContext.campaignId';
 export class BrandContextService {
   private readonly brandProfileService = inject(BrandProfileService);
   private readonly campaignService = inject(CampaignService);
+  private readonly contentItemService = inject(ContentItemService);
+  private readonly scheduledPostService = inject(ScheduledPostService);
+  private readonly coinPricingService = inject(CoinPricingService);
   private readonly tenantService = inject(TenantService);
 
   private readonly _selectedBrandProfileId = signal<string | null>(this.readStored(BRAND_KEY));
@@ -32,6 +38,37 @@ export class BrandContextService {
     const bp = this._selectedBrandProfileId();
     return bp ? this.campaignService.byBrandProfile(bp)() : [];
   });
+
+  /** Everything brand/campaign-scoped (selection, campaigns, content, scheduled posts, coin
+   *  pricing) belongs to whichever tenant was active when it was fetched. None of it is
+   *  re-fetched on its own when the active tenant changes (TenantService only reloads its own
+   *  summary), so without this a tenant switch from the header dropdown leaves every campaign
+   *  page showing the PREVIOUS tenant's data until a full reload. Skips the very first run
+   *  (app boot, not a real switch). */
+  private hasSeenInitialTenant = false;
+
+  constructor() {
+    effect(() => {
+      this.tenantService.activeTenantId();
+      if (!this.hasSeenInitialTenant) {
+        this.hasSeenInitialTenant = true;
+        return;
+      }
+
+      this._selectedBrandProfileId.set(null);
+      this._selectedCampaignId.set('all');
+      try {
+        localStorage.removeItem(BRAND_KEY);
+        localStorage.removeItem(CAMPAIGN_KEY);
+      } catch { /* noop */ }
+
+      this.campaignService.clear();
+      this.contentItemService.clear();
+      this.scheduledPostService.clear();
+      this.coinPricingService.refresh().subscribe();
+      this.brandProfileService.refresh().subscribe(() => this.initDefault());
+    });
+  }
 
   setBrandProfile(id: string): void {
     this._selectedBrandProfileId.set(id);

@@ -54,6 +54,7 @@
 .error-modal__footer {
   display: flex;
   justify-content: center;
+  gap: 10px;
   padding: 0 22px 22px;
 }
 
@@ -68,9 +69,19 @@
   font-weight: var(--font-semibold);
   font-family: inherit;
   cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   transition: opacity var(--transition-fast);
 }
 
 .error-modal__btn:hover {
   opacity: 0.92;
+}
+
+.error-modal__btn--action {
+  background: transparent;
+  color: var(--color-primary);
+  border: 1px solid var(--color-primary);
 }

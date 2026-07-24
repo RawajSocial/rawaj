@@ -11,6 +11,11 @@
   </div>
 
   <div modal-footer class="error-modal__footer">
+    @if (state().actionLabel && state().actionLink) {
+      <a class="error-modal__btn error-modal__btn--action" [routerLink]="state().actionLink" (click)="close()">
+        {{ state().actionLabel }}
+      </a>
+    }
     <button type="button" class="error-modal__btn" (click)="close()">حسنًا</button>
   </div>
 </app-modal-shell>

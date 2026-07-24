@@ -15,11 +15,19 @@
 
           @if (isConnected(p.key); as account) {
             <span class="connect-account-name">{{ account.accountName }}</span>
-            <button type="button" class="rw-btn rw-btn--outline" (click)="disconnect(account)">
+            <button type="button" class="rw-btn rw-btn--outline"
+              [class.is-perm-disabled]="!perms.canAdmin()"
+              [attr.aria-disabled]="!perms.canAdmin() || null"
+              [appTooltip]="perms.adminDeniedReason()"
+              (click)="disconnect(account)">
               فصل الحساب
             </button>
           } @else {
-            <button type="button" class="rw-btn rw-btn--dark" (click)="connect(p.key)">
+            <button type="button" class="rw-btn rw-btn--dark"
+              [class.is-perm-disabled]="!perms.canAdmin()"
+              [attr.aria-disabled]="!perms.canAdmin() || null"
+              [appTooltip]="perms.adminDeniedReason()"
+              (click)="connect(p.key)">
               ربط الحساب
             </button>
           }

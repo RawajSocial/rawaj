@@ -16,4 +16,13 @@ public interface ISocialPublisher
     bool SupportsNativeScheduling { get; }
 
     Task<PublishResult> PublishAsync(SocialPublishRequest request, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Revokes a post already handed off to the platform's native scheduler (i.e. one where
+    /// <see cref="SupportsNativeScheduling"/> is true and a <c>PostId</c> was already recorded).
+    /// Must be called before cancelling or re-scheduling such a post locally, or the platform will
+    /// publish it anyway regardless of what the local row says. Platforms without native
+    /// scheduling never have anything to revoke, since nothing was ever handed off ahead of time.
+    /// </summary>
+    Task<PublishResult> CancelAsync(string accessToken, string externalPostId, CancellationToken cancellationToken);
 }

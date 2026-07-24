@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Rawaj.Application.Common.Interfaces;
 using Rawaj.Application.Common.Models;
+using Rawaj.Application.Common.Policies;
 using Rawaj.Domain.Enums;
 
 namespace Rawaj.Application.Features.Campaigns.ApproveCampaignPlan;
@@ -11,13 +12,15 @@ namespace Rawaj.Application.Features.Campaigns.ApproveCampaignPlan;
 /// GenerateCampaignContentCommandHandler checks before it will produce any posts, so nothing gets
 /// generated against a plan nobody has actually reviewed and approved.
 /// </summary>
-public class ApproveCampaignPlanCommandHandler(IApplicationDbContext dbContext, ICurrentTenantContext currentTenantContext)
+public class ApproveCampaignPlanCommandHandler(
+    IApplicationDbContext dbContext, ICurrentUserService currentUserService, ICurrentTenantContext currentTenantContext)
     : IRequestHandler<ApproveCampaignPlanCommand, Result<ApproveCampaignPlanResponse>>
 {
     public async Task<Result<ApproveCampaignPlanResponse>> Handle(
         ApproveCampaignPlanCommand request, CancellationToken cancellationToken)
     {
         var tenantId = currentTenantContext.TenantId!.Value;
+        var userId = currentUserService.UserId!.Value;
 
         var campaign = await dbContext.MarketingCampaigns
             .FirstOrDefaultAsync(c => c.Id == request.CampaignId && c.BrandProfile.TenantId == tenantId, cancellationToken);
@@ -38,6 +41,13 @@ public class ApproveCampaignPlanCommandHandler(IApplicationDbContext dbContext, 
             campaign.Status = CampaignStatus.Active;
         }
         campaign.UpdatedAt = now;
+
+        NotificationPublisher.Notify(
+            dbContext, userId, campaign.BrandProfileId,
+            NotificationType.Success, NotificationCategory.System,
+            "Campaign strategy approved",
+            $"The strategy for \"{campaign.Name}\" was approved. You can now generate content for it.",
+            campaign.Id, "marketing_campaign");
 
         await dbContext.SaveChangesAsync(cancellationToken);
 

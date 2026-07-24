@@ -4,7 +4,7 @@
     [subtitle]="campaign()?.name ?? ''"
     [breadcrumbs]="[
       { label: 'الحملات', link: '/dashboard/campaigns' },
-      { label: campaign()?.name ?? 'الحملة', link: '/dashboard/campaigns/' + campaignId },
+      { label: campaign()?.name ?? 'الحملة', link: '/dashboard/campaigns/' + campaignId() },
       { label: 'المحتوى' }
     ]" />
 
@@ -27,14 +27,23 @@
           عدد المنشورات
           <input type="number" min="1" max="20" [value]="postCount()" (input)="updatePostCount($any($event.target).value)" />
         </label>
-        <button type="button" class="cc-btn cc-btn-primary" [disabled]="generating() || !campaign()?.planApprovedAt" (click)="generateContent()">
+        <button type="button" class="cc-btn cc-btn-primary"
+          [class.is-perm-disabled]="!perms.canEdit()"
+          [attr.aria-disabled]="!perms.canEdit() || null"
+          [appTooltip]="perms.editDeniedReason()"
+          [disabled]="generating() || !campaign()?.planApprovedAt"
+          (click)="generateContent()">
           @if (generating()) {
             <i class="fa-solid fa-circle-notch fa-spin"></i> جاري التوليد...
           } @else {
             <i class="fa-solid fa-wand-magic-sparkles"></i> توليد المحتوى
           }
         </button>
+        @if (pricing(); as pr) {
+          <app-coin-cost-hint [cost]="pr.discountedCosts.campaignContentGeneration" />
+        }
       </div>
+      <p class="cc-generate-note">التكلفة ثابتة لكامل الدفعة بغض النظر عن عدد المنشورات المحدد أعلاه.</p>
     </section>
 
     <section class="cc-items">
@@ -60,6 +69,9 @@
                 [value]="regenerateFeedback()"
                 (input)="updateRegenerateFeedback($any($event.target).value)"></textarea>
               <div class="cc-regenerate-actions">
+                @if (pricing(); as pr) {
+                  <app-coin-cost-hint class="cc-regenerate-cost" [cost]="pr.discountedCosts.contentGeneration" />
+                }
                 <button type="button" class="cc-btn cc-btn-ghost" (click)="cancelRegenerate()">إلغاء</button>
                 <button type="button" class="cc-btn cc-btn-primary"
                   [disabled]="!regenerateFeedback().trim() || busyItemId() === item.contentItemId"
@@ -70,15 +82,27 @@
             </div>
           } @else {
             <div class="cc-item-actions">
-              <button type="button" class="cc-btn cc-btn-accept" [disabled]="busyItemId() === item.contentItemId" (click)="review(item, true)">
+              <button type="button" class="cc-btn cc-btn-accept"
+                [class.is-perm-disabled]="!perms.canEdit()"
+                [attr.aria-disabled]="!perms.canEdit() || null"
+                [appTooltip]="perms.editDeniedReason()"
+                [disabled]="busyItemId() === item.contentItemId"
+                (click)="review(item, true)">
                 <i class="fa-solid fa-check"></i> قبول
               </button>
-              <button type="button" class="cc-btn cc-btn-reject" [disabled]="busyItemId() === item.contentItemId" (click)="review(item, false)">
+              <button type="button" class="cc-btn cc-btn-reject"
+                [class.is-perm-disabled]="!perms.canEdit()"
+                [attr.aria-disabled]="!perms.canEdit() || null"
+                [appTooltip]="perms.editDeniedReason()"
+                [disabled]="busyItemId() === item.contentItemId"
+                (click)="review(item, false)">
                 <i class="fa-solid fa-xmark"></i> رفض
               </button>
-              <button type="button" class="cc-btn cc-btn-ghost" [disabled]="busyItemId() === item.contentItemId" (click)="startRegenerate(item)">
-                <i class="fa-solid fa-rotate"></i> إعادة توليد
-              </button>
+              @if (perms.canEdit()) {
+                <button type="button" class="cc-btn cc-btn-ghost" [disabled]="busyItemId() === item.contentItemId" (click)="startRegenerate(item)">
+                  <i class="fa-solid fa-rotate"></i> إعادة توليد
+                </button>
+              }
             </div>
           }
         </div>
@@ -89,26 +113,79 @@
 
     <section class="cc-card cc-schedule">
       <h3>جدولة الحملة</h3>
-      @if (connectedFacebook(); as fb) {
-        <p class="cc-schedule-hint">سيتم جدولة كل المنشورات المقبولة إلى صفحة فيسبوك "{{ fb.accountName }}".</p>
-        <button type="button" class="cc-btn cc-btn-primary" [disabled]="scheduling() || approvedItems().length === 0" (click)="schedulePosts()">
-          @if (scheduling()) {
-            <i class="fa-solid fa-circle-notch fa-spin"></i> جاري الجدولة...
-          } @else {
-            <i class="fa-solid fa-calendar-check"></i> جدولة الحملة ({{ approvedItems().length }})
+
+      @if (platformStatuses().length > 0) {
+        <div class="cc-platform-status-list">
+          @for (s of platformStatuses(); track s.platform) {
+            <div class="cc-platform-status" [class.connected]="s.connected">
+              <span class="cc-tag">{{ platformLabels[s.platform] }}</span>
+              @if (s.connected) {
+                <span class="cc-platform-status-text">
+                  <i class="fa-solid fa-circle-check"></i> متصل{{ s.accountName ? ' — ' + s.accountName : '' }}
+                </span>
+              } @else {
+                <span class="cc-platform-status-text cc-platform-status-text--warn">
+                  <i class="fa-solid fa-circle-exclamation"></i> غير متصل
+                </span>
+              }
+            </div>
           }
-        </button>
-        @if (scheduleSummary()) {
-          <p class="cc-schedule-result">{{ scheduleSummary() }}</p>
-        }
-      } @else {
+        </div>
+      }
+
+      @if (!hasAnyConnectedAccount()) {
         <div class="cc-banner cc-banner-warning">
           <i class="fa-solid fa-triangle-exclamation"></i>
-          حاليًا يمكن الجدولة على فيسبوك فقط — اربط صفحة فيسبوك أولًا.
+          لا يوجد حساب متصل بعد — اربط حسابك على فيسبوك أو إنستغرام لتتمكن من جدولة هذه المنشورات.
         </div>
-        <button type="button" class="cc-btn cc-btn-primary" (click)="goToConnectFacebook()">
-          <i class="fa-brands fa-facebook"></i> ربط فيسبوك
+        <button type="button" class="cc-btn cc-btn-primary" (click)="goToConnectSocialAccounts()">
+          <i class="fa-solid fa-link"></i> ربط حساب تواصل اجتماعي
         </button>
+      } @else {
+        @if (missingPlatformLabels().length > 0) {
+          <div class="cc-banner cc-banner-warning">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            لا يوجد حساب متصل لـ{{ missingPlatformLabels().join('، ') }} — منشورات هذه المنصات لن تُجدول حتى تربطها.
+            <button type="button" class="cc-link-btn" (click)="goToConnectSocialAccounts()">ربط الآن</button>
+          </div>
+        }
+
+        <p class="cc-schedule-hint">ستتم جدولة كل منشور مقبول إلى الحساب المتصل الذي يطابق منصته تلقائيًا.</p>
+
+        <div class="cc-schedule-row">
+          <button type="button" class="cc-btn cc-btn-primary"
+            [class.is-perm-disabled]="!perms.canEdit()"
+            [attr.aria-disabled]="!perms.canEdit() || null"
+            [appTooltip]="perms.editDeniedReason()"
+            [disabled]="scheduling() || approvedItems().length === 0"
+            (click)="schedulePosts()">
+            @if (scheduling()) {
+              <i class="fa-solid fa-circle-notch fa-spin"></i> جاري الجدولة...
+            } @else {
+              <i class="fa-solid fa-calendar-check"></i> جدولة كل المنشورات المقبولة ({{ approvedItems().length }})
+            }
+          </button>
+          @if (pricing(); as pr) {
+            <app-coin-cost-hint [cost]="pr.discountedCosts.scheduling" [multiplier]="approvedItems().length || 1" />
+          }
+        </div>
+
+        @if (scheduleResult(); as r) {
+          <p class="cc-schedule-result">
+            تمت جدولة {{ r.succeeded }} منشور بنجاح.
+            @if (r.skipped > 0) { لم يُجدول {{ r.skipped }} بسبب عدم وجود حساب متصل. }
+            @if (r.failed > 0) { فشل {{ r.failed }}. }
+          </p>
+          @if (r.failed > 0) {
+            <ul class="cc-schedule-errors">
+              @for (item of r.results; track item.contentItemId) {
+                @if (!item.succeeded && !item.skipped) {
+                  <li>{{ item.error }}</li>
+                }
+              }
+            </ul>
+          }
+        }
       }
     </section>
 

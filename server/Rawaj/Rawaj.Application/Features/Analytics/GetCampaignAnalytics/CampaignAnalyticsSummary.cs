@@ -11,4 +11,11 @@ public record CampaignAnalyticsSummary(
     int TotalComments,
     int TotalShares,
     decimal? AverageEngagementRate,
-    List<PostAnalyticsSnapshot> Posts);
+    List<PostAnalyticsSnapshot> Posts,
+    // Totals above are summed with `?? 0`, so an unsupported metric (e.g. Meta's impressions/reach,
+    // which the current provider always returns null for) looks identical to a real zero. These
+    // flags let clients tell "no data yet" apart from "not supported by this platform" without
+    // re-deriving it from Posts themselves.
+    bool ImpressionsAvailable,
+    bool ReachAvailable,
+    bool EngagementRateAvailable);

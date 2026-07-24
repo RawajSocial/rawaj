@@ -5,7 +5,7 @@
       [breadcrumbs]="[
         { label: 'نظرة عامة', link: '/dashboard' },
         { label: 'الحملات', link: '/dashboard/campaigns' },
-        { label: c.name, link: '/dashboard/campaigns/' + campaignId },
+        { label: c.name, link: '/dashboard/campaigns/' + campaignId() },
         { label: 'التقويم' }
       ]"
       [subtitle]="'المنشورات المجدولة لحملة ' + c.name" />
@@ -40,7 +40,7 @@
                 @for (post of postsForDay(day).slice(0, 3); track post.id) {
                   <a class="month-pill"
                      [style.background]="platformMeta[post.platform].color"
-                     [routerLink]="['/dashboard/campaigns', campaignId, 'posts', post.id]">
+                     [routerLink]="['/dashboard/campaigns', campaignId(), 'posts', post.id]">
                     <i class="{{ platformMeta[post.platform].icon }}"></i>
                     <span class="pill-text">{{ post.content.substring(0, 16) }}…</span>
                   </a>

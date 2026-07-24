@@ -1,5 +1,5 @@
-import { Component, computed, effect, inject, signal, WritableSignal } from '@angular/core';
-import { Router } from '@angular/router';
+import { Component, DestroyRef, computed, effect, inject, signal, WritableSignal } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
 import { OnboardingSidebar } from '../onboarding-sidebar/onboarding-sidebar';
 import { OnboardingStepOne } from '../onboarding-step-one/onboarding-step-one';
 import { OnboardingStepCampaignBrief } from '../onboarding-step-campaign-brief/onboarding-step-campaign-brief';
@@ -16,12 +16,15 @@ import { BrandContextService } from '../../../services/brand-context.service';
 import { CampaignService } from '../../../services/campaign.service';
 import { ErrorModalService } from '../../../services/error-modal.service';
 import { extractApiErrorMessage } from '../../../core/auth/api-error.util';
-import { CreateCampaignInput } from '../../../model/campaign.model';
+import { CreateCampaignInput, UpdateCampaignInput } from '../../../model/campaign.model';
 
 /** Frontend platform slugs the backend's SocialPlatform enum actually accepts (case-insensitively).
  *  Anything else the wizard collects (e.g. snapchat, whatsapp) has no campaign-level equivalent yet
  *  and is dropped rather than sent, since CreateCampaignCommandHandler throws on an unknown name. */
 const BACKEND_PLATFORMS = new Set(['instagram', 'facebook', 'tiktok', 'twitter', 'youtube', 'linkedin']);
+
+/** How long to wait after the last keystroke/change before autosaving the draft to the database. */
+const AUTOSAVE_DEBOUNCE_MS = 1000;
 
 @Component({
   selector: 'app-rawaj-onboarding',
@@ -44,10 +47,16 @@ export class RawajOnboarding {
   protected readonly totalSteps = 7;
   protected readonly currentStep: WritableSignal<number>;
   protected readonly onboardingData = signal<OnboardingData>({});
-  private readonly storageKey = 'rawaj.onboarding.data';
+  /** Pure UI position — not business data, safe to keep client-side. */
   private readonly stepStorageKey = 'rawaj.onboarding.step';
+  /** Points at the in-progress draft campaign so a page refresh mid-wizard can resume it. The
+   *  actual answers live server-side (Campaign.BriefJson) — this is only an id, never the data
+   *  itself, so it can't go stale the way the old localStorage-mirrored blob did. */
+  private readonly draftIdKey = 'rawaj.onboarding.draftId';
   private readonly seo = inject(SeoService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly brandProfileService = inject(BrandProfileService);
   private readonly brandContextService = inject(BrandContextService);
   private readonly campaignService = inject(CampaignService);
@@ -65,9 +74,16 @@ export class RawajOnboarding {
     this.brandProfiles().find(p => p.id === this.selectedBrandProfileId()),
   );
 
+  /** Guards the autosave effect until the draft has actually been created/resumed — otherwise it
+   *  would fire on the initial empty `onboardingData()` and race the resume fetch. Also blocks the
+   *  wizard's steps from rendering at all until then (see rawaj-onboarding.html), closing the
+   *  window where a user could edit a field while the resume GET is still in flight and have that
+   *  edit silently overwritten once the fetched brief lands. */
+  protected readonly draftReady = signal(false);
+  private autosaveTimer: ReturnType<typeof setTimeout> | null = null;
+
   constructor() {
-    this.currentStep = signal(this.loadSavedStep());
-    this.onboardingData.set(this.loadOnboardingData());
+    this.currentStep = signal(1);
     this.seo.setPageSeo({
       title: 'إعداد الحساب | رواج',
       description: 'ابدأ إعداد حسابك في رواج عبر خطوات مخصصة لنوع نشاطك التجاري.',
@@ -78,19 +94,27 @@ export class RawajOnboarding {
       noIndex: true,
     });
 
-    const defaultBrandId = this.brandContextService.selectedBrandProfileId() ?? this.brandProfiles()[0]?.id ?? null;
-    this.selectedBrandProfileId.set(defaultBrandId);
-    if (this.brandProfiles().length === 0) {
-      this.brandProfileService.refresh().subscribe(res => {
-        const first = res.data?.[0]?.brandProfileId;
-        if (first) this.selectedBrandProfileId.set(first);
-        else this.redirectToCreateBrandProfile();
-      });
+    const isFresh = this.route.snapshot.queryParamMap.get('fresh') === '1';
+    if (isFresh) {
+      localStorage.removeItem(this.draftIdKey);
+      localStorage.removeItem(this.stepStorageKey);
     }
 
-    effect(() => {
-      this.saveOnboardingData(this.onboardingData());
-    });
+    const defaultBrandId = this.brandContextService.selectedBrandProfileId() ?? this.brandProfiles()[0]?.id ?? null;
+    this.selectedBrandProfileId.set(defaultBrandId);
+    if (defaultBrandId) {
+      this.initializeDraft(defaultBrandId, isFresh);
+    } else if (this.brandProfiles().length === 0) {
+      this.brandProfileService.refresh().subscribe(res => {
+        const first = res.data?.[0]?.brandProfileId;
+        if (first) {
+          this.selectedBrandProfileId.set(first);
+          this.initializeDraft(first, isFresh);
+        } else {
+          this.redirectToCreateBrandProfile();
+        }
+      });
+    }
 
     effect(() => {
       const step = this.currentStep();
@@ -98,10 +122,103 @@ export class RawajOnboarding {
         localStorage.setItem(this.stepStorageKey, String(step));
       }
     });
+
+    effect(() => {
+      const data = this.onboardingData();
+      if (!this.draftReady()) return;
+      const id = this.campaignId();
+      if (!id) return;
+
+      if (this.autosaveTimer) clearTimeout(this.autosaveTimer);
+      this.autosaveTimer = setTimeout(() => this.flushAutosave(id, data), AUTOSAVE_DEBOUNCE_MS);
+    });
+
+    this.destroyRef.onDestroy(() => {
+      if (this.autosaveTimer) clearTimeout(this.autosaveTimer);
+    });
   }
 
+  /** Either resumes the draft campaign pointed at by `draftIdKey` (a same-tab refresh mid-wizard),
+   *  or creates a brand-new Draft campaign row immediately so every step's answers are autosaved to
+   *  the database (Campaign.BriefJson) from the start, instead of only living in localStorage until
+   *  a single "create" call at the very end. */
+  private initializeDraft(brandProfileId: string, isFresh: boolean): void {
+    const existingDraftId = isFresh ? null : localStorage.getItem(this.draftIdKey);
+    if (existingDraftId) {
+      this.campaignService.getCampaign(existingDraftId).subscribe({
+        next: res => {
+          const campaign = res.data;
+          if (campaign && campaign.status === 'Draft' && !campaign.planApprovedAt) {
+            this.campaignId.set(existingDraftId);
+            this.onboardingData.set(this.parseBriefJson(campaign.briefJson));
+            this.currentStep.set(this.loadSavedStep());
+            this.draftReady.set(true);
+          } else {
+            localStorage.removeItem(this.draftIdKey);
+            this.createDraft(brandProfileId);
+          }
+        },
+        error: () => {
+          localStorage.removeItem(this.draftIdKey);
+          this.createDraft(brandProfileId);
+        },
+      });
+    } else {
+      this.createDraft(brandProfileId);
+    }
+  }
+
+  private createDraft(brandProfileId: string): void {
+    const input = this.buildCreateCampaignInput(brandProfileId);
+    this.campaignService.create(input).subscribe({
+      next: res => {
+        if (res.data) {
+          localStorage.setItem(this.draftIdKey, res.data.campaignId);
+          this.campaignId.set(res.data.campaignId);
+        }
+        this.draftReady.set(true);
+      },
+      error: () => {
+        // The wizard still works locally even if the initial draft row couldn't be created —
+        // finishOnboarding() will surface a clear error when it tries to save for real.
+        this.draftReady.set(true);
+      },
+    });
+  }
+
+  private parseBriefJson(raw: string | null | undefined): OnboardingData {
+    if (!raw) return {};
+    try {
+      return JSON.parse(raw) as OnboardingData;
+    } catch {
+      return {};
+    }
+  }
+
+  private flushAutosave(campaignId: string, data: OnboardingData): void {
+    this.campaignService.update(campaignId, this.buildUpdateCampaignInput(data)).subscribe({
+      error: () => {
+        // Best-effort autosave — a transient network failure here shouldn't interrupt the wizard;
+        // the next change will simply retry, and finishOnboarding() does a final flush regardless.
+      },
+    });
+  }
+
+  /** The draft campaign's BrandProfileId isn't movable (it's not a patchable field, and brand-scoped
+   *  resources hang off it), so switching brands mid-wizard can't just update the existing draft —
+   *  it abandons it (archived, not left as an orphaned Draft row) and creates a fresh one under the
+   *  new brand, carrying over whatever the user has already typed. */
   protected selectBrandProfile(id: string): void {
+    if (id === this.selectedBrandProfileId()) return;
+
+    const previousDraftId = this.campaignId();
     this.selectedBrandProfileId.set(id);
+    this.draftReady.set(false);
+    this.campaignId.set(null);
+    localStorage.removeItem(this.draftIdKey);
+
+    if (previousDraftId) this.campaignService.archive(previousDraftId).subscribe();
+    this.createDraft(id);
   }
 
   private redirectToCreateBrandProfile(): void {
@@ -122,45 +239,58 @@ export class RawajOnboarding {
     window.scrollTo({ top: 0 });
   }
 
-  /** Fires once the step-7 AI chat finishes. Persists everything collected so far as a real
-   *  campaign row (BriefJson = the full onboarding blob) before moving into the plan-approval
-   *  step, which needs a real campaignId to run its research/diagnosis/strategy pipeline against. */
+  /** Fires once the step-7 AI chat finishes. The draft campaign already exists (created when the
+   *  wizard mounted) and has been autosaved along the way — this just does one final, immediate
+   *  flush (skipping the debounce) so the last answers are guaranteed to be there before moving
+   *  into the plan-approval step, which runs its research/diagnosis/strategy pipeline against it. */
   protected finishOnboarding(): void {
-    const brandProfileId = this.selectedBrandProfileId();
-    if (!brandProfileId) {
+    const id = this.campaignId();
+    if (!id) {
       this.redirectToCreateBrandProfile();
       return;
     }
 
+    if (this.autosaveTimer) clearTimeout(this.autosaveTimer);
     this.creatingCampaign.set(true);
-    const input = this.buildCreateCampaignInput(brandProfileId);
-    this.campaignService.create(input).subscribe({
-      next: res => {
+    const input = this.buildUpdateCampaignInput(this.onboardingData());
+    this.campaignService.update(id, input).subscribe({
+      next: () => {
         this.creatingCampaign.set(false);
-        if (res.data) {
-          this.campaignId.set(res.data.campaignId);
-          this.currentStep.update(s => s + 1); // → step 8: plan approval
-          window.scrollTo({ top: 0 });
-        }
+        this.currentStep.update(s => s + 1); // → step 8: plan approval
+        window.scrollTo({ top: 0 });
       },
       error: err => {
         this.creatingCampaign.set(false);
-        this.errorModalService.show(extractApiErrorMessage(err, 'تعذّر إنشاء الحملة. حاول مرة أخرى.'), { variant: 'error' });
+        this.errorModalService.show(extractApiErrorMessage(err, 'تعذّر حفظ بيانات الحملة. حاول مرة أخرى.'), { variant: 'error' });
       },
     });
   }
 
   /** The plan-approval step now does its own real API calls (research/diagnose/strategy/approve)
    *  — by the time it emits `approve`, the campaign is already stamped PlanApprovedAt server-side,
-   *  so this just routes on to the per-post content review page. */
+   *  so this just routes on to the per-post content review page. `autogenerate=1` tells that page
+   *  to kick off content generation itself once (see CampaignContentPage), so the user lands on a
+   *  page that's already generating rather than one more manual button to press. */
   protected approvePlan(): void {
     localStorage.removeItem(this.stepStorageKey);
+    localStorage.removeItem(this.draftIdKey);
     const id = this.campaignId();
-    void this.router.navigate(id ? ['/dashboard/campaigns', id, 'content'] : ['/dashboard/campaigns']);
+    void this.router.navigate(
+      id ? ['/dashboard/campaigns', id, 'content'] : ['/dashboard/campaigns'],
+      id ? { queryParams: { autogenerate: 1 } } : undefined,
+    );
   }
 
   private buildCreateCampaignInput(brandProfileId: string): CreateCampaignInput {
     const data = this.onboardingData();
+    return { brandProfileId, ...this.resolveCampaignFields(data) };
+  }
+
+  private buildUpdateCampaignInput(data: OnboardingData): UpdateCampaignInput {
+    return this.resolveCampaignFields(data);
+  }
+
+  private resolveCampaignFields(data: OnboardingData) {
     const name = (data.campaignName?.trim())
       || (data.brandName ? `حملة ${data.brandName}` : 'حملة جديدة');
     const objective = data.campaignGoal ?? data.campaignOutcome;
@@ -170,7 +300,6 @@ export class RawajOnboarding {
     const budgetAmount = this.resolveBudget(data.monthlyBudget);
 
     return {
-      brandProfileId,
       name,
       objective,
       targetPlatforms,
@@ -217,20 +346,6 @@ export class RawajOnboarding {
     } catch {
       return 1;
     }
-  }
-
-  private loadOnboardingData(): OnboardingData {
-    const raw = localStorage.getItem(this.storageKey);
-    if (!raw) return {};
-    try {
-      return JSON.parse(raw) as OnboardingData;
-    } catch {
-      return {};
-    }
-  }
-
-  private saveOnboardingData(data: OnboardingData): void {
-    localStorage.setItem(this.storageKey, JSON.stringify(data));
   }
 }
 

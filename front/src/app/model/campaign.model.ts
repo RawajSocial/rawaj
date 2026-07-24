@@ -1,3 +1,5 @@
+import { BackendSocialPlatform } from './content-item.model';
+
 export type CampaignStatus   = 'active' | 'paused' | 'completed' | 'draft' | 'archived';
 export type CampaignPlatform = 'instagram' | 'facebook' | 'tiktok' | 'youtube' | 'x' | 'snapchat' | 'linkedin';
 export type CampaignObjective = 'awareness' | 'traffic' | 'engagement' | 'leads' | 'sales';
@@ -98,6 +100,8 @@ export interface UpdateCampaignInput {
   objective?: string;
   targetPlatforms?: string[];
   budgetCurrency?: string;
+  /** The onboarding wizard's raw collected-answers JSON blob, autosaved as the user progresses. */
+  briefJson?: string;
 }
 
 /** POST /api/v1/campaigns/{id}/research-competitors — ResearchCampaignCompetitorsResponse.
@@ -139,10 +143,15 @@ export interface ApproveCampaignPlanResponse {
   planApprovedAt: string;
 }
 
-/** POST /api/v1/campaigns/{id}/schedule-posts — ScheduleCampaignPostsResponse */
+/** POST /api/v1/campaigns/{id}/schedule-posts — ScheduleCampaignPostsResponse. Routes each approved
+ *  content item to the brand's connected account matching that item's own platform — no
+ *  socialAccountId is sent; items whose platform has no connected account come back `skipped`
+ *  rather than `failed`, and never spend a coin. */
 export interface ScheduleCampaignPostResult {
   contentItemId: string;
+  platform: BackendSocialPlatform;
   succeeded: boolean;
+  skipped: boolean;
   error?: string | null;
   scheduledPostId?: string | null;
   scheduledAt?: string | null;
@@ -152,6 +161,8 @@ export interface ScheduleCampaignPostsResponse {
   campaignId: string;
   succeededCount: number;
   failedCount: number;
+  skippedCount: number;
+  missingPlatforms: BackendSocialPlatform[];
   results: ScheduleCampaignPostResult[];
 }
 

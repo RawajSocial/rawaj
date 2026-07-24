@@ -6,7 +6,11 @@ import { ApiResponse } from '../model/auth.model';
 import { PagedResult } from '../model/paged-result.model';
 import { CampaignPlatform } from '../model/campaign.model';
 import { BackendSocialPlatform } from '../model/content-item.model';
-import { CancelScheduledPostResponse, ScheduledPost, ScheduledPostSummary } from '../model/scheduled-post.model';
+import {
+  CancelScheduledPostResponse, PostingTimeSuggestionDto, PublishScheduledPostResponse,
+  RescheduleScheduledPostResponse, SchedulePostRequest, SchedulePostResponse,
+  ScheduledPost, ScheduledPostSummary,
+} from '../model/scheduled-post.model';
 import { CampaignService } from './campaign.service';
 
 const PLATFORM_MAP: Record<BackendSocialPlatform, CampaignPlatform> = {
@@ -40,6 +44,7 @@ export class ScheduledPostService {
     const campaign = s.campaignId ? this.campaignService.getById(s.campaignId)() : undefined;
     return {
       id: s.scheduledPostId,
+      contentItemId: s.contentItemId,
       campaignId: s.campaignId ?? '',
       campaignName: campaign?.name ?? 'بدون حملة',
       platform: PLATFORM_MAP[s.platform] ?? 'instagram',
@@ -74,16 +79,48 @@ export class ScheduledPostService {
     );
   }
 
-  /** No generic "update scheduled post" endpoint exists on the backend yet — this only
-   *  mutates the local optimistic view (calendar's edit modal), it does not persist. */
-  update(post: ScheduledPost): void {
-    this._posts.update(list => list.map(p => (p.id === post.id ? post : p)));
+  /** Moves a pending post to a new time (time only — content lives on the ContentItem and is
+   *  edited via regenerate). Patches the local list on success. */
+  reschedule(id: string, scheduledAtIso: string): Observable<ApiResponse<RescheduleScheduledPostResponse>> {
+    return this.http.put<ApiResponse<RescheduleScheduledPostResponse>>(
+      `${this.baseUrl}/${id}`, { scheduledAt: scheduledAtIso },
+    ).pipe(
+      tap(res => {
+        if (!res.data) return;
+        const { scheduledPostId, scheduledAt } = res.data;
+        this._posts.update(list => list.map(p => (p.id === scheduledPostId ? { ...p, scheduledAt, status: 'scheduled' } : p)));
+      }),
+    );
+  }
+
+  /** Publishes a pending post immediately, bypassing its scheduled time. */
+  publishNow(id: string): Observable<ApiResponse<PublishScheduledPostResponse>> {
+    return this.http.post<ApiResponse<PublishScheduledPostResponse>>(`${this.baseUrl}/${id}/publish-now`, {}).pipe(
+      tap(res => {
+        if (!res.data) return;
+        this._posts.update(list => list.map(p => (p.id === res.data!.scheduledPostId ? { ...p, status: 'published' } : p)));
+      }),
+    );
   }
 
   /** Cancels a pending scheduled post server-side. Callers should remove it from the local
    *  list (via `remove`) once this succeeds, rather than assuming it optimistically. */
   cancel(id: string): Observable<ApiResponse<CancelScheduledPostResponse>> {
     return this.http.post<ApiResponse<CancelScheduledPostResponse>>(`${this.baseUrl}/${id}/cancel`, {});
+  }
+
+  /** Schedules a single approved content item to one connected social account — used by the
+   *  standalone content-gen page's inline schedule panel. Requires a real ContentItem id, so it
+   *  only applies to text-type generations there (image-only generations have no ContentItem). */
+  schedule(request: SchedulePostRequest): Observable<ApiResponse<SchedulePostResponse>> {
+    return this.http.post<ApiResponse<SchedulePostResponse>>(this.baseUrl, request);
+  }
+
+  getPostingTimeSuggestions(brandProfileId: string, platforms: string[]): Observable<ApiResponse<PostingTimeSuggestionDto[]>> {
+    const params = platforms.map(p => `platforms=${encodeURIComponent(p)}`).join('&');
+    return this.http.get<ApiResponse<PostingTimeSuggestionDto[]>>(
+      `${this.baseUrl}/posting-time-suggestions?brandProfileId=${encodeURIComponent(brandProfileId)}&${params}`,
+    );
   }
 
   /** Removes a post from the local list only — call after `cancel()` succeeds. */

@@ -218,3 +218,13 @@
 @media (max-width: 768px) {
   .page-shell { padding: 16px; }
 }
+
+/* ── Permission-gated controls ──
+   Used instead of the native [disabled] attribute when a control is hidden/blocked by role rather
+   than by a transient loading state, because disabled elements don't fire hover in Chromium and
+   would silently swallow the explanatory appTooltip. Handlers bound to these controls must still
+   guard themselves (aria-disabled does not block clicks). */
+.is-perm-disabled {
+  opacity: .55;
+  cursor: not-allowed;
+}

@@ -361,7 +361,7 @@ export class MarketingPlanPage {
   // ── Nav ──
   goToOnboarding(): void {
     if (!this.requireBrandProfile()) return;
-    void this.router.navigate(['/on-boarding']);
+    void this.router.navigate(['/on-boarding'], { queryParams: { fresh: 1 } });
   }
 
   backToPlans(): void { this.phase.set('plans'); }

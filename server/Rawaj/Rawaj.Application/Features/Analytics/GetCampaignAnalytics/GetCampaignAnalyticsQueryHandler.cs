@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Rawaj.Application.Common.Interfaces;
 using Rawaj.Application.Common.Models;
 using Rawaj.Application.Features.Analytics.Common;
+using Rawaj.Domain.Enums;
 
 namespace Rawaj.Application.Features.Analytics.GetCampaignAnalytics;
 
@@ -48,16 +49,25 @@ public class GetCampaignAnalyticsQueryHandler(IApplicationDbContext dbContext, I
                 p.EngagementRate))
             .ToList();
 
+        // Counted from ScheduledPosts, not `latestPerPost.Count` (PostAnalytics) - a post that's
+        // been published but never had its analytics synced yet would otherwise be invisible from
+        // this count even though it's a real published post of this campaign.
+        var postsTracked = await dbContext.ScheduledPosts
+            .CountAsync(s => s.CampaignId == request.CampaignId && s.Status == ScheduledPostStatus.Published, cancellationToken);
+
         var summary = new CampaignAnalyticsSummary(
             request.CampaignId,
-            latestPerPost.Count,
+            postsTracked,
             latestPerPost.Sum(p => p.Impressions ?? 0),
             latestPerPost.Sum(p => p.Reach ?? 0),
             latestPerPost.Sum(p => p.Likes ?? 0),
             latestPerPost.Sum(p => p.Comments ?? 0),
             latestPerPost.Sum(p => p.Shares ?? 0),
             PostAnalyticsAggregation.AverageEngagementRate(latestPerPost),
-            posts);
+            posts,
+            latestPerPost.Any(p => p.Impressions.HasValue),
+            latestPerPost.Any(p => p.Reach.HasValue),
+            latestPerPost.Any(p => p.EngagementRate.HasValue));
 
         return Result<CampaignAnalyticsSummary>.Success(summary);
     }

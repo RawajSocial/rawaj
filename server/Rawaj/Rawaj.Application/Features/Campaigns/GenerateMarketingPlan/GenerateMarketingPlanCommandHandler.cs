@@ -56,7 +56,7 @@ public class GenerateMarketingPlanCommandHandler(
         if (coinBalance < coinCost)
         {
             return Result<GenerateMarketingPlanResponse>.Failure(
-                $"You need {coinCost} coins to generate a marketing plan, but only have {coinBalance}.");
+                CoinPolicy.InsufficientCoinsMessage(coinCost, coinBalance, "generate a marketing plan"));
         }
 
         // Grounded in the brief + business diagnosis (both already confirmed by the user via the

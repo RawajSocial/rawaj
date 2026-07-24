@@ -12,7 +12,7 @@ export type TooltipPosition = 'top' | 'bottom' | 'start' | 'end';
   host: {
     class: 'rw-tooltip-host',
     '[class]': "'rw-tooltip-host--' + position()",
-    '[attr.data-tooltip]': 'appTooltip()',
+    '[attr.data-tooltip]': 'appTooltip() || null',
   },
 })
 export class TooltipDirective {

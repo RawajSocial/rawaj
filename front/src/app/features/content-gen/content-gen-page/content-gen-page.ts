@@ -1,18 +1,24 @@
-import { Component, HostListener, computed, inject, signal } from '@angular/core';
+import { Component, HostListener, computed, effect, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { MediaService } from '../../../services/media.service';
 import { BrandProfileService } from '../../../services/brand-profile.service';
 import { CampaignService } from '../../../services/campaign.service';
 import { ContentItemService } from '../../../services/content-item.service';
 import { VisualAssetService } from '../../../services/visual-asset.service';
+import { ScheduledPostService } from '../../../services/scheduled-post.service';
+import { SocialAccountService } from '../../../core/social/social-account.service';
 import { BrandContextService } from '../../../services/brand-context.service';
 import { TenantService } from '../../../core/tenant/tenant.service';
+import { PermissionService } from '../../../core/tenant/permission.service';
 import { CoinPricingService } from '../../../services/coin-pricing.service';
 import { SeoService } from '../../../services/seo.service';
 import { ErrorModalService } from '../../../services/error-modal.service';
 import { extractApiErrorMessage } from '../../../core/auth/api-error.util';
 import { Breadcrumb } from '../../../shared/components/breadcrumb/breadcrumb';
+import { TooltipDirective } from '../../../shared/directives/tooltip.directive';
+import { nextOccurrence, toDateInputValue, toTimeInputValue } from '../../../shared/utils/posting-time.util';
 import { ContentItemSummary } from '../../../model/content-item.model';
+import { SocialAccountSummary } from '../../../model/social-account.model';
 import {
   GeneratedAsset, GenType, AdSize, ContentTone, TextType,
   TYPE_CFG, SIZE_CFG, TONE_CFG, TEXT_TYPE_CFG,
@@ -49,7 +55,7 @@ const QUALITY_OPTS = [
 @Component({
   selector: 'app-content-gen-page',
   standalone: true,
-  imports: [RouterLink, Breadcrumb],
+  imports: [RouterLink, Breadcrumb, TooltipDirective],
   templateUrl: './content-gen-page.html',
   styleUrls: [
     '../../../features/on-boarding/onboarding-shared.css',
@@ -73,8 +79,11 @@ export class ContentGenPage {
   private readonly campaignService = inject(CampaignService);
   private readonly contentItemService = inject(ContentItemService);
   private readonly visualAssetService = inject(VisualAssetService);
+  private readonly scheduledPostService = inject(ScheduledPostService);
+  private readonly socialAccountService = inject(SocialAccountService);
   private readonly brandContextService = inject(BrandContextService);
   protected readonly tenantService = inject(TenantService);
+  protected readonly perms = inject(PermissionService);
   private readonly coinPricingService = inject(CoinPricingService);
   private readonly errorModalService = inject(ErrorModalService);
   private readonly seo = inject(SeoService);
@@ -146,6 +155,36 @@ export class ContentGenPage {
   // ── Edit-with-prompt (re-generate on top of the current result) ──
   editPrompt = signal('');
   readonly canApplyEdit = computed(() => this.editPrompt().trim().length > 0);
+
+  // ── Inline schedule panel — only reachable for text generations, which have a real ContentItem
+  // id to schedule against. Image-only generations here have no ContentItem (SchedulePostCommand
+  // requires one), so scheduling them isn't offered from this page. ──
+  readonly canScheduleCurrent = computed(() => {
+    const item = this.currentItem();
+    return !!item && item.type === 'text' && item.status === 'generated';
+  });
+
+  private readonly approvedContentId = signal<string | null>(null);
+  readonly isApproved = computed(() => this.approvedContentId() === this.currentItem()?.id);
+  approving = signal(false);
+
+  schedulePanelOpen = signal(false);
+  scheduleAccounts = signal<SocialAccountSummary[]>([]);
+  scheduleAccountId = signal('');
+  scheduleDate = signal('');
+  scheduleTime = signal('');
+  scheduling = signal(false);
+  readonly scheduledIds = signal<Set<string>>(new Set());
+
+  /** Reloads the connected-account list whenever the brand changes, so the schedule panel's
+   *  picker never offers a stale account from a previously-selected brand. */
+  private readonly reloadScheduleAccounts = effect(() => {
+    const brandProfileId = this.formBrandProfileId();
+    if (!brandProfileId) { this.scheduleAccounts.set([]); return; }
+    this.socialAccountService.getByBrand(brandProfileId).subscribe(res => {
+      if (res.data) this.scheduleAccounts.set(res.data);
+    });
+  });
 
   // ── Computeds ──
   readonly typeLabel     = computed(() => TYPE_CFG[this.genType()].label);
@@ -393,6 +432,88 @@ export class ContentGenPage {
   private refreshCoinBalance(): void {
     this.tenantService.refresh().subscribe();
     this.coinPricingService.refresh().subscribe();
+  }
+
+  // ── Approve → pick account → pick time → schedule ──
+
+  approveCurrent(): void {
+    const item = this.currentItem();
+    if (!item || this.approving() || !this.perms.canEdit()) return;
+
+    this.approving.set(true);
+    this.contentItemService.review(item.id, true).subscribe({
+      next: () => {
+        this.approving.set(false);
+        this.approvedContentId.set(item.id);
+        this.openSchedulePanel();
+      },
+      error: err => {
+        this.approving.set(false);
+        this.errorModalService.show(extractApiErrorMessage(err, 'تعذّر قبول المحتوى.'), { variant: 'error' });
+      },
+    });
+  }
+
+  openSchedulePanel(): void {
+    this.schedulePanelOpen.set(true);
+    if (this.scheduleAccounts().length > 0 && !this.scheduleAccountId()) {
+      this.scheduleAccountId.set(this.scheduleAccounts()[0].socialAccountId);
+    }
+    if (!this.scheduleDate()) this.prefillScheduleTime();
+  }
+
+  closeSchedulePanel(): void {
+    this.schedulePanelOpen.set(false);
+  }
+
+  private prefillScheduleTime(): void {
+    const brandProfileId = this.formBrandProfileId();
+    const backendPlatform = PLATFORM_TO_BACKEND[this.formPlatform()] ?? 'Instagram';
+    if (!brandProfileId) return;
+
+    this.scheduledPostService.getPostingTimeSuggestions(brandProfileId, [backendPlatform]).subscribe({
+      next: res => {
+        const suggestion = res.data?.[0];
+        const target = suggestion
+          ? nextOccurrence(suggestion.dayOfWeek, suggestion.hour)
+          : nextOccurrence(new Date().getDay(), 12); // fallback: same weekday, noon, pushed to next safe slot
+        this.scheduleDate.set(toDateInputValue(target));
+        this.scheduleTime.set(toTimeInputValue(target));
+      },
+      error: () => {
+        const fallback = nextOccurrence(new Date().getDay(), 12);
+        this.scheduleDate.set(toDateInputValue(fallback));
+        this.scheduleTime.set(toTimeInputValue(fallback));
+      },
+    });
+  }
+
+  updateScheduleAccount(value: string): void { this.scheduleAccountId.set(value); }
+  updateScheduleDate(value: string): void { this.scheduleDate.set(value); }
+  updateScheduleTime(value: string): void { this.scheduleTime.set(value); }
+
+  submitSchedule(): void {
+    const item = this.currentItem();
+    const accountId = this.scheduleAccountId();
+    if (!item || !accountId || !this.scheduleDate() || !this.scheduleTime() || this.scheduling() || !this.perms.canEdit()) return;
+
+    this.scheduling.set(true);
+    this.scheduledPostService.schedule({
+      contentItemId: item.id,
+      socialAccountId: accountId,
+      scheduledAt: `${this.scheduleDate()}T${this.scheduleTime()}:00`,
+    }).subscribe({
+      next: () => {
+        this.scheduling.set(false);
+        this.schedulePanelOpen.set(false);
+        this.scheduledIds.update(set => new Set(set).add(item.id));
+        this.errorModalService.show('تمت جدولة المنشور بنجاح.', { variant: 'success' });
+      },
+      error: err => {
+        this.scheduling.set(false);
+        this.errorModalService.show(extractApiErrorMessage(err, 'تعذّر جدولة المنشور.'), { variant: 'error' });
+      },
+    });
   }
 
   isVideo(item: { type: GenType }): boolean { return item.type === 'video'; }

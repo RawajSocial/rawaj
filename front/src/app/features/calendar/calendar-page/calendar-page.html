@@ -317,7 +317,9 @@
 @if (selectedPost()) {
   <app-post-modal
     [post]="selectedPost()!"
+    [canEdit]="perms.canEdit()"
     (close)="closeModal()"
-    (save)="savePost($event)"
+    (reschedule)="reschedulePost($event)"
+    (publishNow)="publishPostNow($event)"
     (remove)="deletePost($event)" />
 }

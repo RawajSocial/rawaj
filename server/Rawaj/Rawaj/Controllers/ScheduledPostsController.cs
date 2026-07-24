@@ -6,6 +6,7 @@ using Rawaj.Application.Features.Scheduling.CancelScheduledPost;
 using Rawaj.Application.Features.Scheduling.GetPostingTimeSuggestions;
 using Rawaj.Application.Features.Scheduling.GetScheduledPosts;
 using Rawaj.Application.Features.Scheduling.PublishScheduledPost;
+using Rawaj.Application.Features.Scheduling.RescheduleScheduledPost;
 using Rawaj.Application.Features.Scheduling.SchedulePost;
 using Rawaj.Common;
 using Rawaj.Domain.Enums;
@@ -29,14 +30,23 @@ public class ScheduledPostsController(ISender sender) : ControllerBase
 
     [HttpGet]
     public async Task<IActionResult> GetAll(
-        [FromQuery] Guid brandProfileId, [FromQuery] Guid? campaignId, [FromQuery] int page = 1, [FromQuery] int pageSize = 20,
-        CancellationToken cancellationToken = default)
+        [FromQuery] Guid brandProfileId, [FromQuery] Guid? campaignId, [FromQuery] int page = 1, [FromQuery] int pageSize = 20, CancellationToken cancellationToken = default)
     {
         var result = await sender.Send(new GetScheduledPostsQuery(brandProfileId, campaignId, page, pageSize), cancellationToken);
 
         return result.Succeeded
             ? Ok(ApiResponse<PagedResult<ScheduledPostSummary>>.Success(result.Data!))
             : BadRequest(ApiResponse<PagedResult<ScheduledPostSummary>>.Fail(result.ErrorMessage!));
+    }
+
+    [HttpPut("{scheduledPostId:guid}")]
+    public async Task<IActionResult> Reschedule(Guid scheduledPostId, [FromBody] RescheduleScheduledPostRequest request, CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new RescheduleScheduledPostCommand(scheduledPostId, request.ScheduledAt), cancellationToken);
+
+        return result.Succeeded
+            ? Ok(ApiResponse<RescheduleScheduledPostResponse>.Success(result.Data!))
+            : BadRequest(ApiResponse<RescheduleScheduledPostResponse>.Fail(result.ErrorMessage!));
     }
 
     [HttpPost("{scheduledPostId:guid}/cancel")]
@@ -69,4 +79,6 @@ public class ScheduledPostsController(ISender sender) : ControllerBase
             ? Ok(ApiResponse<List<PostingTimeSuggestionDto>>.Success(result.Data!))
             : BadRequest(ApiResponse<List<PostingTimeSuggestionDto>>.Fail(result.ErrorMessage!));
     }
+
+    public record RescheduleScheduledPostRequest(DateTime ScheduledAt);
 }

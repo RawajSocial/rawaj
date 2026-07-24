@@ -98,7 +98,7 @@ public class ResearchCampaignCompetitorsCommandHandler(
         if (coinBalance < coinCost)
         {
             return Result<ResearchCampaignCompetitorsResponse>.Failure(
-                $"You need {coinCost} coins for competitor research, but only have {coinBalance}.");
+                CoinPolicy.InsufficientCoinsMessage(coinCost, coinBalance, "run competitor research"));
         }
 
         var topResults = searchResult.Results.Take(MaxResults).ToList();

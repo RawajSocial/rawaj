@@ -62,6 +62,33 @@ public class MetaPostPublisher(
         }
     }
 
+    public async Task<PublishResult> CancelAsync(string accessToken, string externalPostId, CancellationToken cancellationToken)
+    {
+        var client = httpClientFactory.CreateClient("Meta");
+
+        try
+        {
+            using var response = await client.DeleteAsync(
+                $"https://graph.facebook.com/{_settings.ApiVersion}/{externalPostId}?access_token={Uri.EscapeDataString(accessToken)}",
+                cancellationToken);
+
+            var body = await response.Content.ReadAsStringAsync(cancellationToken);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                logger.LogWarning("Meta cancel failed with {StatusCode}: {Body}", response.StatusCode, body);
+                return PublishResult.Failure($"Meta cancel failed with status {(int)response.StatusCode}: {ExtractErrorMessage(body)}");
+            }
+
+            return PublishResult.Success(externalPostId);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogWarning(ex, "Meta cancel threw an exception.");
+            return PublishResult.Failure(ex.Message);
+        }
+    }
+
     private Task<HttpResponseMessage> PublishTextAsync(HttpClient client, SocialPublishRequest request, CancellationToken cancellationToken)
     {
         var fields = new Dictionary<string, string>

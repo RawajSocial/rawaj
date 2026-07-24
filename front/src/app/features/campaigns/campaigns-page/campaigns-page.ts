@@ -108,7 +108,7 @@ export class CampaignsPage {
 
   protected startNewCampaign(): void {
     if (!this.requireBrandProfile()) return;
-    this.router.navigate(['/on-boarding']);
+    this.router.navigate(['/on-boarding'], { queryParams: { fresh: 1 } });
   }
 
   private requireBrandProfile(): boolean {

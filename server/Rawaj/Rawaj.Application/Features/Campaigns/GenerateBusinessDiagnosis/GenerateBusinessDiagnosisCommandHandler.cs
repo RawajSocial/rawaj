@@ -45,7 +45,7 @@ public class GenerateBusinessDiagnosisCommandHandler(
         if (coinBalance < coinCost)
         {
             return Result<GenerateBusinessDiagnosisResponse>.Failure(
-                $"You need {coinCost} coins for a business diagnosis, but only have {coinBalance}.");
+                CoinPolicy.InsufficientCoinsMessage(coinCost, coinBalance, "get a business diagnosis"));
         }
 
         var prompt = ContentPromptBuilder.BuildBusinessDiagnosisPrompt(brand, campaign.BriefJson, campaign.CompetitorResearchJson);

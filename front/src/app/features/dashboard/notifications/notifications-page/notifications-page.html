@@ -25,22 +25,24 @@
       </div>
     </div>
 
-    @if (filtered().length === 0) {
+    @if (loading()) {
+      <p class="notif-empty"><i class="fa-solid fa-circle-notch fa-spin"></i> جاري التحميل...</p>
+    } @else if (filtered().length === 0) {
       <p class="notif-empty">لا توجد إشعارات في هذا التبويب.</p>
     } @else {
       <div class="notif-list">
         @for (n of filtered(); track n.id) {
-          <button type="button" class="notif-item" [class.unread]="!n.read" (click)="toggleRead(n.id)">
-            <span class="notif-icon" [style.background]="typeCfg[n.type].bg" [style.color]="typeCfg[n.type].color">
-              <i class="fa-solid {{ typeCfg[n.type].icon }}"></i>
+          <button type="button" class="notif-item" [class.unread]="!n.isRead" (click)="openNotification(n.id, notificationLink(n))">
+            <span class="notif-icon" [style.background]="categoryCfg[n.category].bg" [style.color]="categoryCfg[n.category].color">
+              <i class="fa-solid {{ categoryCfg[n.category].icon }}"></i>
             </span>
             <div class="notif-body">
               <div class="notif-title-row">
                 <span class="notif-title">{{ n.title }}</span>
-                @if (!n.read) { <span class="notif-dot"></span> }
+                @if (!n.isRead) { <span class="notif-dot"></span> }
               </div>
-              <p class="notif-text">{{ n.body }}</p>
-              <span class="notif-time">{{ n.time }}</span>
+              <p class="notif-text">{{ n.message }}</p>
+              <span class="notif-time">{{ formatTime(n.createdAt) }}</span>
             </div>
           </button>
         }

@@ -60,7 +60,7 @@ public class GenerateCampaignContentCommandHandler(
         if (coinBalance < coinCost)
         {
             return Result<GenerateCampaignContentResponse>.Failure(
-                $"You need {coinCost} coins to generate campaign content, but only have {coinBalance}.");
+                CoinPolicy.InsufficientCoinsMessage(coinCost, coinBalance, "generate campaign content"));
         }
 
         // Prefer the brand's actually-connected accounts over the campaign's TargetPlatforms -
@@ -131,7 +131,11 @@ public class GenerateCampaignContentCommandHandler(
                 generation.ErrorMessage ?? "Campaign content generation failed. Please try again.");
         }
 
-        var baseDate = campaign.StartDate.HasValue ? campaign.StartDate.Value.ToDateTime(TimeOnly.MinValue) : now.Date;
+        // A campaign's StartDate can be in the past by the time content is generated (drafted,
+        // then approved days later) - falling back to today keeps suggested post times from
+        // being stamped into the past, which the scheduling step can no longer recover from.
+        var startDate = campaign.StartDate?.ToDateTime(TimeOnly.MinValue);
+        var baseDate = startDate is { } sd && sd > now.Date ? sd : now.Date;
         var createdItems = ParseGeneratedPosts(generation.Text!, platforms, baseDate);
 
         if (createdItems.Count == 0)

@@ -1,5 +1,10 @@
 <div class="page-shell">
-  @if (campaign(); as c) {
+  @if (detailError()) {
+    <div class="not-found">
+      <h3>{{ detailError() }}</h3>
+      <a routerLink="/dashboard/campaigns">العودة إلى الحملات</a>
+    </div>
+  } @else if (detail(); as c) {
     <div class="detail-header-row">
       <app-page-header
         [title]="c.name"
@@ -8,8 +13,8 @@
           { label: 'الحملات', link: '/dashboard/campaigns' },
           { label: c.name }
         ]"
-        [subtitle]="objectiveLabels[c.objective]" />
-      <a class="rw-btn rw-btn--primary" [routerLink]="['/dashboard/campaigns', campaignId, 'calendar']">
+        [subtitle]="objectiveLabel()" />
+      <a class="rw-btn rw-btn--primary" [routerLink]="['/dashboard/campaigns', campaignId(), 'calendar']">
         <i class="fa-regular fa-calendar-days"></i>
         عرض التقويم
       </a>
@@ -18,17 +23,19 @@
     <!-- Campaign overview / data card -->
     <div class="rw-card overview-card">
       <div class="overview-head">
-        <span class="rw-pill"
-              [class.rw-pill--success]="c.status === 'active'"
-              [class.rw-pill--warning]="c.status === 'paused'"
-              [class.rw-pill--info]="c.status === 'draft'"
-              [class.rw-pill--danger]="c.status === 'completed'">
-          {{ statusLabels[c.status] }}
-        </span>
+        @if (campaignSummary(); as summary) {
+          <span class="rw-pill"
+                [class.rw-pill--success]="summary.status === 'active'"
+                [class.rw-pill--warning]="summary.status === 'paused'"
+                [class.rw-pill--info]="summary.status === 'draft'"
+                [class.rw-pill--danger]="summary.status === 'completed'">
+            {{ statusLabels[summary.status] }}
+          </span>
+        }
         <div class="overview-platforms">
-          @for (p of c.platforms; track p) {
-            <span class="platform-icon" [style.color]="platformMeta(p).color" [title]="platformMeta(p).label">
-              <i class="{{ platformMeta(p).icon }}"></i>
+          @for (p of platforms(); track p) {
+            <span class="platform-icon" [style.color]="platformMetaFor(p).color" [title]="platformMetaFor(p).label">
+              <i class="{{ platformMetaFor(p).icon }}"></i>
             </span>
           }
         </div>
@@ -45,96 +52,133 @@
         </div>
         <div class="meta-item">
           <span class="meta-label">فترة الحملة</span>
-          <span class="meta-value">{{ c.startDate }} — {{ c.endDate }}</span>
+          <span class="meta-value">{{ c.startDate ?? '—' }} — {{ c.endDate ?? '—' }}</span>
         </div>
         <div class="meta-item">
-          <span class="meta-label">الميزانية</span>
-          <span class="meta-value">${{ c.spent }} / ${{ c.budget }}</span>
+          <span class="meta-label">الميزانية الشهرية</span>
+          <span class="meta-value">{{ c.budgetAmount ? c.budgetAmount + ' ' + (c.budgetCurrency ?? '') : '—' }}</span>
         </div>
         <div class="meta-item">
           <span class="meta-label">الهدف</span>
-          <span class="meta-value">{{ objectiveLabels[c.objective] }}</span>
+          <span class="meta-value">{{ objectiveLabel() }}</span>
         </div>
-        <div class="meta-item">
-          <span class="meta-label">عدد الإعلانات</span>
-          <span class="meta-value">{{ c.adCount ?? 0 }}</span>
-        </div>
-      </div>
-
-      <div class="budget-track">
-        <div class="budget-fill" [style.width.%]="budgetPct()"></div>
       </div>
     </div>
 
-    <!-- KPIs -->
-    <div class="kpi-row">
-      <app-kpi-card title="مدى الوصول" [value]="compact(c.reach)" icon="fa-bullseye" iconBg="rgba(37,99,235,.12)" iconColor="#2563EB" [change]="8.4" accentColor="#2563EB" />
-      <app-kpi-card title="النقرات" [value]="compact(c.clicks)" icon="fa-arrow-pointer" iconBg="rgba(124,58,237,.12)" iconColor="#7C3AED" [change]="5.1" accentColor="#7C3AED" />
-      <app-kpi-card title="معدل النقر" [value]="c.ctr + '%'" icon="fa-chart-line" iconBg="rgba(236,72,153,.12)" iconColor="#EC4899" [change]="1.2" accentColor="#EC4899" />
-      <app-kpi-card title="الإنفاق" [value]="'$' + compact(c.spent)" icon="fa-sack-dollar" iconBg="rgba(22,163,74,.12)" iconColor="#16A34A" [change]="-2.3" accentColor="#16A34A" />
-    </div>
-
-    <!-- Performance + upcoming posts -->
-    <div class="detail-row">
-      <div class="rw-card performance-card">
-        <div class="rw-card__header">
-          <h3 class="rw-card__title">أداء الوصول اليومي</h3>
-          <p class="rw-card__hint">آخر 14 يومًا</p>
+    <!-- Insights — real data from AnalyticsService; unsupported metrics are labeled, never
+         shown as a fabricated zero (the backend sums a missing metric as 0). -->
+    @if (analyticsLoading()) {
+      <div class="rw-card"><p class="no-posts">جاري تحميل الإحصاءات...</p></div>
+    } @else if (analyticsError()) {
+      <div class="rw-card"><p class="no-posts">{{ analyticsError() }}</p></div>
+    } @else if (analytics(); as a) {
+      @if (a.postsTracked === 0) {
+        <div class="rw-card">
+          <p class="no-posts">
+            لم يُنشر أي منشور من هذه الحملة بعد.
+            <a [routerLink]="['/dashboard/campaigns', campaignId(), 'calendar']">عرض التقويم</a>
+          </p>
         </div>
-        <svg viewBox="0 0 600 200" class="performance-svg" preserveAspectRatio="none">
-          <defs>
-            <linearGradient id="perfGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stop-color="var(--color-primary)" stop-opacity="0.28" />
-              <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0" />
-            </linearGradient>
-          </defs>
-          <path [attr.d]="performanceAreaPath()" fill="url(#perfGradient)" />
-          <path [attr.d]="performanceLinePath()" fill="none" stroke="var(--color-primary)" stroke-width="2.5" />
-        </svg>
-      </div>
-
-      <div class="rw-card posts-card">
-        <div class="rw-card__header">
-          <h3 class="rw-card__title">المنشورات القادمة</h3>
-          <p class="rw-card__hint">{{ upcomingPosts().length }} منشور مجدول</p>
-        </div>
-
-        <div class="post-filter">
-          <button type="button" class="rw-tab" [class.active]="platformFilter() === 'all'" (click)="setPlatformFilter('all')">
-            الكل
-          </button>
-          @for (p of c.platforms; track p) {
-            <button type="button" class="rw-tab" [class.active]="platformFilter() === p" (click)="setPlatformFilter(p)">
-              <i class="{{ platformMeta(p).icon }}" [style.color]="platformMeta(p).color"></i>
-              {{ platformMeta(p).label }}
-            </button>
-          }
+      } @else {
+        <div class="kpi-row">
+          <div class="stat-tile">
+            <span class="stat-num">{{ compact(a.postsTracked) }}</span>
+            <span class="stat-lbl">منشورات متتبَّعة</span>
+          </div>
+          <div class="stat-tile">
+            <span class="stat-num">{{ compact(a.totalLikes) }}</span>
+            <span class="stat-lbl">إعجابات</span>
+          </div>
+          <div class="stat-tile">
+            <span class="stat-num">{{ compact(a.totalComments) }}</span>
+            <span class="stat-lbl">تعليقات</span>
+          </div>
+          <div class="stat-tile">
+            <span class="stat-num">{{ compact(a.totalShares) }}</span>
+            <span class="stat-lbl">مشاركات</span>
+          </div>
         </div>
 
-        @if (upcomingPosts().length === 0) {
-          <p class="no-posts">لا توجد منشورات مجدولة لهذه الحملة حاليًا.</p>
-        } @else {
-          <div class="posts-list">
-            @for (post of upcomingPosts(); track post.id) {
-              <a class="post-row" [routerLink]="['/dashboard/campaigns', campaignId, 'posts', post.id]">
-                <span class="post-icon" [style.background]="platformMeta(post.platform).color">
-                  <i class="{{ platformMeta(post.platform).icon }}"></i>
-                </span>
-                <div class="post-body">
-                  <p class="post-content">{{ post.content }}</p>
-                  <span class="post-date"><i class="fa-regular fa-clock"></i> {{ formatDateTime(post.scheduledAt) }}</span>
-                </div>
-                <i class="fa-solid fa-chevron-left post-arrow"></i>
-              </a>
+        <div class="kpi-row unavailable-row">
+          <div class="stat-tile" [class.unavailable]="!impressionsAvailable()">
+            <span class="stat-num">{{ impressionsAvailable() ? compact(a.totalImpressions) : '—' }}</span>
+            <span class="stat-lbl" title="يتطلب صلاحية إحصاءات موسّعة من المنصة لم تُفعّل بعد">المشاهدات</span>
+          </div>
+          <div class="stat-tile" [class.unavailable]="!reachAvailable()">
+            <span class="stat-num">{{ reachAvailable() ? compact(a.totalReach) : '—' }}</span>
+            <span class="stat-lbl" title="يتطلب صلاحية إحصاءات موسّعة من المنصة لم تُفعّل بعد">مدى الوصول</span>
+          </div>
+          <div class="stat-tile" [class.unavailable]="!engagementRateAvailable()">
+            <span class="stat-num">{{ engagementRateAvailable() ? (a.averageEngagementRate ?? 0) + '%' : '—' }}</span>
+            <span class="stat-lbl" title="يتطلب صلاحية إحصاءات موسّعة من المنصة لم تُفعّل بعد">معدل التفاعل</span>
+          </div>
+        </div>
+
+        <!-- Top posts + upcoming posts -->
+        <div class="detail-row">
+          <div class="rw-card performance-card">
+            <div class="rw-card__header">
+              <h3 class="rw-card__title">أفضل المنشورات تفاعلاً</h3>
+              <p class="rw-card__hint">حسب الإعجابات والتعليقات والمشاركات</p>
+            </div>
+            @if (topPosts().length === 0) {
+              <p class="no-posts">لا توجد بيانات إحصائية بعد.</p>
+            } @else {
+              <div class="posts-list">
+                @for (post of topPosts(); track post.scheduledPostId) {
+                  <a class="post-row" [routerLink]="['/dashboard/campaigns', campaignId(), 'posts', post.scheduledPostId]">
+                    <div class="post-body">
+                      <p class="post-content">{{ (post.likes ?? 0) + (post.comments ?? 0) + (post.shares ?? 0) }} تفاعل</p>
+                      <span class="post-date"><i class="fa-regular fa-clock"></i> {{ formatDateTime(post.recordedAt) }}</span>
+                    </div>
+                    <i class="fa-solid fa-chevron-left post-arrow"></i>
+                  </a>
+                }
+              </div>
             }
           </div>
-        }
-      </div>
-    </div>
+
+          <div class="rw-card posts-card">
+            <div class="rw-card__header">
+              <h3 class="rw-card__title">المنشورات القادمة</h3>
+              <p class="rw-card__hint">{{ upcomingPosts().length }} منشور مجدول</p>
+            </div>
+
+            <div class="post-filter">
+              <button type="button" class="rw-tab" [class.active]="platformFilter() === 'all'" (click)="setPlatformFilter('all')">
+                الكل
+              </button>
+              @for (p of platforms(); track p) {
+                <button type="button" class="rw-tab" [class.active]="platformFilter() === p" (click)="setPlatformFilter(p)">
+                  <i class="{{ platformMetaFor(p).icon }}" [style.color]="platformMetaFor(p).color"></i>
+                  {{ platformMetaFor(p).label }}
+                </button>
+              }
+            </div>
+
+            @if (upcomingPosts().length === 0) {
+              <p class="no-posts">لا توجد منشورات مجدولة لهذه الحملة حاليًا.</p>
+            } @else {
+              <div class="posts-list">
+                @for (post of upcomingPosts(); track post.id) {
+                  <a class="post-row" [routerLink]="['/dashboard/campaigns', campaignId(), 'posts', post.id]">
+                    <span class="post-icon" [style.background]="platformMetaFor(post.platform).color">
+                      <i class="{{ platformMetaFor(post.platform).icon }}"></i>
+                    </span>
+                    <div class="post-body">
+                      <p class="post-content">{{ post.content }}</p>
+                      <span class="post-date"><i class="fa-regular fa-clock"></i> {{ formatDateTime(post.scheduledAt) }}</span>
+                    </div>
+                    <i class="fa-solid fa-chevron-left post-arrow"></i>
+                  </a>
+                }
+              </div>
+            }
+          </div>
+        </div>
+      }
+    }
   } @else {
-    <div class="not-found">
-      <h3>الحملة غير موجودة</h3>
-      <a routerLink="/dashboard/campaigns">العودة إلى الحملات</a>
-    </div>
+    <div class="detail-loading"><i class="fa-solid fa-circle-notch fa-spin"></i> جاري التحميل...</div>
   }
 </div>

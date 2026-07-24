@@ -113,11 +113,11 @@ export interface CoinPriceList {
   campaignContentGeneration: number;
   marketingPlanGeneration: number;
   scheduling: number;
-  /** Reserved pricing only — no feature spends this yet. */
+  /** AI Business Diagnosis (campaign onboarding). */
   businessDiagnosis: number;
-  /** Reserved pricing only — no feature spends this yet. */
+  /** Competitor research (campaign onboarding) — charged only when it actually finds data. */
   competitiveAnalysis: number;
-  /** Reserved pricing only — no feature spends this yet. */
+  /** Free-text strategy refinement ("عدّل الخطة"). */
   reasoningConversation: number;
 }
 

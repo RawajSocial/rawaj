@@ -55,7 +55,7 @@ public class RefineCampaignPlanCommandHandler(
         if (coinBalance < coinCost)
         {
             return Result<RefineCampaignPlanResponse>.Failure(
-                $"You need {coinCost} coins to refine the strategy, but only have {coinBalance}.");
+                CoinPolicy.InsufficientCoinsMessage(coinCost, coinBalance, "refine the strategy"));
         }
 
         var prompt = ContentPromptBuilder.BuildPlanRefinementPrompt(brand, campaign, campaign.AiPlanJson, request.Feedback);

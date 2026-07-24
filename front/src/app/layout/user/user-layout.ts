@@ -1,4 +1,4 @@
-import { Component, OnInit, effect, inject, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, effect, inject, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { SeoService } from '../../services/seo.service';
@@ -6,6 +6,7 @@ import { TenantService } from '../../core/tenant/tenant.service';
 import { BrandProfileService } from '../../services/brand-profile.service';
 import { CampaignService } from '../../services/campaign.service';
 import { BrandContextService } from '../../services/brand-context.service';
+import { NotificationService } from '../../services/notification.service';
 import { Header } from './header/header';
 import { Sidebar } from './sidebar/sidebar';
 
@@ -16,7 +17,7 @@ import { Sidebar } from './sidebar/sidebar';
   templateUrl: './user-layout.html',
   styleUrl: './user-layout.css',
 })
-export class UserLayout implements OnInit {
+export class UserLayout implements OnInit, OnDestroy {
   sidebarOpen = signal(true);
   mobileOverlayOpen = signal(false);
 
@@ -24,6 +25,7 @@ export class UserLayout implements OnInit {
   private readonly brandProfileService = inject(BrandProfileService);
   private readonly campaignService = inject(CampaignService);
   private readonly brandContextService = inject(BrandContextService);
+  private readonly notificationService = inject(NotificationService);
 
   constructor(private readonly seo: SeoService) {
     effect(() => {
@@ -47,6 +49,10 @@ export class UserLayout implements OnInit {
       next: () => this.brandContextService.initDefault(),
       error: () => { /* header selectors just stay empty; pages surface their own errors */ },
     });
+
+    // Dashboard-scoped polling — started here (not an APP_INITIALIZER) so anonymous visitors on
+    // public pages never poll and 401 in a loop.
+    this.notificationService.startPolling();
   }
 
   ngOnInit(): void {
@@ -60,6 +66,10 @@ export class UserLayout implements OnInit {
       type: 'website',
       noIndex: true,
     });
+  }
+
+  ngOnDestroy(): void {
+    this.notificationService.stopPolling();
   }
 
   toggleSidebar(): void {

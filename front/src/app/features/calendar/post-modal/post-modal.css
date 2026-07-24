@@ -146,6 +146,22 @@
 }
 .btn-edit:hover { opacity: 0.88; }
 
+.btn-publish {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--color-secondary, #7C3AED);
+  background: #fff;
+  color: var(--color-secondary, #7C3AED);
+  font-size: 0.83rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-publish:hover { background: rgba(124, 58, 237, 0.08); }
+
 /* Delete confirm row */
 .delete-confirm-row {
   display: flex;

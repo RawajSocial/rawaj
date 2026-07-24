@@ -61,7 +61,7 @@ public class CampaignsController(ISender sender) : ControllerBase
         var result = await sender.Send(
             new UpdateCampaignCommand(
                 campaignId, request.Name, request.Status, request.StartDate, request.EndDate, request.BudgetAmount,
-                request.Objective, request.TargetPlatforms, request.BudgetCurrency),
+                request.Objective, request.TargetPlatforms, request.BudgetCurrency, request.BriefJson),
             cancellationToken);
 
         return result.Succeeded
@@ -130,10 +130,9 @@ public class CampaignsController(ISender sender) : ControllerBase
     }
 
     [HttpPost("{campaignId:guid}/schedule-posts")]
-    public async Task<IActionResult> SchedulePosts(
-        Guid campaignId, [FromBody] ScheduleCampaignPostsRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> SchedulePosts(Guid campaignId, CancellationToken cancellationToken)
     {
-        var result = await sender.Send(new ScheduleCampaignPostsCommand(campaignId, request.SocialAccountId), cancellationToken);
+        var result = await sender.Send(new ScheduleCampaignPostsCommand(campaignId), cancellationToken);
 
         return result.Succeeded
             ? Ok(ApiResponse<ScheduleCampaignPostsResponse>.Success(result.Data!))
@@ -141,8 +140,7 @@ public class CampaignsController(ISender sender) : ControllerBase
     }
 
     [HttpPost("{campaignId:guid}/generate-content")]
-    public async Task<IActionResult> GenerateContent(
-        Guid campaignId, [FromBody] GenerateCampaignContentRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> GenerateContent(Guid campaignId, [FromBody] GenerateCampaignContentRequest request, CancellationToken cancellationToken)
     {
         var result = await sender.Send(
             new GenerateCampaignContentCommand(
@@ -154,14 +152,12 @@ public class CampaignsController(ISender sender) : ControllerBase
             : BadRequest(ApiResponse<GenerateCampaignContentResponse>.Fail(result.ErrorMessage!));
     }
 
-    public record GenerateCampaignContentRequest(
-        int PostCount, Language Language, bool IncludeImages = true, ContentTemplateStyle TemplateStyle = ContentTemplateStyle.Auto);
+    public record GenerateCampaignContentRequest(int PostCount, Language Language, bool IncludeImages = true, ContentTemplateStyle TemplateStyle = ContentTemplateStyle.Auto);
 
     public record RefineCampaignPlanRequest(string Feedback);
 
-    public record ScheduleCampaignPostsRequest(Guid SocialAccountId);
-
     public record UpdateCampaignRequest(
         string? Name, CampaignStatus? Status, DateOnly? StartDate, DateOnly? EndDate, decimal? BudgetAmount,
-        string? Objective = null, List<string>? TargetPlatforms = null, string? BudgetCurrency = null);
+        string? Objective = null, List<string>? TargetPlatforms = null, string? BudgetCurrency = null,
+        string? BriefJson = null);
 }

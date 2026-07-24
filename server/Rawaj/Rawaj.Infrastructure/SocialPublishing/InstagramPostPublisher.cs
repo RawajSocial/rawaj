@@ -63,6 +63,11 @@ public class InstagramPostPublisher(
         }
     }
 
+    /// <summary>Instagram has no native scheduling, so a post is never handed off ahead of
+    /// time — there's nothing on Instagram's side to revoke.</summary>
+    public Task<PublishResult> CancelAsync(string accessToken, string externalPostId, CancellationToken cancellationToken) =>
+        Task.FromResult(PublishResult.Success(externalPostId));
+
     private async Task<(bool Succeeded, string? Value, string? ErrorMessage)> CreateMediaContainerAsync(
         HttpClient client, SocialPublishRequest request, string imageUrl, CancellationToken cancellationToken)
     {

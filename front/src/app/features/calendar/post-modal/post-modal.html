@@ -6,7 +6,7 @@
       <i class="{{ platform.icon }}"></i>
     </div>
     <div class="pm-header-text">
-      <h3 class="pm-title">{{ editMode() ? 'تعديل المنشور' : 'تفاصيل المنشور' }}</h3>
+      <h3 class="pm-title">{{ editMode() ? 'إعادة جدولة المنشور' : 'تفاصيل المنشور' }}</h3>
       <span class="pm-campaign-name">{{ post().campaignName }}</span>
     </div>
   </div>
@@ -37,23 +37,6 @@
         <span class="detail-label">وقت النشر</span>
         <span class="detail-value">{{ formatDateTime(post().scheduledAt) }}</span>
       </div>
-
-      @if (post().mediaType) {
-        <div class="detail-row">
-          <span class="detail-label">نوع المحتوى</span>
-          <span class="detail-value">{{ mediaTypeLabels[post().mediaType!] }}</span>
-        </div>
-      }
-
-      @if (post().estimatedReach) {
-        <div class="detail-row">
-          <span class="detail-label">الوصول المتوقع</span>
-          <span class="detail-value reach-value">
-            <i class="fa-solid fa-users"></i>
-            {{ post().estimatedReach!.toLocaleString('ar-SA') }}
-          </span>
-        </div>
-      }
     </div>
 
     <div class="content-block">
@@ -61,27 +44,9 @@
       <p class="post-content-text">{{ post().content }}</p>
     </div>
 
-    @if (post().hashtags?.length) {
-      <div class="hashtags-row">
-        @for (tag of post().hashtags!; track tag) {
-          <span class="hashtag-chip">{{ tag }}</span>
-        }
-      </div>
-    }
-
   } @else {
 
-    <!-- ── Edit mode ── -->
-    <div class="form-field">
-      <label class="field-label">نص المنشور</label>
-      <textarea
-        class="field-textarea"
-        rows="4"
-        [value]="editContent()"
-        (input)="editContent.set($any($event.target).value)"
-        placeholder="اكتب نص المنشور..."></textarea>
-    </div>
-
+    <!-- ── Edit mode — time only ── -->
     <div class="form-row-2">
       <div class="form-field">
         <label class="field-label">تاريخ النشر</label>
@@ -95,37 +60,28 @@
       </div>
     </div>
 
-    <div class="form-field">
-      <label class="field-label">الحالة</label>
-      <select class="field-select"
-        [value]="editStatus()" (change)="editStatus.set($any($event.target).value)">
-        @for (opt of statusOptions; track opt.value) {
-          <option [value]="opt.value">{{ opt.label }}</option>
-        }
-      </select>
-    </div>
-
-    <div class="form-field">
-      <label class="field-label">الهاشتاقات <small>(مفصولة بمسافة)</small></label>
-      <input type="text" class="field-input"
-        [value]="editHashtags()" (input)="editHashtags.set($any($event.target).value)"
-        placeholder="#هاشتاق_١ #هاشتاق_٢" />
-    </div>
-
   }
 
   <!-- ── Footer slot ── -->
   <div modal-footer class="modal-footer">
     @if (!editMode()) {
       @if (!showDeleteConfirm()) {
-        <button class="btn-delete" (click)="showDeleteConfirm.set(true)">
-          <i class="fa-solid fa-trash-can"></i>
-          حذف المنشور
-        </button>
-        <button class="btn-edit" (click)="startEdit()">
-          <i class="fa-solid fa-pen-to-square"></i>
-          تعديل
-        </button>
+        @if (canEdit()) {
+          @if (post().status === 'scheduled') {
+            <button class="btn-delete" (click)="showDeleteConfirm.set(true)">
+              <i class="fa-solid fa-trash-can"></i>
+              حذف المنشور
+            </button>
+            <button class="btn-publish" (click)="doPublishNow()">
+              <i class="fa-solid fa-paper-plane"></i>
+              نشر الآن
+            </button>
+          }
+          <button class="btn-edit" (click)="startEdit()">
+            <i class="fa-solid fa-pen-to-square"></i>
+            إعادة جدولة
+          </button>
+        }
       } @else {
         <div class="delete-confirm-row">
           <span class="delete-confirm-msg">هل أنت متأكد من حذف هذا المنشور؟</span>
@@ -135,9 +91,9 @@
       }
     } @else {
       <button class="btn-cancel" (click)="cancelEdit()">إلغاء</button>
-      <button class="btn-save" (click)="submitEdit()">
+      <button class="btn-save" (click)="submitReschedule()">
         <i class="fa-solid fa-check"></i>
-        حفظ التغييرات
+        حفظ الموعد الجديد
       </button>
     }
   </div>

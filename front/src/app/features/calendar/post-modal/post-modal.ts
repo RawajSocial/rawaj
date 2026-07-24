@@ -13,17 +13,19 @@ import { ModalShell } from '../../../shared/components/modal-shell/modal-shell';
 export class PostModal {
   post   = input.required<ScheduledPost>();
   open   = input(true);
-  close  = output<void>();
-  save   = output<ScheduledPost>();
-  remove = output<string>();
+  /** Whether the signed-in user may reschedule/publish/delete — the calendar page owns the actual
+   *  role check (PermissionService); this only controls what the modal offers. */
+  canEdit = input(true);
+
+  close       = output<void>();
+  reschedule  = output<{ id: string; scheduledAt: string }>();
+  publishNow  = output<string>();
+  remove      = output<string>();
 
   readonly editMode          = signal(false);
   readonly showDeleteConfirm = signal(false);
-  readonly editContent       = signal('');
   readonly editDate          = signal('');
   readonly editTime          = signal('');
-  readonly editStatus        = signal<PostStatus>('scheduled');
-  readonly editHashtags      = signal('');
 
   readonly platformConfig: Record<CampaignPlatform, { icon: string; color: string; label: string }> = {
     instagram: { icon: 'fa-brands fa-instagram',  color: 'var(--color-instagram)', label: 'إنستغرام' },
@@ -42,10 +44,6 @@ export class PostModal {
     { value: 'failed',    label: 'فشل',   color: '#EF4444' },
   ];
 
-  readonly mediaTypeLabels: Record<string, string> = {
-    image: 'صورة', video: 'فيديو', carousel: 'كاروسيل', reel: 'ريل', story: 'ستوري',
-  };
-
   get platform() { return this.platformConfig[this.post().platform]; }
   get statusInfo() { return this.statusOptions.find(s => s.value === this.post().status) ?? this.statusOptions[0]; }
 
@@ -56,31 +54,25 @@ export class PostModal {
     });
   }
 
+  /** Only the schedule time is editable here — post copy belongs to the ContentItem and is
+   *  changed via regenerate (on the campaign content page), and status is server-derived from
+   *  what actually happens when the post is published, not something to hand-set. */
   startEdit(): void {
     const p = this.post();
-    this.editContent.set(p.content);
     this.editDate.set(p.scheduledAt.substring(0, 10));
     this.editTime.set(p.scheduledAt.substring(11, 16));
-    this.editStatus.set(p.status);
-    this.editHashtags.set((p.hashtags ?? []).join(' '));
     this.editMode.set(true);
     this.showDeleteConfirm.set(false);
   }
 
   cancelEdit(): void { this.editMode.set(false); this.showDeleteConfirm.set(false); }
 
-  submitEdit(): void {
-    const p = this.post();
-    const hashtags = this.editHashtags().trim()
-      ? this.editHashtags().trim().split(/\s+/)
-      : undefined;
-    this.save.emit({
-      ...p,
-      content: this.editContent(),
-      scheduledAt: `${this.editDate()}T${this.editTime()}:00`,
-      status: this.editStatus(),
-      hashtags,
-    });
+  submitReschedule(): void {
+    this.reschedule.emit({ id: this.post().id, scheduledAt: `${this.editDate()}T${this.editTime()}:00` });
+  }
+
+  doPublishNow(): void {
+    this.publishNow.emit(this.post().id);
   }
 
   confirmDelete(): void { this.remove.emit(this.post().id); }

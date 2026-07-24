@@ -8,12 +8,18 @@ export interface ErrorModalState {
   message: string;
   icon: string;
   variant: ErrorModalVariant;
+  actionLabel: string | null;
+  actionLink: unknown[] | null;
 }
 
 export interface ErrorModalOptions {
   title?: string;
   icon?: string;
   variant?: ErrorModalVariant;
+  /** Renders a second, routerLink-driven button (e.g. "شحن الرصيد" → /dashboard/billing) that
+   *  closes the modal on click. Omit for the plain single-button dialog. */
+  actionLabel?: string;
+  actionLink?: unknown[];
 }
 
 const DEFAULT_ICON: Record<ErrorModalVariant, string> = {
@@ -36,6 +42,8 @@ const INITIAL_STATE: ErrorModalState = {
   message: '',
   icon: DEFAULT_ICON.error,
   variant: 'error',
+  actionLabel: null,
+  actionLink: null,
 };
 
 /**
@@ -56,6 +64,8 @@ export class ErrorModalService {
       variant,
       title: options.title ?? DEFAULT_TITLE[variant],
       icon: options.icon ?? DEFAULT_ICON[variant],
+      actionLabel: options.actionLabel ?? null,
+      actionLink: options.actionLink ?? null,
     });
   }
 

@@ -377,6 +377,70 @@
                 </button>
               </div>
             </div>
+
+            <!-- Approve → schedule (text generations only — image-only generations here have no
+                 ContentItem to schedule against) -->
+            @if (canScheduleCurrent()) {
+              <div class="output-schedule">
+                @if (scheduledIds().has(currentItem()!.id)) {
+                  <p class="output-schedule__done"><i class="fa-solid fa-circle-check"></i> تمت جدولة هذا المنشور.</p>
+                } @else if (!isApproved()) {
+                  <button type="button" class="output-edit__btn"
+                    [class.is-perm-disabled]="!perms.canEdit()"
+                    [attr.aria-disabled]="!perms.canEdit() || null"
+                    [appTooltip]="perms.editDeniedReason()"
+                    [disabled]="approving()"
+                    (click)="approveCurrent()">
+                    @if (approving()) {
+                      <i class="fa-solid fa-circle-notch fa-spin"></i> جاري القبول...
+                    } @else {
+                      <i class="fa-solid fa-check"></i> قبول وجدولة
+                    }
+                  </button>
+                } @else if (!schedulePanelOpen()) {
+                  <button type="button" class="output-edit__btn" (click)="openSchedulePanel()">
+                    <i class="fa-solid fa-calendar-check"></i> جدولة هذا المنشور
+                  </button>
+                } @else {
+                  <div class="schedule-fields">
+                    <label>
+                      الحساب
+                      <select [value]="scheduleAccountId()" (change)="updateScheduleAccount($any($event.target).value)">
+                        @if (scheduleAccounts().length === 0) {
+                          <option value="">لا يوجد حساب متصل</option>
+                        }
+                        @for (a of scheduleAccounts(); track a.socialAccountId) {
+                          <option [value]="a.socialAccountId">{{ a.platform }} — {{ a.accountName }}</option>
+                        }
+                      </select>
+                    </label>
+                    <label>
+                      التاريخ
+                      <input type="date" [value]="scheduleDate()" (input)="updateScheduleDate($any($event.target).value)" />
+                    </label>
+                    <label>
+                      الوقت
+                      <input type="time" [value]="scheduleTime()" (input)="updateScheduleTime($any($event.target).value)" />
+                    </label>
+                  </div>
+                  @if (scheduleAccounts().length === 0) {
+                    <p class="output-schedule__hint">لا يوجد حساب متصل لهذه العلامة التجارية — <a routerLink="/dashboard/social-accounts">اربط حسابًا</a> أولاً.</p>
+                  }
+                  <div class="schedule-actions">
+                    <button type="button" class="output-edit__btn output-edit__btn--ghost" (click)="closeSchedulePanel()">إلغاء</button>
+                    <button type="button" class="output-edit__btn"
+                      [disabled]="scheduling() || !scheduleAccountId() || !scheduleDate() || !scheduleTime()"
+                      (click)="submitSchedule()">
+                      @if (scheduling()) {
+                        <i class="fa-solid fa-circle-notch fa-spin"></i> جاري الجدولة...
+                      } @else {
+                        <i class="fa-solid fa-calendar-check"></i> جدولة
+                      }
+                    </button>
+                  </div>
+                }
+              </div>
+            }
           </div>
         }
       </div>

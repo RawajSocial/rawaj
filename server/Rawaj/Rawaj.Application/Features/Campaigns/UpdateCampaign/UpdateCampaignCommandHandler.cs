@@ -28,6 +28,7 @@ public class UpdateCampaignCommandHandler(IApplicationDbContext dbContext, ICurr
         if (request.BudgetAmount is not null) campaign.BudgetAmount = request.BudgetAmount;
         if (request.Objective is not null) campaign.Objective = request.Objective;
         if (request.BudgetCurrency is not null) campaign.BudgetCurrency = request.BudgetCurrency;
+        if (request.BriefJson is not null) campaign.BriefJson = request.BriefJson;
         if (request.TargetPlatforms is not null)
         {
             campaign.TargetPlatforms = request.TargetPlatforms

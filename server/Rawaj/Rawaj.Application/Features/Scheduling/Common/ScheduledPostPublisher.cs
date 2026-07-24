@@ -37,6 +37,43 @@ public static class ScheduledPostPublisher
         CancellationToken cancellationToken) =>
         ExecuteAsync(dbContext, tokenEncryptor, publishers, scheduledPostId, scheduledAt, cancellationToken);
 
+    /// <summary>
+    /// Revokes the platform-side handoff for a Pending post before it's cancelled or moved to a
+    /// new time. A post whose <c>PostId</c> is set was already told to Facebook (or another
+    /// native-scheduling platform) to publish at its current time — flipping the local status or
+    /// clearing <c>PostId</c> without this would leave the platform publishing it regardless.
+    /// Safe to call on a post with no native handoff (PostId null, or a non-native platform):
+    /// there is nothing to revoke, so it succeeds as a no-op.
+    /// </summary>
+    public static async Task<Result<bool>> CancelNativeAsync(
+        IApplicationDbContext dbContext,
+        ITokenEncryptor tokenEncryptor,
+        IEnumerable<ISocialPublisher> publishers,
+        ScheduledPost scheduledPost,
+        CancellationToken cancellationToken)
+    {
+        if (scheduledPost.PostId is null)
+        {
+            return Result<bool>.Success(true);
+        }
+
+        var socialAccount = await dbContext.SocialAccounts
+            .FirstAsync(s => s.Id == scheduledPost.SocialAccountId, cancellationToken);
+
+        var publisher = publishers.FirstOrDefault(p => p.Platform == socialAccount.Platform);
+        if (publisher is null || !publisher.SupportsNativeScheduling)
+        {
+            return Result<bool>.Success(true);
+        }
+
+        var accessToken = tokenEncryptor.Decrypt(socialAccount.Token);
+        var cancelResult = await publisher.CancelAsync(accessToken, scheduledPost.PostId, cancellationToken);
+
+        return cancelResult.Succeeded
+            ? Result<bool>.Success(true)
+            : Result<bool>.Failure($"Could not cancel the post already scheduled on {socialAccount.Platform}: {cancelResult.ErrorMessage}");
+    }
+
     private static async Task<Result<ScheduledPost>> ExecuteAsync(
         IApplicationDbContext dbContext,
         ITokenEncryptor tokenEncryptor,

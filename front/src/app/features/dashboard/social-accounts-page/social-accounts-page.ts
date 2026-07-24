@@ -3,9 +3,11 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { PageHeader } from '../../../shared/components/page-header/page-header';
 import { SeoService } from '../../../services/seo.service';
 import { TenantService } from '../../../core/tenant/tenant.service';
+import { PermissionService } from '../../../core/tenant/permission.service';
 import { SocialAccountService } from '../../../core/social/social-account.service';
 import { ErrorModalService } from '../../../services/error-modal.service';
 import { LoaderService } from '../../../services/loader.service';
+import { TooltipDirective } from '../../../shared/directives/tooltip.directive';
 import { SocialAccountSummary, SocialPlatform } from '../../../model/social-account.model';
 
 interface PlatformOption {
@@ -23,7 +25,7 @@ const PLATFORM_OPTIONS: PlatformOption[] = [
 
 @Component({
   selector: 'app-social-accounts-page',
-  imports: [PageHeader],
+  imports: [PageHeader, TooltipDirective],
   templateUrl: './social-accounts-page.html',
   styleUrls: ['../dashboard-shared.css', './social-accounts-page.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -31,6 +33,7 @@ const PLATFORM_OPTIONS: PlatformOption[] = [
 export class SocialAccountsPage {
   private readonly seo = inject(SeoService);
   private readonly tenantService = inject(TenantService);
+  protected readonly perms = inject(PermissionService);
   private readonly socialAccountService = inject(SocialAccountService);
   private readonly errorModalService = inject(ErrorModalService);
   private readonly loaderService = inject(LoaderService);
@@ -74,6 +77,7 @@ export class SocialAccountsPage {
   }
 
   protected connect(platform: SocialPlatform): void {
+    if (!this.perms.canAdmin()) return;
     const brandProfileId = this.tenantService.defaultBrandProfileId();
     if (!brandProfileId) return;
 
@@ -95,6 +99,7 @@ export class SocialAccountsPage {
   }
 
   protected disconnect(account: SocialAccountSummary): void {
+    if (!this.perms.canAdmin()) return;
     this.loaderService.show();
     this.socialAccountService.disconnect(account.socialAccountId).subscribe({
       next: res => {

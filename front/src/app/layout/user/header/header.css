@@ -318,6 +318,18 @@
   background: var(--color-bg-secondary);
 }
 
+.notif-item--btn {
+  width: 100%;
+  border: none;
+  background: none;
+  font-family: inherit;
+  text-align: inherit;
+}
+
+.notif-item--btn.unread .notif-text {
+  font-weight: var(--font-semibold);
+}
+
 .notif-icon {
   width: 36px;
   height: 36px;

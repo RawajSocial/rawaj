@@ -7,6 +7,8 @@ import { TenantService } from '../../../core/tenant/tenant.service';
 import { TENANT_MEMBER_ROLE_LABELS } from '../../../model/tenant.model';
 import { BrandProfileService } from '../../../services/brand-profile.service';
 import { BrandContextService } from '../../../services/brand-context.service';
+import { NotificationService } from '../../../services/notification.service';
+import { CATEGORY_CFG, notificationLink } from '../../../model/notification.model';
 
 @Component({
   selector: 'app-header',
@@ -21,6 +23,9 @@ export class Header {
   private readonly router = inject(Router);
   protected readonly brandProfileService = inject(BrandProfileService);
   protected readonly brandContextService = inject(BrandContextService);
+  protected readonly notifications = inject(NotificationService);
+  protected readonly categoryCfg = CATEGORY_CFG;
+  protected readonly notificationLink = notificationLink;
 
   mobileMenuOpen = input(false);
 
@@ -109,6 +114,19 @@ export class Header {
 
   private finishLogout(): void {
     this.tenantService.clear();
+    this.notifications.clear();
     this.router.navigate(['/login']);
+  }
+
+  protected openNotifPanel(): void {
+    this.notifOpen.update(v => !v);
+    if (!this.notifOpen()) return;
+    this.notifications.refresh().subscribe();
+  }
+
+  protected selectNotification(id: string, link: unknown[] | null): void {
+    this.notifications.markRead(id).subscribe();
+    this.notifOpen.set(false);
+    if (link) void this.router.navigate(link);
   }
 }

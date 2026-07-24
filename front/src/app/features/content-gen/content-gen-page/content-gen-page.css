@@ -728,6 +728,67 @@
   .output-edit__btn { justify-content: center; }
 }
 
+/* ── Approve → schedule panel ── */
+.output-schedule {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 18px 18px;
+  border-top: 1px solid #f0f0f5;
+}
+
+.output-schedule__done {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #16A34A;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.output-schedule__hint {
+  margin: 0;
+  font-size: 0.78rem;
+  color: #9ca3af;
+}
+
+.output-edit__btn--ghost {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.schedule-fields {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.schedule-fields label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.78rem;
+  color: #6b7280;
+  flex: 1;
+  min-width: 140px;
+}
+
+.schedule-fields select,
+.schedule-fields input {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1.5px solid #e5e7eb;
+  font-family: inherit;
+  font-size: 0.82rem;
+}
+
+.schedule-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 @media (max-width: 768px) {
   .output-panel, .output-placeholder, .output-generating { min-height: 280px; }
 }

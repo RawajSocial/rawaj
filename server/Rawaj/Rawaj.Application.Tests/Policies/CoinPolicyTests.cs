@@ -117,4 +117,22 @@ public class CoinPolicyTests
 
         Assert.False(succeeded);
     }
+
+    [Fact]
+    public void InsufficientCoinsMessage_ProducesTheExactShapeTheFrontendParses()
+    {
+        // coin-error.util.ts on the frontend regex-matches this sentence to offer a "buy coins"
+        // link - changing the wording here must change it there too.
+        var message = CoinPolicy.InsufficientCoinsMessage(required: 200, balance: 50, action: "generate content");
+
+        Assert.Equal("You need 200 coins to generate content, but only have 50.", message);
+    }
+
+    [Fact]
+    public void ScheduledPostCapMessage_ProducesTheExpectedSentence()
+    {
+        var message = CoinPolicy.ScheduledPostCapMessage(max: 10);
+
+        Assert.Equal("Your subscription plan allows a maximum of 10 scheduled post(s). Upgrade for more.", message);
+    }
 }

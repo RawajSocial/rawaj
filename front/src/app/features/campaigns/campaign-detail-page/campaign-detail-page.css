@@ -132,6 +132,39 @@
   display: block;
 }
 
+/* ── Stat tiles (replace the old KpiCard usage here — KpiCard's footer hardcodes "مقارنة بالشهر
+     الماضي", a comparison this page has no real period to back) ── */
+.stat-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 1rem 1.2rem;
+  border-radius: 16px;
+  background: var(--color-bg-primary, #fff);
+  border: 1.5px solid var(--color-border, #f0eeff);
+}
+.stat-tile.unavailable { opacity: .6; }
+
+.stat-num {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-bold);
+  color: var(--color-dark);
+}
+
+.stat-lbl {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.unavailable-row { margin-top: 1rem; }
+
+.detail-loading {
+  padding: 3rem;
+  text-align: center;
+  color: var(--color-text-muted);
+}
+
 /* ── Upcoming posts ── */
 .post-filter {
   display: flex;

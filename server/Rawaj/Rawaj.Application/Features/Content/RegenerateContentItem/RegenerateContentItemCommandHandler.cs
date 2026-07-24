@@ -23,8 +23,7 @@ public class RegenerateContentItemCommandHandler(
     ICoinCostProvider coinCostProvider)
     : IRequestHandler<RegenerateContentItemCommand, Result<RegenerateContentItemResponse>>
 {
-    public async Task<Result<RegenerateContentItemResponse>> Handle(
-        RegenerateContentItemCommand request, CancellationToken cancellationToken)
+    public async Task<Result<RegenerateContentItemResponse>> Handle(RegenerateContentItemCommand request, CancellationToken cancellationToken)
     {
         var tenantId = currentTenantContext.TenantId!.Value;
         var userId = currentUserService.UserId!.Value;
@@ -42,8 +41,6 @@ public class RegenerateContentItemCommandHandler(
             return Result<RegenerateContentItemResponse>.Failure("Published content cannot be regenerated.");
         }
 
-        // Standalone content-gen output (CampaignId is null) is allowed to regenerate too — only
-        // the prompt drops its "Campaign: ..." line when there isn't one (see BuildRevisionPrompt).
         var campaign = contentItem.CampaignId.HasValue
             ? await dbContext.MarketingCampaigns.FirstOrDefaultAsync(c => c.Id == contentItem.CampaignId, cancellationToken)
             : null;
@@ -57,14 +54,12 @@ public class RegenerateContentItemCommandHandler(
                 $"Your subscription plan allows {creditsUsage.MaxCreditsMonthly} AI credits per month. Upgrade for more.");
         }
 
-        // Regeneration never draws on the free-trial quota (GenerateContentItem does) — otherwise
-        // repeated edits on the same item could be used to keep re-earning free generations.
         var coinCost = await CoinPricingPolicy.GetDiscountedCostAsync(dbContext, tenantId, coinCostProvider.ContentGeneration, cancellationToken);
         var coinBalance = await CoinPolicy.GetBalanceAsync(dbContext, tenantId, userId, role, cancellationToken);
         if (coinBalance < coinCost)
         {
             return Result<RegenerateContentItemResponse>.Failure(
-                $"You need {coinCost} coins to regenerate content, but only have {coinBalance}.");
+                CoinPolicy.InsufficientCoinsMessage(coinCost, coinBalance, "regenerate content"));
         }
 
         var prompt = ContentPromptBuilder.BuildRevisionPrompt(brand, campaign, contentItem, request.Feedback);

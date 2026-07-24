@@ -72,7 +72,7 @@ public class GenerateVisualAssetCommandHandler(
         if (coinBalance < coinCost)
         {
             return Result<GenerateVisualAssetResponse>.Failure(
-                $"You need {coinCost} coins to generate an image, but only have {coinBalance}.");
+                CoinPolicy.InsufficientCoinsMessage(coinCost, coinBalance, "generate an image"));
         }
 
         var prompt = ContentPromptBuilder.BuildImagePrompt(brand, campaign, request.Type.ToString(), request.Prompt);

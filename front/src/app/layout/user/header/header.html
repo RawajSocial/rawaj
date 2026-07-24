@@ -117,42 +117,37 @@
 
     <!-- Notifications -->
     <div class="header-dropdown notif-dropdown" [class.open]="notifOpen()">
-      <button class="header-btn badge-btn" (click)="notifOpen.update(v => !v)">
+      <button class="header-btn badge-btn" (click)="openNotifPanel()">
         <i class="fa-regular fa-bell"></i>
-        <span class="header-badge">4</span>
+        @if (notifications.unreadCount() > 0) {
+          <span class="header-badge">{{ notifications.unreadCount() }}</span>
+        }
       </button>
       <div class="dropdown-panel notif-panel">
         <div class="panel-head">
           <span class="panel-title">الإشعارات</span>
-          <span class="panel-count">4 جديد</span>
+          @if (notifications.unreadCount() > 0) {
+            <span class="panel-count">{{ notifications.unreadCount() }} جديد</span>
+          }
         </div>
-        <div class="notif-item">
-          <div class="notif-icon notif-icon--primary">
-            <i class="fa-solid fa-user-plus"></i>
-          </div>
-          <div class="notif-body">
-            <p class="notif-text">تم إضافة عميل جديد</p>
-            <span class="notif-time">منذ 5 دقائق</span>
-          </div>
-        </div>
-        <div class="notif-item">
-          <div class="notif-icon notif-icon--success">
-            <i class="fa-solid fa-circle-check"></i>
-          </div>
-          <div class="notif-body">
-            <p class="notif-text">تم إغلاق صفقة بنجاح</p>
-            <span class="notif-time">منذ 30 دقيقة</span>
-          </div>
-        </div>
-        <div class="notif-item">
-          <div class="notif-icon notif-icon--warning">
-            <i class="fa-solid fa-triangle-exclamation"></i>
-          </div>
-          <div class="notif-body">
-            <p class="notif-text">تنبيه: موعد اجتماع قادم</p>
-            <span class="notif-time">منذ ساعة</span>
-          </div>
-        </div>
+
+        @if (notifications.recent().length === 0) {
+          <div class="notif-item"><div class="notif-body"><p class="notif-text">لا توجد إشعارات بعد.</p></div></div>
+        } @else {
+          @for (n of notifications.recent(); track n.id) {
+            <button type="button" class="notif-item notif-item--btn" [class.unread]="!n.isRead"
+              (click)="selectNotification(n.id, notificationLink(n))">
+              <div class="notif-icon" [style.background]="categoryCfg[n.category].bg" [style.color]="categoryCfg[n.category].color">
+                <i class="fa-solid {{ categoryCfg[n.category].icon }}"></i>
+              </div>
+              <div class="notif-body">
+                <p class="notif-text">{{ n.title }}</p>
+                <span class="notif-time">{{ n.message }}</span>
+              </div>
+            </button>
+          }
+        }
+
         <div class="panel-foot">
           <a routerLink="/dashboard/notifications" (click)="notifOpen.set(false)">عرض جميع الإشعارات</a>
         </div>

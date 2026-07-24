@@ -6,7 +6,12 @@ using Rawaj.Domain.Enums;
 
 namespace Rawaj.Application.Features.Campaigns.ScheduleCampaignPosts;
 
-public record ScheduleCampaignPostsCommand(Guid CampaignId, Guid SocialAccountId)
+/// <summary>
+/// Schedules every approved, not-yet-scheduled content item in the campaign, routing each item to
+/// the brand's connected active account matching that item's own platform - a campaign spanning
+/// Instagram and Facebook posts to both, rather than forcing a single caller-picked account.
+/// </summary>
+public record ScheduleCampaignPostsCommand(Guid CampaignId)
     : IRequest<Result<ScheduleCampaignPostsResponse>>, IRequireTenantRole, IRequireResolvedBrandAccess
 {
     public TenantMemberRole MinimumRole => TenantMemberRole.Editor;

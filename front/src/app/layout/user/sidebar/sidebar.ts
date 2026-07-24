@@ -3,6 +3,7 @@ import { Component, inject, input, output, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../../core/auth/auth.service';
 import { TenantService } from '../../../core/tenant/tenant.service';
+import { NotificationService } from '../../../services/notification.service';
 
 type NavItem = {
   id: string;
@@ -29,6 +30,7 @@ type NavSection = {
 export class Sidebar {
   private readonly authService = inject(AuthService);
   private readonly tenantService = inject(TenantService);
+  private readonly notificationService = inject(NotificationService);
   private readonly router = inject(Router);
 
   isOpen = input(true);
@@ -60,6 +62,7 @@ export class Sidebar {
         { id: 'brand-profiles',  label: 'ملفات العلامة التجارية', icon: 'fa-copyright', route: '/dashboard/brand-profiles' },
         { id: 'campaigns',       label: 'حملاتك',              icon: 'fa-bullhorn',     route: '/dashboard/campaigns' },
         { id: 'ads',             label: 'إعلاناتي',            icon: 'fa-rectangle-ad', route: '/dashboard/ads' },
+        { id: 'social-accounts', label: 'ربط الحسابات',        icon: 'fa-link',         route: '/dashboard/social-accounts' },
       ],
     },
     {
@@ -98,6 +101,7 @@ export class Sidebar {
 
   private finishLogout(): void {
     this.tenantService.clear();
+    this.notificationService.clear();
     this.mobileClose.emit();
     this.router.navigate(['/login']);
   }

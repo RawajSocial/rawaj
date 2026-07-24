@@ -16,7 +16,8 @@ public record UpdateCampaignCommand(
     decimal? BudgetAmount,
     string? Objective = null,
     List<string>? TargetPlatforms = null,
-    string? BudgetCurrency = null)
+    string? BudgetCurrency = null,
+    string? BriefJson = null)
     : IRequest<Result<GetCampaignResponse>>, IRequireTenantRole, IRequireResolvedBrandAccess
 {
     public TenantMemberRole MinimumRole => TenantMemberRole.Editor;

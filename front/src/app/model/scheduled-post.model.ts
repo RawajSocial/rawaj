@@ -6,6 +6,7 @@ export type MediaType  = 'image' | 'video' | 'carousel' | 'reel' | 'story';
 
 export interface ScheduledPost {
   id: string;
+  contentItemId: string;
   campaignId: string;
   campaignName: string;
   platform: CampaignPlatform;
@@ -47,4 +48,49 @@ export interface ScheduledPostSummary {
 export interface CancelScheduledPostResponse {
   scheduledPostId: string;
   status: ScheduledPostSummary['status'];
+}
+
+/** PUT /api/v1/scheduled-posts/{id} request body — time only. Content lives on the ContentItem
+ *  and is changed via regenerate, not here. */
+export interface RescheduleScheduledPostRequest {
+  scheduledAt: string;
+}
+
+/** PUT /api/v1/scheduled-posts/{id} — RescheduleScheduledPostResponse */
+export interface RescheduleScheduledPostResponse {
+  scheduledPostId: string;
+  scheduledAt: string;
+  status: ScheduledPostSummary['status'];
+}
+
+/** POST /api/v1/scheduled-posts/{id}/publish-now — PublishScheduledPostResponse */
+export interface PublishScheduledPostResponse {
+  scheduledPostId: string;
+  status: ScheduledPostSummary['status'];
+  externalPostId?: string | null;
+}
+
+/** POST /api/v1/scheduled-posts request body — SchedulePostCommand. */
+export interface SchedulePostRequest {
+  contentItemId: string;
+  visualAssetId?: string | null;
+  socialAccountId: string;
+  scheduledAt: string;
+  aiSuggestedTime?: boolean;
+}
+
+/** POST /api/v1/scheduled-posts — SchedulePostResponse */
+export interface SchedulePostResponse {
+  scheduledPostId: string;
+  scheduledAt: string;
+  status: ScheduledPostSummary['status'];
+  externalPostId?: string | null;
+}
+
+/** GET /api/v1/scheduled-posts/posting-time-suggestions — PostingTimeSuggestionDto */
+export interface PostingTimeSuggestionDto {
+  platform: BackendSocialPlatform;
+  dayOfWeek: number; // 0=Sunday .. 6=Saturday, matches JS Date#getDay()
+  hour: number;
+  fromHistoricalData: boolean;
 }

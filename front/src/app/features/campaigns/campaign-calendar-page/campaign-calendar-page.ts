@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, signal, untracked } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { PageHeader } from '../../../shared/components/page-header/page-header';
 import { CampaignService } from '../../../services/campaign.service';
@@ -37,12 +38,16 @@ export class CampaignCalendarPage {
   private readonly scheduledPostService = inject(ScheduledPostService);
   private readonly seo = inject(SeoService);
 
-  protected readonly campaignId = this.route.snapshot.paramMap.get('id') ?? '';
-  protected readonly campaign = this.campaignService.getById(this.campaignId);
+  /// Reactive route param — the router reuses this component instance across navigations that
+  /// only change `:id` (e.g. jumping from one campaign's calendar straight to another's), so a
+  /// snapshot read here would freeze on the first campaign forever.
+  private readonly paramMap = toSignal(this.route.paramMap, { requireSync: true });
+  protected readonly campaignId = computed(() => this.paramMap().get('id') ?? '');
+  protected readonly campaign = computed(() => this.campaignService.getById(this.campaignId())());
   protected readonly platformMeta = PLATFORM_META;
   protected readonly dayNames = DAY_NAMES;
 
-  private readonly campaignPosts = this.scheduledPostService.byCampaign(this.campaignId);
+  private readonly campaignPosts = computed(() => this.scheduledPostService.byCampaign(this.campaignId())());
 
   // Defaults to the campaign's own start date (if it has one and it isn't in the past) so the
   // calendar opens showing the campaign's actual schedule, not always "today".
@@ -92,15 +97,33 @@ export class CampaignCalendarPage {
   );
 
   constructor() {
-    const c = this.campaign();
-    this.seo.setPageSeo({
-      title: 'تقويم ' + (c ? c.name : 'الحملة') + ' | رواج',
-      description: 'تقويم منشورات الحملة المجدولة والمنشورة.',
-      keywords: 'رواج, تقويم الحملة, جدولة المنشورات',
-      path: '/dashboard/campaigns/' + this.campaignId + '/calendar',
-      image: '/home-hero-light.png',
-      type: 'website',
-      noIndex: true,
+    effect(() => {
+      const c = this.campaign();
+      const id = this.campaignId();
+      this.seo.setPageSeo({
+        title: 'تقويم ' + (c ? c.name : 'الحملة') + ' | رواج',
+        description: 'تقويم منشورات الحملة المجدولة والمنشورة.',
+        keywords: 'رواج, تقويم الحملة, جدولة المنشورات',
+        path: '/dashboard/campaigns/' + id + '/calendar',
+        image: '/home-hero-light.png',
+        type: 'website',
+        noIndex: true,
+      });
+    });
+
+    // ScheduledPostService's list is otherwise only ever populated by /dashboard/calendar — without
+    // this, this page's grid (and campaign-detail's "upcoming posts") always renders empty.
+    effect(() => {
+      const brandProfileId = this.campaign()?.brandProfileId;
+      const id = this.campaignId();
+      if (brandProfileId) this.scheduledPostService.refresh(brandProfileId, id).subscribe();
+    });
+
+    // Jump the visible month back to the (new) campaign's own start date whenever the route's
+    // campaign id actually changes — not on every unrelated data refresh.
+    effect(() => {
+      this.campaignId();
+      untracked(() => this.currentDate.set(this.resolveInitialDate()));
     });
   }
 

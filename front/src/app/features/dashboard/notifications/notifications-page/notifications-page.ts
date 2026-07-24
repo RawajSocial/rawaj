@@ -1,26 +1,11 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import { PageHeader } from '../../../../shared/components/page-header/page-header';
 import { SeoService } from '../../../../services/seo.service';
+import { NotificationService } from '../../../../services/notification.service';
+import { CATEGORY_CFG, notificationLink } from '../../../../model/notification.model';
 
-type NotifType = 'campaign' | 'content' | 'team' | 'billing' | 'system';
 type NotifTab = 'all' | 'unread' | 'read';
-
-interface AppNotification {
-  id: string;
-  type: NotifType;
-  title: string;
-  body: string;
-  time: string;
-  read: boolean;
-}
-
-const TYPE_CFG: Record<NotifType, { icon: string; bg: string; color: string }> = {
-  campaign: { icon: 'fa-bullhorn',        bg: 'var(--color-primary-subtle)',   color: 'var(--color-primary)' },
-  content:  { icon: 'fa-wand-magic-sparkles', bg: 'var(--color-secondary-subtle)', color: 'var(--color-secondary)' },
-  team:     { icon: 'fa-user-plus',       bg: 'var(--color-info-light)',       color: 'var(--color-info)' },
-  billing:  { icon: 'fa-credit-card',     bg: 'var(--color-success-light)',    color: 'var(--color-success)' },
-  system:   { icon: 'fa-gear',            bg: 'var(--color-warning-light)',    color: 'var(--color-accent-active)' },
-};
 
 @Component({
   selector: 'app-notifications-page',
@@ -31,6 +16,17 @@ const TYPE_CFG: Record<NotifType, { icon: string; bg: string; color: string }> =
 })
 export class NotificationsPage {
   private readonly seo = inject(SeoService);
+  private readonly router = inject(Router);
+  private readonly notificationService = inject(NotificationService);
+
+  protected readonly categoryCfg = CATEGORY_CFG;
+  protected readonly notificationLink = notificationLink;
+
+  protected readonly items = this.notificationService.items;
+  protected readonly loading = this.notificationService.loading;
+  protected readonly unreadCount = this.notificationService.unreadCount;
+
+  protected readonly tab = signal<NotifTab>('all');
 
   constructor() {
     this.seo.setPageSeo({
@@ -42,35 +38,41 @@ export class NotificationsPage {
       type: 'website',
       noIndex: true,
     });
+
+    this.load();
   }
 
-  protected readonly typeCfg = TYPE_CFG;
-
-  protected readonly notifications = signal<AppNotification[]>([
-    { id: 'n1', type: 'content',  title: 'اكتمل توليد المحتوى', body: 'تم إنشاء 8 منشورات جديدة لحملة "رمضان الكريم".', time: 'منذ دقيقتين', read: false },
-    { id: 'n2', type: 'campaign', title: 'حملة قيد النشر',      body: 'بدأ نشر حملة "إطلاق منتج العيد" على إنستغرام وفيسبوك.', time: 'منذ 15 دقيقة', read: false },
-    { id: 'n3', type: 'team',     title: 'عضو جديد انضم',       body: 'قبل عمر خالد دعوتك للانضمام إلى الوكالة.', time: 'منذ ساعة', read: false },
-    { id: 'n4', type: 'billing',  title: 'تم تجديد الاشتراك',    body: 'تم تجديد باقة الأساسية بنجاح لشهر جديد.', time: 'منذ 3 ساعات', read: false },
-    { id: 'n5', type: 'campaign', title: 'أداء منشور مميز',      body: 'تجاوز منشورك على تيك توك 100 ألف مشاهدة.', time: 'منذ 5 ساعات', read: true },
-    { id: 'n6', type: 'system',   title: 'ربط منصة جديد',        body: 'تم ربط حساب لينكدإن بنجاح بمنصة رواج.', time: 'أمس', read: true },
-    { id: 'n7', type: 'content',  title: 'منشور بانتظار المراجعة', body: 'يوجد منشور مجدول يحتاج إلى مراجعتك قبل النشر.', time: 'أمس', read: true },
-  ]);
-
-  protected readonly tab = signal<NotifTab>('all');
-  protected readonly unreadCount = computed(() => this.notifications().filter(n => !n.read).length);
+  /** Loads the first page of ALL notifications once. 'unread'/'read' tabs then filter that same
+   *  loaded page client-side (see `filtered`) — 'read' has no server-side flag to request, so with
+   *  the default page size this is an honest partial view (only what's on this page), not a bug. */
+  private load(): void {
+    this.notificationService.refresh().subscribe();
+  }
 
   protected readonly filtered = computed(() => {
     const t = this.tab();
-    return this.notifications().filter(n => t === 'all' || (t === 'unread' ? !n.read : n.read));
+    const items = this.items();
+    if (t === 'all') return items;
+    if (t === 'unread') return items.filter(n => !n.isRead);
+    return items.filter(n => n.isRead);
   });
 
-  protected setTab(t: NotifTab): void { this.tab.set(t); }
-
-  protected markAllRead(): void {
-    this.notifications.update(list => list.map(n => ({ ...n, read: true })));
+  protected setTab(t: NotifTab): void {
+    this.tab.set(t);
   }
 
-  protected toggleRead(id: string): void {
-    this.notifications.update(list => list.map(n => (n.id === id ? { ...n, read: !n.read } : n)));
+  protected markAllRead(): void {
+    this.notificationService.markAllRead().subscribe();
+  }
+
+  protected openNotification(id: string, link: unknown[] | null): void {
+    this.notificationService.markRead(id).subscribe();
+    if (link) void this.router.navigate(link);
+  }
+
+  protected formatTime(iso: string): string {
+    return new Date(iso).toLocaleDateString('ar-SA', {
+      day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true,
+    });
   }
 }

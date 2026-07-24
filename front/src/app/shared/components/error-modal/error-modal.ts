@@ -1,10 +1,11 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { ModalShell } from '../modal-shell/modal-shell';
 import { ErrorModalService } from '../../../services/error-modal.service';
 
 @Component({
   selector: 'app-error-modal',
-  imports: [ModalShell],
+  imports: [ModalShell, RouterLink],
   templateUrl: './error-modal.html',
   styleUrl: './error-modal.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

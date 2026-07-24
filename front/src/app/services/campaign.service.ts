@@ -91,6 +91,10 @@ export class CampaignService {
     );
   }
 
+  clear(): void {
+    this._campaigns.set([]);
+  }
+
   archive(campaignId: string): Observable<ApiResponse<boolean>> {
     return this.mutateAndRefresh(
       this.http.post<ApiResponse<boolean>>(`${this.baseUrl}/${campaignId}/archive`, {}),
@@ -144,10 +148,12 @@ export class CampaignService {
     );
   }
 
-  /** Bulk-schedules every approved, not-yet-scheduled post in the campaign to one social account. */
-  schedulePosts(campaignId: string, socialAccountId: string): Observable<ApiResponse<ScheduleCampaignPostsResponse>> {
+  /** Bulk-schedules every approved, not-yet-scheduled post in the campaign, routing each item to
+   *  the brand's connected account matching that item's own platform. Items with no connected
+   *  account for their platform come back `skipped` in the response rather than failing the batch. */
+  schedulePosts(campaignId: string): Observable<ApiResponse<ScheduleCampaignPostsResponse>> {
     return this.http.post<ApiResponse<ScheduleCampaignPostsResponse>>(
-      `${this.baseUrl}/${campaignId}/schedule-posts`, { socialAccountId },
+      `${this.baseUrl}/${campaignId}/schedule-posts`, {},
     );
   }
 }
