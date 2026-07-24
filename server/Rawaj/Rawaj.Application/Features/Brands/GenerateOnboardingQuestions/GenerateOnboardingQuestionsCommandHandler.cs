@@ -14,7 +14,8 @@ public class GenerateOnboardingQuestionsCommandHandler(
     IApplicationDbContext dbContext,
     ICurrentUserService currentUserService,
     ICurrentTenantContext currentTenantContext,
-    IAiTextGenerationService textGenerationService)
+    IAiTextGenerationService textGenerationService,
+    ICoinCostProvider coinCostProvider)
     : IRequestHandler<GenerateOnboardingQuestionsCommand, Result<GenerateOnboardingQuestionsResponse>>
 {
     public async Task<Result<GenerateOnboardingQuestionsResponse>> Handle(
@@ -22,6 +23,7 @@ public class GenerateOnboardingQuestionsCommandHandler(
     {
         var tenantId = currentTenantContext.TenantId!.Value;
         var userId = currentUserService.UserId!.Value;
+        var role = currentTenantContext.Role!.Value;
 
         var brand = await dbContext.TenantBrandProfiles
             .FirstOrDefaultAsync(b => b.Id == request.BrandProfileId && b.TenantId == tenantId, cancellationToken);
@@ -30,11 +32,14 @@ public class GenerateOnboardingQuestionsCommandHandler(
             return Result<GenerateOnboardingQuestionsResponse>.Failure("Brand profile not found.");
         }
 
-        var creditsUsage = await AiCreditsPolicy.GetUsageAsync(dbContext, tenantId, cancellationToken);
-        if (!creditsUsage.HasCreditsRemaining)
+        // This is the pricing sheet's AI Reasoning Conversation feature (the wizard's step-7 chat) -
+        // previously wired up but never actually charged.
+        var coinCost = await CoinPricingPolicy.GetDiscountedCostAsync(dbContext, tenantId, coinCostProvider.ReasoningConversation, cancellationToken);
+        var coinBalance = await CoinPolicy.GetBalanceAsync(dbContext, tenantId, userId, role, cancellationToken);
+        if (coinBalance < coinCost)
         {
             return Result<GenerateOnboardingQuestionsResponse>.Failure(
-                $"Your subscription plan allows {creditsUsage.MaxCreditsMonthly} AI credits per month. Upgrade for more.");
+                $"You need {coinCost} coins to continue this conversation, but only have {coinBalance}.");
         }
 
         var prompt = ContentPromptBuilder.BuildOnboardingQuestionsPrompt(brand, request.OnboardingContextJson);
@@ -59,13 +64,16 @@ public class GenerateOnboardingQuestionsCommandHandler(
         };
         dbContext.AiJobs.Add(job);
 
-        await dbContext.SaveChangesAsync(cancellationToken);
-
         if (!generation.Succeeded)
         {
+            await dbContext.SaveChangesAsync(cancellationToken);
             return Result<GenerateOnboardingQuestionsResponse>.Failure(
                 generation.ErrorMessage ?? "Could not generate onboarding questions. Please try again.");
         }
+
+        await CoinPolicy.TrySpendAsync(dbContext, tenantId, userId, role, coinCost, cancellationToken);
+
+        await dbContext.SaveChangesAsync(cancellationToken);
 
         return Result<GenerateOnboardingQuestionsResponse>.Success(new GenerateOnboardingQuestionsResponse(generation.Text!));
     }

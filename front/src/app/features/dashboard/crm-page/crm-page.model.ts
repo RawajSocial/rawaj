@@ -24,6 +24,9 @@ export interface KpiData {
 
 export interface TopPost {
   id: string;
+  /** The campaign this post belongs to, when it has one — lets the card link through to the
+   *  post's detail page (standalone, non-campaign posts have no detail route to link to). */
+  campaignId?: string | null;
   platform: Exclude<PlatformKey, 'all'>;
   content: string;
   reach: number;

@@ -51,7 +51,14 @@ public class GenerateContentItemCommandHandler(
                 $"Your subscription plan allows {creditsUsage.MaxCreditsMonthly} AI credits per month. Upgrade for more.");
         }
 
-        var coinCost = coinCostProvider.ContentGeneration;
+        var tenant = await dbContext.Tenants.FirstAsync(t => t.Id == tenantId, cancellationToken);
+
+        // New-tenant free trial (pricing sheet section 3.2): the first 5 social-post generations
+        // are free, consumed here rather than via RegenerateContentItem so edits can't re-earn it.
+        var usesFreeTrial = tenant.FreeContentGenerationsRemaining > 0;
+        var coinCost = usesFreeTrial
+            ? 0
+            : await CoinPricingPolicy.GetDiscountedCostAsync(dbContext, tenantId, coinCostProvider.ContentGeneration, cancellationToken);
         var coinBalance = await CoinPolicy.GetBalanceAsync(dbContext, tenantId, userId, role, cancellationToken);
         if (coinBalance < coinCost)
         {
@@ -118,7 +125,14 @@ public class GenerateContentItemCommandHandler(
         };
         dbContext.ContentItems.Add(contentItem);
 
-        await CoinPolicy.TrySpendAsync(dbContext, tenantId, userId, role, coinCost, cancellationToken);
+        if (usesFreeTrial)
+        {
+            tenant.FreeContentGenerationsRemaining--;
+        }
+        else
+        {
+            await CoinPolicy.TrySpendAsync(dbContext, tenantId, userId, role, coinCost, cancellationToken);
+        }
 
         var contentSubject = campaign is not null ? $"for \"{campaign.Name}\"" : $"for {brand.Name}";
         NotificationPublisher.Notify(

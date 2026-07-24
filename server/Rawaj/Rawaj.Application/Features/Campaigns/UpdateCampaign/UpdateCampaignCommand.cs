@@ -13,7 +13,10 @@ public record UpdateCampaignCommand(
     CampaignStatus? Status,
     DateOnly? StartDate,
     DateOnly? EndDate,
-    decimal? BudgetAmount)
+    decimal? BudgetAmount,
+    string? Objective = null,
+    List<string>? TargetPlatforms = null,
+    string? BudgetCurrency = null)
     : IRequest<Result<GetCampaignResponse>>, IRequireTenantRole, IRequireResolvedBrandAccess
 {
     public TenantMemberRole MinimumRole => TenantMemberRole.Editor;

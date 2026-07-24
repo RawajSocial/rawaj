@@ -40,6 +40,7 @@ public class GetBrandAnalyticsQueryHandler(IApplicationDbContext dbContext, ICur
             .Select(p => new TopPostItem(
                 p.ScheduledPostId,
                 p.ContentItemId,
+                p.CampaignId,
                 p.Platform,
                 p.Title,
                 p.Content,

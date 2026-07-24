@@ -6,6 +6,8 @@ import { ScheduledPostService } from '../../../services/scheduled-post.service';
 import { CampaignPlatform } from '../../../model/campaign.model';
 import { PostStatus } from '../../../model/scheduled-post.model';
 import { SeoService } from '../../../services/seo.service';
+import { ErrorModalService } from '../../../services/error-modal.service';
+import { extractApiErrorMessage } from '../../../core/auth/api-error.util';
 
 interface PlatformMeta {
   icon: string;
@@ -47,6 +49,7 @@ export class CampaignPostDetailPage {
   private readonly campaignService = inject(CampaignService);
   private readonly scheduledPostService = inject(ScheduledPostService);
   private readonly seo = inject(SeoService);
+  private readonly errorModalService = inject(ErrorModalService);
 
   protected readonly campaignId = this.route.snapshot.paramMap.get('id') ?? '';
   protected readonly postId = this.route.snapshot.paramMap.get('postId') ?? '';
@@ -77,7 +80,12 @@ export class CampaignPostDetailPage {
   }
 
   protected deletePost(): void {
-    this.scheduledPostService.remove(this.postId);
-    this.router.navigate(['/dashboard/campaigns', this.campaignId, 'calendar']);
+    this.scheduledPostService.cancel(this.postId).subscribe({
+      next: () => {
+        this.scheduledPostService.remove(this.postId);
+        this.router.navigate(['/dashboard/campaigns', this.campaignId, 'calendar']);
+      },
+      error: err => this.errorModalService.show(extractApiErrorMessage(err, 'تعذّر إلغاء جدولة المنشور.'), { variant: 'error' }),
+    });
   }
 }

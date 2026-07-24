@@ -5,9 +5,13 @@ import { environment } from '../../environments/environment';
 import { ApiResponse } from '../model/auth.model';
 import { PagedResult } from '../model/paged-result.model';
 import {
+  ApproveCampaignPlanResponse,
   BackendCampaignStatus, Campaign, CampaignStatus, CampaignSummary,
-  CreateCampaignInput, CreateCampaignResponse, GetCampaignResponse, UpdateCampaignInput,
+  CreateCampaignInput, CreateCampaignResponse, GenerateBusinessDiagnosisResponse,
+  GenerateMarketingPlanResponse, GetCampaignResponse, RefineCampaignPlanResponse,
+  ResearchCampaignCompetitorsResponse, ScheduleCampaignPostsResponse, UpdateCampaignInput,
 } from '../model/campaign.model';
+import { GenerateCampaignContentInput, GenerateCampaignContentResponse } from '../model/content-item.model';
 import { BrandProfileService } from './brand-profile.service';
 
 const STATUS_MAP: Record<BackendCampaignStatus, CampaignStatus> = {
@@ -95,5 +99,55 @@ export class CampaignService {
 
   getCampaign(campaignId: string): Observable<ApiResponse<GetCampaignResponse>> {
     return this.http.get<ApiResponse<GetCampaignResponse>>(`${this.baseUrl}/${campaignId}`);
+  }
+
+  /** Best-effort Tavily competitor research — charges coins only when it actually finds data;
+   *  never throws a "flow failure" the caller needs to special-case (see backend doc comment). */
+  researchCompetitors(campaignId: string): Observable<ApiResponse<ResearchCampaignCompetitorsResponse>> {
+    return this.http.post<ApiResponse<ResearchCampaignCompetitorsResponse>>(
+      `${this.baseUrl}/${campaignId}/research-competitors`, {},
+    );
+  }
+
+  /** "What we understood about your business" — AI Business Diagnosis (4,000 coins). */
+  diagnoseBusiness(campaignId: string): Observable<ApiResponse<GenerateBusinessDiagnosisResponse>> {
+    return this.http.post<ApiResponse<GenerateBusinessDiagnosisResponse>>(
+      `${this.baseUrl}/${campaignId}/diagnose-business`, {},
+    );
+  }
+
+  /** Complete Marketing Strategy — free on the tenant's first campaign, 12,000 coins after. */
+  generatePlan(campaignId: string): Observable<ApiResponse<GenerateMarketingPlanResponse>> {
+    return this.http.post<ApiResponse<GenerateMarketingPlanResponse>>(
+      `${this.baseUrl}/${campaignId}/generate-plan`, {},
+    );
+  }
+
+  /** Free-text "عدّل الخطة" refinement — AI Reasoning Conversation (2,500 coins). */
+  refinePlan(campaignId: string, feedback: string): Observable<ApiResponse<RefineCampaignPlanResponse>> {
+    return this.http.post<ApiResponse<RefineCampaignPlanResponse>>(
+      `${this.baseUrl}/${campaignId}/refine-plan`, { feedback },
+    );
+  }
+
+  /** Locks in the strategy — gates content generation until this has been called. */
+  approvePlan(campaignId: string): Observable<ApiResponse<ApproveCampaignPlanResponse>> {
+    return this.http.post<ApiResponse<ApproveCampaignPlanResponse>>(
+      `${this.baseUrl}/${campaignId}/approve-plan`, {},
+    );
+  }
+
+  /** Generates a batch of draft posts (+ optional images) for an approved campaign strategy. */
+  generateContent(campaignId: string, input: GenerateCampaignContentInput): Observable<ApiResponse<GenerateCampaignContentResponse>> {
+    return this.http.post<ApiResponse<GenerateCampaignContentResponse>>(
+      `${this.baseUrl}/${campaignId}/generate-content`, input,
+    );
+  }
+
+  /** Bulk-schedules every approved, not-yet-scheduled post in the campaign to one social account. */
+  schedulePosts(campaignId: string, socialAccountId: string): Observable<ApiResponse<ScheduleCampaignPostsResponse>> {
+    return this.http.post<ApiResponse<ScheduleCampaignPostsResponse>>(
+      `${this.baseUrl}/${campaignId}/schedule-posts`, { socialAccountId },
+    );
   }
 }

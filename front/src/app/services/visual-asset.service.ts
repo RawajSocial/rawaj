@@ -4,7 +4,7 @@ import { Observable, tap } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { ApiResponse } from '../model/auth.model';
 import { PagedResult } from '../model/paged-result.model';
-import { VisualAssetSummary } from '../model/visual-asset.model';
+import { GenerateVisualAssetInput, GenerateVisualAssetResponse, VisualAssetSummary } from '../model/visual-asset.model';
 
 @Injectable({ providedIn: 'root' })
 export class VisualAssetService {
@@ -32,5 +32,10 @@ export class VisualAssetService {
 
   clear(): void {
     this._assets.set([]);
+  }
+
+  /** Real AI image generation (توليد المحتوى — إعلان ثابت) — charges coins (first 5/month free). */
+  generate(input: GenerateVisualAssetInput): Observable<ApiResponse<GenerateVisualAssetResponse>> {
+    return this.http.post<ApiResponse<GenerateVisualAssetResponse>>(`${this.baseUrl}/generate`, input);
   }
 }

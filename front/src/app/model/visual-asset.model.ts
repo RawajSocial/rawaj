@@ -7,3 +7,19 @@ export interface VisualAssetSummary {
   isApproved: boolean;
   createdAt: string;
 }
+
+/** POST /api/v1/visual-assets/generate request body — GenerateVisualAssetCommand. */
+export interface GenerateVisualAssetInput {
+  brandProfileId: string;
+  campaignId?: string;
+  contentItemId?: string;
+  type: VisualAssetSummary['type'];
+  prompt: string;
+}
+
+/** POST /api/v1/visual-assets/generate — GenerateVisualAssetResponse */
+export interface GenerateVisualAssetResponse {
+  visualAssetId: string;
+  campaignId?: string | null;
+  fileUrl: string;
+}

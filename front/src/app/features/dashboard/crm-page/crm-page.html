@@ -41,6 +41,24 @@
     }
   </div>
 
+  <!-- In-page campaign switcher (mirrors the header's global campaign selection, so this widget
+       stays usable without needing to scroll up to the header dropdown). -->
+  @if (brandContextService.campaignsForSelectedBrand().length > 0) {
+    <div class="d-flex align-items-center gap-2 campaign-switcher">
+      <label for="crm-campaign-switch" class="campaign-switcher__label">الحملة:</label>
+      <select
+        id="crm-campaign-switch"
+        class="campaign-switcher__select"
+        [value]="brandContextService.selectedCampaignId()"
+        (change)="brandContextService.setCampaign($any($event.target).value)">
+        <option value="all">كل الحملات</option>
+        @for (c of brandContextService.campaignsForSelectedBrand(); track c.id) {
+          <option [value]="c.id">{{ c.name }}</option>
+        }
+      </select>
+    </div>
+  }
+
   <!-- Social platform filter -->
   <div class="platform-filter d-flex align-items-center flex-wrap gap-2">
     @for (t of filterTabs(); track t.key) {

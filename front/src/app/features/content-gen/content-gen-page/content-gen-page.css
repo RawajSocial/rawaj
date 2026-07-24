@@ -189,6 +189,18 @@
 .btn-generate:hover:not(:disabled) { opacity: 0.91; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(124,58,237,0.5); }
 .btn-generate:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
 
+.spend-preview-note {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 8px 0 0;
+  font-size: 0.78rem;
+  color: #9ca3af;
+  text-align: center;
+}
+.spend-preview-note i { color: #f59e0b; }
+
 /* ══ GALLERY PANEL ══ */
 .gallery-panel { min-height: 200px; }
 

@@ -1,4 +1,4 @@
-import { Component, effect, inject, signal, WritableSignal } from '@angular/core';
+import { Component, computed, effect, inject, signal, WritableSignal } from '@angular/core';
 import { Router } from '@angular/router';
 import { OnboardingSidebar } from '../onboarding-sidebar/onboarding-sidebar';
 import { OnboardingStepOne } from '../onboarding-step-one/onboarding-step-one';
@@ -11,6 +11,17 @@ import { OnboardingStepSix } from '../onboarding-step-six/onboarding-step-six';
 import { OnboardingStepSeven } from '../onboarding-step-seven/onboarding-step-seven';
 import { OnboardingSuccess } from '../onboarding-success/onboarding-success';
 import { OnboardingPlanApproval } from '../onboarding-plan-approval/onboarding-plan-approval';
+import { BrandProfileService } from '../../../services/brand-profile.service';
+import { BrandContextService } from '../../../services/brand-context.service';
+import { CampaignService } from '../../../services/campaign.service';
+import { ErrorModalService } from '../../../services/error-modal.service';
+import { extractApiErrorMessage } from '../../../core/auth/api-error.util';
+import { CreateCampaignInput } from '../../../model/campaign.model';
+
+/** Frontend platform slugs the backend's SocialPlatform enum actually accepts (case-insensitively).
+ *  Anything else the wizard collects (e.g. snapchat, whatsapp) has no campaign-level equivalent yet
+ *  and is dropped rather than sent, since CreateCampaignCommandHandler throws on an unknown name. */
+const BACKEND_PLATFORMS = new Set(['instagram', 'facebook', 'tiktok', 'twitter', 'youtube', 'linkedin']);
 
 @Component({
   selector: 'app-rawaj-onboarding',
@@ -37,6 +48,22 @@ export class RawajOnboarding {
   private readonly stepStorageKey = 'rawaj.onboarding.step';
   private readonly seo = inject(SeoService);
   private readonly router = inject(Router);
+  private readonly brandProfileService = inject(BrandProfileService);
+  private readonly brandContextService = inject(BrandContextService);
+  private readonly campaignService = inject(CampaignService);
+  private readonly errorModalService = inject(ErrorModalService);
+
+  /** The brand profile this campaign will be assigned to — defaults to whichever the header's
+   *  global brand switcher already has selected, but the sidebar lets the user pick a different
+   *  one of their brands when they have more than one. */
+  protected readonly brandProfiles = this.brandProfileService.profiles;
+  protected readonly selectedBrandProfileId = signal<string | null>(null);
+  protected readonly creatingCampaign = signal(false);
+  protected readonly campaignId = signal<string | null>(null);
+
+  protected readonly selectedBrandProfile = computed(() =>
+    this.brandProfiles().find(p => p.id === this.selectedBrandProfileId()),
+  );
 
   constructor() {
     this.currentStep = signal(this.loadSavedStep());
@@ -51,6 +78,16 @@ export class RawajOnboarding {
       noIndex: true,
     });
 
+    const defaultBrandId = this.brandContextService.selectedBrandProfileId() ?? this.brandProfiles()[0]?.id ?? null;
+    this.selectedBrandProfileId.set(defaultBrandId);
+    if (this.brandProfiles().length === 0) {
+      this.brandProfileService.refresh().subscribe(res => {
+        const first = res.data?.[0]?.brandProfileId;
+        if (first) this.selectedBrandProfileId.set(first);
+        else this.redirectToCreateBrandProfile();
+      });
+    }
+
     effect(() => {
       this.saveOnboardingData(this.onboardingData());
     });
@@ -63,6 +100,18 @@ export class RawajOnboarding {
     });
   }
 
+  protected selectBrandProfile(id: string): void {
+    this.selectedBrandProfileId.set(id);
+  }
+
+  private redirectToCreateBrandProfile(): void {
+    this.errorModalService.show(
+      'يجب إنشاء ملف علامة تجارية أولاً لاستخدام هذه الميزة.',
+      { variant: 'warning', title: 'يلزم إنشاء ملف علامة تجارية' },
+    );
+    void this.router.navigate(['/dashboard/brand-profiles/new']);
+  }
+
   protected goToNextStep(): void {
     this.currentStep.update((step) => Math.min(this.totalSteps + 2, step + 1));
     window.scrollTo({ top: 0 });
@@ -73,24 +122,87 @@ export class RawajOnboarding {
     window.scrollTo({ top: 0 });
   }
 
+  /** Fires once the step-7 AI chat finishes. Persists everything collected so far as a real
+   *  campaign row (BriefJson = the full onboarding blob) before moving into the plan-approval
+   *  step, which needs a real campaignId to run its research/diagnosis/strategy pipeline against. */
   protected finishOnboarding(): void {
-    this.currentStep.update(s => s + 1); // → step 8: plan approval
+    const brandProfileId = this.selectedBrandProfileId();
+    if (!brandProfileId) {
+      this.redirectToCreateBrandProfile();
+      return;
+    }
+
+    this.creatingCampaign.set(true);
+    const input = this.buildCreateCampaignInput(brandProfileId);
+    this.campaignService.create(input).subscribe({
+      next: res => {
+        this.creatingCampaign.set(false);
+        if (res.data) {
+          this.campaignId.set(res.data.campaignId);
+          this.currentStep.update(s => s + 1); // → step 8: plan approval
+          window.scrollTo({ top: 0 });
+        }
+      },
+      error: err => {
+        this.creatingCampaign.set(false);
+        this.errorModalService.show(extractApiErrorMessage(err, 'تعذّر إنشاء الحملة. حاول مرة أخرى.'), { variant: 'error' });
+      },
+    });
   }
 
+  /** The plan-approval step now does its own real API calls (research/diagnose/strategy/approve)
+   *  — by the time it emits `approve`, the campaign is already stamped PlanApprovedAt server-side,
+   *  so this just routes on to the per-post content review page. */
   protected approvePlan(): void {
-    const data = this.onboardingData();
-    const plans = this.loadPlans();
-    const name  = `خطة ${plans.length + 1}${data.brandName ? ' — ' + data.brandName : ''}`;
-    plans.push({ id: `plan-${Date.now()}`, createdAt: Date.now(), name, data });
-    localStorage.setItem('rawaj.plans', JSON.stringify(plans));
     localStorage.removeItem(this.stepStorageKey);
-    localStorage.setItem('rawaj.generating', 'true');
-    void this.router.navigate(['/dashboard/marketing-plan']);
+    const id = this.campaignId();
+    void this.router.navigate(id ? ['/dashboard/campaigns', id, 'content'] : ['/dashboard/campaigns']);
   }
 
-  private loadPlans(): SavedPlan[] {
-    try { return JSON.parse(localStorage.getItem('rawaj.plans') ?? '[]') as SavedPlan[]; }
-    catch { return []; }
+  private buildCreateCampaignInput(brandProfileId: string): CreateCampaignInput {
+    const data = this.onboardingData();
+    const name = (data.campaignName?.trim())
+      || (data.brandName ? `حملة ${data.brandName}` : 'حملة جديدة');
+    const objective = data.campaignGoal ?? data.campaignOutcome;
+    const targetPlatforms = this.resolvePlatforms(data);
+    const startDate = data.campaignStartDate || undefined;
+    const endDate = this.resolveEndDate(startDate, data.campaignDuration);
+    const budgetAmount = this.resolveBudget(data.monthlyBudget);
+
+    return {
+      brandProfileId,
+      name,
+      objective,
+      targetPlatforms,
+      startDate,
+      endDate,
+      budgetAmount,
+      budgetCurrency: budgetAmount ? 'SAR' : undefined,
+      briefJson: JSON.stringify(data),
+    };
+  }
+
+  private resolvePlatforms(data: OnboardingData): string[] {
+    const candidates = [...(data.platformRanking ?? []), ...(data.audiencePlatforms ?? [])];
+    const known = candidates.filter(p => BACKEND_PLATFORMS.has(p.toLowerCase()));
+    return known.length > 0 ? [...new Set(known)] : ['instagram', 'facebook'];
+  }
+
+  private resolveEndDate(startDate: string | undefined, duration: string | undefined): string | undefined {
+    if (!startDate) return undefined;
+    const months = duration?.match(/(\d+)/)?.[0];
+    const start = new Date(startDate);
+    if (isNaN(start.getTime())) return undefined;
+    start.setMonth(start.getMonth() + (months ? parseInt(months, 10) : 3));
+    return start.toISOString().slice(0, 10);
+  }
+
+  private resolveBudget(budget: string | undefined): number | undefined {
+    if (!budget || budget.includes('لا ميزانية')) return undefined;
+    const nums = budget.match(/[\d,]+/g)?.map(n => parseInt(n.replace(/,/g, ''), 10)) ?? [];
+    if (nums.length >= 2) return Math.round((nums[0] + nums[1]) / 2);
+    if (nums.length === 1) return nums[0];
+    return undefined;
   }
 
   protected updateOnboardingData(partial: Partial<OnboardingData>): void {
@@ -121,8 +233,6 @@ export class RawajOnboarding {
     localStorage.setItem(this.storageKey, JSON.stringify(data));
   }
 }
-
-type SavedPlan = { id: string; createdAt: number; name: string; data: OnboardingData };
 
 type SocialConn = { connected: boolean; accountName?: string };
 

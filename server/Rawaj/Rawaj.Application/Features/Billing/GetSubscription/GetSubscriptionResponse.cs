@@ -4,6 +4,7 @@ namespace Rawaj.Application.Features.Billing.GetSubscription;
 
 public record GetSubscriptionResponse(
     Guid SubscriptionId,
+    Guid SubscriptionPlanId,
     string PlanName,
     decimal PlanCost,
     SubscriptionStatus Status,

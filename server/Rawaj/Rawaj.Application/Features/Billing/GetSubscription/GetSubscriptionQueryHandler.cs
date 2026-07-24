@@ -19,6 +19,7 @@ public class GetSubscriptionQueryHandler(IApplicationDbContext dbContext, ICurre
             where tenant.Id == tenantId
             select new GetSubscriptionResponse(
                 subscription.Id,
+                plan.Id,
                 plan.Name,
                 plan.Cost,
                 subscription.Status,

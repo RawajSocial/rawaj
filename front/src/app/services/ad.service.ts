@@ -45,20 +45,23 @@ export class AdService {
     const campaign = s.campaignId ? this.campaignService.getById(s.campaignId)() : undefined;
     const impressions = s.impressions ?? 0;
     const clicks = s.clicks ?? 0;
+    const name = s.content.trim().substring(0, 40) + (s.content.trim().length > 40 ? '…' : '');
     return {
       id: s.scheduledPostId,
-      name: `منشور ${s.accountName}`,
+      name: name || `منشور ${s.accountName}`,
       campaignId: s.campaignId ?? '',
       campaignName: campaign?.name ?? 'بدون حملة',
       platforms: [PLATFORM_MAP[s.platform] ?? 'instagram'],
       status: STATUS_MAP[s.status] ?? 'pending',
-      format: 'text',
+      format: s.imageUrl ? 'image' : 'text',
       impressions,
       clicks,
       ctr: impressions > 0 ? +((clicks / impressions) * 100).toFixed(2) : 0,
+      // No real ad-spend tracking exists yet (no dedicated Ad/spend entity) — stays 0 until one does.
       spend: 0,
       cpc: 0,
       createdAt: s.scheduledAt,
+      imageUrl: s.imageUrl ?? undefined,
     };
   }
 

@@ -34,3 +34,47 @@
     padding: 1.4rem;
   }
 }
+
+.onboarding-brand-picker {
+  margin-bottom: 1.5rem;
+  padding: .9rem 1.1rem;
+  border-radius: 14px;
+  background: #faf9ff;
+  border: 1.5px solid #ede9fe;
+}
+
+.onboarding-brand-picker__label {
+  margin: 0 0 .6rem;
+  font-size: .85rem;
+  font-weight: 700;
+  color: #1e1b4b;
+}
+
+.onboarding-brand-picker__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+}
+
+.onboarding-brand-picker__chip {
+  padding: .45rem .95rem;
+  border-radius: 999px;
+  border: 1.5px solid #ede9fe;
+  background: #fff;
+  color: #4b5563;
+  font-size: .82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .15s;
+}
+
+.onboarding-brand-picker__chip.active {
+  background: #7C3AED;
+  border-color: #7C3AED;
+  color: #fff;
+}
+
+.onboarding-brand-picker__chip:not(.active):hover {
+  border-color: #7C3AED;
+  color: #7C3AED;
+}

@@ -57,88 +57,24 @@
   font-size: 1.1rem;
 }
 
-/* Billing Switcher Toggle */
-.billing-switcher-wrapper {
-  margin-top: 2rem;
-}
-
-.billing-switcher {
-  display: inline-flex;
-  background: rgba(255, 255, 255, .06);
-  border: 1px solid rgba(255, 255, 255, .14);
-  padding: 6px;
-  border-radius: 50px;
-  position: relative;
-  width: max-content;
-  direction: rtl;
-}
-
-.switcher-btn {
-  background: transparent;
-  border: none;
-  color: rgba(255, 255, 255, .65);
-  font-size: 0.95rem;
-  font-weight: var(--font-bold);
-  padding: 0.6rem 2.5rem;
-  border-radius: 50px;
-  cursor: pointer;
-  z-index: 2;
-  position: relative;
-  transition: color 0.3s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.75rem;
-  outline: none;
-  white-space: nowrap;
-  text-align: center;
-}
-
-.switcher-btn.active {
-  color: white !important;
-}
-
-.discount-tag {
-  background: linear-gradient(135deg, var(--color-accent), var(--color-accent-active));
-  color: var(--color-on-accent);
-  font-size: 0.75rem;
-  font-weight: var(--font-bold);
-  padding: 0.2rem 0.5rem;
-  border-radius: 8px;
-}
-
-.switcher-slider {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  bottom: 6px;
-  width: calc(50% - 10px);
-  background: linear-gradient(135deg, var(--color-secondary), var(--color-primary));
-  border-radius: 50px;
-  z-index: 1;
-  transition: right 0.35s cubic-bezier(0.25, 1, 0.5, 1);
-  box-shadow: 0 4px 15px rgba(124, 58, 237, 0.35);
-}
-
-.billing-switcher.annual-active .switcher-slider {
-  right: calc(50%);
-}
-
 /* =========================================================
-   PRICING PANEL
+   PRICING PANEL — equal grid, one card per real plan tier
 ========================================================= */
 
 .pricing-panel {
   position: relative;
   z-index: 1;
-  display: flex;
-  align-items: stretch;
-  gap: 0;
-  padding: 5rem 2.5rem;
+  padding: 4rem 2.5rem;
   border-radius: 28px;
   background: linear-gradient(144deg, var(--color-dark-soft) 0%, #14101f 100%);
   box-shadow: 0 30px 70px rgba(0, 0, 0, .4);
   overflow: hidden;
+}
+
+.pricing-panel--grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2rem;
 }
 
 .pricing-panel__blur {
@@ -157,19 +93,25 @@
 
 .pricing-col {
   position: relative;
-  flex: 1 1 0;
-  padding-inline-end: 2.5rem;
   color: #fff;
+  padding: 1.75rem 1.5rem;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, .1);
+  background: rgba(255, 255, 255, .03);
+  display: flex;
+  flex-direction: column;
 }
 
-.pricing-col--divider {
-  border-inline-start: 1px solid rgba(255, 255, 255, .08);
-  padding-inline-start: 2.5rem;
+.pricing-col--featured {
+  border-color: color-mix(in srgb, var(--color-secondary) 60%, transparent);
+  background: linear-gradient(160deg, color-mix(in srgb, var(--color-secondary) 18%, transparent), rgba(255, 255, 255, .03));
+  box-shadow: 0 20px 45px rgba(124, 58, 237, .25);
 }
 
 .plan-sub-title {
   color: #fff;
-  font-weight: var(--font-semibold);
+  font-weight: var(--font-bold);
+  font-size: 1.1rem;
   margin-bottom: .9rem;
 }
 
@@ -181,7 +123,7 @@
 }
 
 .plan-price-box h3 {
-  font-size: 2.5rem;
+  font-size: 2.2rem;
   font-weight: var(--font-bold);
   color: #fff;
   margin: 0;
@@ -189,30 +131,34 @@
 }
 
 .plan-price-box p {
-  font-size: 1rem;
+  font-size: .9rem;
   color: rgba(255, 255, 255, .65);
   margin: 0;
 }
 
 .plan-text {
   color: rgba(255, 255, 255, .6);
-  margin-bottom: 1.75rem;
+  margin-bottom: 1.5rem;
+  font-size: .9rem;
+  line-height: 1.6;
+  min-height: 3.2em;
 }
 
 .plan-list {
   list-style: none;
   padding: 0;
-  margin: 0 0 2.5rem;
+  margin: 0 0 2rem;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: .85rem;
+  flex: 1;
 }
 
 .plan-list li {
   display: flex;
   align-items: center;
   gap: .7rem;
-  font-size: .95rem;
+  font-size: .9rem;
   font-weight: var(--font-medium);
   color: rgba(255, 255, 255, .88);
   line-height: 1.4;
@@ -220,8 +166,8 @@
 
 .plan-list li img {
   flex-shrink: 0;
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
 }
 
 /* =========================================================
@@ -238,10 +184,10 @@
   justify-content: center;
   gap: .6rem;
   width: 100%;
-  padding: 1rem 1.5rem;
+  padding: .85rem 1.25rem;
   border-radius: 999px;
   font-weight: var(--font-bold);
-  font-size: 1rem;
+  font-size: .95rem;
   text-decoration: none;
   transition: transform var(--transition-base), box-shadow var(--transition-base);
 }
@@ -258,148 +204,39 @@
   box-shadow: 0 14px 32px rgba(124, 58, 237, .45);
 }
 
-.plan-btn--white {
-  background: #fff;
-  color: var(--color-dark);
-  box-shadow: 0 10px 26px rgba(0, 0, 0, .2);
-}
-
-.plan-btn--white:hover {
-  color: var(--color-dark);
-  transform: translateY(-2px);
-  box-shadow: 0 14px 32px rgba(0, 0, 0, .28);
-}
-
 .plan-btn__star {
   width: 14px;
   height: 14px;
 }
 
-.plan-doodle {
-  position: absolute;
-  bottom: -46px;
-  left: 20%;
-  width: 60px;
-  pointer-events: none;
-}
-
-/* =========================================================
-   PLAN 3 — FEATURED ENTERPRISE CARD (floats above the panel)
-========================================================= */
-
-.pricing-col--pro {
-  flex: 1 1 0;
+.pricing-more-link {
   position: relative;
-  z-index: 2;
-  margin: -3.5rem -1.5rem -3rem 0;
-  padding: 1.5rem 1.5rem 2.25rem;
-  border-radius: 22px;
-  background: linear-gradient(152deg, #fff 0%, #efe5fd 45%, color-mix(in srgb, var(--color-secondary) 35%, #fff) 100%);
-  box-shadow: 0 25px 60px rgba(76, 29, 149, .35);
+  z-index: 1;
+  margin-top: 2rem;
 }
 
-.pro-top {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: .75rem;
-  padding: 14px 18px;
-  margin-bottom: 1.25rem;
-  border-radius: 14px;
-  background: var(--color-dark) url('/assets/img/shape/pricing-bg-shape.png') no-repeat top left / cover;
-  box-shadow: 0 5px 20px rgba(0, 0, 0, .3);
-  overflow: hidden;
-}
-
-.pro-top .plan-price-box h3 {
-  font-size: 1.9rem;
-  color: #fff;
-}
-
-.pro-top .plan-price-box p {
-  color: rgba(255, 255, 255, .65);
-  font-size: .85rem;
-}
-
-.pro-badge {
-  position: relative;
-  flex-shrink: 0;
-  padding: 2px;
-  border-radius: 999px;
-  font-size: .7rem;
-  white-space: nowrap;
-  box-shadow: 0 0 4px 0 rgba(148, 81, 245, .5);
-  background: linear-gradient(180deg, var(--color-secondary-light), var(--color-secondary), var(--color-secondary));
-}
-
-.pro-badge__text {
-  display: inline-block;
-  padding: .35rem .8rem;
-  border-radius: inherit;
+.pricing-more-link a {
+  color: rgba(255, 255, 255, .75);
+  font-size: .95rem;
   font-weight: var(--font-semibold);
+  text-decoration: none;
+}
+
+.pricing-more-link a:hover {
   color: #fff;
-  background: var(--color-dark);
-}
-
-/* Rising particle dots behind the badge (reference's dot-shape marquee) */
-.pro-badge__dots {
-  position: absolute;
-  left: 16px;
-  top: -30px;
-  height: 44px;
-  overflow: hidden;
-  z-index: -1;
-  display: flex;
-  flex-direction: column;
-  animation: proBadgeDots 2s linear infinite;
-}
-
-.pro-badge__dots img {
-  width: 60px;
-}
-
-@keyframes proBadgeDots {
-  from { transform: translateY(0); }
-  to { transform: translateY(-50%); }
-}
-
-.pro-tag {
-  display: inline-block;
-  font-size: .75rem;
-  color: var(--color-secondary-active);
-  border: 1px solid color-mix(in srgb, var(--color-secondary) 40%, transparent);
-  padding: .25rem 1rem;
-  border-radius: 999px;
-  margin-bottom: 1.5rem;
-}
-
-.plan-list--pro li {
-  color: var(--color-dark);
 }
 
 @media (max-width: 991px) {
   .pricing-section {
     padding: 5rem 0;
   }
-  .pricing-panel {
-    flex-direction: column;
-    padding: 2.5rem 1.75rem;
-    gap: 3rem;
+  .pricing-panel--grid {
+    grid-template-columns: 1fr;
   }
-  .pricing-col {
-    padding-inline-end: 0;
-  }
-  .pricing-col--divider {
-    border-inline-start: none;
-    padding-inline-start: 0;
-    border-top: 1px solid rgba(255, 255, 255, .08);
-    padding-top: 2.5rem;
-  }
-  .pricing-col--pro {
-    margin: 0;
-  }
-  .plan-doodle {
-    display: none;
+}
+
+@media (min-width: 992px) and (max-width: 1200px) {
+  .pricing-panel--grid {
+    grid-template-columns: repeat(2, 1fr);
   }
 }

@@ -10,6 +10,7 @@ import { CampaignService } from '../../../services/campaign.service';
 import { BrandContextService } from '../../../services/brand-context.service';
 import { TenantService } from '../../../core/tenant/tenant.service';
 import { ErrorModalService } from '../../../services/error-modal.service';
+import { extractApiErrorMessage } from '../../../core/auth/api-error.util';
 import { Router } from '@angular/router';
 
 export type ViewMode = 'month' | 'week' | 'day' | 'list';
@@ -59,10 +60,23 @@ export class CalendarPage {
       if (!brandId) return;
       this.scheduledPostService.refresh(brandId, campaignId).subscribe();
     });
+
+    // Jump the visible month to whichever campaign is selected's own start date — switching
+    // between campaigns should show that campaign's schedule, not always the current month.
+    effect(() => {
+      const campaignId = this.brandContextService.selectedCampaignId();
+      if (campaignId === 'all') {
+        this.currentDate.set(new Date());
+        return;
+      }
+      const campaign = this.campaignService.getById(campaignId)();
+      const parsed = campaign?.startDate ? new Date(campaign.startDate) : null;
+      this.currentDate.set(parsed && !isNaN(parsed.getTime()) ? parsed : new Date());
+    });
   }
 
   readonly viewMode       = signal<ViewMode>('month');
-  readonly currentDate    = signal(new Date(2026, 5, 4)); // June 4 2026
+  readonly currentDate    = signal(new Date());
   readonly campaignOpen   = signal(false);
   readonly selectedPost   = signal<ScheduledPost | null>(null);
   readonly selectedDay    = signal<Date | null>(null);
@@ -270,8 +284,13 @@ export class CalendarPage {
 
   deletePost(id: string): void {
     if (!this.requireBrandProfile()) return;
-    this.scheduledPostService.remove(id);
-    this.selectedPost.set(null);
+    this.scheduledPostService.cancel(id).subscribe({
+      next: () => {
+        this.scheduledPostService.remove(id);
+        this.selectedPost.set(null);
+      },
+      error: err => this.errorModalService.show(extractApiErrorMessage(err, 'تعذّر إلغاء جدولة المنشور.'), { variant: 'error' }),
+    });
   }
 
   private requireBrandProfile(): boolean {

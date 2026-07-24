@@ -19,6 +19,7 @@ public record PlatformBreakdownItem(SocialPlatform Platform, long Reach, long Im
 public record TopPostItem(
     Guid ScheduledPostId,
     Guid ContentItemId,
+    Guid? CampaignId,
     SocialPlatform Platform,
     string? Title,
     string Content,

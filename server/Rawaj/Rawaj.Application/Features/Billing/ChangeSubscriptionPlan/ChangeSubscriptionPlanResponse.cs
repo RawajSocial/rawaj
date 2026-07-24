@@ -8,4 +8,7 @@ public record ChangeSubscriptionPlanResponse(
     decimal PlanCost,
     SubscriptionStatus Status,
     DateTime CurrentPeriodStart,
-    DateTime CurrentPeriodEnd);
+    DateTime CurrentPeriodEnd,
+    TenantType TenantType,
+    int NewCoinBalance,
+    int CoinsGranted);

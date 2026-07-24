@@ -6,7 +6,7 @@ import { ApiResponse } from '../model/auth.model';
 import { PagedResult } from '../model/paged-result.model';
 import { CampaignPlatform } from '../model/campaign.model';
 import { BackendSocialPlatform } from '../model/content-item.model';
-import { ScheduledPost, ScheduledPostSummary } from '../model/scheduled-post.model';
+import { CancelScheduledPostResponse, ScheduledPost, ScheduledPostSummary } from '../model/scheduled-post.model';
 import { CampaignService } from './campaign.service';
 
 const PLATFORM_MAP: Record<BackendSocialPlatform, CampaignPlatform> = {
@@ -43,9 +43,8 @@ export class ScheduledPostService {
       campaignId: s.campaignId ?? '',
       campaignName: campaign?.name ?? 'بدون حملة',
       platform: PLATFORM_MAP[s.platform] ?? 'instagram',
-      // The scheduled-posts endpoint doesn't return the underlying content text — show the
-      // publishing account as a stand-in until content is joined in from ContentItem.
-      content: s.accountName,
+      content: s.content,
+      imageUrl: s.imageUrl ?? undefined,
       scheduledAt: s.scheduledAt,
       status: STATUS_MAP[s.status] ?? 'scheduled',
       estimatedReach: s.reach ?? undefined,
@@ -81,7 +80,13 @@ export class ScheduledPostService {
     this._posts.update(list => list.map(p => (p.id === post.id ? post : p)));
   }
 
-  /** Local-only removal (no delete endpoint yet). */
+  /** Cancels a pending scheduled post server-side. Callers should remove it from the local
+   *  list (via `remove`) once this succeeds, rather than assuming it optimistically. */
+  cancel(id: string): Observable<ApiResponse<CancelScheduledPostResponse>> {
+    return this.http.post<ApiResponse<CancelScheduledPostResponse>>(`${this.baseUrl}/${id}/cancel`, {});
+  }
+
+  /** Removes a post from the local list only — call after `cancel()` succeeds. */
   remove(id: string): void {
     this._posts.update(list => list.filter(p => p.id !== id));
   }

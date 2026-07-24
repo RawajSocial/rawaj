@@ -44,7 +44,18 @@ export class CampaignCalendarPage {
 
   private readonly campaignPosts = this.scheduledPostService.byCampaign(this.campaignId);
 
-  protected readonly currentDate = signal(new Date(2026, 5, 4));
+  // Defaults to the campaign's own start date (if it has one and it isn't in the past) so the
+  // calendar opens showing the campaign's actual schedule, not always "today".
+  protected readonly currentDate = signal(this.resolveInitialDate());
+
+  private resolveInitialDate(): Date {
+    const start = this.campaign()?.startDate;
+    if (start) {
+      const parsed = new Date(start);
+      if (!isNaN(parsed.getTime())) return parsed;
+    }
+    return new Date();
+  }
 
   protected readonly postsByDay = computed<Map<string, ScheduledPost[]>>(() => {
     const map = new Map<string, ScheduledPost[]>();

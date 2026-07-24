@@ -299,6 +299,12 @@
             <i class="fa-solid fa-wand-magic-sparkles"></i>
             توليد المحتوى الآن
           </button>
+          @if (spendPreviewLabel()) {
+            <p class="spend-preview-note">
+              <i class="fa-solid fa-coins"></i>
+              {{ spendPreviewLabel() }}
+            </p>
+          }
 
         </div><!-- /p-3 -->
       </div><!-- /form-panel -->

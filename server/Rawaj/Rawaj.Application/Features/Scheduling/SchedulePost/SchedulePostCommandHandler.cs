@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Rawaj.Application.Common.Interfaces;
 using Rawaj.Application.Common.Models;
+using Rawaj.Application.Common.Policies;
 using Rawaj.Application.Features.Scheduling.Common;
 using Rawaj.Domain.Entities.SocialMedia;
 using Rawaj.Domain.Enums;
@@ -10,14 +11,18 @@ namespace Rawaj.Application.Features.Scheduling.SchedulePost;
 
 public class SchedulePostCommandHandler(
     IApplicationDbContext dbContext,
+    ICurrentUserService currentUserService,
     ICurrentTenantContext currentTenantContext,
     ITokenEncryptor tokenEncryptor,
-    IEnumerable<ISocialPublisher> publishers)
+    IEnumerable<ISocialPublisher> publishers,
+    ICoinCostProvider coinCostProvider)
     : IRequestHandler<SchedulePostCommand, Result<SchedulePostResponse>>
 {
     public async Task<Result<SchedulePostResponse>> Handle(SchedulePostCommand request, CancellationToken cancellationToken)
     {
         var tenantId = currentTenantContext.TenantId!.Value;
+        var userId = currentUserService.UserId!.Value;
+        var role = currentTenantContext.Role!.Value;
 
         var contentItem = await dbContext.ContentItems
             .FirstOrDefaultAsync(c => c.Id == request.ContentItemId && c.TenantId == tenantId, cancellationToken);
@@ -71,6 +76,14 @@ public class SchedulePostCommandHandler(
                 $"Your subscription plan allows a maximum of {maxScheduledPosts} scheduled post(s). Upgrade for more.");
         }
 
+        var coinCost = await CoinPricingPolicy.GetDiscountedCostAsync(dbContext, tenantId, coinCostProvider.Scheduling, cancellationToken);
+        var coinBalance = await CoinPolicy.GetBalanceAsync(dbContext, tenantId, userId, role, cancellationToken);
+        if (coinBalance < coinCost)
+        {
+            return Result<SchedulePostResponse>.Failure(
+                $"You need {coinCost} coins to schedule this post, but only have {coinBalance}.");
+        }
+
         var now = DateTime.UtcNow;
 
         var scheduledPost = new ScheduledPost
@@ -105,6 +118,9 @@ public class SchedulePostCommandHandler(
             return Result<SchedulePostResponse>.Failure(
                 $"Could not schedule with {socialAccount.Platform}: {handoffResult.ErrorMessage}");
         }
+
+        await CoinPolicy.TrySpendAsync(dbContext, tenantId, userId, role, coinCost, cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
 
         var post = handoffResult.Data!;
         return Result<SchedulePostResponse>.Success(

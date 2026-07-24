@@ -1,0 +1,116 @@
+<div class="dashboard-page" dir="rtl">
+  <app-page-header
+    title="محتوى الحملة"
+    [subtitle]="campaign()?.name ?? ''"
+    [breadcrumbs]="[
+      { label: 'الحملات', link: '/dashboard/campaigns' },
+      { label: campaign()?.name ?? 'الحملة', link: '/dashboard/campaigns/' + campaignId },
+      { label: 'المحتوى' }
+    ]" />
+
+  @if (loading()) {
+    <div class="cc-state"><i class="fa-solid fa-circle-notch fa-spin"></i> جاري التحميل...</div>
+  } @else if (loadError()) {
+    <div class="cc-state cc-error">{{ loadError() }}</div>
+  } @else {
+
+    @if (!campaign()?.planApprovedAt) {
+      <div class="cc-banner cc-banner-warning">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        لم يتم اعتماد استراتيجية هذه الحملة بعد — عد لخطوة الاعتماد قبل توليد المحتوى.
+      </div>
+    }
+
+    <section class="cc-card cc-generate">
+      <div class="cc-generate-row">
+        <label>
+          عدد المنشورات
+          <input type="number" min="1" max="20" [value]="postCount()" (input)="updatePostCount($any($event.target).value)" />
+        </label>
+        <button type="button" class="cc-btn cc-btn-primary" [disabled]="generating() || !campaign()?.planApprovedAt" (click)="generateContent()">
+          @if (generating()) {
+            <i class="fa-solid fa-circle-notch fa-spin"></i> جاري التوليد...
+          } @else {
+            <i class="fa-solid fa-wand-magic-sparkles"></i> توليد المحتوى
+          }
+        </button>
+      </div>
+    </section>
+
+    <section class="cc-items">
+      @for (item of items(); track item.contentItemId) {
+        <div class="cc-item-card">
+          <div class="cc-item-head">
+            <span class="cc-tag">{{ platformLabels[item.platform] }}</span>
+            <span class="cc-tag">{{ contentTypeLabels[item.contentType] }}</span>
+            <span class="cc-status" [class]="'cc-status-' + item.status.toLowerCase()">{{ statusLabels[item.status] }}</span>
+          </div>
+
+          @if (item.imageUrl) {
+            <img class="cc-item-image" [src]="item.imageUrl" alt="" />
+          }
+
+          <p class="cc-item-content">{{ item.content }}</p>
+
+          @if (regeneratingId() === item.contentItemId) {
+            <div class="cc-regenerate-box">
+              <textarea
+                rows="2"
+                placeholder="ما الذي تريد تغييره في هذا المنشور؟"
+                [value]="regenerateFeedback()"
+                (input)="updateRegenerateFeedback($any($event.target).value)"></textarea>
+              <div class="cc-regenerate-actions">
+                <button type="button" class="cc-btn cc-btn-ghost" (click)="cancelRegenerate()">إلغاء</button>
+                <button type="button" class="cc-btn cc-btn-primary"
+                  [disabled]="!regenerateFeedback().trim() || busyItemId() === item.contentItemId"
+                  (click)="submitRegenerate(item)">
+                  إعادة التوليد
+                </button>
+              </div>
+            </div>
+          } @else {
+            <div class="cc-item-actions">
+              <button type="button" class="cc-btn cc-btn-accept" [disabled]="busyItemId() === item.contentItemId" (click)="review(item, true)">
+                <i class="fa-solid fa-check"></i> قبول
+              </button>
+              <button type="button" class="cc-btn cc-btn-reject" [disabled]="busyItemId() === item.contentItemId" (click)="review(item, false)">
+                <i class="fa-solid fa-xmark"></i> رفض
+              </button>
+              <button type="button" class="cc-btn cc-btn-ghost" [disabled]="busyItemId() === item.contentItemId" (click)="startRegenerate(item)">
+                <i class="fa-solid fa-rotate"></i> إعادة توليد
+              </button>
+            </div>
+          }
+        </div>
+      } @empty {
+        <div class="cc-state">لا يوجد محتوى بعد — اضغط "توليد المحتوى" للبدء.</div>
+      }
+    </section>
+
+    <section class="cc-card cc-schedule">
+      <h3>جدولة الحملة</h3>
+      @if (connectedFacebook(); as fb) {
+        <p class="cc-schedule-hint">سيتم جدولة كل المنشورات المقبولة إلى صفحة فيسبوك "{{ fb.accountName }}".</p>
+        <button type="button" class="cc-btn cc-btn-primary" [disabled]="scheduling() || approvedItems().length === 0" (click)="schedulePosts()">
+          @if (scheduling()) {
+            <i class="fa-solid fa-circle-notch fa-spin"></i> جاري الجدولة...
+          } @else {
+            <i class="fa-solid fa-calendar-check"></i> جدولة الحملة ({{ approvedItems().length }})
+          }
+        </button>
+        @if (scheduleSummary()) {
+          <p class="cc-schedule-result">{{ scheduleSummary() }}</p>
+        }
+      } @else {
+        <div class="cc-banner cc-banner-warning">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          حاليًا يمكن الجدولة على فيسبوك فقط — اربط صفحة فيسبوك أولًا.
+        </div>
+        <button type="button" class="cc-btn cc-btn-primary" (click)="goToConnectFacebook()">
+          <i class="fa-brands fa-facebook"></i> ربط فيسبوك
+        </button>
+      }
+    </section>
+
+  }
+</div>

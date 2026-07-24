@@ -1,0 +1,23 @@
+<app-modal-shell [open]="state().open" [maxWidth]="380" [title]="state().title" (closed)="respond(false)">
+  <div class="fake-payment__card">
+    <div class="fake-payment__row">
+      <span class="fake-payment__label">رقم البطاقة</span>
+      <span class="fake-payment__value">•••• •••• •••• 4242</span>
+    </div>
+    <div class="fake-payment__row">
+      <span class="fake-payment__label">المبلغ المستحق</span>
+      <span class="fake-payment__amount">{{ state().priceLabel }}</span>
+    </div>
+  </div>
+  <p class="fake-payment__note">
+    <i class="fa-solid fa-circle-info"></i>
+    هذه بوابة دفع تجريبية — لن يتم خصم أي مبلغ حقيقي، وسيُضاف الرصيد/التغيير فورًا لتجربة النظام.
+  </p>
+
+  <div modal-footer class="fake-payment__footer">
+    <button type="button" class="fake-payment__btn fake-payment__btn--cancel" (click)="respond(false)">إلغاء</button>
+    <button type="button" class="fake-payment__btn fake-payment__btn--confirm" (click)="respond(true)">
+      {{ state().confirmLabel }}
+    </button>
+  </div>
+</app-modal-shell>

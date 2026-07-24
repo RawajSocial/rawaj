@@ -1,5 +1,7 @@
 import { Component, computed, DestroyRef, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
+import { forkJoin, of } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
 import { MediaService } from '../../../services/media.service';
 import { GenType } from '../../../model/generated-item.model';
 import { MpEmptyState } from '../mp-empty-state/mp-empty-state';
@@ -11,6 +13,7 @@ import { SeoService } from '../../../services/seo.service';
 import { BrandContextService } from '../../../services/brand-context.service';
 import { TenantService } from '../../../core/tenant/tenant.service';
 import { ErrorModalService } from '../../../services/error-modal.service';
+import { CampaignService } from '../../../services/campaign.service';
 
 // ──── Loading stages ────────────────────────────────────────────────────────
 export interface Stage {
@@ -173,10 +176,12 @@ export interface SavedPlan {
   id: string;
   createdAt: number;
   name: string;
+  /** The real campaign's BriefJson (the onboarding wizard's collected answers), parsed — this
+   *  page's calendar/budget/KPI preview is a deterministic function of these real, persisted
+   *  answers, same as the plan-approval step's supplementary preview during the wizard itself. */
   data: OnboardingSnap;
-  /** Brand/campaign this plan is associated with, when known. Marketing Plans stays
-   *  campaign-only (no dedicated backend entity yet) — existing plans predating this
-   *  association stay visible under every brand/campaign selection. */
+  /** Brand/campaign this plan is associated with — every plan now maps 1:1 to a real
+   *  MarketingCampaign row (see CampaignService.getCampaign), so this is always set. */
   brandProfileId?: string;
   campaignId?: string;
 }
@@ -233,6 +238,7 @@ export class MarketingPlanPage {
   private readonly brandContextService = inject(BrandContextService);
   private readonly tenantService = inject(TenantService);
   private readonly errorModalService = inject(ErrorModalService);
+  private readonly campaignService = inject(CampaignService);
 
   readonly stages = STAGES;
   readonly brandProfileCount = this.tenantService.brandProfileCount;
@@ -306,36 +312,56 @@ export class MarketingPlanPage {
       noIndex: true,
     });
 
-    const plans = this.loadAllPlans();
-    this.savedPlans.set(plans);
+    this.phase.set('empty');
+    // Refetch rather than trust whatever UserLayout already loaded — guarantees this page always
+    // reflects the latest campaign list regardless of navigation timing.
+    this.campaignService.refresh().subscribe(() => this.loadPlansFromCampaigns());
+  }
 
-    const isGenerating = localStorage.getItem('rawaj.generating') === 'true';
-    if (isGenerating) {
-      localStorage.removeItem('rawaj.generating');
-      const latest = plans[plans.length - 1];
-      if (latest) {
-        this.activePlanId.set(latest.id);
-        const months = this.parseMonths(latest.data);
-        this.snap.set(latest.data);
-        this.calMonthCount.set(months);
-        const posts = this.buildFlatCalendar(latest.data, months);
-        this.calPosts.set(posts);
-        this.phase.set('generating');
-        this.startGenerating(posts);
-      } else {
-        this.phase.set('empty');
-      }
-    } else if (plans.length === 0) {
+  /** Every "plan" here is a real campaign that has a BriefJson — fetches each campaign's full
+   *  detail (the list endpoint doesn't carry BriefJson) to know which ones have one. Replaces the
+   *  old `localStorage['rawaj.plans']` store: the onboarding wizard now persists BriefJson on the
+   *  real campaign row instead of writing to localStorage. */
+  private loadPlansFromCampaigns(): void {
+    const campaigns = this.campaignService.campaigns();
+    if (campaigns.length === 0) {
       this.phase.set('empty');
-    } else {
-      this.phase.set('plans');
+      return;
     }
+
+    forkJoin(
+      campaigns.map(c =>
+        this.campaignService.getCampaign(c.id).pipe(
+          map(res => (res.data?.briefJson ? { campaign: c, briefJson: res.data.briefJson } : null)),
+          catchError(() => of(null)),
+        ),
+      ),
+    ).subscribe(results => {
+      const plans: SavedPlan[] = results
+        .filter((r): r is { campaign: typeof campaigns[number]; briefJson: string } => r !== null)
+        .map(({ campaign, briefJson }) => {
+          let data: OnboardingSnap = {};
+          try { data = JSON.parse(briefJson) as OnboardingSnap; } catch { /* leave empty */ }
+          return {
+            id: campaign.id,
+            createdAt: Date.parse(campaign.createdAt) || Date.now(),
+            name: campaign.name,
+            data,
+            brandProfileId: campaign.brandProfileId,
+            campaignId: campaign.id,
+          };
+        })
+        .sort((a, b) => b.createdAt - a.createdAt);
+
+      this.savedPlans.set(plans);
+      this.phase.set(plans.length === 0 ? 'empty' : 'plans');
+    });
   }
 
   // ── Nav ──
   goToOnboarding(): void {
     if (!this.requireBrandProfile()) return;
-    void this.router.navigate(['/rawaj-onboarding']);
+    void this.router.navigate(['/on-boarding']);
   }
 
   backToPlans(): void { this.phase.set('plans'); }
@@ -364,8 +390,17 @@ export class MarketingPlanPage {
     this.startGenerating(posts);
   }
 
-  approve(): void { void this.router.navigate(['/dashboard']); }
+  /** The real approval/content-generation flow already happened in the onboarding wizard
+   *  (research → diagnosis → strategy → approve) — this just routes on to where the campaign's
+   *  real content actually lives now. */
+  approve(): void {
+    const id = this.activePlanId();
+    void this.router.navigate(id ? ['/dashboard/campaigns', id, 'content'] : ['/dashboard']);
+  }
 
+  /** Edits here only touch this page's local preview (brand name/goals/budget shown in the
+   *  deterministic calendar) — they are not persisted. The real strategy edit is the "عدّل الخطة"
+   *  free-text box during the wizard's approval step (RefineCampaignPlanCommand). */
   handleEditSave(e: EditedPlan): void {
     const updated: OnboardingSnap = {
       ...this.snap(),
@@ -380,7 +415,6 @@ export class MarketingPlanPage {
       this.savedPlans.update(plans => plans.map(p =>
         p.id === id ? { ...p, data: updated } : p
       ));
-      try { localStorage.setItem('rawaj.plans', JSON.stringify(this.savedPlans())); } catch { /* noop */ }
     }
   }
 
@@ -417,11 +451,6 @@ export class MarketingPlanPage {
       }, 1400 + i * 560);
       this.destroyRef.onDestroy(() => clearTimeout(id));
     });
-  }
-
-  private loadAllPlans(): SavedPlan[] {
-    try { return JSON.parse(localStorage.getItem('rawaj.plans') ?? '[]') as SavedPlan[]; }
-    catch { return []; }
   }
 
   private parseMonths(d: OnboardingSnap): number {

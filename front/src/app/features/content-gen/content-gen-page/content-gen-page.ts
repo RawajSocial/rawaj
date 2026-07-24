@@ -3,14 +3,32 @@ import { RouterLink } from '@angular/router';
 import { MediaService } from '../../../services/media.service';
 import { BrandProfileService } from '../../../services/brand-profile.service';
 import { CampaignService } from '../../../services/campaign.service';
+import { ContentItemService } from '../../../services/content-item.service';
+import { VisualAssetService } from '../../../services/visual-asset.service';
 import { BrandContextService } from '../../../services/brand-context.service';
 import { TenantService } from '../../../core/tenant/tenant.service';
+import { CoinPricingService } from '../../../services/coin-pricing.service';
 import { SeoService } from '../../../services/seo.service';
+import { ErrorModalService } from '../../../services/error-modal.service';
+import { extractApiErrorMessage } from '../../../core/auth/api-error.util';
 import { Breadcrumb } from '../../../shared/components/breadcrumb/breadcrumb';
+import { ContentItemSummary } from '../../../model/content-item.model';
 import {
   GeneratedAsset, GenType, AdSize, ContentTone, TextType,
   TYPE_CFG, SIZE_CFG, TONE_CFG, TEXT_TYPE_CFG,
 } from '../../../model/generated-item.model';
+
+/** Maps the page's free-text-type picker to the backend's ContentType enum — there's no
+ *  dedicated "hashtags" content type server-side, so it rides along on Caption. */
+const TEXT_TYPE_TO_CONTENT_TYPE: Record<TextType, ContentItemSummary['contentType']> = {
+  caption: 'Caption', hashtags: 'Caption', 'ad-copy': 'AdCopy', blog: 'Blog',
+};
+
+/** Maps the page's platform picker (includes snapchat, which the backend doesn't model) to the
+ *  backend's SocialPlatform — falls back to Instagram so generation never blocks on an unmapped one. */
+const PLATFORM_TO_BACKEND: Record<string, ContentItemSummary['platform']> = {
+  instagram: 'Instagram', facebook: 'Facebook', tiktok: 'Tiktok', x: 'Twitter', youtube: 'Youtube', linkedin: 'Linkedin',
+};
 
 const PLATFORM_OPTS = [
   { value: 'instagram', label: 'إنستغرام',  icon: 'fa-brands fa-instagram',  color: 'var(--color-instagram)' },
@@ -53,8 +71,12 @@ export class ContentGenPage {
 
   private readonly brandProfileService = inject(BrandProfileService);
   private readonly campaignService = inject(CampaignService);
+  private readonly contentItemService = inject(ContentItemService);
+  private readonly visualAssetService = inject(VisualAssetService);
   private readonly brandContextService = inject(BrandContextService);
   protected readonly tenantService = inject(TenantService);
+  private readonly coinPricingService = inject(CoinPricingService);
+  private readonly errorModalService = inject(ErrorModalService);
   private readonly seo = inject(SeoService);
 
   readonly brandProfiles = this.brandProfileService.profiles;
@@ -137,6 +159,23 @@ export class ContentGenPage {
   readonly campaignLabel     = computed(() => this.availableCampaigns().find(c => c.id === this.formCampaignId())?.name ?? 'بدون تحديد');
   readonly canGenerate   = computed(() => this.formBrand().trim().length > 0 && this.formDesc().trim().length > 0);
 
+  /** What this generation will actually cost — real numbers from the backend's coin-pricing
+   *  endpoint (already reflects this tenant's plan discount), so it can never drift from what
+   *  would actually be charged once this page is wired to the real generation endpoints. */
+  readonly spendPreviewLabel = computed(() => {
+    const pricing = this.coinPricingService.pricing();
+    if (!pricing) return '';
+
+    const isImageType = this.genType() !== 'text';
+    const freeRemaining = isImageType ? pricing.freeImageGenerationsRemaining : pricing.freeContentGenerationsRemaining;
+    if (freeRemaining > 0) {
+      return `توليد مجاني ضمن باقتك التجريبية (متبقي ${freeRemaining})`;
+    }
+
+    const cost = isImageType ? pricing.discountedCosts.visualGeneration : pricing.discountedCosts.contentGeneration;
+    return `سيتم خصم ${cost.toLocaleString('ar-SA')} كوين من رصيدك عند التوليد`;
+  });
+
   constructor(readonly media: MediaService) {
     this.seo.setPageSeo({
       title: 'توليد المحتوى بالذكاء الاصطناعي | رواج',
@@ -147,6 +186,8 @@ export class ContentGenPage {
       type: 'website',
       noIndex: true,
     });
+
+    this.coinPricingService.ensureLoaded();
   }
 
   @HostListener('document:click', ['$event'])
@@ -190,9 +231,27 @@ export class ContentGenPage {
 
   generate(): void {
     if (!this.canGenerate()) return;
+
+    const brandProfileId = this.formBrandProfileId();
+    if (!brandProfileId) {
+      this.errorModalService.show(
+        'اختر ملف علامة تجارية قبل التوليد.', { variant: 'warning', title: 'يلزم اختيار علامة تجارية' },
+      );
+      return;
+    }
+
+    if (this.genType() === 'video') {
+      this.errorModalService.show(
+        'توليد الفيديو غير متاح حالياً — جرّب إعلاناً ثابتاً أو محتوى نصياً.', { variant: 'info' },
+      );
+      return;
+    }
+
     const brand = this.formBrand().trim();
     const desc  = this.formDesc().trim();
-    const id    = this.media.nextId();
+    const campaignId = this.formCampaignId() || undefined;
+    const id = this.media.nextId();
+    const isText = this.genType() === 'text';
 
     this.media.add({
       id,
@@ -205,18 +264,62 @@ export class ContentGenPage {
       tone: this.formTone(),
       language: this.formLang(),
       description: desc,
-      brandProfileId: this.formBrandProfileId() || undefined,
-      campaignId: this.formCampaignId() || undefined,
+      brandProfileId,
+      campaignId,
       assets: this.formAssets().length ? this.formAssets() : undefined,
     });
-
     this.currentItemId.set(id);
 
-    setTimeout(() => {
-      this.media.markGenerated(id, {
-        textContent: this.genType() === 'text' ? `✨ ${desc}\n\n— ${brand}` : undefined,
+    if (isText) {
+      this.contentItemService.generate({
+        brandProfileId,
+        campaignId,
+        contentType: TEXT_TYPE_TO_CONTENT_TYPE[this.formTextType()],
+        platform: PLATFORM_TO_BACKEND[this.formPlatform()] ?? 'Instagram',
+        language: this.formLang() === 'en' ? 'En' : 'Ar',
+        tone: this.formTone(),
+        additionalInstructions: desc,
+      }).subscribe({
+        next: res => {
+          if (res.data) {
+            // Swap the local placeholder id for the real backend id so later actions
+            // (accept/refuse/regenerate) target the actual content item.
+            this.media.replaceId(id, res.data.contentItemId);
+            this.media.markGenerated(res.data.contentItemId, { textContent: res.data.content });
+            if (this.currentItemId() === id) this.currentItemId.set(res.data.contentItemId);
+          } else {
+            this.media.markFailed(id);
+          }
+          this.refreshCoinBalance();
+        },
+        error: err => {
+          this.media.markFailed(id);
+          this.errorModalService.show(extractApiErrorMessage(err, 'تعذّر توليد المحتوى.'), { variant: 'error' });
+        },
       });
-    }, 3000);
+    } else {
+      this.visualAssetService.generate({
+        brandProfileId,
+        campaignId,
+        type: 'Ad',
+        prompt: desc,
+      }).subscribe({
+        next: res => {
+          if (res.data) {
+            this.media.replaceId(id, res.data.visualAssetId);
+            this.media.markGenerated(res.data.visualAssetId, { thumbnailUrl: res.data.fileUrl });
+            if (this.currentItemId() === id) this.currentItemId.set(res.data.visualAssetId);
+          } else {
+            this.media.markFailed(id);
+          }
+          this.refreshCoinBalance();
+        },
+        error: err => {
+          this.media.markFailed(id);
+          this.errorModalService.show(extractApiErrorMessage(err, 'تعذّر توليد الصورة.'), { variant: 'error' });
+        },
+      });
+    }
 
     this.formBrand.set('');
     this.formDesc.set('');
@@ -226,21 +329,70 @@ export class ContentGenPage {
   applyEdit(): void {
     const item = this.currentItem();
     const prompt = this.editPrompt().trim();
-    if (!item || !prompt || item.status === 'generating') return;
+    // Only a successfully-generated item has a real backend id to regenerate/re-edit against.
+    if (!item || !prompt || item.status !== 'generated') return;
 
     const id = item.id;
     const mergedDesc = `${item.description ?? ''}\n\nتعديل: ${prompt}`.trim();
-
     this.media.markRegenerating(id);
 
-    setTimeout(() => {
-      this.media.markGenerated(id, {
-        description: mergedDesc,
-        textContent: item.type === 'text' ? `✨ ${mergedDesc}\n\n— ${item.brand}` : item.textContent,
+    if (item.type === 'text') {
+      // A real backend ContentItem id looks like a GUID; a locally-added item that never
+      // resolved (e.g. generation failed) has nothing to regenerate against server-side.
+      this.contentItemService.regenerate(id, prompt).subscribe({
+        next: res => {
+          if (res.data) {
+            this.media.markGenerated(id, { description: mergedDesc, textContent: res.data.content });
+          } else {
+            this.media.markFailed(id);
+          }
+          this.refreshCoinBalance();
+        },
+        error: err => {
+          this.media.markFailed(id);
+          this.errorModalService.show(extractApiErrorMessage(err, 'تعذّر تعديل المحتوى.'), { variant: 'error' });
+        },
       });
-    }, 2500);
+    } else {
+      // There's no dedicated "edit" endpoint for images yet — re-run generation with the
+      // original brief plus the requested change folded into the prompt.
+      const brandProfileId = item.brandProfileId ?? this.formBrandProfileId();
+      if (!brandProfileId) {
+        this.media.markFailed(id);
+        return;
+      }
+      this.visualAssetService.generate({
+        brandProfileId,
+        campaignId: item.campaignId,
+        type: 'Ad',
+        prompt: mergedDesc,
+      }).subscribe({
+        next: res => {
+          if (res.data) {
+            // Re-editing produces a brand new visual asset id (no true "edit" endpoint exists yet).
+            this.media.replaceId(id, res.data.visualAssetId);
+            this.media.markGenerated(res.data.visualAssetId, { description: mergedDesc, thumbnailUrl: res.data.fileUrl });
+            if (this.currentItemId() === id) this.currentItemId.set(res.data.visualAssetId);
+          } else {
+            this.media.markFailed(id);
+          }
+          this.refreshCoinBalance();
+        },
+        error: err => {
+          this.media.markFailed(id);
+          this.errorModalService.show(extractApiErrorMessage(err, 'تعذّر تعديل الصورة.'), { variant: 'error' });
+        },
+      });
+    }
 
     this.editPrompt.set('');
+  }
+
+  /** Coin spends here (content-gen, regenerate) happen outside the tenant-refresh flows that
+   *  already cover billing/invite actions — pull the new balance so the header updates immediately. */
+  private refreshCoinBalance(): void {
+    this.tenantService.refresh().subscribe();
+    this.coinPricingService.refresh().subscribe();
   }
 
   isVideo(item: { type: GenType }): boolean { return item.type === 'video'; }

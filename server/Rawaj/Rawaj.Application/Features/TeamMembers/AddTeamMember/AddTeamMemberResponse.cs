@@ -7,4 +7,5 @@ public record AddTeamMemberResponse(
     Guid? InvitationId,
     string Email,
     TenantMemberRole Role,
-    bool RequiresRegistration);
+    bool RequiresRegistration,
+    bool EmailConfigured);

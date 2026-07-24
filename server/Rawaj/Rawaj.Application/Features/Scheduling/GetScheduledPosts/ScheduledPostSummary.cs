@@ -19,4 +19,9 @@ public record ScheduledPostSummary(
     int? Comments,
     int? Shares,
     int? Clicks,
-    decimal? EngagementRate);
+    decimal? EngagementRate,
+    /// <summary>The real post copy, joined from ContentItem — lets Ads/My Media show the
+    /// actual content instead of a placeholder name.</summary>
+    string Content,
+    /// <summary>The specific visual asset attached at scheduling time, if any.</summary>
+    string? ImageUrl);

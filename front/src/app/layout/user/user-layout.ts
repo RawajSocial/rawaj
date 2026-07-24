@@ -30,8 +30,15 @@ export class UserLayout implements OnInit {
       document.body.classList.toggle('no-scroll', this.mobileOverlayOpen());
     });
 
+    // `refreshMemberships()` only reloads the tenant summary (`tenant()`, which the header's coin
+    // balance reads) as a side effect of *switching* to a different tenant — if the cached active
+    // tenant is already valid, it never fires that switch, so `tenant()` (and therefore the coin
+    // balance) would otherwise stay null/0 until something else happened to trigger it. Always
+    // refresh both explicitly so the header never gets stuck showing a stale/zero balance.
     if (!this.tenantService.tenant()) {
-      this.tenantService.refreshMemberships().subscribe();
+      this.tenantService.refreshMemberships().subscribe(() => {
+        this.tenantService.refresh().subscribe();
+      });
     }
 
     // Load brand profiles + campaigns once, then pick a default brand for the

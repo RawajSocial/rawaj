@@ -82,8 +82,10 @@ public class CreateCampaignCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WithFreePlan_RejectsCampaignCreation()
+    public async Task Handle_WithFreePlan_AllowsCampaignCreation()
     {
+        // Free plan no longer gates campaign creation behind a paid subscription — it now allows
+        // up to its own MaxCampaignsMonthly cap (seeded as 1 in production), same as any paid plan.
         var (dbContext, tenantId, brandProfileId) = await SeedAsync(planCost: 0, maxCampaignsMonthly: 10);
         var handler = BuildHandler(dbContext, tenantId, Guid.NewGuid());
 
@@ -91,8 +93,30 @@ public class CreateCampaignCommandHandlerTests
             new CreateCampaignCommand(brandProfileId, "Campaign", null, [], null, null, null, null),
             CancellationToken.None);
 
-        Assert.False(result.Succeeded);
-        Assert.Contains("active paid subscription", result.ErrorMessage);
+        Assert.True(result.Succeeded);
+        Assert.Equal(CampaignStatus.Draft, result.Data!.Status);
+        Assert.Single(dbContext.MarketingCampaigns);
+    }
+
+    [Fact]
+    public async Task Handle_WithFreePlanAtMonthlyLimit_RejectsCampaignCreation()
+    {
+        // Free plan is seeded with MaxCampaignsMonthly = 1 in production — confirm the cap is still
+        // enforced even though the paid-plan gate is gone.
+        var (dbContext, tenantId, brandProfileId) = await SeedAsync(planCost: 0, maxCampaignsMonthly: 1);
+        var handler = BuildHandler(dbContext, tenantId, Guid.NewGuid());
+
+        var first = await handler.Handle(
+            new CreateCampaignCommand(brandProfileId, "First", null, [], null, null, null, null),
+            CancellationToken.None);
+        Assert.True(first.Succeeded);
+
+        var second = await handler.Handle(
+            new CreateCampaignCommand(brandProfileId, "Second", null, [], null, null, null, null),
+            CancellationToken.None);
+
+        Assert.False(second.Succeeded);
+        Assert.Contains("maximum of 1 campaign", second.ErrorMessage);
     }
 
     [Fact]

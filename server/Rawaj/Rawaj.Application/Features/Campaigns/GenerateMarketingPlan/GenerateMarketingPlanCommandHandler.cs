@@ -25,8 +25,6 @@ public class GenerateMarketingPlanCommandHandler(
     ICoinCostProvider coinCostProvider)
     : IRequestHandler<GenerateMarketingPlanCommand, Result<GenerateMarketingPlanResponse>>
 {
-    private const int MaxCompetitorInsights = 5;
-
     public async Task<Result<GenerateMarketingPlanResponse>> Handle(
         GenerateMarketingPlanCommand request, CancellationToken cancellationToken)
     {
@@ -44,14 +42,16 @@ public class GenerateMarketingPlanCommandHandler(
         var brand = await dbContext.TenantBrandProfiles
             .FirstAsync(b => b.Id == campaign.BrandProfileId, cancellationToken);
 
-        var creditsUsage = await AiCreditsPolicy.GetUsageAsync(dbContext, tenantId, cancellationToken);
-        if (!creditsUsage.HasCreditsRemaining)
-        {
-            return Result<GenerateMarketingPlanResponse>.Failure(
-                $"Your subscription plan allows {creditsUsage.MaxCreditsMonthly} AI credits per month. Upgrade for more.");
-        }
+        // AiCreditsPolicy's monthly quota is retired as an enforcement gate — coins are the real,
+        // per-action meter now (GetAiCreditsUsage stays as a read-only stat on the billing page).
+        var tenant = await dbContext.Tenants.FirstAsync(t => t.Id == tenantId, cancellationToken);
 
-        var coinCost = coinCostProvider.MarketingPlanGeneration;
+        // New-tenant free trial (pricing sheet section 3.1): one free complete marketing strategy
+        // per tenant, regardless of whether it's a business owner or an agency.
+        var usesFreeTrial = !tenant.FreeMarketingPlanUsed;
+        var coinCost = usesFreeTrial
+            ? 0
+            : await CoinPricingPolicy.GetDiscountedCostAsync(dbContext, tenantId, coinCostProvider.MarketingPlanGeneration, cancellationToken);
         var coinBalance = await CoinPolicy.GetBalanceAsync(dbContext, tenantId, userId, role, cancellationToken);
         if (coinBalance < coinCost)
         {
@@ -59,14 +59,10 @@ public class GenerateMarketingPlanCommandHandler(
                 $"You need {coinCost} coins to generate a marketing plan, but only have {coinBalance}.");
         }
 
-        var competitorInsights = await dbContext.RagDocuments
-            .Where(d => d.BrandProfileId == brand.Id && d.CompetitorsData != null)
-            .OrderByDescending(d => d.CreatedAt)
-            .Take(MaxCompetitorInsights)
-            .Select(d => d.CompetitorsData!)
-            .ToListAsync(cancellationToken);
-
-        var prompt = ContentPromptBuilder.BuildMarketingPlanPrompt(brand, campaign, competitorInsights);
+        // Grounded in the brief + business diagnosis (both already confirmed by the user via the
+        // approval flow) with competitor research folded in as advisory-only input.
+        var prompt = ContentPromptBuilder.BuildCampaignStrategyPrompt(
+            brand, campaign, campaign.BriefJson, campaign.DiagnosisJson, campaign.CompetitorResearchJson);
         var generation = await textGenerationService.GenerateTextAsync(prompt, cancellationToken);
 
         var now = DateTime.UtcNow;
@@ -100,7 +96,14 @@ public class GenerateMarketingPlanCommandHandler(
         campaign.AiGeneratedAt = now;
         campaign.UpdatedAt = now;
 
-        await CoinPolicy.TrySpendAsync(dbContext, tenantId, userId, role, coinCost, cancellationToken);
+        if (usesFreeTrial)
+        {
+            tenant.FreeMarketingPlanUsed = true;
+        }
+        else
+        {
+            await CoinPolicy.TrySpendAsync(dbContext, tenantId, userId, role, coinCost, cancellationToken);
+        }
 
         NotificationPublisher.Notify(
             dbContext,

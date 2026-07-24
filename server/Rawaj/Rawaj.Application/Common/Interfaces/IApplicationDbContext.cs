@@ -19,6 +19,8 @@ public interface IApplicationDbContext
     DbSet<TenantBrandProfile> TenantBrandProfiles { get; }
     DbSet<SubscriptionPlan> SubscriptionPlans { get; }
     DbSet<Subscription> Subscriptions { get; }
+    DbSet<CoinPackage> CoinPackages { get; }
+    DbSet<BillingTransaction> BillingTransactions { get; }
     DbSet<MarketingCampaign> MarketingCampaigns { get; }
     DbSet<ContentItem> ContentItems { get; }
     DbSet<ContentRevision> ContentRevisions { get; }

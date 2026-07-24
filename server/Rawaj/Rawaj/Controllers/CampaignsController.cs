@@ -2,12 +2,17 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Rawaj.Application.Common.Models;
+using Rawaj.Application.Features.Campaigns.ApproveCampaignPlan;
 using Rawaj.Application.Features.Campaigns.ArchiveCampaign;
 using Rawaj.Application.Features.Campaigns.CreateCampaign;
+using Rawaj.Application.Features.Campaigns.GenerateBusinessDiagnosis;
 using Rawaj.Application.Features.Campaigns.GenerateCampaignContent;
 using Rawaj.Application.Features.Campaigns.GenerateMarketingPlan;
 using Rawaj.Application.Features.Campaigns.GetCampaign;
 using Rawaj.Application.Features.Campaigns.GetCampaigns;
+using Rawaj.Application.Features.Campaigns.RefineCampaignPlan;
+using Rawaj.Application.Features.Campaigns.ResearchCampaignCompetitors;
+using Rawaj.Application.Features.Campaigns.ScheduleCampaignPosts;
 using Rawaj.Application.Features.Campaigns.UpdateCampaign;
 using Rawaj.Common;
 using Rawaj.Domain.Enums;
@@ -54,7 +59,9 @@ public class CampaignsController(ISender sender) : ControllerBase
     public async Task<IActionResult> Update(Guid campaignId, [FromBody] UpdateCampaignRequest request, CancellationToken cancellationToken)
     {
         var result = await sender.Send(
-            new UpdateCampaignCommand(campaignId, request.Name, request.Status, request.StartDate, request.EndDate, request.BudgetAmount),
+            new UpdateCampaignCommand(
+                campaignId, request.Name, request.Status, request.StartDate, request.EndDate, request.BudgetAmount,
+                request.Objective, request.TargetPlatforms, request.BudgetCurrency),
             cancellationToken);
 
         return result.Succeeded
@@ -72,6 +79,26 @@ public class CampaignsController(ISender sender) : ControllerBase
             : BadRequest(ApiResponse<bool>.Fail(result.ErrorMessage!));
     }
 
+    [HttpPost("{campaignId:guid}/research-competitors")]
+    public async Task<IActionResult> ResearchCompetitors(Guid campaignId, CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new ResearchCampaignCompetitorsCommand(campaignId), cancellationToken);
+
+        return result.Succeeded
+            ? Ok(ApiResponse<ResearchCampaignCompetitorsResponse>.Success(result.Data!))
+            : BadRequest(ApiResponse<ResearchCampaignCompetitorsResponse>.Fail(result.ErrorMessage!));
+    }
+
+    [HttpPost("{campaignId:guid}/diagnose-business")]
+    public async Task<IActionResult> DiagnoseBusiness(Guid campaignId, CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new GenerateBusinessDiagnosisCommand(campaignId), cancellationToken);
+
+        return result.Succeeded
+            ? Ok(ApiResponse<GenerateBusinessDiagnosisResponse>.Success(result.Data!))
+            : BadRequest(ApiResponse<GenerateBusinessDiagnosisResponse>.Fail(result.ErrorMessage!));
+    }
+
     [HttpPost("{campaignId:guid}/generate-plan")]
     public async Task<IActionResult> GeneratePlan(Guid campaignId, CancellationToken cancellationToken)
     {
@@ -80,6 +107,37 @@ public class CampaignsController(ISender sender) : ControllerBase
         return result.Succeeded
             ? Ok(ApiResponse<GenerateMarketingPlanResponse>.Success(result.Data!))
             : BadRequest(ApiResponse<GenerateMarketingPlanResponse>.Fail(result.ErrorMessage!));
+    }
+
+    [HttpPost("{campaignId:guid}/refine-plan")]
+    public async Task<IActionResult> RefinePlan(Guid campaignId, [FromBody] RefineCampaignPlanRequest request, CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new RefineCampaignPlanCommand(campaignId, request.Feedback), cancellationToken);
+
+        return result.Succeeded
+            ? Ok(ApiResponse<RefineCampaignPlanResponse>.Success(result.Data!))
+            : BadRequest(ApiResponse<RefineCampaignPlanResponse>.Fail(result.ErrorMessage!));
+    }
+
+    [HttpPost("{campaignId:guid}/approve-plan")]
+    public async Task<IActionResult> ApprovePlan(Guid campaignId, CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new ApproveCampaignPlanCommand(campaignId), cancellationToken);
+
+        return result.Succeeded
+            ? Ok(ApiResponse<ApproveCampaignPlanResponse>.Success(result.Data!))
+            : BadRequest(ApiResponse<ApproveCampaignPlanResponse>.Fail(result.ErrorMessage!));
+    }
+
+    [HttpPost("{campaignId:guid}/schedule-posts")]
+    public async Task<IActionResult> SchedulePosts(
+        Guid campaignId, [FromBody] ScheduleCampaignPostsRequest request, CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new ScheduleCampaignPostsCommand(campaignId, request.SocialAccountId), cancellationToken);
+
+        return result.Succeeded
+            ? Ok(ApiResponse<ScheduleCampaignPostsResponse>.Success(result.Data!))
+            : BadRequest(ApiResponse<ScheduleCampaignPostsResponse>.Fail(result.ErrorMessage!));
     }
 
     [HttpPost("{campaignId:guid}/generate-content")]
@@ -99,6 +157,11 @@ public class CampaignsController(ISender sender) : ControllerBase
     public record GenerateCampaignContentRequest(
         int PostCount, Language Language, bool IncludeImages = true, ContentTemplateStyle TemplateStyle = ContentTemplateStyle.Auto);
 
+    public record RefineCampaignPlanRequest(string Feedback);
+
+    public record ScheduleCampaignPostsRequest(Guid SocialAccountId);
+
     public record UpdateCampaignRequest(
-        string? Name, CampaignStatus? Status, DateOnly? StartDate, DateOnly? EndDate, decimal? BudgetAmount);
+        string? Name, CampaignStatus? Status, DateOnly? StartDate, DateOnly? EndDate, decimal? BudgetAmount,
+        string? Objective = null, List<string>? TargetPlatforms = null, string? BudgetCurrency = null);
 }

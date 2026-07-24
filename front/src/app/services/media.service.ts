@@ -111,6 +111,14 @@ export class MediaService {
     );
   }
 
+  /** Swaps a locally-assigned placeholder id for the real id the backend returned once
+   *  generation succeeds — callers must re-point any signal holding the old id (e.g. the page's
+   *  "currently selected" item) themselves, since this only touches the stored list. */
+  replaceId(oldId: string, newId: string): void {
+    if (oldId === newId) return;
+    this.items.update(list => list.map(i => i.id === oldId ? { ...i, id: newId } : i));
+  }
+
   update(updated: GeneratedItem): void {
     this.items.update(list => list.map(i => i.id === updated.id ? updated : i));
   }

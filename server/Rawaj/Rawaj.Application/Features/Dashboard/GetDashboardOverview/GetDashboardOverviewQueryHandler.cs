@@ -35,6 +35,7 @@ public class GetDashboardOverviewQueryHandler(IApplicationDbContext dbContext)
             .Select(p => new TopPostItem(
                 p.ScheduledPostId,
                 p.ContentItemId,
+                p.CampaignId,
                 p.Platform,
                 p.Title,
                 p.Content,

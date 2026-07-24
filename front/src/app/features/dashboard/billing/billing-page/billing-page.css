@@ -58,50 +58,119 @@
   flex-wrap: wrap;
 }
 
-/* ── Payment ── */
-.payment-method {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px;
-  border: 1px solid var(--color-border);
-  border-radius: 12px;
-  margin-bottom: 12px;
+.rw-btn--sm {
+  padding: 6px 14px;
+  font-size: var(--font-size-xs);
 }
 
-.payment-icon {
-  width: 40px;
-  height: 40px;
-  flex-shrink: 0;
+/* ── Plan picker ── */
+.plan-picker {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--color-border);
+}
+
+.plan-picker__grid {
   display: grid;
-  place-items: center;
-  border-radius: 10px;
-  background: var(--color-bg-secondary);
-  color: var(--color-text-secondary);
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
 }
 
-.payment-card {
-  display: block;
+.plan-picker__option {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  border: 1.5px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface);
+  cursor: pointer;
+  text-align: start;
+  transition: border-color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.plan-picker__option:hover {
+  border-color: var(--color-secondary-light);
+}
+
+.plan-picker__option.selected {
+  border-color: var(--color-secondary);
+  background: var(--color-secondary-subtle);
+}
+
+.plan-picker__option.current {
+  opacity: 0.6;
+}
+
+.plan-picker__name {
   font-size: var(--font-size-sm);
-  font-weight: var(--font-semibold);
+  font-weight: var(--font-bold);
   color: var(--color-dark);
 }
 
-.payment-exp {
+.plan-picker__price {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-secondary);
+}
+
+.plan-picker__meta {
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
 }
 
-.payment-update {
-  width: 100%;
+.plan-picker__discount {
+  font-size: var(--font-size-xs);
+  color: var(--color-success);
+  font-weight: var(--font-semibold);
+}
+
+.plan-picker__agency-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.plan-picker__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-field label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-secondary);
+}
+
+.form-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  margin: 0;
+  line-height: 1.6;
+}
+
+.form-hint i {
+  margin-top: 2px;
+  color: var(--color-info);
 }
 
 /* ── Usage ── */
-.usage-block {
-  margin-top: 22px;
-  padding-top: 20px;
-  border-top: 1px solid var(--color-border);
-}
+.usage-block { margin-bottom: 4px; }
 
 .usage-title {
   font-size: var(--font-size-sm);
@@ -144,6 +213,81 @@
 }
 .usage-fill.warn { background: linear-gradient(90deg, var(--color-accent), var(--color-danger)); }
 
+/* ── Add-ons ── */
+.addons-block {
+  margin-top: 22px;
+  padding-top: 20px;
+  border-top: 1px solid var(--color-border);
+}
+
+.addon-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+}
+
+.addon-name {
+  display: block;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-dark);
+}
+
+.addon-count {
+  display: block;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+/* ── Coin packages ── */
+.packages-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 14px;
+}
+
+.package-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 18px 14px;
+  border: 1.5px solid var(--color-border);
+  border-radius: 14px;
+  text-align: center;
+}
+
+.package-name {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-bold);
+  color: var(--color-dark);
+}
+
+.package-coins {
+  font-size: 1.4rem;
+  font-weight: var(--font-bold);
+  color: var(--color-secondary);
+}
+
+.package-bonus {
+  font-size: var(--font-size-xs);
+  color: var(--color-success);
+  font-weight: var(--font-semibold);
+}
+
+.package-price {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  min-height: 1.2em;
+}
+
+.package-card--custom .form-control {
+  width: 100%;
+  text-align: center;
+}
+
 /* ── Invoices ── */
 .invoice-table-wrap { overflow-x: auto; }
 
@@ -173,20 +317,6 @@
 
 .muted-cell { color: var(--color-text-secondary); }
 .amount-cell { font-weight: var(--font-semibold); }
-
-.dl-btn {
-  width: 32px;
-  height: 32px;
-  display: grid;
-  place-items: center;
-  border: none;
-  border-radius: 8px;
-  background: transparent;
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  transition: background-color var(--transition-fast), color var(--transition-fast);
-}
-.dl-btn:hover { background: var(--color-bg-secondary); color: var(--color-dark); }
 
 @media (max-width: 992px) {
   .billing-grid { grid-template-columns: 1fr; }

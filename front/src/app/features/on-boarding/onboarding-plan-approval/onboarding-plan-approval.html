@@ -78,6 +78,130 @@
       </div>
     </div>
 
+    @if (pipelineError()) {
+      <div class="plan-section pipeline-note">
+        <p><i class="fa-solid fa-triangle-exclamation"></i> {{ pipelineError() }}</p>
+      </div>
+    }
+
+    <!-- ── WHAT WE UNDERSTOOD ABOUT YOUR BUSINESS (AI Business Diagnosis) ── -->
+    @if (diagnosis(); as d) {
+      <section class="plan-section">
+        <div class="section-hdr">
+          <div class="section-icon ai-glow"><i class="fa-brands fa-openai"></i></div>
+          <div>
+            <h3 class="section-title">هذا ما فهمناه عن نشاطك</h3>
+            <p class="section-sub">تحليل رواج AI لعملك بناءً على بيانات الإعداد وأي أبحاث منافسين متاحة</p>
+          </div>
+        </div>
+
+        @if (d.businessSummary) {
+          <p class="ai-diagnosis-summary">{{ d.businessSummary }}</p>
+        }
+
+        <div class="ai-diagnosis-grid">
+          @if (d.businessMaturity) {
+            <div class="ai-diagnosis-chip"><span>مرحلة النشاط</span><strong>{{ d.businessMaturity }}</strong></div>
+          }
+          @if (d.growthStage) {
+            <div class="ai-diagnosis-chip"><span>مرحلة النمو</span><strong>{{ d.growthStage }}</strong></div>
+          }
+          @if (d.marketingReadiness) {
+            <div class="ai-diagnosis-chip"><span>جاهزية التسويق</span><strong>{{ d.marketingReadiness }}</strong></div>
+          }
+        </div>
+
+        @if (d.swot; as swot) {
+          <div class="ai-swot-grid">
+            @if (swot.strengths?.length) {
+              <div class="ai-swot-card"><h4>نقاط القوة</h4><ul>@for (s of swot.strengths; track s) { <li>{{ s }}</li> }</ul></div>
+            }
+            @if (swot.weaknesses?.length) {
+              <div class="ai-swot-card"><h4>نقاط الضعف</h4><ul>@for (s of swot.weaknesses; track s) { <li>{{ s }}</li> }</ul></div>
+            }
+            @if (swot.opportunities?.length) {
+              <div class="ai-swot-card"><h4>الفرص</h4><ul>@for (s of swot.opportunities; track s) { <li>{{ s }}</li> }</ul></div>
+            }
+            @if (swot.threats?.length) {
+              <div class="ai-swot-card"><h4>التهديدات</h4><ul>@for (s of swot.threats; track s) { <li>{{ s }}</li> }</ul></div>
+            }
+          </div>
+        }
+
+        @if (d.missingInformation?.length) {
+          <p class="ai-diagnosis-missing">
+            <i class="fa-solid fa-circle-info"></i>
+            معلومات قد تساعدنا أكثر: {{ d.missingInformation!.join('، ') }}
+          </p>
+        }
+      </section>
+    }
+
+    <!-- ── COMPETITOR RESEARCH (best-effort — may or may not be relevant) ── -->
+    @if (competitorResearch(); as cr) {
+      <section class="plan-section">
+        <div class="section-hdr">
+          <div class="section-icon"><i class="fa-solid fa-magnifying-glass-chart"></i></div>
+          <div>
+            <h3 class="section-title">أبحاث المنافسين</h3>
+            <p class="section-sub">بحث آلي قد يفيد أو لا يفيد — استخدمناه كمدخل استرشادي فقط لبناء الاستراتيجية</p>
+          </div>
+        </div>
+
+        @if (cr.unavailable) {
+          <p class="ai-diagnosis-missing"><i class="fa-solid fa-circle-info"></i> {{ cr.note || 'تعذّر إيجاد بيانات منافسين لهذا النشاط الآن.' }}</p>
+        } @else {
+          @if (cr.summary) { <p class="ai-diagnosis-summary">{{ cr.summary }}</p> }
+          @if (cr.competitors?.length) {
+            <div class="ai-swot-grid">
+              @for (c of cr.competitors; track c.url) {
+                <div class="ai-swot-card"><h4>{{ c.name }}</h4><p>{{ c.snippet }}</p></div>
+              }
+            </div>
+          }
+        }
+      </section>
+    }
+
+    <!-- ── AI STRATEGY (Complete Marketing Strategy) ── -->
+    @if (strategy(); as s) {
+      <section class="plan-section">
+        <div class="section-hdr">
+          <div class="section-icon ai-glow"><i class="fa-brands fa-openai"></i></div>
+          <div>
+            <h3 class="section-title">استراتيجية الحملة الكاملة</h3>
+            <p class="section-sub">الملخص التنفيذي وتوصيات رواج AI لهذه الحملة</p>
+          </div>
+        </div>
+
+        @if (s.executiveSummary) { <p class="ai-diagnosis-summary">{{ s.executiveSummary }}</p> }
+        @if (s.marketingStrategy) { <p class="ai-diagnosis-summary">{{ s.marketingStrategy }}</p> }
+        @if (s.aiRecommendations?.length) {
+          <ul class="ai-recommendations-list">
+            @for (r of s.aiRecommendations; track r) { <li><i class="fa-solid fa-lightbulb"></i> {{ r }}</li> }
+          </ul>
+        }
+
+        <!-- ── Refine by prompt ── -->
+        <div class="ai-refine-box">
+          <label class="ai-refine-label" for="refine-input">عدّل الخطة بطلب حر</label>
+          <textarea
+            id="refine-input"
+            rows="2"
+            placeholder="مثال: ركّز أكثر على تيك توك وقلّل ميزانية الإعلانات المدفوعة"
+            [value]="refineFeedback()"
+            (input)="updateRefineFeedback($any($event.target).value)"></textarea>
+          <button type="button" class="btn-refine" [disabled]="refining() || !refineFeedback().trim()" (click)="submitRefine()">
+            @if (refining()) {
+              <i class="fa-solid fa-circle-notch fa-spin"></i> جاري التعديل...
+            } @else {
+              <i class="fa-solid fa-wand-magic-sparkles"></i> تعديل الخطة
+            }
+          </button>
+        </div>
+      </section>
+    }
+
     <!-- ── WEEKLY CONTENT CALENDAR ── -->
     <section class="plan-section">
       <div class="section-hdr">
@@ -242,9 +366,12 @@
         <i class="fa-solid fa-chevron-right"></i>
         تعديل البيانات
       </button>
-      <button type="button" class="btn-approve" (click)="onApprove()">
-        <i class="fa-solid fa-wand-magic-sparkles"></i>
-        اعتمد وابدأ توليد المحتوى
+      <button type="button" class="btn-approve" [disabled]="approving() || approved()" (click)="onApprove()">
+        @if (approving()) {
+          <i class="fa-solid fa-circle-notch fa-spin"></i> جاري الاعتماد...
+        } @else {
+          <i class="fa-solid fa-wand-magic-sparkles"></i> اعتمد وابدأ توليد المحتوى
+        }
       </button>
     </div>
 

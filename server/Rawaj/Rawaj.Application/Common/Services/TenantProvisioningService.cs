@@ -15,7 +15,14 @@ public class TenantProvisioningService(IApplicationDbContext dbContext)
 {
     private const string DefaultPlanName = "Free";
     private const int TrialDays = 14;
-    public const int StartingCoinBalance = 100;
+
+    // TESTING VALUE — the real, documented starting balance is 100 coins (the Free plan's
+    // MonthlyCoinGrant). A full campaign (research + diagnosis + strategy) costs ~22,000 coins
+    // before a single post is generated, so 100 makes the campaign flow impossible to exercise
+    // end-to-end during development. Revert this single constant to 100 before launch.
+    public const int StartingCoinBalance = 50_000;
+    private const int FreeImageGenerationsGrant = 5;
+    private const int FreeContentGenerationsGrant = 5;
 
     public async Task<Tenant> ProvisionAsync(
         Guid ownerUserId,
@@ -54,6 +61,8 @@ public class TenantProvisioningService(IApplicationDbContext dbContext)
             IsActive = true,
             CoinBalance = StartingCoinBalance,
             IsActivated = false,
+            FreeImageGenerationsRemaining = FreeImageGenerationsGrant,
+            FreeContentGenerationsRemaining = FreeContentGenerationsGrant,
             CreatedAt = now,
             UpdatedAt = now
         };

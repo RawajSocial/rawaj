@@ -28,6 +28,14 @@ public class AcceptInviteCommandHandler(IApplicationDbContext dbContext, ICurren
             return Result<bool>.Failure("This invitation is no longer pending.");
         }
 
+        // Mirrors the 7-day expiry TenantInvitation enforces on the no-account invite path — this
+        // path (an existing user invited by TenantMember.Id) had no expiry at all before, so an
+        // invite link from a year ago was still redeemable.
+        if (tenantMember.CreatedAt.AddDays(InvitationTokenPolicy.ExpiryDays) < DateTime.UtcNow)
+        {
+            return Result<bool>.Failure("This invitation has expired. Ask for a new one.");
+        }
+
         tenantMember.InvitationStatus = InvitationStatus.Accepted;
         tenantMember.JoinedAt = DateTime.UtcNow;
 

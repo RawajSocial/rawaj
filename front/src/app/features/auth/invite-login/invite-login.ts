@@ -36,11 +36,16 @@ export class InviteLogin implements OnInit {
 
   /** Whether the currently signed-in user IS the person this invite was addressed to — an
    *  already-authenticated session with a different email must never be able to accept someone
-   *  else's invite just by clicking a link. */
+   *  else's invite just by clicking a link. Fails **closed**: if we're authenticated but the
+   *  profile hasn't resolved yet (`email` briefly undefined right after page load), this reports a
+   *  mismatch rather than `false` — otherwise the accept button could flash for the wrong account
+   *  for one tick before the real email loads in.  */
   protected readonly emailMismatch = () => {
-    const email = this.authService.currentUser()?.email?.toLowerCase();
+    if (!this.authService.isAuthenticated()) return false;
     const invited = this.details()?.email?.toLowerCase();
-    return !!email && !!invited && email !== invited;
+    if (!invited) return false;
+    const email = this.authService.currentUser()?.email?.toLowerCase();
+    return !email || email !== invited;
   };
 
   ngOnInit(): void {
@@ -78,6 +83,7 @@ export class InviteLogin implements OnInit {
   protected onRegistered(): void {
     this.accepted.set(true);
     this.tenantService.refreshMemberships().subscribe();
+    this.tenantService.refresh().subscribe();
     this.authService.fetchMyProfile().subscribe();
     setTimeout(() => this.router.navigateByUrl('/dashboard'), 1200);
   }
@@ -98,6 +104,7 @@ export class InviteLogin implements OnInit {
         }
         this.accepted.set(true);
         this.tenantService.refreshMemberships().subscribe();
+        this.tenantService.refresh().subscribe();
         setTimeout(() => this.router.navigateByUrl('/dashboard'), 1200);
       },
       error: err => {
