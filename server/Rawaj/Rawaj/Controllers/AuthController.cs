@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Rawaj.Application.Features.Auth.Login;
 using Rawaj.Application.Features.Auth.Logout;
 using Rawaj.Application.Features.Auth.RefreshToken;
@@ -10,6 +11,7 @@ namespace Rawaj.Controllers;
 
 [ApiController]
 [Route("api/v1/auth")]
+[EnableRateLimiting("auth")]
 public class AuthController(ISender sender) : ControllerBase
 {
     [HttpPost("register")]

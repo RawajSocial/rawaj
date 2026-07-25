@@ -5,7 +5,7 @@ using Rawaj.Domain.ValueObjects;
 
 namespace Rawaj.Domain.Entities.Tenants;
 
-public class TenantBrandProfile : BaseEntity
+public class TenantBrandProfile : BaseEntity, IConcurrencyAware
 {
     public Guid TenantId { get; set; }
     public string Name { get; set; } = null!;
@@ -15,6 +15,12 @@ public class TenantBrandProfile : BaseEntity
     public BrandInfo? BrandInfo { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
+
+    public byte[] RowVersion { get; set; } = null!;
+
+    public bool IsDeleted { get; set; }
+    public DateTime? DeletedAt { get; set; }
+    public Guid? DeletedBy { get; set; }
 
     public Tenant Tenant { get; set; } = null!;
     public ICollection<MarketingCampaign> Campaigns { get; set; } = [];

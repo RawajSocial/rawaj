@@ -114,7 +114,7 @@ public class RegenerateContentItemCommandHandler(
         contentItem.ReviewedAt = null;
         contentItem.UpdatedAt = now;
 
-        await CoinPolicy.TrySpendAsync(dbContext, tenantId, userId, role, coinCost, cancellationToken);
+        await CoinPolicy.TrySpendAsync(dbContext, tenantId, userId, role, coinCost, cancellationToken, reason: "content_regeneration");
 
         var contentSubject = campaign is not null ? $"for \"{campaign.Name}\"" : $"for {brand.Name}";
         NotificationPublisher.Notify(

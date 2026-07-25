@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Rawaj.Application.Common.Interfaces;
+using Rawaj.Domain.Common;
 using Rawaj.Domain.Entities.AiOperations;
 using Rawaj.Domain.Entities.Auth;
 using Rawaj.Domain.Entities.Billing;
@@ -20,6 +21,7 @@ public class AppDbContext : IdentityUserContext<ApplicationUser, Guid>, IApplica
     }
 
     public DbSet<Tenant> Tenants => Set<Tenant>();
+    public DbSet<AccountSetup> AccountSetups => Set<AccountSetup>();
     public DbSet<TenantBrandProfile> TenantBrandProfiles => Set<TenantBrandProfile>();
     public DbSet<TenantMember> TenantMembers => Set<TenantMember>();
     public DbSet<TenantMemberBrandAccess> TenantMemberBrandAccesses => Set<TenantMemberBrandAccess>();
@@ -43,11 +45,34 @@ public class AppDbContext : IdentityUserContext<ApplicationUser, Guid>, IApplica
     public DbSet<Subscription> Subscriptions => Set<Subscription>();
     public DbSet<CoinPackage> CoinPackages => Set<CoinPackage>();
     public DbSet<BillingTransaction> BillingTransactions => Set<BillingTransaction>();
+    public DbSet<CoinLedgerEntry> CoinLedgerEntries => Set<CoinLedgerEntry>();
 
     public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    public DbSet<EmailOtpCode> EmailOtpCodes => Set<EmailOtpCode>();
+
+    /// <summary>
+    /// SQL Server's `rowversion` columns auto-generate their own value on every write and ignore
+    /// whatever the app sets — this bump is a no-op there. The EF Core InMemory provider (used by
+    /// the test suite) has no such auto-generation, so without this, every insert of a
+    /// RowVersion-tracked entity fails the model's "required property" check and no update can
+    /// ever produce a genuine concurrency conflict to test against. See IConcurrencyAware.
+    /// </summary>
+    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        foreach (var entry in ChangeTracker.Entries<IConcurrencyAware>())
+        {
+            if (entry.State is EntityState.Added or EntityState.Modified)
+            {
+                entry.Entity.RowVersion = Guid.NewGuid().ToByteArray();
+            }
+        }
+
+        return base.SaveChangesAsync(cancellationToken);
+    }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

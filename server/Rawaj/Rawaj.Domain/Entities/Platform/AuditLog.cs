@@ -14,5 +14,9 @@ public class AuditLog : BaseEntity
     public string? IpAddress { get; set; }
     public string? UserAgent { get; set; }
     public string? Metadata { get; set; }
+    /// <summary>Structured before/after values for a change (e.g. a role or coin-allocation edit) —
+    /// distinct from the free-text Message, which stays human-readable summary prose.</summary>
+    public string? OldValue { get; set; }
+    public string? NewValue { get; set; }
     public DateTime CreatedAt { get; set; }
 }

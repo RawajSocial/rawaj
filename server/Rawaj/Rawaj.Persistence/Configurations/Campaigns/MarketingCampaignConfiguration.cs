@@ -23,6 +23,7 @@ public class MarketingCampaignConfiguration : IEntityTypeConfiguration<Marketing
         builder.Property(c => c.BriefJson).HasColumnType("nvarchar(max)");
         builder.Property(c => c.CompetitorResearchJson).HasColumnType("nvarchar(max)");
         builder.Property(c => c.DiagnosisJson).HasColumnType("nvarchar(max)");
+        builder.Property(c => c.RowVersion).IsRowVersion();
 
         builder.HasOne(c => c.BrandProfile)
             .WithMany(b => b.Campaigns)
@@ -33,5 +34,9 @@ public class MarketingCampaignConfiguration : IEntityTypeConfiguration<Marketing
             .WithMany()
             .HasForeignKey(c => c.CreatedBy)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(c => new { c.BrandProfileId, c.Status });
+
+        builder.HasQueryFilter(c => !c.IsDeleted);
     }
 }

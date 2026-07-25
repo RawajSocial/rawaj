@@ -23,5 +23,8 @@ public class TenantMemberBrandAccessConfiguration : IEntityTypeConfiguration<Ten
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasIndex(a => new { a.TenantMemberId, a.BrandProfileId }).IsUnique();
+
+        // Matches TenantBrandProfile's own IsDeleted filter — required (non-nullable) FK.
+        builder.HasQueryFilter(a => !a.BrandProfile.IsDeleted);
     }
 }

@@ -23,9 +23,7 @@
         </div>
       </div>
     } @else {
-      <div class="thumb-text" [style.background]="thumbnailGradient(item().type)">
-        <p>{{ item().textContent ?? item().description }}</p>
-      </div>
+      <img src="/text-post.png" [alt]="item().title" class="thumb-img thumb-img--contain">
     }
 
     <!-- Type badge -->

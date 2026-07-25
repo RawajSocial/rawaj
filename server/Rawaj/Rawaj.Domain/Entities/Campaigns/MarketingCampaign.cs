@@ -4,7 +4,7 @@ using Rawaj.Domain.Enums;
 
 namespace Rawaj.Domain.Entities.Campaigns;
 
-public class MarketingCampaign : BaseEntity
+public class MarketingCampaign : BaseEntity, IConcurrencyAware
 {
     public Guid BrandProfileId { get; set; }
     public Guid CreatedBy { get; set; }
@@ -35,6 +35,15 @@ public class MarketingCampaign : BaseEntity
 
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
+
+    /// <summary>EF concurrency token — a second concurrent update to the same campaign (e.g. two
+    /// team members editing at once) throws <c>DbUpdateConcurrencyException</c> instead of
+    /// silently overwriting one editor's change.</summary>
+    public byte[] RowVersion { get; set; } = null!;
+
+    public bool IsDeleted { get; set; }
+    public DateTime? DeletedAt { get; set; }
+    public Guid? DeletedBy { get; set; }
 
     public TenantBrandProfile BrandProfile { get; set; } = null!;
     public ICollection<ContentItem> ContentItems { get; set; } = [];

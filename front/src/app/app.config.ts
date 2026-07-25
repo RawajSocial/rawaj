@@ -8,6 +8,7 @@ import { authInterceptor } from './core/interceptors/auth.interceptor';
 import { tenantInterceptor } from './core/interceptors/tenant.interceptor';
 import { AuthService } from './core/auth/auth.service';
 import { TenantService } from './core/tenant/tenant.service';
+import { FeatureFlagsService } from './services/feature-flags.service';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -18,6 +19,9 @@ export const appConfig: ApplicationConfig = {
       const authService = inject(AuthService);
       const tenantService = inject(TenantService);
       const router = inject(Router);
+      const featureFlagsService = inject(FeatureFlagsService);
+
+      featureFlagsService.refresh();
 
       if (!authService.accessToken()) return Promise.resolve();
 

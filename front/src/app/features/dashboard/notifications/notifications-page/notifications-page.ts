@@ -3,7 +3,7 @@ import { Router } from '@angular/router';
 import { PageHeader } from '../../../../shared/components/page-header/page-header';
 import { SeoService } from '../../../../services/seo.service';
 import { NotificationService } from '../../../../services/notification.service';
-import { CATEGORY_CFG, notificationLink } from '../../../../model/notification.model';
+import { CATEGORY_CFG, NotificationLink, notificationLink } from '../../../../model/notification.model';
 
 type NotifTab = 'all' | 'unread' | 'read';
 
@@ -65,9 +65,9 @@ export class NotificationsPage {
     this.notificationService.markAllRead().subscribe();
   }
 
-  protected openNotification(id: string, link: unknown[] | null): void {
+  protected openNotification(id: string, link: NotificationLink | null): void {
     this.notificationService.markRead(id).subscribe();
-    if (link) void this.router.navigate(link);
+    if (link) void this.router.navigate(link.commands, { queryParams: link.queryParams });
   }
 
   protected formatTime(iso: string): string {

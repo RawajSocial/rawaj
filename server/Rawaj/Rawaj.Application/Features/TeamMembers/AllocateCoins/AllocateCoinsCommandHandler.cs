@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Rawaj.Application.Common.Interfaces;
 using Rawaj.Application.Common.Models;
 using Rawaj.Application.Common.Policies;
+using Rawaj.Domain.Entities.Billing;
 using Rawaj.Domain.Enums;
 
 namespace Rawaj.Application.Features.TeamMembers.AllocateCoins;
@@ -45,10 +46,40 @@ public class AllocateCoinsCommandHandler(
         tenant.CoinBalance -= delta;
         member.AllocatedCoins = request.NewAllocation;
 
+        var now = DateTime.UtcNow;
+        if (delta != 0)
+        {
+            // Two entries: the tenant pool loses `delta`, the member's wallet gains it (or the
+            // reverse, if an admin is reducing a member's allocation back into the pool) — a
+            // transfer, not new coins, so the two always net to zero.
+            dbContext.CoinLedgerEntries.Add(new CoinLedgerEntry
+            {
+                Id = Guid.NewGuid(),
+                TenantId = tenantId,
+                Amount = -delta,
+                Reason = "member_allocation",
+                ReferenceType = "tenant_member",
+                ReferenceId = member.Id,
+                CreatedAt = now
+            });
+            dbContext.CoinLedgerEntries.Add(new CoinLedgerEntry
+            {
+                Id = Guid.NewGuid(),
+                TenantId = tenantId,
+                TenantMemberId = member.Id,
+                Amount = delta,
+                Reason = "member_allocation",
+                ReferenceType = "tenant_member",
+                ReferenceId = member.Id,
+                CreatedAt = now
+            });
+        }
+
         AuditLogger.Log(
             dbContext, tenantId, currentUserService.UserId, "team.coins_allocated",
             message: $"Allocated {request.NewAllocation} coins (was {previousAllocation}).",
-            entityType: "tenant_member", entityId: member.Id);
+            entityType: "tenant_member", entityId: member.Id,
+            oldValue: previousAllocation.ToString(), newValue: request.NewAllocation.ToString());
 
         await dbContext.SaveChangesAsync(cancellationToken);
 

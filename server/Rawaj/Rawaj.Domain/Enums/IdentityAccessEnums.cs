@@ -41,5 +41,14 @@ public enum InvitationStatus
 {
     Pending,
     Accepted,
-    Declined
+    /// <summary>The invitee said no. Only ever set by DeclineInviteCommandHandler (the existing-user
+    /// TenantMember path) — see Revoked for the admin-cancelled equivalent.</summary>
+    Declined,
+    /// <summary>The inviting admin cancelled it before it was accepted/declined — distinct from
+    /// Declined so the audit trail/UI can tell "the invitee said no" apart from "we cancelled it".</summary>
+    Revoked,
+    /// <summary>Never accepted before ExpiresAt — flipped lazily on read (see
+    /// GetPendingInvitationsQueryHandler) rather than by a background sweep, since nothing needs to
+    /// act on the transition itself, only reflect it when someone looks.</summary>
+    Expired
 }

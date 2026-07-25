@@ -85,12 +85,54 @@
             <div class="rw-field">
               <label for="email">البريد الإلكتروني</label>
               <input id="email" type="email" formControlName="email">
+              @if (emailConfirmed()) {
+                <small class="email-verify-badge email-verify-badge--verified">
+                  <i class="fa-solid fa-circle-check"></i> بريد موثّق
+                </small>
+              } @else {
+                <small class="email-verify-badge email-verify-badge--unverified">
+                  <i class="fa-solid fa-triangle-exclamation"></i> بريد غير موثّق
+                </small>
+              }
             </div>
             <div class="rw-field">
               <label for="preferredLanguage">اللغة المفضلة</label>
               <app-select-dropdown id="preferredLanguage" formControlName="preferredLanguage" [options]="languageOptions" />
             </div>
           </div>
+
+          @if (!emailConfirmed()) {
+            <div class="otp-panel">
+              @if (otpStep() === 'idle') {
+                <p class="otp-panel__hint">وثّق بريدك الإلكتروني لتأمين حسابك بشكل أفضل.</p>
+                <button type="button" class="rw-btn rw-btn--outline" [disabled]="otpSending()" (click)="requestEmailOtp()">
+                  {{ otpSending() ? 'جارٍ الإرسال...' : 'إرسال رمز التحقق' }}
+                </button>
+              } @else {
+                <form [formGroup]="otpForm" (ngSubmit)="verifyEmailOtp()" class="otp-panel__form">
+                  <div class="rw-field">
+                    <label for="otpCode">رمز التحقق</label>
+                    <input id="otpCode" type="text" inputmode="numeric" maxlength="6" formControlName="code" placeholder="أدخل الرمز المكوّن من 6 أرقام">
+                    @if (otpCodeErrorMessage(); as error) {
+                      <small class="text-danger d-block mt-2 validation-msg">{{ error }}</small>
+                    }
+                  </div>
+                  <div class="otp-panel__actions">
+                    <button type="submit" class="rw-btn rw-btn--primary" [disabled]="otpVerifying()">
+                      {{ otpVerifying() ? 'جارٍ التحقق...' : 'تأكيد الرمز' }}
+                    </button>
+                    <button type="button" class="otp-resend-btn" [disabled]="otpResendCooldown() > 0 || otpSending()" (click)="requestEmailOtp()">
+                      @if (otpResendCooldown() > 0) {
+                        إعادة الإرسال بعد {{ otpResendCooldown() }} ثانية
+                      } @else {
+                        إعادة إرسال الرمز
+                      }
+                    </button>
+                  </div>
+                </form>
+              }
+            </div>
+          }
 
           <div class="form-actions">
             <button type="submit" class="rw-btn rw-btn--primary" [disabled]="!canSaveProfile()">حفظ التغييرات</button>

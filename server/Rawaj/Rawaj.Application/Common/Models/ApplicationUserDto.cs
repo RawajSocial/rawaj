@@ -12,4 +12,5 @@ public class ApplicationUserDto
     public Language PreferredLanguage { get; set; }
     public bool IsActive { get; set; }
     public bool IsPlatformAdmin { get; set; }
+    public bool EmailConfirmed { get; set; }
 }

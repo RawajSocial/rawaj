@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Rawaj.Application.Common.Interfaces;
+using Rawaj.Domain.Entities.Billing;
 using Rawaj.Domain.Entities.Tenants;
 using Rawaj.Domain.Enums;
 
@@ -54,12 +55,16 @@ public static class CoinPolicy
     /// caller's own later <c>SaveChangesAsync</c>. Returns false (no mutation made) when the
     /// balance is insufficient.
     /// </summary>
-    public static async Task<bool> TrySpendAsync(IApplicationDbContext dbContext, Guid tenantId, Guid userId, TenantMemberRole role, int cost, CancellationToken cancellationToken)
+    public static async Task<bool> TrySpendAsync(
+        IApplicationDbContext dbContext, Guid tenantId, Guid userId, TenantMemberRole role, int cost, CancellationToken cancellationToken,
+        string reason = "spend", Guid? referenceId = null, string? referenceType = null)
     {
         var gate = LockFor(tenantId);
         await gate.WaitAsync(cancellationToken);
         try
         {
+            Guid? spendingMemberId = null;
+
             if (role.HasAtLeast(TenantMemberRole.Admin))
             {
                 var tenant = await dbContext.Tenants.FirstAsync(t => t.Id == tenantId, cancellationToken);
@@ -81,7 +86,20 @@ public static class CoinPolicy
                 }
 
                 member.SpentCoins += cost;
+                spendingMemberId = member.Id;
             }
+
+            dbContext.CoinLedgerEntries.Add(new CoinLedgerEntry
+            {
+                Id = Guid.NewGuid(),
+                TenantId = tenantId,
+                TenantMemberId = spendingMemberId,
+                Amount = -cost,
+                Reason = reason,
+                ReferenceId = referenceId,
+                ReferenceType = referenceType,
+                CreatedAt = DateTime.UtcNow
+            });
 
             await dbContext.SaveChangesAsync(cancellationToken);
             return true;

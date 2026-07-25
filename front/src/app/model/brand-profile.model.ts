@@ -46,6 +46,53 @@ export interface CreateBrandProfileResponse {
   isDefault: boolean;
 }
 
+/** GET /api/v1/brand-profiles/{id} — Rawaj.Application.Features.Brands.GetBrandProfile.GetBrandProfileResponse.
+ *  The full record (unlike BrandProfileSummary, includes targetAudience/websiteUrl/supportedLanguages/keywords). */
+export interface BrandProfileDetail {
+  brandProfileId: string;
+  name: string;
+  description?: string;
+  brandVoice?: BrandVoice;
+  status: BrandProfileStatus;
+  isDefault: boolean;
+  tagline?: string;
+  industry?: string;
+  targetAudience?: string;
+  colors: string[];
+  logoUrl?: string;
+  websiteUrl?: string;
+  supportedLanguages: string[];
+  keywords: string[];
+}
+
+/** PUT /api/v1/brand-profiles/{id} — Rawaj.Application.Features.Brands.UpdateBrandProfile.UpdateBrandProfileCommand.
+ *  Partial update: omitted/undefined fields are left unchanged server-side. Requires Editor role
+ *  and — for Editor/Viewer — a TenantMemberBrandAccess row scoping the member to this brand. */
+export interface UpdateBrandProfileRequest {
+  name?: string;
+  description?: string;
+  brandVoice?: BrandVoice;
+  tagline?: string;
+  industry?: string;
+  targetAudience?: string;
+  colors?: string[];
+  logoUrl?: string;
+  websiteUrl?: string;
+  supportedLanguages?: string[];
+  keywords?: string[];
+}
+
+/** Rawaj.Application.Features.Brands.UpdateBrandProfile.UpdateBrandProfileResponse — a smaller
+ *  echo than BrandProfileDetail; callers re-fetch getDetail() for the full record after saving. */
+export interface UpdateBrandProfileResponse {
+  brandProfileId: string;
+  name: string;
+  description?: string;
+  brandVoice?: BrandVoice;
+  status: BrandProfileStatus;
+  isDefault: boolean;
+}
+
 export const BRAND_VOICE_LABELS: Record<BrandVoice, string> = {
   professional: 'احترافي',
   friendly: 'ودود',

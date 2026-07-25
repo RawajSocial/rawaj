@@ -27,13 +27,24 @@ public class CreateCampaignCommandHandler(
 
         // Every plan (including Free) now allows at least one campaign a month — campaign creation
         // is no longer gated behind a paid subscription.
-        var maxCampaignsMonthly = await (
+        var tenantInfo = await (
             from tenant in dbContext.Tenants
             join subscription in dbContext.Subscriptions on tenant.SubscriptionId equals subscription.Id
             join subscriptionPlan in dbContext.SubscriptionPlans on subscription.SubscriptionPlanId equals subscriptionPlan.Id
             where tenant.Id == tenantId
-            select subscriptionPlan.MaxCampaignsMonthly
+            select new { subscriptionPlan.MaxCampaignsMonthly, tenant.IsActivated }
         ).FirstAsync(cancellationToken);
+
+        // The frontend gates campaign pages behind tenant activation (brandAccessGuard) — this was
+        // previously frontend-only; enforce it here too so it isn't just a UX gate an API client
+        // could bypass. Only the tenant owner can complete activation (business-profile info).
+        if (!tenantInfo.IsActivated)
+        {
+            return Result<CreateCampaignResponse>.Failure(
+                "This tenant hasn't completed its business profile activation yet. The tenant owner must complete it in Settings first.");
+        }
+
+        var maxCampaignsMonthly = tenantInfo.MaxCampaignsMonthly;
 
         var now = DateTime.UtcNow;
         var monthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);

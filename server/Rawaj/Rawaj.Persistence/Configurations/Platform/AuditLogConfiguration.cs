@@ -20,6 +20,8 @@ public class AuditLogConfiguration : IEntityTypeConfiguration<AuditLog>
         builder.Property(l => l.IpAddress).HasMaxLength(45);
         builder.Property(l => l.UserAgent).HasColumnType("nvarchar(max)");
         builder.Property(l => l.Metadata).HasColumnType("nvarchar(max)");
+        builder.Property(l => l.OldValue).HasMaxLength(500);
+        builder.Property(l => l.NewValue).HasMaxLength(500);
 
         builder.HasOne<ApplicationUser>()
             .WithMany()
@@ -31,6 +33,6 @@ public class AuditLogConfiguration : IEntityTypeConfiguration<AuditLog>
             .HasForeignKey(l => l.TenantId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasIndex(l => l.TenantId);
+        builder.HasIndex(l => new { l.TenantId, l.CreatedAt });
     }
 }

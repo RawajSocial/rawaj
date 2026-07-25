@@ -18,6 +18,7 @@ public class GenerateCampaignContentCommandHandler(
     ICurrentTenantContext currentTenantContext,
     IAiTextGenerationService textGenerationService,
     IAiImageGenerationService imageGenerationService,
+    IMediaStorageService mediaStorageService,
     ICoinCostProvider coinCostProvider)
     : IRequestHandler<GenerateCampaignContentCommand, Result<GenerateCampaignContentResponse>>
 {
@@ -145,7 +146,7 @@ public class GenerateCampaignContentCommandHandler(
                 "Could not parse the AI-generated campaign posts. Please try again.");
         }
 
-        await CoinPolicy.TrySpendAsync(dbContext, tenantId, userId, role, coinCost, cancellationToken);
+        await CoinPolicy.TrySpendAsync(dbContext, tenantId, userId, role, coinCost, cancellationToken, reason: "campaign_content_generation");
 
         var contentItemEntities = new List<ContentItem>();
         foreach (var draft in createdItems)
@@ -218,22 +219,41 @@ public class GenerateCampaignContentCommandHandler(
                     continue;
                 }
 
-                var dataUrl = $"data:{imageGeneration.ContentType};base64,{Convert.ToBase64String(imageGeneration.ImageBytes!)}";
-
-                dbContext.VisualAssets.Add(new VisualAsset
+                var visualAsset = new VisualAsset
                 {
                     Id = visualAssetId,
                     ContentItemId = entity.Id,
                     CampaignId = campaign.Id,
                     BrandProfileId = brand.Id,
+                    TenantId = tenantId,
+                    GenerationMode = GenerationMode.Campaign,
                     Type = VisualAssetType.Image,
-                    FileUrl = dataUrl,
                     SourceType = VisualAssetSourceType.AiGenerated,
                     AiPrompt = imagePrompt,
                     Format = imageGeneration.ContentType?.Split('/').Last(),
                     IsApproved = false,
                     CreatedAt = imageNow
-                });
+                };
+
+                if (mediaStorageService.IsConfigured)
+                {
+                    var upload = await mediaStorageService.UploadImageAsync(
+                        imageGeneration.ImageBytes!, imageGeneration.ContentType ?? "image/jpeg", $"visual-assets/{tenantId}", cancellationToken);
+                    visualAsset.FileUrl = upload.Url;
+                    visualAsset.PublicId = upload.PublicId;
+                    visualAsset.WidthPx = upload.WidthPx;
+                    visualAsset.HeightPx = upload.HeightPx;
+                    visualAsset.FileSizeBytes = upload.FileSizeBytes;
+                    visualAsset.MimeType = upload.MimeType;
+                    visualAsset.StorageProvider = "Cloudinary";
+                    visualAsset.UploadedAt = imageNow;
+                }
+                else
+                {
+                    visualAsset.FileUrl = $"data:{imageGeneration.ContentType};base64,{Convert.ToBase64String(imageGeneration.ImageBytes!)}";
+                }
+
+                dbContext.VisualAssets.Add(visualAsset);
 
                 imagesGenerated++;
             }

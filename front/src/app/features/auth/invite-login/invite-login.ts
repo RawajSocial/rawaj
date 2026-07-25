@@ -34,6 +34,10 @@ export class InviteLogin implements OnInit {
   protected readonly acceptError = signal<string | null>(null);
   protected readonly accepted = signal(false);
 
+  protected readonly declining = signal(false);
+  protected readonly declineError = signal<string | null>(null);
+  protected readonly declined = signal(false);
+
   /** Whether the currently signed-in user IS the person this invite was addressed to — an
    *  already-authenticated session with a different email must never be able to accept someone
    *  else's invite just by clicking a link. Fails **closed**: if we're authenticated but the
@@ -110,6 +114,32 @@ export class InviteLogin implements OnInit {
       error: err => {
         this.accepting.set(false);
         this.acceptError.set(extractApiErrorMessage(err, 'تعذّر قبول الدعوة.'));
+      },
+    });
+  }
+
+  protected brandInitial(name: string): string {
+    return name.trim().charAt(0).toUpperCase() || '؟';
+  }
+
+  /** Existing-account path: declines the invite so it stops showing up as pending. */
+  protected declineAsSignedInUser(): void {
+    const tenantMemberId = this.details()?.tenantMemberId;
+    if (!tenantMemberId) return;
+    this.declining.set(true);
+    this.declineError.set(null);
+    this.teamMemberService.declineInvite(tenantMemberId).subscribe({
+      next: res => {
+        this.declining.set(false);
+        if (res.status !== 'success') {
+          this.declineError.set(res.message ?? 'تعذّر رفض الدعوة.');
+          return;
+        }
+        this.declined.set(true);
+      },
+      error: err => {
+        this.declining.set(false);
+        this.declineError.set(extractApiErrorMessage(err, 'تعذّر رفض الدعوة.'));
       },
     });
   }

@@ -30,4 +30,6 @@ public interface IIdentityService
     Task<(List<ApplicationUserDto> Users, int TotalCount)> ListUsersAsync(int page, int pageSize, CancellationToken cancellationToken);
 
     Task<bool> SetActiveAsync(Guid userId, bool isActive, CancellationToken cancellationToken);
+
+    Task<bool> MarkEmailConfirmedAsync(Guid userId, CancellationToken cancellationToken);
 }

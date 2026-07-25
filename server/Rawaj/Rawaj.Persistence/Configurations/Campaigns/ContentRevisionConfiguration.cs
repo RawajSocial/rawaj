@@ -26,5 +26,8 @@ public class ContentRevisionConfiguration : IEntityTypeConfiguration<ContentRevi
             .WithMany()
             .HasForeignKey(r => r.RevisedBy)
             .OnDelete(DeleteBehavior.Restrict);
+
+        // Matches ContentItem's own IsDeleted filter — required (non-nullable) FK.
+        builder.HasQueryFilter(r => !r.ContentItem.IsDeleted);
     }
 }

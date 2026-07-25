@@ -98,6 +98,8 @@ public class AcceptInvitationAndRegisterCommandHandler(
         invitation.Status = InvitationStatus.Accepted;
         invitation.AcceptedAt = now;
 
+        AccountSetupPolicy.MarkCompleted(dbContext, userDto.Id);
+
         AuditLogger.Log(
             dbContext, invitation.TenantId, userDto.Id, "team.invite_accepted",
             message: $"{invitation.Email} registered and joined as {invitation.Role}.",

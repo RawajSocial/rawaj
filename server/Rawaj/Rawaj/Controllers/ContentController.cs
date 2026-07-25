@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Rawaj.Application.Common.Models;
 using Rawaj.Application.Features.Content.GenerateContentItem;
 using Rawaj.Application.Features.Content.GetContentItem;
@@ -17,6 +18,7 @@ namespace Rawaj.Controllers;
 [Route("api/v1/content-items")]
 public class ContentController(ISender sender) : ControllerBase
 {
+    [EnableRateLimiting("ai-generation")]
     [HttpPost("generate")]
     public async Task<IActionResult> Generate(GenerateContentItemCommand command, CancellationToken cancellationToken)
     {
@@ -59,6 +61,7 @@ public class ContentController(ISender sender) : ControllerBase
             : BadRequest(ApiResponse<ReviewContentItemResponse>.Fail(result.ErrorMessage!));
     }
 
+    [EnableRateLimiting("ai-generation")]
     [HttpPost("{contentItemId:guid}/regenerate")]
     public async Task<IActionResult> Regenerate(Guid contentItemId, [FromBody] RegenerateContentItemRequest request, CancellationToken cancellationToken)
     {

@@ -71,7 +71,7 @@ public class GenerateOnboardingQuestionsCommandHandler(
                 generation.ErrorMessage ?? "Could not generate onboarding questions. Please try again.");
         }
 
-        await CoinPolicy.TrySpendAsync(dbContext, tenantId, userId, role, coinCost, cancellationToken);
+        await CoinPolicy.TrySpendAsync(dbContext, tenantId, userId, role, coinCost, cancellationToken, reason: "onboarding_questions");
 
         await dbContext.SaveChangesAsync(cancellationToken);
 

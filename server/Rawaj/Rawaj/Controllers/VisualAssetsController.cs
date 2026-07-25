@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Rawaj.Application.Common.Models;
 using Rawaj.Application.Features.Content.GenerateVisualAsset;
 using Rawaj.Application.Features.Content.GetVisualAssets;
@@ -14,6 +15,7 @@ namespace Rawaj.Controllers;
 [Route("api/v1/visual-assets")]
 public class VisualAssetsController(ISender sender) : ControllerBase
 {
+    [EnableRateLimiting("ai-generation")]
     [HttpPost("generate")]
     public async Task<IActionResult> Generate(GenerateVisualAssetCommand command, CancellationToken cancellationToken)
     {
@@ -26,10 +28,11 @@ public class VisualAssetsController(ISender sender) : ControllerBase
 
     [HttpGet]
     public async Task<IActionResult> GetAll(
-        [FromQuery] Guid brandProfileId, [FromQuery] Guid? campaignId, [FromQuery] int page = 1, [FromQuery] int pageSize = 20,
+        [FromQuery] Guid brandProfileId, [FromQuery] Guid? campaignId, [FromQuery] string? search = null,
+        [FromQuery] int page = 1, [FromQuery] int pageSize = 20,
         CancellationToken cancellationToken = default)
     {
-        var result = await sender.Send(new GetVisualAssetsQuery(brandProfileId, campaignId, page, pageSize), cancellationToken);
+        var result = await sender.Send(new GetVisualAssetsQuery(brandProfileId, campaignId, search, page, pageSize), cancellationToken);
 
         return result.Succeeded
             ? Ok(ApiResponse<PagedResult<VisualAssetSummary>>.Success(result.Data!))

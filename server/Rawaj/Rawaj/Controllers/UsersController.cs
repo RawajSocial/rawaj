@@ -1,11 +1,14 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Rawaj.Application.Features.Users.ChangeMyPassword;
 using Rawaj.Application.Features.Users.DeleteMyAvatar;
 using Rawaj.Application.Features.Users.GetMyProfile;
+using Rawaj.Application.Features.Users.RequestEmailOtp;
 using Rawaj.Application.Features.Users.UpdateMyAvatar;
 using Rawaj.Application.Features.Users.UpdateMyProfile;
+using Rawaj.Application.Features.Users.VerifyEmailOtp;
 using Rawaj.Common;
 
 namespace Rawaj.Controllers;
@@ -63,6 +66,28 @@ public class UsersController(ISender sender) : ControllerBase
     public async Task<IActionResult> DeleteAvatar(CancellationToken cancellationToken)
     {
         var result = await sender.Send(new DeleteMyAvatarCommand(), cancellationToken);
+
+        return result.Succeeded
+            ? Ok(ApiResponse<bool>.Success(result.Data))
+            : BadRequest(ApiResponse<bool>.Fail(result.ErrorMessage!));
+    }
+
+    [HttpPost("me/email/request-otp")]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> RequestEmailOtp(CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new RequestEmailOtpCommand(), cancellationToken);
+
+        return result.Succeeded
+            ? Ok(ApiResponse<bool>.Success(result.Data))
+            : BadRequest(ApiResponse<bool>.Fail(result.ErrorMessage!));
+    }
+
+    [HttpPost("me/email/verify-otp")]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> VerifyEmailOtp(VerifyEmailOtpCommand command, CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(command, cancellationToken);
 
         return result.Succeeded
             ? Ok(ApiResponse<bool>.Success(result.Data))

@@ -31,6 +31,12 @@ export const userRoutes: Routes = [
       import('../features/brand-profiles/brand-profile-create-page/brand-profile-create-page').then((m) => m.BrandProfileCreatePage),
   },
   {
+    path: 'brand-profiles/:id',
+    canActivate: [activationGuard],
+    loadComponent: () =>
+      import('../features/brand-profiles/brand-profile-detail-page/brand-profile-detail-page').then((m) => m.BrandProfileDetailPage),
+  },
+  {
     path: 'campaigns',
     canActivate: [brandAccessGuard],
     loadComponent: () =>

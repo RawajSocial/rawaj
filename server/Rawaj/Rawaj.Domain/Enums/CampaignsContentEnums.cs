@@ -66,3 +66,17 @@ public enum ContentTemplateStyle
     Testimonial,
     Announcement
 }
+
+/// <summary>
+/// What a generated ContentItem/VisualAsset is scoped to — makes the business intent explicit in
+/// the data rather than inferred from which of BrandProfileId/CampaignId happen to be null.
+/// </summary>
+public enum GenerationMode
+{
+    /// <summary>No brand profile — a "try the product" generation, not tied to any tenant brand.</summary>
+    Standalone,
+    /// <summary>A brand profile, but no specific campaign.</summary>
+    Brand,
+    /// <summary>Generated as part of a specific campaign (always implies a brand too).</summary>
+    Campaign
+}

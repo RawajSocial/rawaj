@@ -80,4 +80,45 @@ public static class EmailTemplates
 
         return new EmailContent($"دعوة للانضمام إلى {tenantName} على رواج", html, text);
     }
+
+    public static EmailContent EmailVerificationOtp(string code)
+    {
+        var html = $$"""
+            <table dir="rtl" width="100%" cellpadding="0" cellspacing="0" style="font-family: Tahoma, Arial, sans-serif; background:#f4f4f7; padding:24px 0;">
+              <tr><td align="center">
+                <table width="480" cellpadding="0" cellspacing="0" style="background:#ffffff; border-radius:12px; padding:32px;">
+                  <tr><td>
+                    <h2 style="margin:0 0 16px; color:#111827;">تأكيد البريد الإلكتروني</h2>
+                    <p style="margin:0 0 12px; color:#374151; line-height:1.6;">
+                      استخدم الرمز التالي لتأكيد بريدك الإلكتروني. صلاحية الرمز 10 دقائق.
+                    </p>
+                    <table cellpadding="0" cellspacing="0" style="margin:20px 0;">
+                      <tr><td style="background:#f4f4f7; border-radius:8px; padding:16px 28px;">
+                        <span style="font-size:32px; font-weight:bold; letter-spacing:8px; color:#111827;">{{code}}</span>
+                      </td></tr>
+                    </table>
+                    <p style="margin:0; color:#9ca3af; font-size:13px;">
+                      إذا لم تطلب هذا الرمز، يمكنك تجاهل هذه الرسالة بأمان.
+                    </p>
+                    <p style="margin:24px 0 0; color:#9ca3af; font-size:13px;">فريق رواج</p>
+                  </td></tr>
+                </table>
+              </td></tr>
+            </table>
+            """;
+
+        var text = $"""
+            تأكيد البريد الإلكتروني
+
+            استخدم الرمز التالي لتأكيد بريدك الإلكتروني. صلاحية الرمز 10 دقائق.
+
+            {code}
+
+            إذا لم تطلب هذا الرمز، يمكنك تجاهل هذه الرسالة بأمان.
+
+            فريق رواج
+            """;
+
+        return new EmailContent("رمز تأكيد البريد الإلكتروني - رواج", html, text);
+    }
 }

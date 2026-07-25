@@ -24,6 +24,11 @@ public class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Exception
             await WriteResponseAsync(context, HttpStatusCode.Forbidden,
                 ApiResponse<object>.Fail(ex.Message));
         }
+        catch (ConcurrencyConflictException ex)
+        {
+            await WriteResponseAsync(context, HttpStatusCode.Conflict,
+                ApiResponse<object>.Fail(ex.Message));
+        }
         catch (Exception ex)
         {
             logger.LogError(ex, "Unhandled exception occurred while processing {Method} {Path}",

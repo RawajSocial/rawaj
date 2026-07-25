@@ -17,6 +17,9 @@ public class GetMyMembershipsQueryHandler(IApplicationDbContext dbContext, ICurr
             return Result<List<MembershipSummary>>.Failure("Unauthorized.");
         }
 
+        var accountSetupCompleted = await dbContext.AccountSetups
+            .AnyAsync(a => a.UserId == userId && a.CompletedAt != null, cancellationToken);
+
         var rows = await (
             from member in dbContext.TenantMembers
             join tenant in dbContext.Tenants on member.TenantId equals tenant.Id
@@ -43,7 +46,8 @@ public class GetMyMembershipsQueryHandler(IApplicationDbContext dbContext, ICurr
                 r.Role,
                 r.OwnerUserId == userId,
                 r.IsActivated,
-                r.Role.HasAtLeast(TenantMemberRole.Admin) ? r.CoinBalance : r.AllocatedCoins - r.SpentCoins))
+                r.Role.HasAtLeast(TenantMemberRole.Admin) ? r.CoinBalance : r.AllocatedCoins - r.SpentCoins,
+                accountSetupCompleted))
             .OrderByDescending(s => s.IsOwner)
             .ThenBy(s => s.Name)
             .ToList();

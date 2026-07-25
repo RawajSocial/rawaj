@@ -212,7 +212,7 @@ public class ScheduleCampaignPostsCommandHandler(
                 $"Could not schedule with {socialAccount.Platform}: {scheduledPost.ErrorMessage}", null, null);
         }
 
-        await CoinPolicy.TrySpendAsync(dbContext, tenantId, userId, role, coinCost, cancellationToken);
+        await CoinPolicy.TrySpendAsync(dbContext, tenantId, userId, role, coinCost, cancellationToken, reason: "scheduling");
         await dbContext.SaveChangesAsync(cancellationToken);
 
         var post = handoffResult.Data!;

@@ -69,13 +69,18 @@
 
           <!-- Actions -->
           <div class="bp-card__actions">
+            <a class="bp-card__action" [routerLink]="['/dashboard/brand-profiles', profile.id]">
+              عرض التفاصيل
+            </a>
             <a class="bp-card__action bp-card__action--primary" [routerLink]="['/dashboard/campaigns']" [queryParams]="{ brandProfileId: profile.id }">
               عرض الحملات
               <i class="fa-solid fa-arrow-left"></i>
             </a>
-            <button type="button" class="bp-card__action-icon" appTooltip="أرشفة الملف" aria-label="أرشفة الملف" (click)="archive(profile.id)">
-              <i class="fa-solid fa-box-archive"></i>
-            </button>
+            @if (canArchive()) {
+              <button type="button" class="bp-card__action-icon" appTooltip="أرشفة الملف" aria-label="أرشفة الملف" (click)="archive(profile.id)">
+                <i class="fa-solid fa-box-archive"></i>
+              </button>
+            }
           </div>
         </div>
       }

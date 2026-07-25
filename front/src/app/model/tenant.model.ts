@@ -79,4 +79,7 @@ export interface TenantMembership {
   isOwner: boolean;
   isActivated: boolean;
   myCoinBalance: number;
+  /** Whether the CALLING user (not this tenant) finished their personal account setup — identical
+   *  across every membership row. Gates an invited (non-owner) member's baseline access. */
+  accountSetupCompleted: boolean;
 }

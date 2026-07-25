@@ -26,5 +26,8 @@ public class CompetitorConfiguration : IEntityTypeConfiguration<Competitor>
             .WithOne(r => r.Competitor)
             .HasForeignKey(r => r.CompetitorId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        // Matches TenantBrandProfile's own IsDeleted filter — required (non-nullable) FK.
+        builder.HasQueryFilter(c => !c.BrandProfile.IsDeleted);
     }
 }

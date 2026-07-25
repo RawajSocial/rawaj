@@ -25,5 +25,9 @@ public class SocialAccountConfiguration : IEntityTypeConfiguration<SocialAccount
             .WithMany()
             .HasForeignKey(s => s.BrandProfileId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        // Matches TenantBrandProfile's own IsDeleted filter — required (non-nullable) FK, so
+        // without this, a social account would keep showing up after its brand was soft-deleted.
+        builder.HasQueryFilter(s => !s.BrandProfile.IsDeleted);
     }
 }

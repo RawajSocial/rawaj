@@ -15,6 +15,9 @@ public class GetVisualAssetsQueryHandler(IApplicationDbContext dbContext)
         var query = dbContext.VisualAssets
             .Where(a => a.BrandProfileId == request.BrandProfileId)
             .Where(a => request.CampaignId == null || a.CampaignId == request.CampaignId)
+            // No dedicated title/description field exists on VisualAsset yet — AiPrompt is the
+            // closest free-text field, so search matches against that.
+            .Where(a => string.IsNullOrWhiteSpace(request.Search) || (a.AiPrompt != null && a.AiPrompt.Contains(request.Search)))
             .OrderByDescending(a => a.CreatedAt);
 
         var totalCount = await query.CountAsync(cancellationToken);

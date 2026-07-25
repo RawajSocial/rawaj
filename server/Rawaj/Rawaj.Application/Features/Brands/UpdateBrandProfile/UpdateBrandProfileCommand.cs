@@ -21,7 +21,9 @@ public record UpdateBrandProfileCommand(
     string? LogoUrl,
     string? WebsiteUrl,
     List<string>? SupportedLanguages,
-    List<string>? Keywords) : IRequest<Result<UpdateBrandProfileResponse>>, IRequireTenantRole
+    List<string>? Keywords) : IRequest<Result<UpdateBrandProfileResponse>>, IRequireTenantRole, IRequireBrandAccess
 {
-    public TenantMemberRole MinimumRole => TenantMemberRole.Admin;
+    // Editor is the role invites use to grant "can edit this brand" access; BrandAccessAuthorizationBehavior
+    // still requires a matching TenantMemberBrandAccess row for Editor/Viewer (Owner/Admin bypass it).
+    public TenantMemberRole MinimumRole => TenantMemberRole.Editor;
 }

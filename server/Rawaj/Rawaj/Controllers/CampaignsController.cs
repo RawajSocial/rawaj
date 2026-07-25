@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Rawaj.Application.Common.Models;
 using Rawaj.Application.Features.Campaigns.ApproveCampaignPlan;
 using Rawaj.Application.Features.Campaigns.ArchiveCampaign;
@@ -79,6 +80,7 @@ public class CampaignsController(ISender sender) : ControllerBase
             : BadRequest(ApiResponse<bool>.Fail(result.ErrorMessage!));
     }
 
+    [EnableRateLimiting("ai-generation")]
     [HttpPost("{campaignId:guid}/research-competitors")]
     public async Task<IActionResult> ResearchCompetitors(Guid campaignId, CancellationToken cancellationToken)
     {
@@ -89,6 +91,7 @@ public class CampaignsController(ISender sender) : ControllerBase
             : BadRequest(ApiResponse<ResearchCampaignCompetitorsResponse>.Fail(result.ErrorMessage!));
     }
 
+    [EnableRateLimiting("ai-generation")]
     [HttpPost("{campaignId:guid}/diagnose-business")]
     public async Task<IActionResult> DiagnoseBusiness(Guid campaignId, CancellationToken cancellationToken)
     {
@@ -99,6 +102,7 @@ public class CampaignsController(ISender sender) : ControllerBase
             : BadRequest(ApiResponse<GenerateBusinessDiagnosisResponse>.Fail(result.ErrorMessage!));
     }
 
+    [EnableRateLimiting("ai-generation")]
     [HttpPost("{campaignId:guid}/generate-plan")]
     public async Task<IActionResult> GeneratePlan(Guid campaignId, CancellationToken cancellationToken)
     {
@@ -109,6 +113,7 @@ public class CampaignsController(ISender sender) : ControllerBase
             : BadRequest(ApiResponse<GenerateMarketingPlanResponse>.Fail(result.ErrorMessage!));
     }
 
+    [EnableRateLimiting("ai-generation")]
     [HttpPost("{campaignId:guid}/refine-plan")]
     public async Task<IActionResult> RefinePlan(Guid campaignId, [FromBody] RefineCampaignPlanRequest request, CancellationToken cancellationToken)
     {
@@ -139,6 +144,7 @@ public class CampaignsController(ISender sender) : ControllerBase
             : BadRequest(ApiResponse<ScheduleCampaignPostsResponse>.Fail(result.ErrorMessage!));
     }
 
+    [EnableRateLimiting("ai-generation")]
     [HttpPost("{campaignId:guid}/generate-content")]
     public async Task<IActionResult> GenerateContent(Guid campaignId, [FromBody] GenerateCampaignContentRequest request, CancellationToken cancellationToken)
     {

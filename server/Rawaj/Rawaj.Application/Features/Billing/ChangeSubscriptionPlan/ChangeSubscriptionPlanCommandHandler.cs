@@ -64,6 +64,17 @@ public class ChangeSubscriptionPlanCommandHandler(IApplicationDbContext dbContex
                 CoinsGranted = plan.MonthlyCoinGrant,
                 CreatedAt = now
             });
+
+            dbContext.CoinLedgerEntries.Add(new CoinLedgerEntry
+            {
+                Id = Guid.NewGuid(),
+                TenantId = tenantId,
+                Amount = plan.MonthlyCoinGrant,
+                Reason = "plan_change_grant",
+                ReferenceType = "subscription",
+                ReferenceId = subscription.Id,
+                CreatedAt = now
+            });
         }
 
         // Only the Free plan is a "business owner" per the pricing sheet — any paid plan implies

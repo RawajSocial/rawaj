@@ -13,6 +13,7 @@ namespace Rawaj.Application.Common.Interfaces;
 public interface IApplicationDbContext
 {
     DbSet<Tenant> Tenants { get; }
+    DbSet<AccountSetup> AccountSetups { get; }
     DbSet<TenantMember> TenantMembers { get; }
     DbSet<TenantMemberBrandAccess> TenantMemberBrandAccesses { get; }
     DbSet<TenantInvitation> TenantInvitations { get; }
@@ -21,6 +22,7 @@ public interface IApplicationDbContext
     DbSet<Subscription> Subscriptions { get; }
     DbSet<CoinPackage> CoinPackages { get; }
     DbSet<BillingTransaction> BillingTransactions { get; }
+    DbSet<CoinLedgerEntry> CoinLedgerEntries { get; }
     DbSet<MarketingCampaign> MarketingCampaigns { get; }
     DbSet<ContentItem> ContentItems { get; }
     DbSet<ContentRevision> ContentRevisions { get; }
@@ -32,8 +34,10 @@ public interface IApplicationDbContext
     DbSet<ScheduledPost> ScheduledPosts { get; }
     DbSet<PostAnalytics> PostAnalytics { get; }
     DbSet<Notification> Notifications { get; }
+    DbSet<OutboxMessage> OutboxMessages { get; }
     DbSet<AuditLog> AuditLogs { get; }
     DbSet<RefreshToken> RefreshTokens { get; }
+    DbSet<EmailOtpCode> EmailOtpCodes { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }

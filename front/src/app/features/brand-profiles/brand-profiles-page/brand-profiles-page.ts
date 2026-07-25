@@ -1,10 +1,11 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { PageHeader } from '../../../shared/components/page-header/page-header';
 import { BrandProfileService } from '../../../services/brand-profile.service';
 import { CampaignService } from '../../../services/campaign.service';
 import { BRAND_PROFILE_STATUS_LABELS, BRAND_VOICE_LABELS } from '../../../model/brand-profile.model';
 import { SeoService } from '../../../services/seo.service';
+import { TenantService } from '../../../core/tenant/tenant.service';
 import { TooltipDirective } from '../../../shared/directives/tooltip.directive';
 import { ErrorModalService } from '../../../services/error-modal.service';
 import { LoaderService } from '../../../services/loader.service';
@@ -20,6 +21,7 @@ import { extractApiErrorMessage } from '../../../core/auth/api-error.util';
 export class BrandProfilesPage {
   private readonly brandProfileService = inject(BrandProfileService);
   private readonly campaignService = inject(CampaignService);
+  private readonly tenantService = inject(TenantService);
   private readonly seo = inject(SeoService);
   private readonly errorModalService = inject(ErrorModalService);
   private readonly loaderService = inject(LoaderService);
@@ -27,6 +29,13 @@ export class BrandProfilesPage {
   protected readonly profiles = this.brandProfileService.profiles;
   protected readonly statusLabels = BRAND_PROFILE_STATUS_LABELS;
   protected readonly voiceLabels = BRAND_VOICE_LABELS;
+
+  /** Archiving is Admin-only server-side (ArchiveBrandProfileCommand) — hide the action for
+   *  Editor/Viewer rather than letting them hit a 403 after clicking it. */
+  protected readonly canArchive = computed(() => {
+    const role = this.tenantService.tenant()?.role;
+    return role === 'Owner' || role === 'Admin';
+  });
 
   constructor() {
     this.seo.setPageSeo({

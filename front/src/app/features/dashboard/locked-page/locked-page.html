@@ -3,7 +3,18 @@
     <div class="locked-icon">
       <i class="fa-solid fa-lock"></i>
     </div>
-    @if (needsActivation()) {
+    @if (reason() === 'account-setup') {
+      <h2 class="locked-title">قم بإنهاء الحساب</h2>
+      <p class="locked-message">
+        يجب إكمال إعداد حسابك الشخصي أولًا للوصول إلى هذه الصفحة.
+      </p>
+    } @else if (needsActivation() && isInvitedMember()) {
+      <h2 class="locked-title">بانتظار تفعيل الحساب</h2>
+      <p class="locked-message">
+        هذه الصفحة تتطلب إكمال بيانات النشاط التجاري الخاصة بالمؤسسة التي دعتك — يرجى التواصل مع
+        مالك الحساب لإكمالها. يمكنك في هذه الأثناء استخدام صفحتي توليد المحتوى وإعلاناتي.
+      </p>
+    } @else if (needsActivation()) {
       <h2 class="locked-title">قم بإنهاء بيانات حسابك</h2>
       <p class="locked-message">
         هذه الصفحة تتطلب إكمال بيانات النشاط التجاري لحسابك أولًا. أكمل رقم الهاتف والمجال والدولة

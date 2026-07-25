@@ -10,7 +10,8 @@ namespace Rawaj.Application.Features.AiTrial.GenerateTrialImage;
 public class GenerateTrialImageCommandHandler(
     IApplicationDbContext dbContext,
     ICurrentUserService currentUserService,
-    IAiImageGenerationService imageGenerationService)
+    IAiImageGenerationService imageGenerationService,
+    IMediaStorageService mediaStorageService)
     : IRequestHandler<GenerateTrialImageCommand, Result<GenerateTrialImageResponse>>
 {
     public async Task<Result<GenerateTrialImageResponse>> Handle(
@@ -56,10 +57,24 @@ public class GenerateTrialImageCommandHandler(
                 generation.ErrorMessage ?? "Image generation failed. Please try again.");
         }
 
-        var dataUrl = $"data:{generation.ContentType};base64,{Convert.ToBase64String(generation.ImageBytes!)}";
+        // Trial images are never persisted (no VisualAsset row), so there's no PublicId to store —
+        // just return whatever URL the caller can render. Uploaded under a dedicated "trial" folder
+        // since these are never linked from an entity and so can never be individually cleaned up.
+        string imageUrl;
+        if (mediaStorageService.IsConfigured)
+        {
+            var upload = await mediaStorageService.UploadImageAsync(
+                generation.ImageBytes!, generation.ContentType ?? "image/jpeg", "trial-images", cancellationToken);
+            imageUrl = upload.Url;
+        }
+        else
+        {
+            imageUrl = $"data:{generation.ContentType};base64,{Convert.ToBase64String(generation.ImageBytes!)}";
+        }
+
         var remaining = TrialUsagePolicy.DailyLimit - (usedToday + 1);
 
         return Result<GenerateTrialImageResponse>.Success(
-            new GenerateTrialImageResponse(dataUrl, Math.Max(0, remaining)));
+            new GenerateTrialImageResponse(imageUrl, Math.Max(0, remaining)));
     }
 }

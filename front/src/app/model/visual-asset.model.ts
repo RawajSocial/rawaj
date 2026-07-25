@@ -8,9 +8,11 @@ export interface VisualAssetSummary {
   createdAt: string;
 }
 
-/** POST /api/v1/visual-assets/generate request body — GenerateVisualAssetCommand. */
+/** POST /api/v1/visual-assets/generate request body — GenerateVisualAssetCommand.
+ *  `brandProfileId` is optional — omitting it produces a "standalone" generation not tied to any
+ *  brand, for trying the product out before a brand profile exists. */
 export interface GenerateVisualAssetInput {
-  brandProfileId: string;
+  brandProfileId?: string;
   campaignId?: string;
   contentItemId?: string;
   type: VisualAssetSummary['type'];

@@ -4,11 +4,12 @@ using Rawaj.Domain.Enums;
 
 namespace Rawaj.Domain.Entities.Campaigns;
 
-public class ContentItem : BaseEntity
+public class ContentItem : BaseEntity, IConcurrencyAware
 {
     public Guid? CampaignId { get; set; }
     public Guid? TenantId { get; set; }
     public Guid? BrandProfileId { get; set; }
+    public GenerationMode GenerationMode { get; set; }
     public Guid CreatedBy { get; set; }
     public ContentType ContentType { get; set; }
     public SocialPlatform Platform { get; set; }
@@ -25,6 +26,12 @@ public class ContentItem : BaseEntity
     public DateTime? SuggestedPostAt { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
+
+    public byte[] RowVersion { get; set; } = null!;
+
+    public bool IsDeleted { get; set; }
+    public DateTime? DeletedAt { get; set; }
+    public Guid? DeletedBy { get; set; }
 
     public MarketingCampaign? Campaign { get; set; }
     public TenantBrandProfile? BrandProfile { get; set; }

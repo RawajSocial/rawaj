@@ -346,4 +346,46 @@ public static class ContentPromptBuilder
 
         return string.Join(" ", lines);
     }
+
+    /// <summary>Text prompt for a "standalone" generation with no brand profile (trying the product
+    /// out) — same shape as <see cref="BuildTextPrompt"/> minus every brand-identity line.</summary>
+    public static string BuildStandaloneTextPrompt(
+        string contentType,
+        string platform,
+        string language,
+        string? tone,
+        string? additionalInstructions,
+        ContentTemplateStyle templateStyle = ContentTemplateStyle.Auto)
+    {
+        var lines = new List<string>
+        {
+            $"Write a {contentType} for the {platform} platform in {language}.",
+            "No specific brand is set — write generic, broadly applicable marketing copy."
+        };
+
+        if (!string.IsNullOrWhiteSpace(tone))
+        {
+            lines.Add($"Tone: {tone}.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(additionalInstructions))
+        {
+            lines.Add($"Additional instructions: {additionalInstructions}.");
+        }
+
+        lines.Add(ContentTemplateCatalog.StructureGuidance(templateStyle));
+
+        lines.Add("Return only the final copy, no explanations or formatting notes.");
+
+        return string.Join(" ", lines);
+    }
+
+    /// <summary>Image prompt for a "standalone" generation with no brand profile — see
+    /// <see cref="BuildStandaloneTextPrompt"/>.</summary>
+    public static string BuildStandaloneImagePrompt(string visualType, string userPrompt, ContentTemplateStyle templateStyle = ContentTemplateStyle.Auto)
+    {
+        var lines = new List<string> { userPrompt, $"Style fits a {visualType}." };
+        lines.Add(ContentTemplateCatalog.ImageStyleHint(templateStyle));
+        return string.Join(" ", lines);
+    }
 }

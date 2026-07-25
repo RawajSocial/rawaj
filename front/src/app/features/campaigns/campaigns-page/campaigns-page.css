@@ -120,6 +120,9 @@
   background: var(--color-surface);
   transition: border-color 0.2s, background 0.2s, transform 0.2s;
   min-height: 220px;
+  height: 100%;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .new-camp-card:hover {

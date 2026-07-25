@@ -1,7 +1,7 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, signal, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, inject, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Subscription } from 'rxjs';
+import { interval, Subscription, takeWhile } from 'rxjs';
 import { PageHeader } from '../../../../shared/components/page-header/page-header';
 import { FileUpload } from '../../../../shared/components/file-upload/file-upload';
 import { SelectDropdown, SelectOption } from '../../../../shared/components/select-dropdown/select-dropdown';
@@ -66,11 +66,13 @@ export class SettingsPage {
   private readonly confirmDialogService = inject(ConfirmDialogService);
   private readonly loaderService = inject(LoaderService);
   private readonly formErrorsService = inject(FormErrorsService);
+  private readonly destroyRef = inject(DestroyRef);
 
   protected readonly languageOptions = LANGUAGE_OPTIONS;
 
   protected readonly currentUser = this.authService.currentUser;
   protected readonly profileLoaded = computed(() => !!this.currentUser());
+  protected readonly emailConfirmed = computed(() => this.currentUser()?.emailConfirmed ?? false);
 
   protected readonly isAgency = this.tenantService.isAgency;
   protected readonly isActivated = this.tenantService.isActivated;
@@ -257,6 +259,80 @@ export class SettingsPage {
         });
       },
     });
+  }
+
+  protected readonly otpStep = signal<'idle' | 'sent'>('idle');
+  protected readonly otpSending = signal(false);
+  protected readonly otpVerifying = signal(false);
+  protected readonly otpResendCooldown = signal(0);
+  protected readonly otpForm = this.fb.nonNullable.group({
+    code: ['', [Validators.required, Validators.pattern(/^\d{6}$/)]],
+  });
+  private otpCooldownSub?: Subscription;
+
+  protected requestEmailOtp(): void {
+    if (this.otpSending()) return;
+    this.otpSending.set(true);
+    this.authService.requestEmailOtp().subscribe({
+      next: res => {
+        this.otpSending.set(false);
+        if (res.status !== 'success') {
+          this.errorModalService.show(res.message ?? 'تعذّر إرسال رمز التحقق.', { variant: 'error' });
+          return;
+        }
+        this.otpStep.set('sent');
+        this.otpForm.reset();
+        this.startOtpCooldown(60);
+        this.errorModalService.show('تم إرسال رمز التحقق إلى بريدك الإلكتروني.', { variant: 'success' });
+      },
+      error: err => {
+        this.otpSending.set(false);
+        this.errorModalService.show(extractApiErrorMessage(err, 'تعذّر إرسال رمز التحقق. يرجى المحاولة مرة أخرى.'), {
+          variant: 'error',
+        });
+      },
+    });
+  }
+
+  protected verifyEmailOtp(): void {
+    if (this.otpForm.invalid || this.otpVerifying()) {
+      this.otpForm.markAllAsTouched();
+      return;
+    }
+
+    this.otpVerifying.set(true);
+    this.authService.verifyEmailOtp({ code: this.otpForm.getRawValue().code }).subscribe({
+      next: res => {
+        this.otpVerifying.set(false);
+        if (res.status !== 'success') {
+          this.errorModalService.show(res.message ?? 'رمز التحقق غير صحيح.', { variant: 'error' });
+          return;
+        }
+        this.otpStep.set('idle');
+        this.otpCooldownSub?.unsubscribe();
+        this.otpResendCooldown.set(0);
+        this.errorModalService.show('تم تأكيد بريدك الإلكتروني بنجاح.', { variant: 'success' });
+      },
+      error: err => {
+        this.otpVerifying.set(false);
+        this.errorModalService.show(extractApiErrorMessage(err, 'رمز التحقق غير صحيح.'), { variant: 'error' });
+      },
+    });
+  }
+
+  protected otpCodeErrorMessage(): string | null {
+    return this.formErrorsService.getControlErrorMessage(this.otpForm.controls.code, true, {
+      required: 'رمز التحقق مطلوب.',
+      pattern: 'رمز التحقق مكوّن من 6 أرقام.',
+    });
+  }
+
+  private startOtpCooldown(seconds: number): void {
+    this.otpCooldownSub?.unsubscribe();
+    this.otpResendCooldown.set(seconds);
+    this.otpCooldownSub = interval(1000)
+      .pipe(takeUntilDestroyed(this.destroyRef), takeWhile(() => this.otpResendCooldown() > 1))
+      .subscribe(() => this.otpResendCooldown.update(n => n - 1));
   }
 
   protected readonly avatarUpload = viewChild.required<FileUpload>('avatarUpload');

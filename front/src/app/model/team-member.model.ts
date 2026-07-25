@@ -77,6 +77,14 @@ export interface PendingInvitationSummary {
   expiresAt: string;
 }
 
+/** A brand profile within the inviting tenant that this invite grants access to. */
+export interface InvitationBrandSummary {
+  brandProfileId: string;
+  name: string;
+  logoUrl: string | null;
+  industry: string | null;
+}
+
 /** GET /team-members/invitations/{token} — anonymous lookup backing the `/invite` page. Works for
  *  both invite kinds: `requiresRegistration` tells the page whether to show a registration form
  *  (brand-new email) or a "sign in to accept" prompt (existing account). */
@@ -88,6 +96,11 @@ export interface InvitationDetailsResponse {
   requiresRegistration: boolean;
   tenantMemberId: string | null;
   invitationId: string | null;
+  /** Owner/Admin roles get full tenant access rather than being scoped to specific brands —
+   *  `brandProfiles` still lists every brand in that case (all of them apply), but the UI should
+   *  say "full access" rather than implying the invite was deliberately scoped to just those. */
+  fullTenantAccess: boolean;
+  brandProfiles: InvitationBrandSummary[];
 }
 
 export interface AcceptInvitationAndRegisterRequest {

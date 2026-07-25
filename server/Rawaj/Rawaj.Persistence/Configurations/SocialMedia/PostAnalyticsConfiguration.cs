@@ -20,5 +20,9 @@ public class PostAnalyticsConfiguration : IEntityTypeConfiguration<PostAnalytics
             .WithMany(s => s.Analytics)
             .HasForeignKey(p => p.ScheduledPostId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        // Matches ScheduledPost's own filter (itself cascaded from TenantBrandProfile.IsDeleted)
+        // — required (non-nullable) FK.
+        builder.HasQueryFilter(p => !p.ScheduledPost.BrandProfile.IsDeleted);
     }
 }

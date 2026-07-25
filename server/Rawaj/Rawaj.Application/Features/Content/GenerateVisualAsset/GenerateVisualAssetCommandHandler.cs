@@ -7,6 +7,7 @@ using Rawaj.Application.Common.Policies;
 using Rawaj.Application.Features.Content.Common;
 using Rawaj.Domain.Entities.AiOperations;
 using Rawaj.Domain.Entities.Campaigns;
+using Rawaj.Domain.Entities.Tenants;
 using Rawaj.Domain.Enums;
 
 namespace Rawaj.Application.Features.Content.GenerateVisualAsset;
@@ -16,6 +17,7 @@ public class GenerateVisualAssetCommandHandler(
     ICurrentUserService currentUserService,
     ICurrentTenantContext currentTenantContext,
     IAiImageGenerationService imageGenerationService,
+    IMediaStorageService mediaStorageService,
     ICoinCostProvider coinCostProvider)
     : IRequestHandler<GenerateVisualAssetCommand, Result<GenerateVisualAssetResponse>>
 {
@@ -26,18 +28,27 @@ public class GenerateVisualAssetCommandHandler(
         var userId = currentUserService.UserId!.Value;
         var role = currentTenantContext.Role!.Value;
 
-        var brand = await dbContext.TenantBrandProfiles
-            .FirstOrDefaultAsync(b => b.Id == request.BrandProfileId && b.TenantId == tenantId, cancellationToken);
-        if (brand is null)
+        TenantBrandProfile? brand = null;
+        if (request.BrandProfileId.HasValue)
         {
-            return Result<GenerateVisualAssetResponse>.Failure("Brand profile not found.");
+            brand = await dbContext.TenantBrandProfiles
+                .FirstOrDefaultAsync(b => b.Id == request.BrandProfileId.Value && b.TenantId == tenantId, cancellationToken);
+            if (brand is null)
+            {
+                return Result<GenerateVisualAssetResponse>.Failure("Brand profile not found.");
+            }
+        }
+
+        if (request.CampaignId.HasValue && brand is null)
+        {
+            return Result<GenerateVisualAssetResponse>.Failure("A campaign requires a brand profile.");
         }
 
         MarketingCampaign? campaign = null;
         if (request.CampaignId.HasValue)
         {
             campaign = await dbContext.MarketingCampaigns
-                .FirstOrDefaultAsync(c => c.Id == request.CampaignId.Value && c.BrandProfileId == brand.Id, cancellationToken);
+                .FirstOrDefaultAsync(c => c.Id == request.CampaignId.Value && c.BrandProfileId == brand!.Id, cancellationToken);
             if (campaign is null)
             {
                 return Result<GenerateVisualAssetResponse>.Failure("Campaign not found.");
@@ -46,13 +57,16 @@ public class GenerateVisualAssetCommandHandler(
 
         if (request.ContentItemId is not null)
         {
+            var brandIdForLookup = brand?.Id;
             var contentItemExists = await dbContext.ContentItems.AnyAsync(
-                c => c.Id == request.ContentItemId && c.BrandProfileId == brand.Id, cancellationToken);
+                c => c.Id == request.ContentItemId && c.BrandProfileId == brandIdForLookup, cancellationToken);
             if (!contentItemExists)
             {
                 return Result<GenerateVisualAssetResponse>.Failure("Content item not found.");
             }
         }
+
+        var generationMode = campaign is not null ? GenerationMode.Campaign : brand is not null ? GenerationMode.Brand : GenerationMode.Standalone;
 
         var creditsUsage = await AiCreditsPolicy.GetUsageAsync(dbContext, tenantId, cancellationToken);
         if (!creditsUsage.HasCreditsRemaining)
@@ -75,7 +89,9 @@ public class GenerateVisualAssetCommandHandler(
                 CoinPolicy.InsufficientCoinsMessage(coinCost, coinBalance, "generate an image"));
         }
 
-        var prompt = ContentPromptBuilder.BuildImagePrompt(brand, campaign, request.Type.ToString(), request.Prompt);
+        var prompt = brand is not null
+            ? ContentPromptBuilder.BuildImagePrompt(brand, campaign, request.Type.ToString(), request.Prompt)
+            : ContentPromptBuilder.BuildStandaloneImagePrompt(request.Type.ToString(), request.Prompt);
 
         var generation = await imageGenerationService.GenerateImageAsync(prompt, cancellationToken);
 
@@ -85,7 +101,7 @@ public class GenerateVisualAssetCommandHandler(
         var job = new AiJob
         {
             Id = Guid.NewGuid(),
-            BrandProfileId = brand.Id,
+            BrandProfileId = brand?.Id,
             TriggeredBy = userId,
             JobType = AiJobType.ImageGeneration,
             Status = generation.Succeeded ? AiJobStatus.Completed : AiJobStatus.Failed,
@@ -106,22 +122,49 @@ public class GenerateVisualAssetCommandHandler(
                 generation.ErrorMessage ?? "Image generation failed. Please try again.");
         }
 
-        var dataUrl = $"data:{generation.ContentType};base64,{Convert.ToBase64String(generation.ImageBytes!)}";
-
+        // NOTE: there is no "edit"/"regenerate" endpoint for images today — the content-gen page's
+        // edit flow just calls this generate endpoint again, producing an independent VisualAsset
+        // row with no relationship to the previous one (VersionOf is never set). That means the
+        // previous asset's Cloudinary upload is never cleaned up via mediaStorageService.DeleteAsync
+        // — a real "replace" endpoint would need to look up the prior asset's PublicId and delete it
+        // once the new upload succeeds.
         var visualAsset = new VisualAsset
         {
             Id = visualAssetId,
             ContentItemId = request.ContentItemId,
             CampaignId = campaign?.Id,
-            BrandProfileId = brand.Id,
+            BrandProfileId = brand?.Id,
+            TenantId = tenantId,
+            GenerationMode = generationMode,
             Type = request.Type,
-            FileUrl = dataUrl,
             SourceType = VisualAssetSourceType.AiGenerated,
             AiPrompt = prompt,
             Format = generation.ContentType?.Split('/').Last(),
             IsApproved = false,
             CreatedAt = now
         };
+
+        // Cloudinary is the production path; falling back to an in-DB base64 data URI when it
+        // isn't configured (local dev with no credentials) keeps the feature usable rather than
+        // hard-failing every generation, mirroring IPublicImageHostingService.IsConfigured.
+        if (mediaStorageService.IsConfigured)
+        {
+            var upload = await mediaStorageService.UploadImageAsync(
+                generation.ImageBytes!, generation.ContentType ?? "image/jpeg", $"visual-assets/{tenantId}", cancellationToken);
+            visualAsset.FileUrl = upload.Url;
+            visualAsset.PublicId = upload.PublicId;
+            visualAsset.WidthPx = upload.WidthPx;
+            visualAsset.HeightPx = upload.HeightPx;
+            visualAsset.FileSizeBytes = upload.FileSizeBytes;
+            visualAsset.MimeType = upload.MimeType;
+            visualAsset.StorageProvider = "Cloudinary";
+            visualAsset.UploadedAt = now;
+        }
+        else
+        {
+            visualAsset.FileUrl = $"data:{generation.ContentType};base64,{Convert.ToBase64String(generation.ImageBytes!)}";
+        }
+
         dbContext.VisualAssets.Add(visualAsset);
 
         if (usesFreeTrial)
@@ -130,14 +173,14 @@ public class GenerateVisualAssetCommandHandler(
         }
         else
         {
-            await CoinPolicy.TrySpendAsync(dbContext, tenantId, userId, role, coinCost, cancellationToken);
+            await CoinPolicy.TrySpendAsync(dbContext, tenantId, userId, role, coinCost, cancellationToken, reason: "visual_generation");
         }
 
-        var visualSubject = campaign is not null ? $"for \"{campaign.Name}\"" : $"for {brand.Name}";
+        var visualSubject = campaign is not null ? $"for \"{campaign.Name}\"" : brand is not null ? $"for {brand.Name}" : "(standalone)";
         NotificationPublisher.Notify(
             dbContext,
             userId,
-            brand.Id,
+            brand?.Id,
             NotificationType.Success,
             NotificationCategory.AiJob,
             "Image generated",

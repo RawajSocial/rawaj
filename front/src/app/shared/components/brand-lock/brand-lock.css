@@ -1,8 +1,21 @@
 /* Mirrors the lock/overlay style of meta-analytics-card: real content blurred
    behind a translucent overlay carrying a lock icon, message and CTA pill. */
 
+:host {
+  display: block;
+  height: 100%;
+}
+
 .brand-lock {
   border-radius: inherit;
+  height: 100%;
+  display: flex;
+}
+
+.brand-lock__content {
+  height: 100%;
+  width: 100%;
+  display: flex;
 }
 
 .brand-lock--locked .brand-lock__content {

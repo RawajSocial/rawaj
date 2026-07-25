@@ -9,7 +9,7 @@ import { brandAccessGuard } from './activation.guard';
 
 const MEMBERSHIP = {
   tenantId: 't1', name: 'Acme', tenantType: 'Business' as const, role: 'Owner' as const,
-  isOwner: true, isActivated: true, myCoinBalance: 0,
+  isOwner: true, isActivated: true, myCoinBalance: 0, accountSetupCompleted: true,
 };
 
 const TENANT_BASE = {

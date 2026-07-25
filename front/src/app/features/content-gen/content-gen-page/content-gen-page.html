@@ -46,7 +46,7 @@
                 <span class="dropdown-icon"><i class="fa-solid fa-chevron-down"></i></span>
               </button>
               <div class="dropdown-menu type-menu">
-                @for (t of genTypes; track t) {
+                @for (t of genTypes(); track t) {
                   <button type="button" class="dropdown-option type-opt" [class.active]="genType() === t"
                           (click)="genType.set(t); typeOpen.set(false)">
                     <span class="type-icon-sm" [style.background]="typeCfg[t].color + '22'">

@@ -27,7 +27,7 @@ public class RevokeInvitationCommandHandler(
             return Result<bool>.Failure("This invitation is no longer pending.");
         }
 
-        invitation.Status = InvitationStatus.Declined;
+        invitation.Status = InvitationStatus.Revoked;
 
         if (invitation.AllocatedCoins > 0)
         {

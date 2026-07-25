@@ -7,6 +7,7 @@ using Rawaj.Application.Common.Policies;
 using Rawaj.Application.Features.Content.Common;
 using Rawaj.Domain.Entities.AiOperations;
 using Rawaj.Domain.Entities.Campaigns;
+using Rawaj.Domain.Entities.Tenants;
 using Rawaj.Domain.Enums;
 
 namespace Rawaj.Application.Features.Content.GenerateContentItem;
@@ -26,23 +27,35 @@ public class GenerateContentItemCommandHandler(
         var userId = currentUserService.UserId!.Value;
         var role = currentTenantContext.Role!.Value;
 
-        var brand = await dbContext.TenantBrandProfiles
-            .FirstOrDefaultAsync(b => b.Id == request.BrandProfileId && b.TenantId == tenantId, cancellationToken);
-        if (brand is null)
+        TenantBrandProfile? brand = null;
+        if (request.BrandProfileId.HasValue)
         {
-            return Result<GenerateContentItemResponse>.Failure("Brand profile not found.");
+            brand = await dbContext.TenantBrandProfiles
+                .FirstOrDefaultAsync(b => b.Id == request.BrandProfileId.Value && b.TenantId == tenantId, cancellationToken);
+            if (brand is null)
+            {
+                return Result<GenerateContentItemResponse>.Failure("Brand profile not found.");
+            }
+        }
+
+        // A campaign always belongs to a brand — requesting one without a brand is a malformed request.
+        if (request.CampaignId.HasValue && brand is null)
+        {
+            return Result<GenerateContentItemResponse>.Failure("A campaign requires a brand profile.");
         }
 
         MarketingCampaign? campaign = null;
         if (request.CampaignId.HasValue)
         {
             campaign = await dbContext.MarketingCampaigns
-                .FirstOrDefaultAsync(c => c.Id == request.CampaignId.Value && c.BrandProfileId == brand.Id, cancellationToken);
+                .FirstOrDefaultAsync(c => c.Id == request.CampaignId.Value && c.BrandProfileId == brand!.Id, cancellationToken);
             if (campaign is null)
             {
                 return Result<GenerateContentItemResponse>.Failure("Campaign not found.");
             }
         }
+
+        var generationMode = campaign is not null ? GenerationMode.Campaign : brand is not null ? GenerationMode.Brand : GenerationMode.Standalone;
 
         var creditsUsage = await AiCreditsPolicy.GetUsageAsync(dbContext, tenantId, cancellationToken);
         if (!creditsUsage.HasCreditsRemaining)
@@ -66,15 +79,23 @@ public class GenerateContentItemCommandHandler(
                 CoinPolicy.InsufficientCoinsMessage(coinCost, coinBalance, "generate content"));
         }
 
-        var prompt = ContentPromptBuilder.BuildTextPrompt(
-            brand,
-            campaign,
-            request.ContentType.ToString(),
-            request.Platform.ToString(),
-            request.Language.ToString(),
-            request.Tone,
-            request.AdditionalInstructions,
-            request.TemplateStyle);
+        var prompt = brand is not null
+            ? ContentPromptBuilder.BuildTextPrompt(
+                brand,
+                campaign,
+                request.ContentType.ToString(),
+                request.Platform.ToString(),
+                request.Language.ToString(),
+                request.Tone,
+                request.AdditionalInstructions,
+                request.TemplateStyle)
+            : ContentPromptBuilder.BuildStandaloneTextPrompt(
+                request.ContentType.ToString(),
+                request.Platform.ToString(),
+                request.Language.ToString(),
+                request.Tone,
+                request.AdditionalInstructions,
+                request.TemplateStyle);
 
         var generation = await textGenerationService.GenerateTextAsync(prompt, cancellationToken);
 
@@ -84,7 +105,7 @@ public class GenerateContentItemCommandHandler(
         var job = new AiJob
         {
             Id = Guid.NewGuid(),
-            BrandProfileId = brand.Id,
+            BrandProfileId = brand?.Id,
             TriggeredBy = userId,
             JobType = AiJobType.ContentGeneration,
             Status = generation.Succeeded ? AiJobStatus.Completed : AiJobStatus.Failed,
@@ -111,7 +132,8 @@ public class GenerateContentItemCommandHandler(
             Id = contentItemId,
             CampaignId = campaign?.Id,
             TenantId = tenantId,
-            BrandProfileId = brand.Id,
+            BrandProfileId = brand?.Id,
+            GenerationMode = generationMode,
             CreatedBy = userId,
             ContentType = request.ContentType,
             Platform = request.Platform,
@@ -131,14 +153,14 @@ public class GenerateContentItemCommandHandler(
         }
         else
         {
-            await CoinPolicy.TrySpendAsync(dbContext, tenantId, userId, role, coinCost, cancellationToken);
+            await CoinPolicy.TrySpendAsync(dbContext, tenantId, userId, role, coinCost, cancellationToken, reason: "content_generation");
         }
 
-        var contentSubject = campaign is not null ? $"for \"{campaign.Name}\"" : $"for {brand.Name}";
+        var contentSubject = campaign is not null ? $"for \"{campaign.Name}\"" : brand is not null ? $"for {brand.Name}" : "(standalone)";
         NotificationPublisher.Notify(
             dbContext,
             userId,
-            brand.Id,
+            brand?.Id,
             NotificationType.Info,
             NotificationCategory.ReviewNeeded,
             "Content ready for review",

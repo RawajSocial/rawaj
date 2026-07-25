@@ -16,7 +16,17 @@ public class GetInvitationDetailsQueryHandler(IApplicationDbContext dbContext, I
         {
             var member = await dbContext.TenantMembers
                 .Where(m => m.Id == tenantMemberId && m.InvitationStatus == InvitationStatus.Pending)
-                .Select(m => new { m.Id, m.UserId, m.Role, m.TenantId, TenantName = m.Tenant.Name, m.InvitedBy })
+                .Select(m => new
+                {
+                    m.Id,
+                    m.UserId,
+                    m.Role,
+                    m.TenantId,
+                    TenantName = m.Tenant.Name,
+                    m.InvitedBy,
+                    BrandAccesses = m.BrandAccesses.Select(a => new InvitationBrandSummary(
+                        a.BrandProfile.Id, a.BrandProfile.Name, a.BrandProfile.BrandInfo!.LogoUrl, a.BrandProfile.BrandInfo!.Industry)).ToList()
+                })
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (member is not null)
@@ -26,6 +36,11 @@ public class GetInvitationDetailsQueryHandler(IApplicationDbContext dbContext, I
                     ? await identityService.FindByIdAsync(member.InvitedBy.Value, cancellationToken)
                     : null;
 
+                var fullTenantAccess = member.Role is TenantMemberRole.Owner or TenantMemberRole.Admin;
+                var brandProfiles = fullTenantAccess
+                    ? await GetAllTenantBrandsAsync(dbContext, member.TenantId, cancellationToken)
+                    : member.BrandAccesses;
+
                 return Result<InvitationDetailsResponse>.Success(new InvitationDetailsResponse(
                     member.TenantName,
                     inviter?.FullName ?? "فريق العمل",
@@ -33,7 +48,9 @@ public class GetInvitationDetailsQueryHandler(IApplicationDbContext dbContext, I
                     member.Role,
                     RequiresRegistration: false,
                     TenantMemberId: member.Id,
-                    InvitationId: null));
+                    InvitationId: null,
+                    FullTenantAccess: fullTenantAccess,
+                    BrandProfiles: brandProfiles));
             }
         }
 
@@ -42,7 +59,7 @@ public class GetInvitationDetailsQueryHandler(IApplicationDbContext dbContext, I
 
         var invitation = await dbContext.TenantInvitations
             .Where(i => i.TokenHash == tokenHash && i.Status == InvitationStatus.Pending && i.ExpiresAt > now)
-            .Select(i => new { i.Id, i.Email, i.Role, i.TenantId, TenantName = i.Tenant.Name, i.InvitedByUserId })
+            .Select(i => new { i.Id, i.Email, i.Role, i.TenantId, TenantName = i.Tenant.Name, i.InvitedByUserId, i.BrandProfileIds })
             .FirstOrDefaultAsync(cancellationToken);
 
         if (invitation is null)
@@ -52,6 +69,14 @@ public class GetInvitationDetailsQueryHandler(IApplicationDbContext dbContext, I
 
         var invitingUser = await identityService.FindByIdAsync(invitation.InvitedByUserId, cancellationToken);
 
+        var invitationFullTenantAccess = invitation.Role is TenantMemberRole.Owner or TenantMemberRole.Admin;
+        var invitationBrandProfiles = invitationFullTenantAccess
+            ? await GetAllTenantBrandsAsync(dbContext, invitation.TenantId, cancellationToken)
+            : await dbContext.TenantBrandProfiles
+                .Where(b => invitation.BrandProfileIds.Contains(b.Id))
+                .Select(b => new InvitationBrandSummary(b.Id, b.Name, b.BrandInfo!.LogoUrl, b.BrandInfo!.Industry))
+                .ToListAsync(cancellationToken);
+
         return Result<InvitationDetailsResponse>.Success(new InvitationDetailsResponse(
             invitation.TenantName,
             invitingUser?.FullName ?? "فريق العمل",
@@ -59,6 +84,15 @@ public class GetInvitationDetailsQueryHandler(IApplicationDbContext dbContext, I
             invitation.Role,
             RequiresRegistration: true,
             TenantMemberId: null,
-            InvitationId: invitation.Id));
+            InvitationId: invitation.Id,
+            FullTenantAccess: invitationFullTenantAccess,
+            BrandProfiles: invitationBrandProfiles));
     }
+
+    private static async Task<List<InvitationBrandSummary>> GetAllTenantBrandsAsync(
+        IApplicationDbContext dbContext, Guid tenantId, CancellationToken cancellationToken)
+        => await dbContext.TenantBrandProfiles
+            .Where(b => b.TenantId == tenantId)
+            .Select(b => new InvitationBrandSummary(b.Id, b.Name, b.BrandInfo!.LogoUrl, b.BrandInfo!.Industry))
+            .ToListAsync(cancellationToken);
 }

@@ -89,13 +89,15 @@ public class UpdateTeamMemberCommandHandler(
             AuditLogger.Log(
                 dbContext, tenantId, userId, "team.role_changed",
                 message: $"Changed role from {previousRole} to {request.Role}.",
-                entityType: "tenant_member", entityId: tenantMember.Id);
+                entityType: "tenant_member", entityId: tenantMember.Id,
+                oldValue: previousRole.ToString(), newValue: request.Role.ToString());
         }
         if (!previousBrandProfileIds.OrderBy(x => x).SequenceEqual(brandProfileIds.OrderBy(x => x)))
         {
             AuditLogger.Log(
                 dbContext, tenantId, userId, "team.brand_access_changed",
-                entityType: "tenant_member", entityId: tenantMember.Id);
+                entityType: "tenant_member", entityId: tenantMember.Id,
+                oldValue: string.Join(",", previousBrandProfileIds), newValue: string.Join(",", brandProfileIds));
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);

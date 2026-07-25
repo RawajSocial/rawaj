@@ -6,7 +6,6 @@ public class GenerateVisualAssetCommandValidator : AbstractValidator<GenerateVis
 {
     public GenerateVisualAssetCommandValidator()
     {
-        RuleFor(x => x.BrandProfileId).NotEmpty();
         RuleFor(x => x.Type).IsInEnum();
         RuleFor(x => x.Prompt).NotEmpty().MaximumLength(500);
     }

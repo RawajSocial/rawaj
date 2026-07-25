@@ -51,6 +51,7 @@ public class CreateCampaignCommandHandlerTests
             OwnerUserId = Guid.NewGuid(),
             SubscriptionId = subscriptionId,
             IsActive = true,
+            IsActivated = true,
             CreatedAt = now,
             UpdatedAt = now
         });
@@ -151,6 +152,24 @@ public class CreateCampaignCommandHandlerTests
 
         Assert.False(second.Succeeded);
         Assert.Contains("maximum of 1 campaign", second.ErrorMessage);
+    }
+
+    [Fact]
+    public async Task Handle_WithUnactivatedTenant_RejectsCampaignCreation()
+    {
+        var (dbContext, tenantId, brandProfileId) = await SeedAsync(planCost: 0, maxCampaignsMonthly: 10);
+        (await dbContext.Tenants.FindAsync(tenantId))!.IsActivated = false;
+        await dbContext.SaveChangesAsync(CancellationToken.None);
+
+        var handler = BuildHandler(dbContext, tenantId, Guid.NewGuid());
+
+        var result = await handler.Handle(
+            new CreateCampaignCommand(brandProfileId, "Campaign", null, [], null, null, null, null),
+            CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        Assert.Contains("activation", result.ErrorMessage);
+        Assert.Empty(dbContext.MarketingCampaigns);
     }
 
     [Fact]

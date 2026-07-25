@@ -5,6 +5,19 @@
     title="تقويم المنشورات"
     [breadcrumbs]="[{ label: 'نظرة عامة', link: '/dashboard' }, { label: 'التقويم' }]" />
 
+  @if (unscheduledApprovedCount(); as count) {
+    <div class="unscheduled-nudge">
+      <i class="fa-regular fa-calendar-plus"></i>
+      <span class="unscheduled-nudge-text">
+        لديك {{ count }} {{ count === 1 ? 'منشور جاهز' : 'منشورات جاهزة' }} تمت الموافقة عليها ولم تتم جدولتها بعد.
+      </span>
+      @if (unscheduledNudgeCampaignId(); as campaignId) {
+        <a [routerLink]="['/dashboard/campaigns', campaignId, 'content']" class="unscheduled-nudge-cta">
+          جدولها الآن
+        </a>
+      }
+    </div>
+  }
 
   <!-- ── Calendar + side panel ── -->
   <div class="cal-layout">

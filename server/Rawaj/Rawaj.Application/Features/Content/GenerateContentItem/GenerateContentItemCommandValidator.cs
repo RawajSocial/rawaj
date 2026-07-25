@@ -6,7 +6,6 @@ public class GenerateContentItemCommandValidator : AbstractValidator<GenerateCon
 {
     public GenerateContentItemCommandValidator()
     {
-        RuleFor(x => x.BrandProfileId).NotEmpty();
         RuleFor(x => x.ContentType).IsInEnum();
         RuleFor(x => x.Platform).IsInEnum();
         RuleFor(x => x.Language).IsInEnum();

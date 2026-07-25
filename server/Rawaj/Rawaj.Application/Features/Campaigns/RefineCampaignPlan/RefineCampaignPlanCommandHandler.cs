@@ -92,7 +92,7 @@ public class RefineCampaignPlanCommandHandler(
         campaign.AiGeneratedAt = now;
         campaign.UpdatedAt = now;
 
-        await CoinPolicy.TrySpendAsync(dbContext, tenantId, userId, role, coinCost, cancellationToken);
+        await CoinPolicy.TrySpendAsync(dbContext, tenantId, userId, role, coinCost, cancellationToken, reason: "refine_campaign_plan");
 
         await dbContext.SaveChangesAsync(cancellationToken);
 

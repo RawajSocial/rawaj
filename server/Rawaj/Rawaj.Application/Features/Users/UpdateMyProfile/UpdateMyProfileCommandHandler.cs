@@ -31,6 +31,6 @@ public class UpdateMyProfileCommandHandler(IIdentityService identityService, ICu
 
         var updated = await identityService.FindByIdAsync(userId, cancellationToken);
         return Result<GetMyProfileResponse>.Success(
-            new GetMyProfileResponse(updated!.Id, updated.Email, updated.Username, updated.FullName, updated.AvatarUrl, updated.PreferredLanguage));
+            new GetMyProfileResponse(updated!.Id, updated.Email, updated.Username, updated.FullName, updated.AvatarUrl, updated.PreferredLanguage, updated.EmailConfirmed));
     }
 }

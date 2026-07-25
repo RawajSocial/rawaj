@@ -8,7 +8,7 @@ import { TENANT_MEMBER_ROLE_LABELS } from '../../../model/tenant.model';
 import { BrandProfileService } from '../../../services/brand-profile.service';
 import { BrandContextService } from '../../../services/brand-context.service';
 import { NotificationService } from '../../../services/notification.service';
-import { CATEGORY_CFG, notificationLink } from '../../../model/notification.model';
+import { CATEGORY_CFG, NotificationLink, notificationLink } from '../../../model/notification.model';
 
 @Component({
   selector: 'app-header',
@@ -124,9 +124,9 @@ export class Header {
     this.notifications.refresh().subscribe();
   }
 
-  protected selectNotification(id: string, link: unknown[] | null): void {
+  protected selectNotification(id: string, link: NotificationLink | null): void {
     this.notifications.markRead(id).subscribe();
     this.notifOpen.set(false);
-    if (link) void this.router.navigate(link);
+    if (link) void this.router.navigate(link.commands, { queryParams: link.queryParams });
   }
 }

@@ -6,13 +6,14 @@ import { PageHeader } from '../../../shared/components/page-header/page-header';
 import { BrandLock } from '../../../shared/components/brand-lock/brand-lock';
 import { SeoService } from '../../../services/seo.service';
 import { ScheduledPostService } from '../../../services/scheduled-post.service';
+import { ContentItemService } from '../../../services/content-item.service';
 import { CampaignService } from '../../../services/campaign.service';
 import { BrandContextService } from '../../../services/brand-context.service';
 import { TenantService } from '../../../core/tenant/tenant.service';
 import { PermissionService } from '../../../core/tenant/permission.service';
 import { ErrorModalService } from '../../../services/error-modal.service';
 import { extractApiErrorMessage } from '../../../core/auth/api-error.util';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 
 export type ViewMode = 'month' | 'week' | 'day' | 'list';
 
@@ -29,13 +30,14 @@ const PLATFORM_CFG: Record<CampaignPlatform, { icon: string; color: string; labe
 @Component({
   selector: 'app-calendar-page',
   standalone: true,
-  imports: [PostModal, PageHeader, BrandLock],
+  imports: [PostModal, PageHeader, BrandLock, RouterLink],
   templateUrl: './calendar-page.html',
   styleUrls: ['../../../features/on-boarding/onboarding-shared.css', './calendar-page.css'],
 })
 export class CalendarPage {
   private readonly seo = inject(SeoService);
   private readonly scheduledPostService = inject(ScheduledPostService);
+  private readonly contentItemService = inject(ContentItemService);
   private readonly campaignService = inject(CampaignService);
   protected readonly brandContextService = inject(BrandContextService);
   private readonly tenantService = inject(TenantService);
@@ -61,6 +63,10 @@ export class CalendarPage {
       const campaignId = this.brandContextService.selectedCampaignId();
       if (!brandId) return;
       this.scheduledPostService.refresh(brandId, campaignId).subscribe();
+      // Also pull the same brand/campaign's content items so the "unscheduled approved
+      // content" nudge below can tell approved-but-never-scheduled drafts apart from
+      // genuinely empty campaigns.
+      this.contentItemService.refresh(brandId, campaignId).subscribe();
     });
 
     // Jump the visible month to whichever campaign is selected's own start date — switching
@@ -106,6 +112,25 @@ export class CalendarPage {
   readonly filteredPosts = computed<ScheduledPost[]>(() => {
     const cf = this.campaignFilter();
     return this.posts().filter(p => cf === 'all' || p.campaignId === cf);
+  });
+
+  // ── Unscheduled approved content nudge ──────────────────────────────────
+  // Content items only appear on this calendar once explicitly scheduled — a fresh
+  // marketing plan with approved-but-unscheduled drafts otherwise looks like an empty
+  // calendar with no explanation. Surface that gap directly.
+  readonly unscheduledApprovedCount = computed<number>(() => {
+    const scheduledContentItemIds = new Set(this.posts().map(p => p.contentItemId));
+    return this.contentItemService.items()
+      .filter(item => item.status === 'Approved' && !scheduledContentItemIds.has(item.contentItemId))
+      .length;
+  });
+
+  /** Only meaningful when a single campaign is selected — the nudge's "schedule now" link
+   *  targets that campaign's content page. With "all campaigns" selected there's no single
+   *  target, so the link is omitted and the count is shown alone. */
+  readonly unscheduledNudgeCampaignId = computed<string | null>(() => {
+    const cf = this.campaignFilter();
+    return cf !== 'all' ? cf : null;
   });
 
   readonly postsByDay = computed<Map<string, ScheduledPost[]>>(() => {

@@ -1,0 +1,142 @@
+<div class="page-shell">
+  <app-page-header
+    [title]="detail()?.name ?? 'ملف العلامة التجارية'"
+    [breadcrumbs]="[
+      { label: 'نظرة عامة', link: '/dashboard' },
+      { label: 'ملفات العلامة التجارية', link: '/dashboard/brand-profiles' },
+      { label: detail()?.name ?? '...' }
+    ]"
+    [subtitle]="canEdit() ? 'اطّلع على بيانات العلامة التجارية وعدّلها.' : 'اطّلع على بيانات العلامة التجارية (وصول للعرض فقط).'" />
+
+  @if (loading()) {
+    <div class="text-center py-5">
+      <i class="fa-solid fa-spinner fa-spin fa-2x"></i>
+    </div>
+  } @else if (notFound() || !detail()) {
+    <div class="rw-card text-center py-5">
+      <h3>الملف غير موجود</h3>
+      <p class="text-muted">لم يتم العثور على ملف العلامة التجارية، أو ليس لديك صلاحية الوصول إليه.</p>
+      <a routerLink="/dashboard/brand-profiles" class="rw-btn rw-btn--dark mt-2">العودة إلى القائمة</a>
+    </div>
+  } @else {
+    @let d = detail()!;
+
+    @if (!canEdit()) {
+      <div class="viewer-banner">
+        <i class="fa-solid fa-eye"></i>
+        أنت تشاهد هذا الملف بصلاحية "مشاهد" — للتعديل، يلزم صلاحية محرر أو أعلى.
+      </div>
+    }
+
+    <div class="rw-card detail-card">
+      <div class="detail-card__tags">
+        <span class="rw-pill"
+              [class.rw-pill--success]="d.status === 'active'"
+              [class.rw-pill--warning]="d.status === 'draft'"
+              [class.rw-pill--danger]="d.status === 'archived'">
+          {{ statusLabels[d.status] }}
+        </span>
+        @if (d.isDefault) {
+          <span class="rw-pill rw-pill--info">افتراضي</span>
+        }
+      </div>
+
+      <form [formGroup]="form" class="detail-form">
+        <div class="logo-row">
+          @if (canEdit()) {
+            <app-file-upload
+              shape="square"
+              label="تغيير الشعار"
+              icon="fa-solid fa-copyright"
+              accept=".png,.svg,.jpg,.jpeg,.webp"
+              [previewUrl]="logoDataUrl()"
+              [altText]="d.name"
+              (fileSelected)="onLogoSelected($event)"
+              (cleared)="onLogoCleared()" />
+          } @else {
+            <div class="logo-view">
+              @if (d.logoUrl) {
+                <img [src]="d.logoUrl" [alt]="d.name">
+              } @else {
+                <i class="fa-solid fa-copyright"></i>
+              }
+            </div>
+          }
+        </div>
+
+        <div class="rw-field">
+          <label for="bp-name">اسم العلامة التجارية</label>
+          <input id="bp-name" type="text" formControlName="name" [readOnly]="!canEdit()">
+          @if (canEdit() && form.controls.name.touched && form.controls.name.invalid) {
+            <span class="field-error">الرجاء إدخال اسم صحيح</span>
+          }
+        </div>
+
+        <div class="form-row">
+          <div class="rw-field">
+            <label for="bp-tagline">الشعار (Tagline)</label>
+            <input id="bp-tagline" type="text" formControlName="tagline" [readOnly]="!canEdit()">
+          </div>
+          <div class="rw-field">
+            <label for="bp-industry">القطاع</label>
+            <input id="bp-industry" type="text" formControlName="industry" [readOnly]="!canEdit()">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="rw-field">
+            <label for="bp-audience">الجمهور المستهدف</label>
+            <input id="bp-audience" type="text" formControlName="targetAudience" [readOnly]="!canEdit()">
+          </div>
+          <div class="rw-field">
+            <label for="bp-website">الموقع الإلكتروني</label>
+            <input id="bp-website" type="text" formControlName="websiteUrl" [readOnly]="!canEdit()" placeholder="example.com">
+          </div>
+        </div>
+
+        <div class="rw-field">
+          <label for="bp-description">نبذة</label>
+          <textarea id="bp-description" formControlName="description" rows="3" [readOnly]="!canEdit()"></textarea>
+        </div>
+
+        <div class="rw-field">
+          <label for="bp-voice">أسلوب العلامة</label>
+          @if (canEdit()) {
+            <app-select-dropdown id="bp-voice" formControlName="brandVoice" [options]="voiceOptions" />
+          } @else {
+            <input type="text" [value]="d.brandVoice ? voiceLabels[d.brandVoice] : '—'" readonly>
+          }
+        </div>
+
+        <div class="form-row">
+          <div class="rw-field">
+            <label for="bp-colors">ألوان العلامة <span class="field-optional">(مفصولة بفواصل)</span></label>
+            <input id="bp-colors" type="text" formControlName="colors" [readOnly]="!canEdit()" placeholder="#7c3aed, #2563eb">
+          </div>
+          <div class="rw-field">
+            <label for="bp-languages">اللغات المدعومة <span class="field-optional">(مفصولة بفواصل)</span></label>
+            <input id="bp-languages" type="text" formControlName="supportedLanguages" [readOnly]="!canEdit()" placeholder="العربية, English">
+          </div>
+        </div>
+
+        <div class="rw-field">
+          <label for="bp-keywords">كلمات مفتاحية <span class="field-optional">(مفصولة بفواصل)</span></label>
+          <input id="bp-keywords" type="text" formControlName="keywords" [readOnly]="!canEdit()">
+        </div>
+
+        @if (canEdit()) {
+          <div class="detail-actions">
+            <button type="button" class="rw-btn rw-btn--outline" (click)="cancel()">إلغاء</button>
+            <button type="button" class="rw-btn rw-btn--dark" [disabled]="saving()" (click)="save()">
+              @if (saving()) {
+                <i class="fa-solid fa-spinner fa-spin"></i> جارٍ الحفظ...
+              } @else {
+                <i class="fa-solid fa-check"></i> حفظ التغييرات
+              }
+            </button>
+          </div>
+        }
+      </form>
+    </div>
+  }
+</div>

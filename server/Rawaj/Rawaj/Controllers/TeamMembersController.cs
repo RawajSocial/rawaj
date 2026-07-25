@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Rawaj.Application.Features.TeamMembers.AcceptInvitationAndRegister;
 using Rawaj.Application.Features.TeamMembers.AcceptInvite;
 using Rawaj.Application.Features.TeamMembers.AddTeamMember;
@@ -84,6 +85,7 @@ public class TeamMembersController(ISender sender) : ControllerBase
 
     /// <summary>Register-and-join in one call, for an invite sent to an email with no account yet.</summary>
     [AllowAnonymous]
+    [EnableRateLimiting("auth")]
     [HttpPost("invitations/{token}/accept")]
     public async Task<IActionResult> AcceptInvitationAndRegister(
         string token, AcceptInvitationAndRegisterRequest request, CancellationToken cancellationToken)

@@ -19,10 +19,11 @@ public interface ICoinCostProvider
     /// <summary>Schedule one post/story/reel/carousel/promotional design.</summary>
     int Scheduling { get; }
 
-    /// <summary>Reserved pricing only — no feature spends this yet (see PROGRESS.md). Exposed here
-    /// purely so the public pricing page and <c>GetCoinPricingQuery</c> can display the full price
-    /// list without drifting from what will eventually be charged.</summary>
+    /// <summary>AI-generated brand/business diagnosis — charged by GenerateBusinessDiagnosisCommandHandler.</summary>
     int BusinessDiagnosis { get; }
+    /// <summary>Competitor research pass — charged by ResearchCampaignCompetitorsCommandHandler.</summary>
     int CompetitiveAnalysis { get; }
+    /// <summary>AI reasoning/conversation turns — charged by GenerateOnboardingQuestionsCommandHandler
+    /// and RefineCampaignPlanCommandHandler.</summary>
     int ReasoningConversation { get; }
 }

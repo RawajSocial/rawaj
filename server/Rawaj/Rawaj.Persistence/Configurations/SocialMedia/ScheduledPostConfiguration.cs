@@ -40,5 +40,11 @@ public class ScheduledPostConfiguration : IEntityTypeConfiguration<ScheduledPost
             .WithMany()
             .HasForeignKey(s => s.CampaignId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(s => new { s.Status, s.ScheduledAt });
+        builder.HasIndex(s => new { s.BrandProfileId, s.ScheduledAt });
+
+        // Matches TenantBrandProfile's own IsDeleted filter — required (non-nullable) FK.
+        builder.HasQueryFilter(s => !s.BrandProfile.IsDeleted);
     }
 }

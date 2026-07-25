@@ -102,7 +102,7 @@ public class GenerateMarketingPlanCommandHandler(
         }
         else
         {
-            await CoinPolicy.TrySpendAsync(dbContext, tenantId, userId, role, coinCost, cancellationToken);
+            await CoinPolicy.TrySpendAsync(dbContext, tenantId, userId, role, coinCost, cancellationToken, reason: "marketing_plan_generation");
         }
 
         NotificationPublisher.Notify(

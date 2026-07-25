@@ -63,6 +63,7 @@ export interface AuthUser {
   preferredLanguage: AppLanguage;
   isPlatformAdmin: boolean;
   avatarUrl?: string;
+  emailConfirmed?: boolean;
 }
 
 /** GET /api/v1/users/me — Rawaj.Application.Features.Users.GetMyProfile.GetMyProfileResponse */
@@ -73,6 +74,7 @@ export interface MyProfileResponse {
   fullName: string;
   avatarUrl?: string;
   preferredLanguage: AppLanguage;
+  emailConfirmed: boolean;
 }
 
 /** PUT /api/v1/users/me — Rawaj.Application.Features.Users.UpdateMyProfile.UpdateMyProfileCommand */
@@ -91,6 +93,11 @@ export interface ChangePasswordRequest {
 /** POST /api/v1/users/me/avatar — Rawaj.Application.Features.Users.UpdateMyAvatar.UpdateMyAvatarResponse */
 export interface UpdateAvatarResponse {
   avatarUrl: string;
+}
+
+/** POST /api/v1/users/me/email/verify-otp — Rawaj.Application.Features.Users.VerifyEmailOtp.VerifyEmailOtpCommand */
+export interface VerifyEmailOtpRequest {
+  code: string;
 }
 
 /** Backend's generic `ApiResponse<T>` envelope (see Rawaj.Common.ApiResponse). */

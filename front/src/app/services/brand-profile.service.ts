@@ -3,7 +3,10 @@ import { HttpClient } from '@angular/common/http';
 import { map, Observable, of, switchMap, tap } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { ApiResponse } from '../model/auth.model';
-import { BrandProfile, BrandProfileSummary, CreateBrandProfileResponse } from '../model/brand-profile.model';
+import {
+  BrandProfile, BrandProfileDetail, BrandProfileSummary, CreateBrandProfileResponse, UpdateBrandProfileRequest,
+  UpdateBrandProfileResponse,
+} from '../model/brand-profile.model';
 import { resolveMediaUrl } from '../core/auth/media-url.util';
 
 export interface CreateBrandProfileInput {
@@ -68,6 +71,22 @@ export class BrandProfileService {
   create(input: CreateBrandProfileInput): Observable<ApiResponse<CreateBrandProfileResponse>> {
     return this.mutateAndRefresh(
       this.http.post<ApiResponse<CreateBrandProfileResponse>>(this.baseUrl, input),
+    );
+  }
+
+  /** Full record for one brand (unlike `profiles`, includes targetAudience/websiteUrl/languages/keywords) —
+   *  not cached, always fetched fresh, since the detail page is the only consumer. */
+  getDetail(id: string): Observable<ApiResponse<BrandProfileDetail>> {
+    return this.http.get<ApiResponse<BrandProfileDetail>>(`${this.baseUrl}/${id}`).pipe(
+      tap(res => {
+        if (res.data?.logoUrl) res.data.logoUrl = resolveMediaUrl(res.data.logoUrl);
+      }),
+    );
+  }
+
+  update(id: string, request: UpdateBrandProfileRequest): Observable<ApiResponse<UpdateBrandProfileResponse>> {
+    return this.mutateAndRefresh(
+      this.http.put<ApiResponse<UpdateBrandProfileResponse>>(`${this.baseUrl}/${id}`, request),
     );
   }
 

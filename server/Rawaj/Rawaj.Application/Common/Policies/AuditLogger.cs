@@ -18,7 +18,9 @@ public static class AuditLogger
         string? message = null,
         string? entityType = null,
         Guid? entityId = null,
-        Guid? brandProfileId = null)
+        Guid? brandProfileId = null,
+        string? oldValue = null,
+        string? newValue = null)
     {
         dbContext.AuditLogs.Add(new AuditLog
         {
@@ -30,6 +32,8 @@ public static class AuditLogger
             Message = message,
             EntityType = entityType,
             EntityId = entityId,
+            OldValue = oldValue,
+            NewValue = newValue,
             CreatedAt = DateTime.UtcNow
         });
     }

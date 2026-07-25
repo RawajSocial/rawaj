@@ -46,9 +46,11 @@ export interface GenerateCampaignContentResponse {
   imagesSkippedForCredits: number;
 }
 
-/** POST /api/v1/content-items/generate request body — GenerateContentItemCommand. */
+/** POST /api/v1/content-items/generate request body — GenerateContentItemCommand.
+ *  `brandProfileId` is optional — omitting it produces a "standalone" generation not tied to any
+ *  brand, for trying the product out before a brand profile exists. */
 export interface GenerateContentItemInput {
-  brandProfileId: string;
+  brandProfileId?: string;
   campaignId?: string;
   contentType: ContentItemSummary['contentType'];
   platform: BackendSocialPlatform;

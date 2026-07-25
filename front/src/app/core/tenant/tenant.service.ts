@@ -43,6 +43,21 @@ export class TenantService {
     return own?.isActivated ?? this.isActivated();
   });
 
+  /** The calling user's membership row for whichever tenant is currently active — null before
+   *  memberships have loaded. */
+  readonly activeMembership = computed(() =>
+    this._memberships().find(m => m.tenantId === this._activeTenantId()) ?? null,
+  );
+
+  /** Whether the user is acting as the OWNER of the active tenant (vs. an invited member of
+   *  someone else's). Defaults to true when memberships haven't loaded yet, matching the guards'
+   *  existing fail-open-on-cold-navigation behavior for the owner case. */
+  readonly isActiveMemberOwner = computed(() => this.activeMembership()?.isOwner ?? true);
+
+  /** Per-user, not per-tenant — identical on every membership row. Gates an invited (non-owner)
+   *  member's baseline access to content-gen/ads regardless of the active tenant's own activation. */
+  readonly accountSetupCompleted = computed(() => this._memberships()[0]?.accountSetupCompleted ?? false);
+
   refresh(): Observable<ApiResponse<TenantSummary>> {
     return this.http.get<ApiResponse<TenantSummary>>(`${this.baseUrl}/me`).pipe(
       tap(res => {

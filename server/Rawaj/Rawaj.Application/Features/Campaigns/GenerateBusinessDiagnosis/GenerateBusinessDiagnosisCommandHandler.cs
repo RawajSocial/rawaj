@@ -81,7 +81,7 @@ public class GenerateBusinessDiagnosisCommandHandler(
         campaign.DiagnosisJson = generation.Text!;
         campaign.UpdatedAt = now;
 
-        await CoinPolicy.TrySpendAsync(dbContext, tenantId, userId, role, coinCost, cancellationToken);
+        await CoinPolicy.TrySpendAsync(dbContext, tenantId, userId, role, coinCost, cancellationToken, reason: "business_diagnosis");
 
         await dbContext.SaveChangesAsync(cancellationToken);
 

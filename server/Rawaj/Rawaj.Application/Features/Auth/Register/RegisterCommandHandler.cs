@@ -57,6 +57,8 @@ public class RegisterCommandHandler(
         await tenantProvisioningService.ProvisionAsync(
             userDto.Id, request.FullName, subdomain, TenantType.Business, cancellationToken, createDefaultBrandProfile: false);
 
+        AccountSetupPolicy.MarkCompleted(dbContext, userDto.Id);
+
         var accessToken = jwtTokenGenerator.GenerateToken(userDto);
         var refreshToken = RefreshTokenPolicy.Issue(dbContext, userDto.Id, jwtTokenGenerator.RefreshTokenExpiryDays);
         await dbContext.SaveChangesAsync(cancellationToken);

@@ -23,5 +23,7 @@ public class NotificationConfiguration : IEntityTypeConfiguration<Notification>
             .WithMany()
             .HasForeignKey(n => n.UserId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(n => new { n.UserId, n.IsRead });
     }
 }

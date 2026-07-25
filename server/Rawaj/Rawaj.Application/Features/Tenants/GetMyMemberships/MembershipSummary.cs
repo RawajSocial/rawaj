@@ -7,6 +7,12 @@ namespace Rawaj.Application.Features.Tenants.GetMyMemberships;
 /// own (AllocatedCoins - SpentCoins) wallet otherwise. An invited Editor/Viewer must never see the
 /// owner's full tenant balance through this endpoint.
 /// </param>
+/// <param name="AccountSetupCompleted">
+/// Whether the CALLING user (not this specific tenant) finished their personal account setup —
+/// identical across every row in the list since it's a per-user, not per-membership, fact. Gates
+/// an invited (non-owner) member's baseline access; distinct from IsActivated, which is the
+/// tenant's own business-profile completeness and only the owner can affect.
+/// </param>
 public record MembershipSummary(
     Guid TenantId,
     string Name,
@@ -14,4 +20,5 @@ public record MembershipSummary(
     TenantMemberRole Role,
     bool IsOwner,
     bool IsActivated,
-    int MyCoinBalance);
+    int MyCoinBalance,
+    bool AccountSetupCompleted);

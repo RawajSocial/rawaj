@@ -5,11 +5,9 @@ using Rawaj.Application.Common.Models;
 namespace Rawaj.Application.Features.Users.DeleteMyAvatar;
 
 public class DeleteMyAvatarCommandHandler(
-    IIdentityService identityService, ILocalImageStorageService imageStorageService, ICurrentUserService currentUserService)
+    IIdentityService identityService, IMediaStorageService mediaStorageService, ICurrentUserService currentUserService)
     : IRequestHandler<DeleteMyAvatarCommand, Result<bool>>
 {
-    private const string AvatarsSubfolder = "avatars";
-
     public async Task<Result<bool>> Handle(DeleteMyAvatarCommand request, CancellationToken cancellationToken)
     {
         var userId = currentUserService.UserId!.Value;
@@ -20,9 +18,15 @@ public class DeleteMyAvatarCommandHandler(
             return Result<bool>.Failure("User not found.");
         }
 
-        if (!string.IsNullOrWhiteSpace(user.AvatarUrl))
+        // Avatars upload under a deterministic public id keyed by userId (see
+        // UpdateMyAvatarCommandHandler), so it can be reconstructed here without storing it
+        // separately. A "data:" URL means it was saved before Cloudinary was configured — nothing
+        // to delete from storage in that case.
+        if (!string.IsNullOrWhiteSpace(user.AvatarUrl)
+            && mediaStorageService.IsConfigured
+            && !user.AvatarUrl.StartsWith("data:", StringComparison.Ordinal))
         {
-            await imageStorageService.DeleteAsync(user.AvatarUrl, AvatarsSubfolder, cancellationToken);
+            await mediaStorageService.DeleteAsync($"avatars/{userId}", cancellationToken);
         }
 
         await identityService.UpdateAvatarAsync(userId, null, cancellationToken);

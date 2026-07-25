@@ -27,21 +27,31 @@ export const CATEGORY_CFG: Record<NotificationCategory, { icon: string; bg: stri
   TeamInvite:    { icon: 'fa-user-plus',            bg: 'var(--color-info-light)',       color: 'var(--color-info)',      label: 'دعوة فريق' },
 };
 
+export interface NotificationLink {
+  commands: unknown[];
+  queryParams?: Record<string, string>;
+}
+
 /** Deep-links a notification to the page its RefType/RefId describe. Only whitelisted RefTypes
  *  resolve — a notification whose ref can't be located on any known route (e.g. a bare
  *  `content_item` with no campaign id to build a URL from) returns null and renders unlinked
  *  rather than guessing a broken link. */
-export function notificationLink(n: NotificationSummary): unknown[] | null {
+export function notificationLink(n: NotificationSummary): NotificationLink | null {
   if (!n.refId) return null;
   switch (n.refType) {
     case 'marketing_campaign':
-      return ['/dashboard/campaigns', n.refId];
+      return { commands: ['/dashboard/campaigns', n.refId] };
     case 'scheduled_post':
       // No campaign id on the notification to build the nested campaign-post-detail route —
       // the calendar is the one place a bare scheduled-post id can be resolved from.
-      return ['/dashboard/calendar'];
+      return { commands: ['/dashboard/calendar'] };
     case 'tenant_member':
-      return ['/dashboard/users'];
+      // AddTeamMemberCommandHandler is the only place this ref type is emitted (RefId is the
+      // TenantMember.Id), so this always means "you were invited" — route to the accept/decline
+      // page rather than the (inaccessible, since the invited tenant isn't active yet) team list.
+      return n.category === 'TeamInvite'
+        ? { commands: ['/invite'], queryParams: { token: n.refId } }
+        : { commands: ['/dashboard/users'] };
     default:
       return null;
   }

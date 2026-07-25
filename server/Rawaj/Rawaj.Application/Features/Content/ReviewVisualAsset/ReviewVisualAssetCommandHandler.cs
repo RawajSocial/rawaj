@@ -13,7 +13,7 @@ public class ReviewVisualAssetCommandHandler(IApplicationDbContext dbContext, IC
         var tenantId = currentTenantContext.TenantId!.Value;
 
         var visualAsset = await dbContext.VisualAssets
-            .FirstOrDefaultAsync(a => a.Id == request.VisualAssetId && a.BrandProfile.TenantId == tenantId, cancellationToken);
+            .FirstOrDefaultAsync(a => a.Id == request.VisualAssetId && a.TenantId == tenantId, cancellationToken);
         if (visualAsset is null)
         {
             return Result<ReviewVisualAssetResponse>.Failure("Visual asset not found.");

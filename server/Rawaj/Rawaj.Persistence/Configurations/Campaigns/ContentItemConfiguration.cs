@@ -25,6 +25,8 @@ public class ContentItemConfiguration : IEntityTypeConfiguration<ContentItem>
         builder.Property(c => c.Tone).HasMaxLength(50);
         builder.Property(c => c.AiPromptUsed).HasColumnType("nvarchar(max)");
         builder.Property(c => c.Status).HasConversion<string>().HasMaxLength(20).IsRequired();
+        builder.Property(c => c.GenerationMode).HasConversion<string>().HasMaxLength(20).IsRequired();
+        builder.Property(c => c.RowVersion).IsRowVersion();
 
         builder.HasOne(c => c.Campaign)
             .WithMany(m => m.ContentItems)
@@ -39,6 +41,7 @@ public class ContentItemConfiguration : IEntityTypeConfiguration<ContentItem>
         builder.HasOne(c => c.BrandProfile)
             .WithMany(b => b.ContentItems)
             .HasForeignKey(c => c.BrandProfileId)
+            .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne<ApplicationUser>()
@@ -50,5 +53,10 @@ public class ContentItemConfiguration : IEntityTypeConfiguration<ContentItem>
             .WithMany()
             .HasForeignKey(c => c.ReviewedBy)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(c => new { c.BrandProfileId, c.Status });
+        builder.HasIndex(c => new { c.TenantId, c.Status });
+
+        builder.HasQueryFilter(c => !c.IsDeleted);
     }
 }

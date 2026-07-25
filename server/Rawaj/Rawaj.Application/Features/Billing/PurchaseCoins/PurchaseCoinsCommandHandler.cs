@@ -50,7 +50,7 @@ public class PurchaseCoinsCommandHandler(IApplicationDbContext dbContext, ICurre
 
         // Fake payment: no gateway call, no card validation, always succeeds. This is a placeholder
         // until a real payment integration exists (see the unused Stripe fields on Subscription).
-        dbContext.BillingTransactions.Add(new BillingTransaction
+        var transaction = new BillingTransaction
         {
             Id = Guid.NewGuid(),
             TenantId = tenantId,
@@ -58,6 +58,18 @@ public class PurchaseCoinsCommandHandler(IApplicationDbContext dbContext, ICurre
             Description = description,
             AmountUsd = amountUsd,
             CoinsGranted = coinsGranted,
+            CreatedAt = now
+        };
+        dbContext.BillingTransactions.Add(transaction);
+
+        dbContext.CoinLedgerEntries.Add(new CoinLedgerEntry
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            Amount = coinsGranted,
+            Reason = "coin_purchase",
+            ReferenceType = "billing_transaction",
+            ReferenceId = transaction.Id,
             CreatedAt = now
         });
 

@@ -132,7 +132,7 @@ public class ResearchCampaignCompetitorsCommandHandler(
         });
         campaign.UpdatedAt = now;
 
-        await CoinPolicy.TrySpendAsync(dbContext, tenantId, userId, role, coinCost, cancellationToken);
+        await CoinPolicy.TrySpendAsync(dbContext, tenantId, userId, role, coinCost, cancellationToken, reason: "competitive_analysis");
 
         await dbContext.SaveChangesAsync(cancellationToken);
 

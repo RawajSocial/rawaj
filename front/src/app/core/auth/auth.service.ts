@@ -5,7 +5,7 @@ import { environment } from '../../../environments/environment';
 import {
   AccessTokenClaims, ApiResponse, AuthUser, ChangePasswordRequest, LoginRequest, LoginResponse,
   MyProfileResponse, RefreshTokenResponse, RegisterRequest, RegisterResponse, UpdateAvatarResponse,
-  UpdateMyProfileRequest,
+  UpdateMyProfileRequest, VerifyEmailOtpRequest,
 } from '../../model/auth.model';
 import { decodeAccessToken, isTokenExpired } from './jwt.util';
 import { resolveMediaUrl } from './media-url.util';
@@ -133,6 +133,18 @@ export class AuthService {
 
   changePassword(request: ChangePasswordRequest): Observable<ApiResponse<boolean>> {
     return this.http.post<ApiResponse<boolean>>(`${environment.apiUrl}/users/me/change-password`, request);
+  }
+
+  requestEmailOtp(): Observable<ApiResponse<boolean>> {
+    return this.http.post<ApiResponse<boolean>>(`${environment.apiUrl}/users/me/email/request-otp`, {});
+  }
+
+  verifyEmailOtp(request: VerifyEmailOtpRequest): Observable<ApiResponse<boolean>> {
+    return this.http.post<ApiResponse<boolean>>(`${environment.apiUrl}/users/me/email/verify-otp`, request).pipe(
+      tap(res => {
+        if (res.status === 'success' && res.data) this._profileOverride.update(o => ({ ...o, emailConfirmed: true }));
+      }),
+    );
   }
 
   /**

@@ -13,6 +13,7 @@ import { PermissionService } from '../../../core/tenant/permission.service';
 import { CoinPricingService } from '../../../services/coin-pricing.service';
 import { SeoService } from '../../../services/seo.service';
 import { ErrorModalService } from '../../../services/error-modal.service';
+import { FeatureFlagsService } from '../../../services/feature-flags.service';
 import { extractApiErrorMessage } from '../../../core/auth/api-error.util';
 import { Breadcrumb } from '../../../shared/components/breadcrumb/breadcrumb';
 import { TooltipDirective } from '../../../shared/directives/tooltip.directive';
@@ -70,7 +71,11 @@ export class ContentGenPage {
   readonly platforms   = PLATFORM_OPTS;
   readonly qualities   = QUALITY_OPTS;
 
-  readonly genTypes:  GenType[]      = ['static-ad', 'video', 'text'];
+  private readonly featureFlagsService = inject(FeatureFlagsService);
+
+  readonly genTypes = computed<GenType[]>(() =>
+    this.featureFlagsService.flags().videoGeneration ? ['static-ad', 'video', 'text'] : ['static-ad', 'text'],
+  );
   readonly sizes:     AdSize[]       = ['square', 'portrait', 'landscape', 'story'];
   readonly tones:     ContentTone[]  = ['professional', 'casual', 'energetic', 'luxurious'];
   readonly textTypes: TextType[]     = ['caption', 'hashtags', 'ad-copy', 'blog'];
@@ -271,13 +276,10 @@ export class ContentGenPage {
   generate(): void {
     if (!this.canGenerate()) return;
 
-    const brandProfileId = this.formBrandProfileId();
-    if (!brandProfileId) {
-      this.errorModalService.show(
-        'اختر ملف علامة تجارية قبل التوليد.', { variant: 'warning', title: 'يلزم اختيار علامة تجارية' },
-      );
-      return;
-    }
+    // Backend supports generation with no brand profile ("standalone" — trying the product out
+    // before a brand profile exists) — send undefined rather than an empty string so it's omitted
+    // from the request instead of failing GUID binding server-side.
+    const brandProfileId = this.formBrandProfileId() || undefined;
 
     if (this.genType() === 'video') {
       this.errorModalService.show(
@@ -394,12 +396,9 @@ export class ContentGenPage {
       });
     } else {
       // There's no dedicated "edit" endpoint for images yet — re-run generation with the
-      // original brief plus the requested change folded into the prompt.
-      const brandProfileId = item.brandProfileId ?? this.formBrandProfileId();
-      if (!brandProfileId) {
-        this.media.markFailed(id);
-        return;
-      }
+      // original brief plus the requested change folded into the prompt. Brand-optional, same
+      // as the initial generation.
+      const brandProfileId = item.brandProfileId || this.formBrandProfileId() || undefined;
       this.visualAssetService.generate({
         brandProfileId,
         campaignId: item.campaignId,

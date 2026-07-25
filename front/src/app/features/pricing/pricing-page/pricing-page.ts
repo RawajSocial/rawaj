@@ -50,9 +50,9 @@ export class PricingPage {
       { label: 'دفعة محتوى حملة كاملة', cost: p.baseCosts.campaignContentGeneration },
       { label: 'استراتيجية تسويقية كاملة', cost: p.baseCosts.marketingPlanGeneration },
       { label: 'جدولة منشور / قصة / ريلز / كاروسيل / تصميم ترويجي', cost: p.baseCosts.scheduling },
-      { label: 'تشخيص العمل بالذكاء الاصطناعي', cost: p.baseCosts.businessDiagnosis, comingSoon: true },
-      { label: 'تحليل المنافسين', cost: p.baseCosts.competitiveAnalysis, comingSoon: true },
-      { label: 'محادثة استدلال ذكاء اصطناعي', cost: p.baseCosts.reasoningConversation, comingSoon: true },
+      { label: 'تشخيص العمل بالذكاء الاصطناعي', cost: p.baseCosts.businessDiagnosis },
+      { label: 'تحليل المنافسين', cost: p.baseCosts.competitiveAnalysis },
+      { label: 'محادثة استدلال ذكاء اصطناعي', cost: p.baseCosts.reasoningConversation },
     ];
   });
 
