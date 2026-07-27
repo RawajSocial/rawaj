@@ -45,6 +45,7 @@ public class AnalyzeCompetitorCommandHandler(
             ? $"{competitor.Name} company overview, marketing strategy, and social media presence"
             : $"{competitor.Name} company overview, marketing strategy, and social media presence in the {industry} industry";
 
+        var startedAt = DateTime.UtcNow;
         var searchResult = await tavilySearchService.SearchAsync(query, cancellationToken);
 
         var now = DateTime.UtcNow;
@@ -60,7 +61,7 @@ public class AnalyzeCompetitorCommandHandler(
             OutputRefId = searchResult.Succeeded ? competitor.Id : null,
             OutputRefType = "competitor",
             ErrorMessage = searchResult.ErrorMessage,
-            StartedAt = now,
+            StartedAt = startedAt,
             CompletedAt = now,
             CreatedAt = now
         };

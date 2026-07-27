@@ -42,8 +42,10 @@ public class ScheduleCampaignPostsCommandHandler(
             return Result<ScheduleCampaignPostsResponse>.Failure("Campaign not found.");
         }
 
+        var now0 = DateTime.UtcNow;
         var accounts = await dbContext.SocialAccounts
-            .Where(s => s.BrandProfileId == campaign.BrandProfileId && s.IsActive)
+            .Where(s => s.BrandProfileId == campaign.BrandProfileId && s.IsActive
+                && (s.TokenExpiresAt == null || s.TokenExpiresAt > now0))
             .ToListAsync(cancellationToken);
 
         if (accounts.Count == 0)

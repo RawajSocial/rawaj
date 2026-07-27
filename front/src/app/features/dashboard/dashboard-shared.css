@@ -214,6 +214,7 @@
 .rw-pill--warning { background: color-mix(in srgb, var(--color-accent) 85%, var(--color-dark-muted)); }
 .rw-pill--danger  { background: var(--color-danger); }
 .rw-pill--info    { background: var(--color-info); }
+.rw-pill--neutral { background: var(--color-text-muted); }
 
 @media (max-width: 768px) {
   .page-shell { padding: 16px; }

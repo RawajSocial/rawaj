@@ -98,41 +98,34 @@
               <p class="viewer-section-label">الإجراءات</p>
               <div class="action-btns">
 
-                <button type="button" class="abtn abtn-download">
-                  <i class="fa-solid fa-download"></i>
-                  تنزيل
-                  <i class="fa-solid fa-chevron-down abtn-caret"></i>
-                </button>
-
-                <button type="button" class="abtn abtn-edit" (click)="startEdit()">
-                  <i class="fa-solid fa-wand-magic-sparkles"></i>
-                  تحرير بالذكاء الاصطناعي
-                </button>
-
-                @if (ci.type === 'static-ad') {
-                  <button type="button" class="abtn abtn-resize">
-                    <i class="fa-solid fa-expand"></i>
-                    تغيير الحجم
-                  </button>
-                  <button type="button" class="abtn abtn-convert">
-                    <i class="fa-solid fa-film"></i>
-                    تحويل إلى فيديو
+                @if (ci.thumbnailUrl || ci.videoUrl) {
+                  <button type="button" class="abtn abtn-download" (click)="download()">
+                    <i class="fa-solid fa-download"></i>
+                    تنزيل
                   </button>
                 }
 
-                @if (!showDeleteConfirm()) {
-                  <button type="button" class="abtn abtn-delete" (click)="confirmDelete()">
-                    <i class="fa-solid fa-trash"></i>
-                    حذف
+                <button type="button" class="abtn abtn-edit" (click)="startEdit()">
+                  <i class="fa-solid fa-pen"></i>
+                  تعديل تفاصيل العرض
+                </button>
+
+                @if (ci.type === 'static-ad') {
+                  <button type="button" class="abtn abtn-resize" disabled title="قريباً">
+                    <i class="fa-solid fa-expand"></i>
+                    تغيير الحجم (قريباً)
                   </button>
-                } @else {
-                  <div class="delete-confirm">
-                    <span>هل أنت متأكد من الحذف؟</span>
-                    <div class="delete-confirm-row">
-                      <button type="button" class="abtn abtn-delete-yes" (click)="deleteItem()">نعم، احذف</button>
-                      <button type="button" class="abtn abtn-cancel-del" (click)="cancelDelete()">إلغاء</button>
-                    </div>
-                  </div>
+                  <button type="button" class="abtn abtn-convert" disabled title="قريباً">
+                    <i class="fa-solid fa-film"></i>
+                    تحويل إلى فيديو (قريباً)
+                  </button>
+                }
+
+                @if (ci.sourceKind) {
+                  <button type="button" class="abtn abtn-delete" (click)="confirmDelete()" [disabled]="deleting()">
+                    <i class="fa-solid fa-trash"></i>
+                    {{ deleting() ? 'جارٍ الحذف...' : 'حذف' }}
+                  </button>
                 }
 
               </div>
@@ -142,7 +135,7 @@
 
             <!-- Edit mode -->
             <div class="viewer-section edit-section">
-              <p class="viewer-section-label">تحرير المحتوى</p>
+              <p class="viewer-section-label">تعديل تفاصيل العرض (محلي، غير محفوظ)</p>
               <div class="edit-fields">
                 <div class="form-group">
                   <label class="form-label">العلامة التجارية</label>

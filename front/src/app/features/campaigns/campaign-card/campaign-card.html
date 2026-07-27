@@ -34,61 +34,60 @@
 
     <div class="camp-stats">
       <div class="camp-stat">
-        <span class="stat-icon"><i class="fa-solid fa-arrow-trend-up"></i></span>
-        <span class="stat-val">{{ campaign().ctr }}%</span>
-        <span class="stat-lbl">معدل النقر</span>
+        <span class="stat-icon"><i class="fa-solid fa-wallet"></i></span>
+        <span class="stat-val">{{ budgetLabel }}</span>
+        <span class="stat-lbl">الميزانية</span>
       </div>
       <div class="camp-stat">
-        <span class="stat-icon"><i class="fa-solid fa-arrow-pointer"></i></span>
-        <span class="stat-val">{{ formatNumber(campaign().clicks) }}</span>
-        <span class="stat-lbl">النقرات</span>
+        <span class="stat-icon"><i class="fa-regular fa-images"></i></span>
+        <span class="stat-val">{{ campaign().contentItemCount }}</span>
+        <span class="stat-lbl">منشور</span>
       </div>
       <div class="camp-stat">
-        <span class="stat-icon"><i class="fa-solid fa-bullseye"></i></span>
-        <span class="stat-val">{{ formatNumber(campaign().reach) }}</span>
-        <span class="stat-lbl">الوصول</span>
+        <span class="stat-icon"><i class="fa-solid fa-share-nodes"></i></span>
+        <span class="stat-val">{{ campaign().platforms.length }}</span>
+        <span class="stat-lbl">منصة</span>
       </div>
     </div>
 
-    <!-- Budget -->
-    <div class="camp-budget">
-      <div class="budget-ring">
-        <svg viewBox="0 0 100 100" class="ring-svg">
-          <circle cx="50" cy="50" [attr.r]="ringRadius" class="ring-track" />
-          <circle cx="50" cy="50" [attr.r]="ringRadius" class="ring-fill"
-                  [style.stroke-dasharray]="ringCircumference"
-                  [style.stroke-dashoffset]="ringDashOffset" />
-        </svg>
-        <span class="ring-label">{{ progressPct }}%</span>
-      </div>
-
-      <div class="budget-details">
-        <span class="budget-lbl"><i class="fa-solid fa-wallet"></i> الميزانية المُنفقة</span>
-        <div class="budget-track">
-          <div class="budget-fill" [style.width.%]="progressPct"></div>
-        </div>
-        <div class="budget-amounts">
-          <span class="amount-block">
-            <strong>${{ formatNumber(remainingBudget) }}</strong>
-            <small>المتبقي</small>
-          </span>
-          <span class="amount-block">
-            <strong>${{ formatNumber(campaign().budget) }}</strong>
-            <small>المستهدف</small>
-          </span>
-        </div>
-      </div>
-    </div>
+    <!-- The one action that moves this campaign forward. Before this, the campaigns list had no
+         route to the content review at all: a user who left mid-flow could not get back to their
+         generated posts from anywhere in the campaign UI. An archived campaign has no next step
+         until it's back out of the archive, so it offers that instead. -->
+    @if (campaign().status === 'archived') {
+      <button type="button" class="camp-next-step" data-stage="archived"
+              [class.is-perm-disabled]="!perms.canEdit()"
+              [attr.aria-disabled]="!perms.canEdit() || null"
+              [appTooltip]="perms.canEdit() ? '' : perms.editDeniedReason()"
+              (click)="perms.canEdit() && restore.emit(campaign().id); $event.stopPropagation()">
+        <i class="fa-solid fa-rotate-left"></i>
+        استعادة الحملة
+      </button>
+    } @else {
+      <button type="button" class="camp-next-step" [attr.data-stage]="stage"
+              (click)="openNextStep.emit(campaign().id); $event.stopPropagation()">
+        <i class="{{ nextStepIcon }}"></i>
+        {{ nextStepLabel }}
+      </button>
+    }
   </div>
 
   <!-- Footer -->
   <div class="camp-card-foot">
     @if (campaign().status === 'active') {
-      <button class="camp-action-btn pause-btn" (click)="pause.emit(campaign().id); $event.stopPropagation()" appTooltip="إيقاف" aria-label="إيقاف">
+      <button class="camp-action-btn pause-btn"
+        [class.is-perm-disabled]="!perms.canEdit()"
+        [attr.aria-disabled]="!perms.canEdit() || null"
+        (click)="perms.canEdit() && pause.emit(campaign().id); $event.stopPropagation()"
+        [appTooltip]="perms.canEdit() ? 'إيقاف' : perms.editDeniedReason()" aria-label="إيقاف">
         <i class="fa-solid fa-pause"></i>
       </button>
     } @else if (campaign().status === 'paused') {
-      <button class="camp-action-btn resume-btn" (click)="resume.emit(campaign().id); $event.stopPropagation()" appTooltip="استئناف" aria-label="استئناف">
+      <button class="camp-action-btn resume-btn"
+        [class.is-perm-disabled]="!perms.canEdit()"
+        [attr.aria-disabled]="!perms.canEdit() || null"
+        (click)="perms.canEdit() && resume.emit(campaign().id); $event.stopPropagation()"
+        [appTooltip]="perms.canEdit() ? 'استئناف' : perms.editDeniedReason()" aria-label="استئناف">
         <i class="fa-solid fa-play"></i>
       </button>
     } @else {
@@ -97,11 +96,25 @@
 
     <div class="camp-dates">
       <i class="fa-regular fa-calendar"></i>
-      {{ campaign().startDate }} — {{ campaign().endDate }}
+      {{ dateRangeLabel }}
     </div>
 
-    <button type="button" class="camp-action-btn view-btn" (click)="view.emit(campaign().id); $event.stopPropagation()" appTooltip="عرض التفاصيل" aria-label="عرض التفاصيل">
-      <i class="fa-solid fa-arrow-up-left-from-square"></i>
-    </button>
+    <div class="camp-card-foot-actions">
+      <!-- Archiving was previously only ever done by the onboarding wizard, behind the user's
+           back — there was no way to remove a campaign from your own list. -->
+      @if (campaign().status !== 'archived') {
+        <button type="button" class="camp-action-btn archive-btn"
+          [class.is-perm-disabled]="!perms.canEdit()"
+          [attr.aria-disabled]="!perms.canEdit() || null"
+          (click)="perms.canEdit() && archive.emit(campaign().id); $event.stopPropagation()"
+          [appTooltip]="perms.canEdit() ? 'أرشفة' : perms.editDeniedReason()" aria-label="أرشفة">
+          <i class="fa-solid fa-box-archive"></i>
+        </button>
+      }
+
+      <button type="button" class="camp-action-btn view-btn" (click)="view.emit(campaign().id); $event.stopPropagation()" appTooltip="عرض التفاصيل" aria-label="عرض التفاصيل">
+        <i class="fa-solid fa-arrow-up-left-from-square"></i>
+      </button>
+    </div>
   </div>
 </div>

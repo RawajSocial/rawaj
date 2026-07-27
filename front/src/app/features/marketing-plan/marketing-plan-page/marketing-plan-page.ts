@@ -2,8 +2,11 @@ import { Component, computed, DestroyRef, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { forkJoin, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
-import { MediaService } from '../../../services/media.service';
-import { GenType } from '../../../model/generated-item.model';
+import { ContentItemService } from '../../../services/content-item.service';
+import { VisualAssetService } from '../../../services/visual-asset.service';
+import { ContentItemSummary } from '../../../model/content-item.model';
+import { VisualAssetSummary } from '../../../model/visual-asset.model';
+import { GeneratedItem, GenType } from '../../../model/generated-item.model';
 import { MpEmptyState } from '../mp-empty-state/mp-empty-state';
 import { MpGenerating } from '../mp-generating/mp-generating';
 import { MpPlansList } from '../mp-plans-list/mp-plans-list';
@@ -14,6 +17,13 @@ import { BrandContextService } from '../../../services/brand-context.service';
 import { TenantService } from '../../../core/tenant/tenant.service';
 import { ErrorModalService } from '../../../services/error-modal.service';
 import { CampaignService } from '../../../services/campaign.service';
+
+/** Best-effort mapping from the backend `ContentType` enum to the media library's GenType —
+ *  mirrors `my-media-page.ts`'s helper of the same name/purpose. */
+function contentTypeToGenType(type: ContentItemSummary['contentType'], hasImage: boolean): GenType {
+  if (type === 'Story' || type === 'ReelScript') return 'video';
+  return hasImage ? 'static-ad' : 'text';
+}
 
 // ──── Loading stages ────────────────────────────────────────────────────────
 export interface Stage {
@@ -232,7 +242,8 @@ interface OnboardingSnap {
 })
 export class MarketingPlanPage {
   private readonly router     = inject(Router);
-  private readonly media      = inject(MediaService);
+  private readonly contentItemService = inject(ContentItemService);
+  private readonly visualAssetService = inject(VisualAssetService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly seo        = inject(SeoService);
   private readonly brandContextService = inject(BrandContextService);
@@ -272,6 +283,10 @@ export class MarketingPlanPage {
   private readonly snap      = signal<OnboardingSnap>({});
   private readonly calMonthCount = signal(1);
   readonly calPosts          = signal<CalendarPost[]>([]);
+  /** The opened campaign's real generated content/visual assets, mapped to `GeneratedItem` the
+   *  same way `my-media-page.ts` does — replaces the old hardcoded `MediaService` demo list, which
+   *  always showed the same 10 unrelated items (skincare/perfume/shoes) for every campaign. */
+  private readonly campaignMedia = signal<GeneratedItem[]>([]);
 
   readonly plan = computed<PlanData>(() => {
     const d = this.snap();
@@ -296,7 +311,7 @@ export class MarketingPlanPage {
       fbConn:      d.socialConnections?.facebook,
       igConn:      d.socialConnections?.instagram,
       kpis:        this.buildKpis(budgetFrom, budgetTo),
-      mediaItems:  this.media.items(),
+      mediaItems:  this.campaignMedia(),
     };
   });
 
@@ -323,6 +338,8 @@ export class MarketingPlanPage {
    *  old `localStorage['rawaj.plans']` store: the onboarding wizard now persists BriefJson on the
    *  real campaign row instead of writing to localStorage. */
   private loadPlansFromCampaigns(): void {
+    // Archived campaigns are excluded server-side — each would otherwise cost a GET here only to
+    // list a plan for a campaign the user has abandoned.
     const campaigns = this.campaignService.campaigns();
     if (campaigns.length === 0) {
       this.phase.set('empty');
@@ -373,8 +390,66 @@ export class MarketingPlanPage {
     const months = this.parseMonths(p.data);
     this.snap.set(p.data);
     this.calMonthCount.set(months);
-    this.calPosts.set(this.buildFlatCalendar(p.data, months));
     this.phase.set('detail');
+
+    this.loadCampaignMedia(p.brandProfileId, p.campaignId, () => {
+      this.calPosts.set(this.buildFlatCalendar(p.data, months, p.campaignId));
+    });
+  }
+
+  /** Loads the opened campaign's real content items + visual assets and maps them into the
+   *  `GeneratedItem` shape the detail view's media gallery/calendar linking expects. Legacy plans
+   *  with no `brandProfileId` (predate real campaign association) just get an empty media list. */
+  private loadCampaignMedia(brandProfileId: string | undefined, campaignId: string | undefined, onDone: () => void): void {
+    if (!brandProfileId) {
+      this.campaignMedia.set([]);
+      onDone();
+      return;
+    }
+
+    forkJoin([
+      this.contentItemService.refresh(brandProfileId, campaignId).pipe(catchError(() => of(null))),
+      this.visualAssetService.refresh(brandProfileId, campaignId).pipe(catchError(() => of(null))),
+    ]).subscribe(() => {
+      this.campaignMedia.set(this.mergeCampaignMedia());
+      onDone();
+    });
+  }
+
+  /** Same merge-and-dedup shape as `my-media-page.ts`'s `libraryItems`: a visual asset already
+   *  embedded in its parent content item's card must not also appear as its own standalone card. */
+  private mergeCampaignMedia(): GeneratedItem[] {
+    const brandName = this.snap().brandName ?? '';
+    const contentItems = this.contentItemService.items();
+    const contentItemIds = new Set(contentItems.map(i => i.contentItemId));
+
+    const fromContent: GeneratedItem[] = contentItems.map((i: ContentItemSummary) => ({
+      id: i.contentItemId,
+      type: contentTypeToGenType(i.contentType, !!i.imageUrl),
+      title: i.content.substring(0, 24) + (i.content.length > 24 ? '…' : ''),
+      brand: brandName,
+      status: 'generated',
+      createdAt: i.createdAt,
+      description: i.content,
+      textContent: i.imageUrl ? undefined : i.content,
+      thumbnailUrl: i.imageUrl ?? undefined,
+      sourceKind: 'content-item',
+    }));
+
+    const fromAssets: GeneratedItem[] = this.visualAssetService.assets()
+      .filter((a: VisualAssetSummary) => !a.contentItemId || !contentItemIds.has(a.contentItemId))
+      .map((a: VisualAssetSummary) => ({
+        id: a.visualAssetId,
+        type: 'static-ad',
+        title: 'صورة مولّدة',
+        brand: brandName,
+        status: 'generated',
+        createdAt: a.createdAt,
+        thumbnailUrl: a.fileUrl,
+        sourceKind: 'visual-asset',
+      }));
+
+    return [...fromContent, ...fromAssets];
   }
 
   // ── Actions ──
@@ -384,7 +459,7 @@ export class MarketingPlanPage {
     const months = this.parseMonths(snap);
     this.completedCount.set(0);
     this.streamedItems.set([]);
-    const posts = this.buildFlatCalendar(snap, months);
+    const posts = this.buildFlatCalendar(snap, months, this.activePlanId() ?? undefined);
     this.calPosts.set(posts);
     this.phase.set('generating');
     this.startGenerating(posts);
@@ -490,11 +565,24 @@ export class MarketingPlanPage {
     return { from: Math.min(...nums), to: Math.max(...nums) };
   }
 
-  private buildFlatCalendar(d: OnboardingSnap, months: number): CalendarPost[] {
+  /** Deterministic per-campaign offset so two campaigns with the same platform/duration don't
+   *  render byte-identical titles/captions/engagement numbers — the calendar is still a
+   *  deterministic preview (see the note on `SavedPlan`), just seeded by which campaign it is. */
+  private seedFor(campaignId?: string): number {
+    if (!campaignId) return 0;
+    let hash = 0;
+    for (let i = 0; i < campaignId.length; i++) {
+      hash = (hash * 31 + campaignId.charCodeAt(i)) | 0;
+    }
+    return Math.abs(hash);
+  }
+
+  private buildFlatCalendar(d: OnboardingSnap, months: number, campaignId?: string): CalendarPost[] {
     const platforms = this.resolvePlatforms(d);
-    const mediaIds  = this.media.items().map(i => i.id);
+    const mediaIds  = this.campaignMedia().map(i => i.id);
     const posts: CalendarPost[] = [];
-    let idx = 0;
+    const seed = this.seedFor(campaignId);
+    let idx = seed;
 
     for (let m = 0; m < months; m++) {
       const counts = [4, 5, 4, 4];

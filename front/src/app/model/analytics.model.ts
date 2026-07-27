@@ -27,11 +27,13 @@ export interface CampaignAnalyticsSummary {
   totalLikes: number;
   totalComments: number;
   totalShares: number;
+  totalClicks: number;
   averageEngagementRate: number | null;
   posts: PostAnalyticsSnapshot[];
   impressionsAvailable: boolean;
   reachAvailable: boolean;
   engagementRateAvailable: boolean;
+  clicksAvailable: boolean;
 }
 
 /** True only when at least one tracked post actually reported the metric. Use this (or the

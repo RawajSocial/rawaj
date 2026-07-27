@@ -1,10 +1,17 @@
-import { Component, input, output } from '@angular/core';
-import { Campaign } from '../../../model/campaign.model';
+import { Component, inject, input, output } from '@angular/core';
+import {
+  CAMPAIGN_PLATFORM_META, CAMPAIGN_STATUS_LABELS, Campaign, CampaignStatus, campaignObjectiveLabel,
+} from '../../../model/campaign.model';
 import { TooltipDirective } from '../../../shared/directives/tooltip.directive';
+import { PermissionService } from '../../../core/tenant/permission.service';
+import { formatCampaignDateRange } from '../campaign-format.util';
 
 const DEFAULT_LOGO = '/assets/icons/logo.png';
-const RING_RADIUS = 42;
-const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
+
+const STATUS_ICONS: Record<CampaignStatus, string> = {
+  active: 'fa-solid fa-bullhorn', paused: 'fa-solid fa-pause', completed: 'fa-solid fa-circle-check',
+  draft: 'fa-solid fa-pen', archived: 'fa-solid fa-box-archive',
+};
 
 @Component({
   selector: 'app-campaign-card',
@@ -14,13 +21,19 @@ const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
   styleUrl: './campaign-card.css',
 })
 export class CampaignCard {
+  protected readonly perms = inject(PermissionService);
+
   readonly campaign = input.required<Campaign>();
   readonly pause    = output<string>();
   readonly resume   = output<string>();
   readonly view     = output<string>();
-
-  protected readonly ringRadius = RING_RADIUS;
-  protected readonly ringCircumference = RING_CIRCUMFERENCE;
+  /** Archive is the product's soft delete; restore brings one back. Both are reversible, so the
+   *  card offers whichever applies to this campaign's current status. */
+  readonly archive  = output<string>();
+  readonly restore  = output<string>();
+  /** "Continue where you left off" — routes to the strategy review or the content review
+   *  depending on how far the campaign has actually got. */
+  readonly openNextStep = output<string>();
 
   /** Per-campaign brand logo shown on the banner — falls back to the Rawaj
    *  logo when a campaign doesn't set its own (see CampaignService). */
@@ -28,54 +41,62 @@ export class CampaignCard {
     return this.campaign().logoUrl ?? DEFAULT_LOGO;
   }
 
-  protected get progressPct(): number {
+  protected get budgetLabel(): string {
     const c = this.campaign();
-    return c.budget > 0 ? Math.min(100, Math.round((c.spent / c.budget) * 100)) : 0;
+    if (!c.budget) return '—';
+    return `${this.formatNumber(c.budget)} ${c.budgetCurrency ?? ''}`.trim();
   }
 
-  protected get ringDashOffset(): number {
-    return RING_CIRCUMFERENCE * (1 - this.progressPct / 100);
+  /** The campaign's lifecycle stage, which drives the card's primary CTA. Spend/performance
+   *  metrics aren't shown on the card: nothing in the campaigns list API carries them, and it
+   *  used to render a hardcoded 0 for CTR/clicks/reach on every campaign. Real per-campaign
+   *  performance lives on the detail page, which reads it from AnalyticsService. */
+  protected get stage(): 'needs-strategy' | 'needs-content' | 'has-content' {
+    const c = this.campaign();
+    if (!c.planApprovedAt) return 'needs-strategy';
+    return c.contentItemCount > 0 ? 'has-content' : 'needs-content';
   }
 
-  protected get remainingBudget(): number {
-    return Math.max(0, this.campaign().budget - this.campaign().spent);
+  protected get nextStepLabel(): string {
+    switch (this.stage) {
+      case 'needs-strategy': return 'مراجعة الاستراتيجية';
+      case 'needs-content':  return 'توليد المحتوى';
+      default:               return 'مراجعة المحتوى';
+    }
+  }
+
+  protected get nextStepIcon(): string {
+    switch (this.stage) {
+      case 'needs-strategy': return 'fa-solid fa-lightbulb';
+      case 'needs-content':  return 'fa-solid fa-wand-magic-sparkles';
+      default:               return 'fa-regular fa-images';
+    }
   }
 
   protected get statusLabel(): string {
-    const map: Record<string, string> = {
-      active: 'نشطة', paused: 'موقوفة', completed: 'مكتملة', draft: 'مسودة',
-    };
-    return map[this.campaign().status] ?? '';
+    return CAMPAIGN_STATUS_LABELS[this.campaign().status] ?? '';
   }
 
   protected get statusIcon(): string {
-    const map: Record<string, string> = {
-      active: 'fa-solid fa-bullhorn', paused: 'fa-solid fa-pause', completed: 'fa-solid fa-circle-check', draft: 'fa-solid fa-pen',
-    };
-    return map[this.campaign().status] ?? 'fa-solid fa-circle';
+    return STATUS_ICONS[this.campaign().status] ?? 'fa-solid fa-circle';
   }
 
   protected get objectiveLabel(): string {
-    const map: Record<string, string> = {
-      awareness: 'الوعي بالعلامة', traffic: 'زيارات الموقع',
-      engagement: 'التفاعل', leads: 'توليد عملاء', sales: 'رفع المبيعات',
-    };
-    return map[this.campaign().objective] ?? '';
+    return campaignObjectiveLabel(this.campaign().objective);
+  }
+
+  /** The campaign's own dates, formatted — the raw ISO strings used to be printed straight into
+   *  the footer, and a campaign with no dates rendered a bare "—" separator with nothing on
+   *  either side of it. */
+  protected get dateRangeLabel(): string {
+    const c = this.campaign();
+    return formatCampaignDateRange(c.startDate, c.endDate);
   }
 
   protected get platformIcons(): { key: string; icon: string; color: string }[] {
-    const map: Record<string, { icon: string; color: string }> = {
-      instagram: { icon: 'fa-brands fa-instagram',   color: 'var(--color-instagram)' },
-      facebook:  { icon: 'fa-brands fa-facebook-f',  color: 'var(--color-facebook)' },
-      tiktok:    { icon: 'fa-brands fa-tiktok',      color: 'var(--color-tiktok)' },
-      youtube:   { icon: 'fa-brands fa-youtube',     color: 'var(--color-youtube)' },
-      x:         { icon: 'fa-brands fa-x-twitter',   color: 'var(--color-x)' },
-      snapchat:  { icon: 'fa-brands fa-snapchat',    color: 'var(--color-snapchat)' },
-      linkedin:  { icon: 'fa-brands fa-linkedin-in', color: 'var(--color-linkedin)' },
-    };
     return this.campaign().platforms.map(p => ({
       key: p,
-      ...(map[p] ?? { icon: 'fa-solid fa-globe', color: 'var(--color-text-muted)' }),
+      ...(CAMPAIGN_PLATFORM_META[p] ?? { icon: 'fa-solid fa-globe', color: 'var(--color-text-muted)' }),
     }));
   }
 

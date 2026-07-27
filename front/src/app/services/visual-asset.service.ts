@@ -38,4 +38,14 @@ export class VisualAssetService {
   generate(input: GenerateVisualAssetInput): Observable<ApiResponse<GenerateVisualAssetResponse>> {
     return this.http.post<ApiResponse<GenerateVisualAssetResponse>>(`${this.baseUrl}/generate`, input);
   }
+
+  /** Soft-deletes a visual asset (and its Cloudinary file, if any) — rejected server-side if it's
+   *  still actively scheduled or already published. */
+  delete(visualAssetId: string): Observable<ApiResponse<boolean>> {
+    return this.http.delete<ApiResponse<boolean>>(`${this.baseUrl}/${visualAssetId}`).pipe(
+      tap(res => {
+        if (res.data) this._assets.update(list => list.filter(a => a.visualAssetId !== visualAssetId));
+      }),
+    );
+  }
 }

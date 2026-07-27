@@ -24,6 +24,7 @@ public class ContentItemConfiguration : IEntityTypeConfiguration<ContentItem>
         builder.Property(c => c.Cta).HasMaxLength(255);
         builder.Property(c => c.Tone).HasMaxLength(50);
         builder.Property(c => c.AiPromptUsed).HasColumnType("nvarchar(max)");
+        builder.Property(c => c.ImagePrompt).HasColumnType("nvarchar(max)");
         builder.Property(c => c.Status).HasConversion<string>().HasMaxLength(20).IsRequired();
         builder.Property(c => c.GenerationMode).HasConversion<string>().HasMaxLength(20).IsRequired();
         builder.Property(c => c.RowVersion).IsRowVersion();

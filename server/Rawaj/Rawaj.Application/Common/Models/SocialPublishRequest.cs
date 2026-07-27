@@ -6,4 +6,5 @@ public record SocialPublishRequest(
     string Message,
     byte[]? ImageBytes,
     string? ImageContentType,
-    DateTime? ScheduledAt);
+    DateTime? ScheduledAt,
+    string? ImageUrl = null);

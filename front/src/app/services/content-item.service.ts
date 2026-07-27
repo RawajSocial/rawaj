@@ -55,4 +55,14 @@ export class ContentItemService {
       `${this.baseUrl}/${contentItemId}/regenerate`, { feedback },
     );
   }
+
+  /** Soft-deletes a content item (and its own generated images) — rejected server-side if it's
+   *  still actively scheduled or already published. */
+  delete(contentItemId: string): Observable<ApiResponse<boolean>> {
+    return this.http.delete<ApiResponse<boolean>>(`${this.baseUrl}/${contentItemId}`).pipe(
+      tap(res => {
+        if (res.data) this._items.update(list => list.filter(i => i.contentItemId !== contentItemId));
+      }),
+    );
+  }
 }

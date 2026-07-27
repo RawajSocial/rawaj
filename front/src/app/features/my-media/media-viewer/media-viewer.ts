@@ -3,7 +3,11 @@ import {
   ContentTone, GeneratedItem, GenType,
   SIZE_CFG, TONE_CFG, TYPE_CFG,
 } from '../../../model/generated-item.model';
-import { MediaService } from '../../../services/media.service';
+import { ContentItemService } from '../../../services/content-item.service';
+import { VisualAssetService } from '../../../services/visual-asset.service';
+import { ConfirmDialogService } from '../../../services/confirm-dialog.service';
+import { ErrorModalService } from '../../../services/error-modal.service';
+import { extractApiErrorMessage } from '../../../core/auth/api-error.util';
 
 @Component({
   selector: 'app-media-viewer',
@@ -22,28 +26,29 @@ export class MediaViewer {
 
   closed = output<void>();
 
-  readonly editMode          = signal(false);
-  readonly showDeleteConfirm = signal(false);
-  readonly currentItem       = signal<GeneratedItem | null>(null);
+  readonly editMode    = signal(false);
+  readonly deleting     = signal(false);
+  readonly currentItem = signal<GeneratedItem | null>(null);
 
   readonly editBrand = signal('');
   readonly editDesc  = signal('');
   readonly editTone  = signal<ContentTone>('professional');
 
-  private readonly media = inject(MediaService);
+  private readonly contentItemService = inject(ContentItemService);
+  private readonly visualAssetService = inject(VisualAssetService);
+  private readonly confirmDialogService = inject(ConfirmDialogService);
+  private readonly errorModalService = inject(ErrorModalService);
 
   constructor() {
     effect(() => {
       this.currentItem.set(this.item());
       this.editMode.set(false);
-      this.showDeleteConfirm.set(false);
     });
   }
 
   @HostListener('document:keydown.escape')
   onEsc(): void {
-    if (this.editMode())          { this.editMode.set(false); return; }
-    if (this.showDeleteConfirm()) { this.showDeleteConfirm.set(false); return; }
+    if (this.editMode()) { this.editMode.set(false); return; }
     this.closed.emit();
   }
 
@@ -58,6 +63,8 @@ export class MediaViewer {
 
   cancelEdit(): void { this.editMode.set(false); }
 
+  /** Updates this modal's own view only — there is no backend field for freely editing an
+   *  already-generated item's brand/description/tone, so nothing here is persisted. */
   saveEdit(): void {
     const item = this.currentItem();
     if (!item) return;
@@ -67,19 +74,58 @@ export class MediaViewer {
       description: this.editDesc() || undefined,
       tone:        this.editTone(),
     };
-    this.media.update(updated);
     this.currentItem.set(updated);
     this.editMode.set(false);
   }
 
-  confirmDelete(): void { this.showDeleteConfirm.set(true); }
-  cancelDelete(): void  { this.showDeleteConfirm.set(false); }
-
-  deleteItem(): void {
+  async confirmDelete(): Promise<void> {
     const item = this.currentItem();
-    if (!item) return;
-    this.media.remove(item.id);
-    this.closed.emit();
+    if (!item || !item.sourceKind) return;
+
+    const confirmed = await this.confirmDialogService.confirm(
+      'سيتم حذف هذا المحتوى نهائيًا ولا يمكن التراجع عن هذا الإجراء.',
+      { title: 'حذف المحتوى', confirmLabel: 'حذف', variant: 'danger' },
+    );
+    if (!confirmed) return;
+
+    this.deleting.set(true);
+    const request = item.sourceKind === 'visual-asset'
+      ? this.visualAssetService.delete(item.id)
+      : this.contentItemService.delete(item.id);
+
+    request.subscribe({
+      next: () => {
+        this.deleting.set(false);
+        this.closed.emit();
+      },
+      error: err => {
+        this.deleting.set(false);
+        this.errorModalService.show(extractApiErrorMessage(err, 'تعذّر حذف هذا المحتوى.'), { variant: 'error' });
+      },
+    });
+  }
+
+  /** Triggers a real browser download of the actual image/video file (not the whole-page
+   *  navigation a bare `<a href>` would otherwise cause for a cross-origin Cloudinary URL). */
+  async download(): Promise<void> {
+    const item = this.currentItem();
+    const url = item?.thumbnailUrl ?? item?.videoUrl;
+    if (!item || !url) return;
+
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const extension = item.videoUrl ? 'mp4' : 'jpg';
+
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = `${item.title || 'media'}.${extension}`;
+      link.click();
+      URL.revokeObjectURL(objectUrl);
+    } catch {
+      this.errorModalService.show('تعذّر تنزيل الملف.', { variant: 'error' });
+    }
   }
 
   isVideo(item: GeneratedItem): boolean { return item.type === 'video'; }

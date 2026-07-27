@@ -49,6 +49,12 @@ export const userRoutes: Routes = [
       import('../features/campaigns/campaign-detail-page/campaign-detail-page').then((m) => m.CampaignDetailPage),
   },
   {
+    path: 'campaigns/:id/strategy',
+    canActivate: [brandAccessGuard],
+    loadComponent: () =>
+      import('../features/campaigns/campaign-strategy-page/campaign-strategy-page').then((m) => m.CampaignStrategyPage),
+  },
+  {
     path: 'campaigns/:id/calendar',
     canActivate: [brandAccessGuard],
     loadComponent: () =>

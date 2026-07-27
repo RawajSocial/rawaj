@@ -2,6 +2,18 @@
   margin-bottom: 24px;
 }
 
+.page-header__row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.page-header__main {
+  min-width: 0;
+}
+
 .page-header__title {
   font-size: var(--font-size-xl);
   font-weight: var(--font-bold);

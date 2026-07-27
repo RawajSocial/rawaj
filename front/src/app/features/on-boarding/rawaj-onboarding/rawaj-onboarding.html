@@ -1,6 +1,6 @@
 <main class="onboarding-page" dir="rtl">
   <div class="onboarding-layout">
-    <app-onboarding-sidebar [currentStep]="currentStep()" class="d-lg-block d-none" [totalSteps]="totalSteps" />
+    <app-onboarding-sidebar [currentStep]="currentStep()" class="d-lg-block d-none" />
     <section class="onboarding-main">
       @if (currentStep() === 1 && brandProfiles().length > 1) {
         <div class="onboarding-brand-picker" dir="rtl">

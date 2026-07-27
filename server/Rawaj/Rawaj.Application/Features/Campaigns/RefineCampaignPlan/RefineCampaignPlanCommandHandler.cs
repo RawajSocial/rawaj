@@ -59,6 +59,7 @@ public class RefineCampaignPlanCommandHandler(
         }
 
         var prompt = ContentPromptBuilder.BuildPlanRefinementPrompt(brand, campaign, campaign.AiPlanJson, request.Feedback);
+        var startedAt = DateTime.UtcNow;
         var generation = await textGenerationService.GenerateTextAsync(prompt, cancellationToken);
 
         var now = DateTime.UtcNow;
@@ -75,7 +76,7 @@ public class RefineCampaignPlanCommandHandler(
             OutputRefType = "marketing_campaign",
             Tokens = generation.TokensUsed,
             ErrorMessage = generation.ErrorMessage,
-            StartedAt = now,
+            StartedAt = startedAt,
             CompletedAt = now,
             CreatedAt = now
         };
@@ -88,7 +89,18 @@ public class RefineCampaignPlanCommandHandler(
                 generation.ErrorMessage ?? "Strategy refinement failed. Please try again.");
         }
 
-        campaign.AiPlanJson = generation.Text!;
+        // Only store what parses — see AiJsonResponseParser. Especially important here: this
+        // overwrites an existing, already-paid-for strategy, so an unreadable refinement must
+        // leave the previous plan intact rather than replacing it with something unrenderable.
+        var refinedJson = AiJsonResponseParser.ExtractJsonPayload(generation.Text);
+        if (refinedJson is null)
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+            return Result<RefineCampaignPlanResponse>.Failure(
+                "The refined strategy could not be read. Your existing strategy is unchanged — please try again.");
+        }
+
+        campaign.AiPlanJson = refinedJson;
         campaign.AiGeneratedAt = now;
         campaign.UpdatedAt = now;
 

@@ -115,15 +115,28 @@ public static class ScheduledPostPublisher
 
         byte[]? imageBytes = null;
         string? imageContentType = null;
+        string? imageUrl = null;
 
         if (scheduledPost.VisualAssetId is not null)
         {
             var visualAsset = await dbContext.VisualAssets
                 .FirstOrDefaultAsync(v => v.Id == scheduledPost.VisualAssetId, cancellationToken);
 
-            if (visualAsset is not null && visualAsset.FileUrl.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
+            if (visualAsset is not null)
             {
-                (imageContentType, imageBytes) = ParseDataUrl(visualAsset.FileUrl);
+                if (visualAsset.FileUrl.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Local base64 fallback (no Cloudinary configured) — the platform has no way
+                    // to fetch this URL itself, so the raw bytes must be uploaded directly.
+                    (imageContentType, imageBytes) = ParseDataUrl(visualAsset.FileUrl);
+                }
+                else
+                {
+                    // A real, publicly reachable URL (Cloudinary) — hand it to the platform
+                    // directly instead of downloading it ourselves.
+                    imageUrl = visualAsset.FileUrl;
+                    imageContentType = visualAsset.Format;
+                }
             }
         }
 
@@ -131,7 +144,7 @@ public static class ScheduledPostPublisher
         var message = BuildMessage(contentItem.Content, contentItem.Hashtags);
 
         var publishResult = await publisher.PublishAsync(
-            new SocialPublishRequest(accessToken, socialAccount.AccountIdExternal, message, imageBytes, imageContentType, scheduledAt),
+            new SocialPublishRequest(accessToken, socialAccount.AccountIdExternal, message, imageBytes, imageContentType, scheduledAt, imageUrl),
             cancellationToken);
 
         var now = DateTime.UtcNow;

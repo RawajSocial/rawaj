@@ -63,11 +63,13 @@ public class GetCampaignAnalyticsQueryHandler(IApplicationDbContext dbContext, I
             latestPerPost.Sum(p => p.Likes ?? 0),
             latestPerPost.Sum(p => p.Comments ?? 0),
             latestPerPost.Sum(p => p.Shares ?? 0),
+            latestPerPost.Sum(p => p.Clicks ?? 0),
             PostAnalyticsAggregation.AverageEngagementRate(latestPerPost),
             posts,
             latestPerPost.Any(p => p.Impressions.HasValue),
             latestPerPost.Any(p => p.Reach.HasValue),
-            latestPerPost.Any(p => p.EngagementRate.HasValue));
+            latestPerPost.Any(p => p.EngagementRate.HasValue),
+            latestPerPost.Any(p => p.Clicks.HasValue));
 
         return Result<CampaignAnalyticsSummary>.Success(summary);
     }

@@ -52,7 +52,11 @@ public enum VisualAssetSourceType
 {
     AiGenerated,
     UserUploaded,
-    Edited
+    Edited,
+    /// <summary>Stood in for a generation that couldn't actually produce an image (AI credits
+    /// exhausted mid-batch, or the image model itself failed/ran out of quota) — every ContentItem
+    /// still gets a VisualAsset, never a null image, and the user can retry for a real one later.</summary>
+    Placeholder
 }
 
 public enum ContentTemplateStyle

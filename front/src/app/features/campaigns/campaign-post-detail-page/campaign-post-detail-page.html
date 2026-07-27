@@ -1,5 +1,7 @@
 <div class="page-shell">
-  @if (campaign(); as c) {
+  @if (loading()) {
+    <div class="detail-loading"><i class="fa-solid fa-circle-notch fa-spin"></i> جاري التحميل...</div>
+  } @else if (campaign(); as c) {
     @if (post(); as p) {
       <app-page-header
         title="تفاصيل المنشور"
@@ -42,7 +44,7 @@
           </a>
 
           @if (p.status === 'scheduled') {
-            <button type="button" class="rw-btn rw-btn--outline"
+            <button type="button" class="rw-btn rw-btn--primary"
               [class.is-perm-disabled]="!perms.canEdit()"
               [attr.aria-disabled]="!perms.canEdit() || null"
               [appTooltip]="perms.editDeniedReason()"
@@ -102,7 +104,7 @@
            are labeled, never shown as a fabricated zero. ── -->
       <div class="rw-card insights-card">
         <div class="insights-head">
-          <h3>إحصاءات المنشور</h3>
+          <h2>إحصاءات المنشور</h2>
           @if (p.status === 'published') {
             <button type="button" class="rw-btn rw-btn--outline"
               [class.is-perm-disabled]="!perms.canEdit()"
@@ -141,6 +143,10 @@
               <span class="insight-num">{{ reachAvailable() ? snap.reach : '—' }}</span>
               <span class="insight-lbl" appTooltip="يتطلب صلاحية إحصاءات موسّعة من المنصة لم تُفعّل بعد">مدى الوصول</span>
             </div>
+            <div class="insight-stat" [class.unavailable]="!clicksAvailable()">
+              <span class="insight-num">{{ clicksAvailable() ? snap.clicks : '—' }}</span>
+              <span class="insight-lbl" appTooltip="يتطلب صلاحية إحصاءات موسّعة من المنصة لم تُفعّل بعد">النقرات</span>
+            </div>
           </div>
           <p class="insights-updated">آخر تحديث: {{ formatShortDateTime(snap.recordedAt) }}</p>
         } @else if (p.status === 'published') {
@@ -151,13 +157,13 @@
       </div>
     } @else {
       <div class="not-found">
-        <h3>المنشور غير موجود</h3>
+        <h1>المنشور غير موجود</h1>
         <a [routerLink]="['/dashboard/campaigns', campaignId(), 'calendar']">العودة إلى التقويم</a>
       </div>
     }
   } @else {
     <div class="not-found">
-      <h3>الحملة غير موجودة</h3>
+      <h1>{{ loadError() ?? 'الحملة غير موجودة' }}</h1>
       <a routerLink="/dashboard/campaigns">العودة إلى الحملات</a>
     </div>
   }

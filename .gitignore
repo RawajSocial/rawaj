@@ -10,6 +10,10 @@ CLAUDE.md
 appsettings.Development.json
 server/Rawaj/Rawaj/wwwroot/media/
 
+handoffs
+docs
+progress
+AGENTS.md
 # User-specific files
 *.rsuser
 *.suo

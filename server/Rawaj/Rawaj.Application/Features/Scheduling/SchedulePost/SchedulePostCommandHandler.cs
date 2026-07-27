@@ -46,6 +46,27 @@ public class SchedulePostCommandHandler(
             return Result<SchedulePostResponse>.Failure("Social account not found or not connected to this brand.");
         }
 
+        if (socialAccount.Platform != contentItem.Platform)
+        {
+            return Result<SchedulePostResponse>.Failure(
+                $"This post is for {contentItem.Platform}, but the selected account is a {socialAccount.Platform} account.");
+        }
+
+        if (socialAccount.TokenExpiresAt is not null && socialAccount.TokenExpiresAt <= DateTime.UtcNow)
+        {
+            return Result<SchedulePostResponse>.Failure(
+                $"The connection to this {socialAccount.Platform} account has expired. Reconnect it before scheduling.");
+        }
+
+        var alreadyScheduled = await dbContext.ScheduledPosts.AnyAsync(
+            s => s.ContentItemId == contentItem.Id
+                && (s.Status == ScheduledPostStatus.Pending || s.Status == ScheduledPostStatus.Published),
+            cancellationToken);
+        if (alreadyScheduled)
+        {
+            return Result<SchedulePostResponse>.Failure("This post is already scheduled or published.");
+        }
+
         if (request.VisualAssetId is not null)
         {
             var visualAssetValid = await dbContext.VisualAssets.AnyAsync(

@@ -5,7 +5,12 @@ using Rawaj.Domain.Enums;
 
 namespace Rawaj.Application.Features.Campaigns.GetCampaigns;
 
-public record GetCampaignsQuery(Guid? BrandProfileId, int Page = 1, int PageSize = 20)
+/// <param name="IncludeArchived">
+/// Archiving is this product's soft delete — the onboarding wizard archives every abandoned draft,
+/// so returning archived campaigns by default filled the client's list (and its pagination) with
+/// rows the UI immediately discarded. Callers that genuinely want them (the "مؤرشفة" filter) opt in.
+/// </param>
+public record GetCampaignsQuery(Guid? BrandProfileId, int Page = 1, int PageSize = 20, bool IncludeArchived = false)
     : IRequest<Result<PagedResult<CampaignSummary>>>, IRequireTenantRole, IRequireResolvedBrandAccess
 {
     public TenantMemberRole MinimumRole => TenantMemberRole.Viewer;

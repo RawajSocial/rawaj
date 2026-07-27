@@ -29,6 +29,7 @@ public class GenerateTrialContentCommandHandler(
                 $"You've reached today's free trial limit ({TrialUsagePolicy.DailyLimit}). Subscribe to keep generating content.");
         }
 
+        var startedAt = DateTime.UtcNow;
         var generation = await textGenerationService.GenerateTextAsync(request.Prompt, cancellationToken);
 
         var now = DateTime.UtcNow;
@@ -43,7 +44,7 @@ public class GenerateTrialContentCommandHandler(
             OutputRefType = "trial_content",
             Tokens = generation.TokensUsed,
             ErrorMessage = generation.ErrorMessage,
-            StartedAt = now,
+            StartedAt = startedAt,
             CompletedAt = now,
             CreatedAt = now
         };

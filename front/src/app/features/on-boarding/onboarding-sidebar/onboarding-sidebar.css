@@ -90,7 +90,7 @@
   border-radius: 999px;
 }
 
-.step-item.done:not(:last-child)::after  { background: rgba(124, 58, 237, 0.45); }
+.step-item.completed:not(:last-child)::after { background: rgba(124, 58, 237, 0.45); }
 .step-item.active:not(:last-child)::after { background: rgba(124, 58, 237, 0.25); }
 
 /* ── Circle ── */

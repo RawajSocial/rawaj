@@ -53,8 +53,9 @@ public class ResearchCampaignCompetitorsCommandHandler(
         var brand = await dbContext.TenantBrandProfiles.FirstAsync(b => b.Id == campaign.BrandProfileId, cancellationToken);
 
         var query = BuildQuery(brand, campaign);
-        var now = DateTime.UtcNow;
+        var startedAt = DateTime.UtcNow;
         var searchResult = await tavilySearchService.SearchAsync(query, cancellationToken);
+        var now = DateTime.UtcNow;
 
         var job = new AiJob
         {
@@ -67,7 +68,7 @@ public class ResearchCampaignCompetitorsCommandHandler(
             OutputRefId = searchResult.Succeeded ? campaign.Id : null,
             OutputRefType = "marketing_campaign",
             ErrorMessage = searchResult.ErrorMessage,
-            StartedAt = now,
+            StartedAt = startedAt,
             CompletedAt = now,
             CreatedAt = now
         };

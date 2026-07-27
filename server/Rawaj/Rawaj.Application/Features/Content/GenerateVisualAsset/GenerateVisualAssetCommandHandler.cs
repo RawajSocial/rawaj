@@ -55,15 +55,25 @@ public class GenerateVisualAssetCommandHandler(
             }
         }
 
+        // When this is a retry for an existing post, the post's own stored English scene
+        // description is a far better image prompt than what the caller sends — the content-review
+        // page can only send the post's Arabic marketing copy, which the image model renders
+        // poorly (see ContentItem.ImagePrompt). Null for pre-existing/standalone items, in which
+        // case the caller's prompt is used as before.
+        string? storedImagePrompt = null;
         if (request.ContentItemId is not null)
         {
             var brandIdForLookup = brand?.Id;
-            var contentItemExists = await dbContext.ContentItems.AnyAsync(
-                c => c.Id == request.ContentItemId && c.BrandProfileId == brandIdForLookup, cancellationToken);
-            if (!contentItemExists)
+            var contentItem = await dbContext.ContentItems
+                .Where(c => c.Id == request.ContentItemId && c.BrandProfileId == brandIdForLookup)
+                .Select(c => new { c.ImagePrompt })
+                .FirstOrDefaultAsync(cancellationToken);
+            if (contentItem is null)
             {
                 return Result<GenerateVisualAssetResponse>.Failure("Content item not found.");
             }
+
+            storedImagePrompt = string.IsNullOrWhiteSpace(contentItem.ImagePrompt) ? null : contentItem.ImagePrompt;
         }
 
         var generationMode = campaign is not null ? GenerationMode.Campaign : brand is not null ? GenerationMode.Brand : GenerationMode.Standalone;
@@ -89,10 +99,12 @@ public class GenerateVisualAssetCommandHandler(
                 CoinPolicy.InsufficientCoinsMessage(coinCost, coinBalance, "generate an image"));
         }
 
+        var subject = storedImagePrompt ?? request.Prompt;
         var prompt = brand is not null
-            ? ContentPromptBuilder.BuildImagePrompt(brand, campaign, request.Type.ToString(), request.Prompt)
-            : ContentPromptBuilder.BuildStandaloneImagePrompt(request.Type.ToString(), request.Prompt);
+            ? ContentPromptBuilder.BuildImagePrompt(brand, campaign, request.Type.ToString(), subject)
+            : ContentPromptBuilder.BuildStandaloneImagePrompt(request.Type.ToString(), subject);
 
+        var startedAt = DateTime.UtcNow;
         var generation = await imageGenerationService.GenerateImageAsync(prompt, cancellationToken);
 
         var now = DateTime.UtcNow;
@@ -109,7 +121,7 @@ public class GenerateVisualAssetCommandHandler(
             OutputRefId = generation.Succeeded ? visualAssetId : null,
             OutputRefType = "visual_asset",
             ErrorMessage = generation.ErrorMessage,
-            StartedAt = now,
+            StartedAt = startedAt,
             CompletedAt = now,
             CreatedAt = now
         };

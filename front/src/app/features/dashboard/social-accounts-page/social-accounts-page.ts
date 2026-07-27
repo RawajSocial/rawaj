@@ -17,10 +17,13 @@ interface PlatformOption {
   color: string;
 }
 
+/** Only Facebook and Instagram are wired end-to-end today (real OAuth provider + real publisher —
+ *  see Rawaj.Infrastructure/DependencyInjection.cs). LinkedIn's OAuth provider exists in code but
+ *  is deliberately never registered, so offering it here was a dead "connect" button that always
+ *  failed at click-time — removed rather than shipped as a broken action. */
 const PLATFORM_OPTIONS: PlatformOption[] = [
   { key: 'Facebook', label: 'فيسبوك', icon: 'fa-brands fa-facebook-f', color: 'var(--color-facebook)' },
   { key: 'Instagram', label: 'إنستغرام', icon: 'fa-brands fa-instagram', color: 'var(--color-instagram)' },
-  { key: 'Linkedin', label: 'لينكدإن', icon: 'fa-brands fa-linkedin-in', color: 'var(--color-linkedin)' },
 ];
 
 @Component({

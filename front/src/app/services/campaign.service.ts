@@ -1,26 +1,19 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { map, Observable, of, switchMap, tap } from 'rxjs';
+import { forkJoin, map, Observable, of, switchMap, tap } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { ApiResponse } from '../model/auth.model';
 import { PagedResult } from '../model/paged-result.model';
 import {
-  ApproveCampaignPlanResponse,
-  BackendCampaignStatus, Campaign, CampaignStatus, CampaignSummary,
+  ApproveCampaignPlanResponse, BACKEND_TO_CAMPAIGN_PLATFORM, BACKEND_TO_CAMPAIGN_STATUS,
+  Campaign, CampaignPlatform, CampaignSummary,
   CreateCampaignInput, CreateCampaignResponse, GenerateBusinessDiagnosisResponse,
   GenerateMarketingPlanResponse, GetCampaignResponse, RefineCampaignPlanResponse,
-  ResearchCampaignCompetitorsResponse, ScheduleCampaignPostsResponse, UpdateCampaignInput,
+  ResearchCampaignCompetitorsResponse, ScheduleCampaignPostsResponse, UnarchiveCampaignResponse,
+  UpdateCampaignInput,
 } from '../model/campaign.model';
 import { GenerateCampaignContentInput, GenerateCampaignContentResponse } from '../model/content-item.model';
 import { BrandProfileService } from './brand-profile.service';
-
-const STATUS_MAP: Record<BackendCampaignStatus, CampaignStatus> = {
-  Draft: 'draft',
-  Active: 'active',
-  Paused: 'paused',
-  Completed: 'completed',
-  Archived: 'archived',
-};
 
 @Injectable({ providedIn: 'root' })
 export class CampaignService {
@@ -31,51 +24,112 @@ export class CampaignService {
   private readonly _campaigns = signal<Campaign[]>([]);
   readonly campaigns = this._campaigns.asReadonly();
 
+  /** Whether the campaign list has ever finished loading in this session. Pages that render off
+   *  `campaigns()` need this to tell "no campaigns" apart from "not fetched yet" — without it the
+   *  campaigns list flashed its "you have no campaigns" empty state on every cold load, and the
+   *  calendar/post pages flashed "campaign not found". Reset by `clear()` on a tenant switch. */
+  private readonly _loaded = signal(false);
+  readonly loaded = this._loaded.asReadonly();
+
   private toCampaign(summary: CampaignSummary): Campaign {
     return {
       id: summary.campaignId,
       name: summary.name,
       brandProfileId: summary.brandProfileId,
-      status: STATUS_MAP[summary.status] ?? 'draft',
-      platforms: [],
-      objective: 'awareness',
-      budget: 0,
-      spent: 0,
-      reach: 0,
-      clicks: 0,
-      ctr: 0,
+      status: BACKEND_TO_CAMPAIGN_STATUS[summary.status] ?? 'draft',
+      platforms: (summary.targetPlatforms ?? [])
+        .map(p => BACKEND_TO_CAMPAIGN_PLATFORM[p])
+        .filter((p): p is CampaignPlatform => !!p),
+      objective: summary.objective ?? '',
+      budget: summary.budgetAmount,
+      budgetCurrency: summary.budgetCurrency,
       startDate: summary.startDate ?? '',
       endDate: summary.endDate ?? '',
       createdAt: summary.createdAt,
+      planApprovedAt: summary.planApprovedAt,
+      contentItemCount: summary.contentItemCount ?? 0,
       adCount: undefined,
       logoUrl: this.brandProfileService.getById(summary.brandProfileId)()?.logoUrl,
     };
   }
 
+  /** Archived campaigns, kept apart from the main list rather than mixed into it. Archiving is
+   *  this product's soft delete — the onboarding wizard archives every abandoned draft — so
+   *  `GET /campaigns` now excludes them by default (see the backend's `includeArchived`) and they
+   *  are fetched on demand, only when the user actually asks to see the archive. Keeping two lists
+   *  means the default one's page size isn't eaten by rows the UI would immediately discard. */
+  private readonly _archivedCampaigns = signal<Campaign[]>([]);
+  readonly archivedCampaigns = this._archivedCampaigns.asReadonly();
+
+  private readonly _archivedLoaded = signal(false);
+  readonly archivedLoaded = this._archivedLoaded.asReadonly();
+
+  /** Looks in both lists, so a direct link to an archived campaign still resolves its name and
+   *  brand instead of rendering "campaign not found". */
   getById(id: string) {
-    return computed(() => this._campaigns().find(c => c.id === id));
+    return computed(() =>
+      this._campaigns().find(c => c.id === id) ?? this._archivedCampaigns().find(c => c.id === id),
+    );
   }
 
   byBrandProfile(brandProfileId: string) {
     return computed(() => this._campaigns().filter(c => c.brandProfileId === brandProfileId));
   }
 
-  /** Fetches campaigns for a brand (or all accessible brands when omitted). Uses a large
-   *  page size since the list backs dropdowns/filters rather than a paginated table. */
+  /** Fetches non-archived campaigns for a brand (or all accessible brands when omitted). Uses a
+   *  large page size since the list backs dropdowns/filters rather than a paginated table. */
   refresh(brandProfileId?: string): Observable<ApiResponse<PagedResult<CampaignSummary>>> {
     let url = `${this.baseUrl}?pageSize=200`;
     if (brandProfileId) url += `&brandProfileId=${encodeURIComponent(brandProfileId)}`;
     return this.http.get<ApiResponse<PagedResult<CampaignSummary>>>(url).pipe(
-      tap(res => {
-        if (res.data) this._campaigns.set(res.data.items.map(s => this.toCampaign(s)));
+      tap({
+        next: res => {
+          if (res.data) this._campaigns.set(res.data.items.map(s => this.toCampaign(s)));
+          this._loaded.set(true);
+        },
+        // A failed fetch still ends the "loading" state — pages must fall through to their own
+        // error/empty handling rather than spinning forever.
+        error: () => this._loaded.set(true),
       }),
     );
   }
 
-  /** Runs `mutation`, then re-fetches the list on success so `campaigns` always reflects server state. */
-  private mutateAndRefresh<T>(mutation: Observable<ApiResponse<T>>): Observable<ApiResponse<T>> {
+  /** Fetches the archive. The endpoint has no "archived only" mode, so this asks for everything
+   *  and keeps the archived rows — the alternative would be a second backend filter for a view
+   *  the user opens rarely. */
+  refreshArchived(brandProfileId?: string): Observable<ApiResponse<PagedResult<CampaignSummary>>> {
+    let url = `${this.baseUrl}?pageSize=200&includeArchived=true`;
+    if (brandProfileId) url += `&brandProfileId=${encodeURIComponent(brandProfileId)}`;
+    return this.http.get<ApiResponse<PagedResult<CampaignSummary>>>(url).pipe(
+      tap({
+        next: res => {
+          if (res.data) {
+            this._archivedCampaigns.set(
+              res.data.items.map(s => this.toCampaign(s)).filter(c => c.status === 'archived'),
+            );
+          }
+          this._archivedLoaded.set(true);
+        },
+        error: () => this._archivedLoaded.set(true),
+      }),
+    );
+  }
+
+  /** Runs `mutation`, then re-fetches the list on success so `campaigns` always reflects server
+   *  state. Archive/restore move a campaign between the two lists, so those refresh both. */
+  private mutateAndRefresh<T>(
+    mutation: Observable<ApiResponse<T>>,
+    alsoRefreshArchived = false,
+  ): Observable<ApiResponse<T>> {
     return mutation.pipe(
-      switchMap(res => (res.data ? this.refresh().pipe(map(() => res)) : of(res))),
+      switchMap(res => {
+        if (!res.data) return of(res);
+        const refreshes: Observable<unknown>[] = [this.refresh()];
+        // Only re-fetch the archive if it's already on screen — otherwise this would fire a
+        // second request on every ordinary mutation for a list nobody is looking at.
+        if (alsoRefreshArchived && this._archivedLoaded()) refreshes.push(this.refreshArchived());
+        return forkJoin(refreshes).pipe(map(() => res));
+      }),
     );
   }
 
@@ -86,18 +140,33 @@ export class CampaignService {
   }
 
   update(campaignId: string, input: UpdateCampaignInput): Observable<ApiResponse<GetCampaignResponse>> {
+    // `status` can archive a campaign, so this moves rows between the two lists too.
     return this.mutateAndRefresh(
       this.http.put<ApiResponse<GetCampaignResponse>>(`${this.baseUrl}/${campaignId}`, input),
+      true,
     );
   }
 
   clear(): void {
     this._campaigns.set([]);
+    this._loaded.set(false);
+    this._archivedCampaigns.set([]);
+    this._archivedLoaded.set(false);
   }
 
   archive(campaignId: string): Observable<ApiResponse<boolean>> {
     return this.mutateAndRefresh(
       this.http.post<ApiResponse<boolean>>(`${this.baseUrl}/${campaignId}/archive`, {}),
+      true,
+    );
+  }
+
+  /** Restores an archived campaign — back to Active if its plan was already approved, otherwise
+   *  Draft (the backend decides; see UnarchiveCampaignCommandHandler). */
+  unarchive(campaignId: string): Observable<ApiResponse<UnarchiveCampaignResponse>> {
+    return this.mutateAndRefresh(
+      this.http.post<ApiResponse<UnarchiveCampaignResponse>>(`${this.baseUrl}/${campaignId}/unarchive`, {}),
+      true,
     );
   }
 
@@ -134,17 +203,22 @@ export class CampaignService {
     );
   }
 
-  /** Locks in the strategy — gates content generation until this has been called. */
+  /** Locks in the strategy — gates content generation until this has been called. Refreshes the
+   *  list because approval flips the campaign's `planApprovedAt` and `status`, which decide the
+   *  next-step CTA on the card and the detail page; without it both kept offering "review the
+   *  strategy" for an already-approved campaign until a full reload. */
   approvePlan(campaignId: string): Observable<ApiResponse<ApproveCampaignPlanResponse>> {
-    return this.http.post<ApiResponse<ApproveCampaignPlanResponse>>(
-      `${this.baseUrl}/${campaignId}/approve-plan`, {},
+    return this.mutateAndRefresh(
+      this.http.post<ApiResponse<ApproveCampaignPlanResponse>>(`${this.baseUrl}/${campaignId}/approve-plan`, {}),
     );
   }
 
-  /** Generates a batch of draft posts (+ optional images) for an approved campaign strategy. */
+  /** Generates a batch of draft posts (+ optional images) for an approved campaign strategy.
+   *  Refreshes the list so `contentItemCount` (and therefore the card's stage/CTA) reflects the
+   *  posts that were just created. */
   generateContent(campaignId: string, input: GenerateCampaignContentInput): Observable<ApiResponse<GenerateCampaignContentResponse>> {
-    return this.http.post<ApiResponse<GenerateCampaignContentResponse>>(
-      `${this.baseUrl}/${campaignId}/generate-content`, input,
+    return this.mutateAndRefresh(
+      this.http.post<ApiResponse<GenerateCampaignContentResponse>>(`${this.baseUrl}/${campaignId}/generate-content`, input),
     );
   }
 

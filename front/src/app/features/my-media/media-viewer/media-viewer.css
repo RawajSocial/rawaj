@@ -223,51 +223,14 @@
   text-align: right;
   transition: opacity 0.15s, filter 0.15s;
 }
-.abtn:hover { opacity: 0.88; filter: brightness(1.05); }
-
-.abtn-caret { margin-right: auto; font-size: 0.7rem; opacity: 0.6; }
+.abtn:hover:not(:disabled) { opacity: 0.88; filter: brightness(1.05); }
+.abtn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .abtn-download { background: linear-gradient(135deg,#f97316,#fb923c); color: #fff; box-shadow: 0 2px 8px rgba(249,115,22,0.3); }
 .abtn-edit     { background: rgba(124,58,237,0.1); color: #7C3AED; border: 1.5px solid rgba(124,58,237,0.2); }
 .abtn-resize   { background: #fffbeb; color: #92400e; border: 1.5px solid #fde68a; }
 .abtn-convert  { background: #fff7ed; color: #9a3412; border: 1.5px solid #fed7aa; }
 .abtn-delete   { background: #fff5f5; color: #ef4444; border: 1.5px solid #fecaca; }
-
-/* Delete confirm */
-.delete-confirm {
-  background: #fff5f5;
-  border: 1.5px solid #fecaca;
-  border-radius: 10px;
-  padding: 10px 12px;
-}
-
-.delete-confirm span {
-  display: block;
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: #b91c1c;
-  margin-bottom: 8px;
-}
-
-.delete-confirm-row { display: flex; gap: 6px; }
-
-.abtn-delete-yes {
-  flex: 1;
-  background: #ef4444;
-  color: #fff;
-  justify-content: center;
-  padding: 7px 8px;
-  font-size: 0.78rem;
-}
-
-.abtn-cancel-del {
-  flex: 1;
-  background: #f4f4f8;
-  color: #6b7280;
-  justify-content: center;
-  padding: 7px 8px;
-  font-size: 0.78rem;
-}
 
 /* Edit fields */
 .edit-fields { display: flex; flex-direction: column; gap: 10px; }

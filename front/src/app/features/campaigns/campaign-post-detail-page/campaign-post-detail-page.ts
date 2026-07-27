@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, signal, untracked } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { PageHeader } from '../../../shared/components/page-header/page-header';
@@ -8,28 +8,13 @@ import { AnalyticsService } from '../../../services/analytics.service';
 import { CoinPricingService } from '../../../services/coin-pricing.service';
 import { PermissionService } from '../../../core/tenant/permission.service';
 import { TooltipDirective } from '../../../shared/directives/tooltip.directive';
-import { CampaignPlatform } from '../../../model/campaign.model';
+import { CAMPAIGN_PLATFORM_META, GetCampaignResponse } from '../../../model/campaign.model';
 import { PostStatus } from '../../../model/scheduled-post.model';
 import { PostAnalyticsSnapshot, metricAvailable } from '../../../model/analytics.model';
 import { SeoService } from '../../../services/seo.service';
 import { ErrorModalService } from '../../../services/error-modal.service';
+import { ConfirmDialogService } from '../../../services/confirm-dialog.service';
 import { extractApiErrorMessage } from '../../../core/auth/api-error.util';
-
-interface PlatformMeta {
-  icon: string;
-  color: string;
-  label: string;
-}
-
-const PLATFORM_META: Record<CampaignPlatform, PlatformMeta> = {
-  instagram: { icon: 'fa-brands fa-instagram',   color: 'var(--color-instagram)', label: 'إنستغرام' },
-  facebook:  { icon: 'fa-brands fa-facebook-f',  color: 'var(--color-facebook)',  label: 'فيسبوك' },
-  tiktok:    { icon: 'fa-brands fa-tiktok',      color: 'var(--color-tiktok)',    label: 'تيك توك' },
-  youtube:   { icon: 'fa-brands fa-youtube',     color: 'var(--color-youtube)',   label: 'يوتيوب' },
-  x:         { icon: 'fa-brands fa-x-twitter',   color: 'var(--color-x)',         label: 'إكس' },
-  snapchat:  { icon: 'fa-brands fa-snapchat',    color: 'var(--color-snapchat)',  label: 'سناب شات' },
-  linkedin:  { icon: 'fa-brands fa-linkedin-in', color: 'var(--color-linkedin)',  label: 'لينكد إن' },
-};
 
 const STATUS_META: Record<PostStatus, { label: string; color: string }> = {
   scheduled: { label: 'مجدول', color: '#3B82F6' },
@@ -55,6 +40,7 @@ export class CampaignPostDetailPage {
   protected readonly perms = inject(PermissionService);
   private readonly seo = inject(SeoService);
   private readonly errorModalService = inject(ErrorModalService);
+  private readonly confirmDialogService = inject(ConfirmDialogService);
 
   /// Reactive route params — the router reuses this component instance across navigations that
   /// only change `:id`/`:postId`, so a snapshot read here would freeze on the first post forever.
@@ -62,10 +48,18 @@ export class CampaignPostDetailPage {
   protected readonly campaignId = computed(() => this.paramMap().get('id') ?? '');
   protected readonly postId = computed(() => this.paramMap().get('postId') ?? '');
 
-  protected readonly campaign = computed(() => this.campaignService.getById(this.campaignId())());
+  /** Fetched, not read out of CampaignService's list — the list is loaded once by UserLayout, so
+   *  a deep link to a post rendered "الحملة غير موجودة" for a campaign that exists. It also gates
+   *  the scheduled-post fetch below, which is what actually resolves `post()`. */
+  protected readonly campaign = signal<GetCampaignResponse | null>(null);
   protected readonly post = computed(() => this.scheduledPostService.getById(this.postId())());
 
-  protected readonly platformMeta = PLATFORM_META;
+  /** Distinguishes "still fetching the campaign and its posts" from "this post really doesn't
+   *  exist" — the page used to render its not-found state during the load of every deep link. */
+  protected readonly loading = signal(true);
+  protected readonly loadError = signal<string | null>(null);
+
+  protected readonly platformMeta = CAMPAIGN_PLATFORM_META;
   protected readonly statusMeta = STATUS_META;
 
   protected readonly snapshots = signal<PostAnalyticsSnapshot[]>([]);
@@ -80,6 +74,7 @@ export class CampaignPostDetailPage {
 
   protected readonly latestSnapshot = computed(() => this.snapshots()[0] ?? null);
   protected readonly reachAvailable = computed(() => metricAvailable(this.snapshots(), 'reach'));
+  protected readonly clicksAvailable = computed(() => metricAvailable(this.snapshots(), 'clicks'));
 
   constructor() {
     effect(() => {
@@ -100,9 +95,8 @@ export class CampaignPostDetailPage {
     // without this, opening a post by direct link or reloading this page always renders
     // "المنشور غير موجود" even for a post that exists.
     effect(() => {
-      const brandProfileId = this.campaign()?.brandProfileId;
       const id = this.campaignId();
-      if (brandProfileId) this.scheduledPostService.refresh(brandProfileId, id).subscribe();
+      untracked(() => this.loadCampaignAndPosts(id));
     });
 
     // Re-fetches analytics whenever the route's post id actually changes — the router reuses
@@ -112,6 +106,38 @@ export class CampaignPostDetailPage {
       this.snapshots.set([]);
       this.analyticsUnsupportedNote.set(null);
       if (postId) this.loadAnalytics(postId);
+    });
+  }
+
+  /** Loads the campaign, then its scheduled posts — `post()` resolves out of the latter, so the
+   *  page stays in its loading state until both have settled. */
+  private loadCampaignAndPosts(campaignId: string): void {
+    this.campaign.set(null);
+    this.loadError.set(null);
+    if (!campaignId) {
+      this.loading.set(false);
+      this.loadError.set('لم يتم العثور على الحملة.');
+      return;
+    }
+
+    this.loading.set(true);
+    this.campaignService.getCampaign(campaignId).subscribe({
+      next: res => {
+        if (!res.data) {
+          this.loading.set(false);
+          this.loadError.set('لم يتم العثور على الحملة.');
+          return;
+        }
+        this.campaign.set(res.data);
+        this.scheduledPostService.refresh(res.data.brandProfileId, campaignId).subscribe({
+          next: () => this.loading.set(false),
+          error: () => this.loading.set(false),
+        });
+      },
+      error: err => {
+        this.loading.set(false);
+        this.loadError.set(extractApiErrorMessage(err, 'تعذّر تحميل بيانات الحملة.'));
+      },
     });
   }
 
@@ -207,7 +233,14 @@ export class CampaignPostDetailPage {
     });
   }
 
-  protected deletePost(): void {
+  protected async deletePost(): Promise<void> {
+    if (!this.perms.canEdit()) return;
+    const confirmed = await this.confirmDialogService.confirm(
+      'سيتم إلغاء جدولة هذا المنشور نهائيًا ولن يُنشر. هل أنت متأكد؟',
+      { title: 'حذف المنشور', confirmLabel: 'حذف', variant: 'danger' },
+    );
+    if (!confirmed) return;
+
     const postId = this.postId();
     this.scheduledPostService.cancel(postId).subscribe({
       next: () => {

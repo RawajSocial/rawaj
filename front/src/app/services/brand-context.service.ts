@@ -67,6 +67,10 @@ export class BrandContextService {
       this.scheduledPostService.clear();
       this.coinPricingService.refresh().subscribe();
       this.brandProfileService.refresh().subscribe(() => this.initDefault());
+      // Campaigns are only ever fetched by UserLayout on boot, so clearing them without
+      // re-fetching left every campaign-scoped page (the list, the header campaign selector, the
+      // calendar, "my projects") permanently empty for the newly-active tenant until a full reload.
+      this.campaignService.refresh().subscribe({ error: () => { /* pages surface their own errors */ } });
     });
   }
 

@@ -79,10 +79,13 @@ export class AdsPage {
     { value: 'rejected', label: 'مرفوض' }, { value: 'completed', label: 'مكتمل' },
   ];
 
+  // No Snapchat option: ads are derived from scheduled posts, whose platform comes from the
+  // backend's SocialPlatform enum — which has no Snapchat member, so the filter could only ever
+  // return zero results.
   protected readonly platformOptions: { value: CampaignPlatform | 'all'; label: string }[] = [
     { value: 'all', label: 'جميع المنصات' }, { value: 'instagram', label: 'إنستغرام' },
     { value: 'facebook', label: 'فيسبوك' }, { value: 'tiktok', label: 'تيك توك' },
-    { value: 'youtube', label: 'يوتيوب' }, { value: 'snapchat', label: 'سناب شات' },
+    { value: 'youtube', label: 'يوتيوب' },
     { value: 'linkedin', label: 'لينكد إن' }, { value: 'x', label: 'إكس (تويتر)' },
   ];
 

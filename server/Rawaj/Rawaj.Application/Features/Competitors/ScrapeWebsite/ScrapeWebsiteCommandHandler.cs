@@ -40,6 +40,7 @@ public class ScrapeWebsiteCommandHandler(
                 $"Your subscription plan allows {creditsUsage.MaxCreditsMonthly} AI credits per month. Upgrade for more.");
         }
 
+        var startedAt = DateTime.UtcNow;
         var scrapeResult = await webScraperService.ScrapeAsync(request.Url, cancellationToken);
 
         var now = DateTime.UtcNow;
@@ -54,7 +55,7 @@ public class ScrapeWebsiteCommandHandler(
             InputParams = JsonSerializer.Serialize(new { url = request.Url }),
             OutputRefType = "rag_document",
             ErrorMessage = scrapeResult.ErrorMessage,
-            StartedAt = now,
+            StartedAt = startedAt,
             CompletedAt = now,
             CreatedAt = now
         };

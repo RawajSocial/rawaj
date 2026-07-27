@@ -31,8 +31,10 @@ const TEXT_TYPE_TO_CONTENT_TYPE: Record<TextType, ContentItemSummary['contentTyp
   caption: 'Caption', hashtags: 'Caption', 'ad-copy': 'AdCopy', blog: 'Blog',
 };
 
-/** Maps the page's platform picker (includes snapchat, which the backend doesn't model) to the
- *  backend's SocialPlatform — falls back to Instagram so generation never blocks on an unmapped one. */
+/** Maps the page's platform picker to the backend's SocialPlatform enum. Every option below has
+ *  an entry here — the picker used to also offer Snapchat, which the enum has no member for, so
+ *  choosing it silently generated (and charged for) *Instagram* content via the `?? 'Instagram'`
+ *  fallback at the call sites. */
 const PLATFORM_TO_BACKEND: Record<string, ContentItemSummary['platform']> = {
   instagram: 'Instagram', facebook: 'Facebook', tiktok: 'Tiktok', x: 'Twitter', youtube: 'Youtube', linkedin: 'Linkedin',
 };
@@ -42,7 +44,6 @@ const PLATFORM_OPTS = [
   { value: 'facebook',  label: 'فيسبوك',    icon: 'fa-brands fa-facebook-f', color: 'var(--color-facebook)' },
   { value: 'tiktok',    label: 'تيك توك',   icon: 'fa-brands fa-tiktok',     color: 'var(--color-tiktok)' },
   { value: 'x',         label: 'إكس',        icon: 'fa-brands fa-x-twitter',  color: 'var(--color-x)' },
-  { value: 'snapchat',  label: 'سناب شات',  icon: 'fa-brands fa-snapchat',   color: 'var(--color-snapchat)' },
   { value: 'youtube',   label: 'يوتيوب',    icon: 'fa-brands fa-youtube',    color: 'var(--color-youtube)' },
   { value: 'linkedin',  label: 'لينكد إن',  icon: 'fa-brands fa-linkedin-in',color: 'var(--color-linkedin)' },
 ];
@@ -136,6 +137,8 @@ export class ContentGenPage {
 
   readonly availableCampaigns = computed(() => {
     const bp = this.formBrandProfileId();
+    // `campaigns()` excludes archived ones server-side, so an abandoned draft is never offered
+    // here as a target for new content.
     return bp ? this.campaignService.byBrandProfile(bp)() : this.campaignService.campaigns();
   });
 

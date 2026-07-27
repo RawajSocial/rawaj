@@ -1,17 +1,18 @@
 <div class="page-shell">
-  <!-- Page Header -->
-  <div class="page-top">
-    <div>
-      <h5 class="page-title">حملاتك التسويقية</h5>
-      <app-breadcrumb [items]="[{ label: 'نظرة عامة', link: '/dashboard' }, { label: 'الحملات' }]" />
-    </div>
+  <app-page-header
+    title="حملاتك التسويقية"
+    subtitle="أنشئ حملاتك التسويقية وتابع أداءها وميزانيتها في مكان واحد."
+    [breadcrumbs]="[{ label: 'نظرة عامة', link: '/dashboard' }, { label: 'الحملات' }]">
     @if (brandProfileCount() > 0) {
-      <button type="button" (click)="startNewCampaign()" class="btn-new-camp">
+      <button page-header-actions type="button" (click)="startNewCampaign()" class="btn-new-camp"
+        [class.is-perm-disabled]="!perms.canEdit()"
+        [attr.aria-disabled]="!perms.canEdit() || null"
+        [appTooltip]="perms.editDeniedReason()">
         <i class="fa-solid fa-plus"></i>
         ابدأ حملة جديدة
       </button>
     }
-  </div>
+  </app-page-header>
 
   <!-- Filters bar -->
   <div class="filters-bar">
@@ -66,14 +67,36 @@
     <span class="results-count">{{ filtered().length }} حملة</span>
   </div>
 
+  <!-- Loading: the campaign list is fetched once by UserLayout, so an empty list before that
+       resolves is "not loaded yet", not "you have no campaigns" — which is exactly what this
+       page used to claim for the first second of every cold load. -->
+  @if (!loaded()) {
+    <div class="camps-grid" aria-busy="true">
+      @for (n of [0, 1, 2]; track n) {
+        <div class="camp-card-skeleton"></div>
+      }
+    </div>
+
+  <!-- Empty archive: distinct from "no campaigns at all", which would wrongly invite the user to
+       create their first campaign while they're looking at the archive. -->
+  } @else if (viewingArchive() && filtered().length === 0) {
+    <div class="empty-state empty-state-filter">
+      <div class="empty-icon"><i class="fa-solid fa-box-archive"></i></div>
+      <h3>الأرشيف فارغ</h3>
+      <p>لم تؤرشف أي حملة بعد.</p>
+    </div>
+
   <!-- Empty state: no campaigns at all -->
-  @if (campaigns().length === 0) {
+  } @else if (campaigns().length === 0 && !viewingArchive()) {
     <div class="empty-state">
       <div class="empty-icon"><i class="fa-solid fa-bullhorn"></i></div>
       <h3>لا توجد حملات بعد</h3>
       <p>ابدأ حملتك التسويقية الأولى وابدأ في الوصول لجمهورك المستهدف.</p>
       <app-brand-lock [locked]="brandProfileCount() === 0">
-        <button type="button" (click)="startNewCampaign()" class="btn-new-camp">
+        <button type="button" (click)="startNewCampaign()" class="btn-new-camp"
+          [class.is-perm-disabled]="!perms.canEdit()"
+          [attr.aria-disabled]="!perms.canEdit() || null"
+          [appTooltip]="perms.editDeniedReason()">
           <i class="fa-solid fa-rocket"></i>
           ابدأ حملتك الأولى
         </button>
@@ -89,21 +112,30 @@
 
   } @else {
     <div class="camps-grid">
-      <!-- Start new campaign card (always first) -->
-      <app-brand-lock [locked]="brandProfileCount() === 0">
-        <button type="button" (click)="startNewCampaign()" class="new-camp-card">
-          <div class="new-camp-icon"><i class="fa-solid fa-plus"></i></div>
-          <span class="new-camp-label">ابدأ حملة جديدة</span>
-          <span class="new-camp-sub">أنشئ حملة احترافية بخطوات بسيطة</span>
-        </button>
-      </app-brand-lock>
+      <!-- Start new campaign card (always first) — but not while browsing the archive, where
+           "create a campaign" is unrelated to what the user came here to do. -->
+      @if (!viewingArchive()) {
+        <app-brand-lock [locked]="brandProfileCount() === 0">
+          <button type="button" (click)="startNewCampaign()" class="new-camp-card"
+            [class.is-perm-disabled]="!perms.canEdit()"
+            [attr.aria-disabled]="!perms.canEdit() || null"
+            [appTooltip]="perms.editDeniedReason()">
+            <div class="new-camp-icon"><i class="fa-solid fa-plus"></i></div>
+            <span class="new-camp-label">ابدأ حملة جديدة</span>
+            <span class="new-camp-sub">أنشئ حملة احترافية بخطوات بسيطة</span>
+          </button>
+        </app-brand-lock>
+      }
 
       @for (camp of filtered(); track camp.id) {
         <app-campaign-card
           [campaign]="camp"
           (pause)="pauseCampaign($event)"
           (resume)="resumeCampaign($event)"
-          (view)="viewCampaign($event)" />
+          (archive)="archiveCampaign($event)"
+          (restore)="restoreCampaign($event)"
+          (view)="viewCampaign($event)"
+          (openNextStep)="openNextStep($event)" />
       }
     </div>
   }

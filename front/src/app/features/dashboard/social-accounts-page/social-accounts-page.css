@@ -8,6 +8,20 @@
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-wrap: wrap;
+}
+
+.connect-account-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 160px;
+}
+
+@media (max-width: 480px) {
+  .connect-row { align-items: flex-start; }
+  .connect-label { flex-basis: 100%; }
+  .connect-account-name { max-width: none; white-space: normal; }
 }
 
 .connect-icon {

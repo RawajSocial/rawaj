@@ -12,9 +12,11 @@ namespace Rawaj.Infrastructure.SocialPublishing;
 /// <summary>
 /// Publishes to an Instagram Business account via the Content Publishing API, a two-step
 /// create-then-publish flow. Unlike Facebook's /photos endpoint, this API only accepts a public
-/// image_url (no binary upload), so the image is first re-hosted via IPublicImageHostingService.
-/// Instagram's API also has no "publish later" mechanism, hence SupportsNativeScheduling is
-/// false - scheduled posts fall back to the local poller instead.
+/// image_url (no binary upload). When the asset already has a public URL (Cloudinary-hosted),
+/// that URL is used directly; otherwise (the local base64 fallback) the raw bytes are first
+/// re-hosted via IPublicImageHostingService to obtain one. Instagram's API also has no
+/// "publish later" mechanism, hence SupportsNativeScheduling is false - scheduled posts fall
+/// back to the local poller instead.
 /// </summary>
 public class InstagramPostPublisher(
     IHttpClientFactory httpClientFactory,
@@ -30,12 +32,12 @@ public class InstagramPostPublisher(
 
     public async Task<PublishResult> PublishAsync(SocialPublishRequest request, CancellationToken cancellationToken)
     {
-        if (request.ImageBytes is null)
+        if (request.ImageUrl is null && request.ImageBytes is null)
         {
             return PublishResult.Failure("Instagram requires an image; text-only posts are not supported.");
         }
 
-        if (!imageHostingService.IsConfigured)
+        if (request.ImageUrl is null && !imageHostingService.IsConfigured)
         {
             return PublishResult.Failure(
                 "Instagram publishing requires PublicImageHosting:PublicBaseUrl to be configured with a publicly reachable URL.");
@@ -45,8 +47,10 @@ public class InstagramPostPublisher(
 
         try
         {
-            var imageUrl = await imageHostingService.HostImageAsync(
-                request.ImageBytes, request.ImageContentType ?? "image/jpeg", cancellationToken);
+            // Cloudinary-hosted assets already have a public URL — only re-host through
+            // IPublicImageHostingService when all we have is the local base64 fallback's bytes.
+            var imageUrl = request.ImageUrl ?? await imageHostingService.HostImageAsync(
+                request.ImageBytes!, request.ImageContentType ?? "image/jpeg", cancellationToken);
 
             var creationId = await CreateMediaContainerAsync(client, request, imageUrl, cancellationToken);
             if (!creationId.Succeeded)

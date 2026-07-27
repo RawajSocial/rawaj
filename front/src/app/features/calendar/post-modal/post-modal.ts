@@ -1,6 +1,6 @@
 import { Component, input, output, signal } from '@angular/core';
 import { ScheduledPost, PostStatus } from '../../../model/scheduled-post.model';
-import { CampaignPlatform } from '../../../model/campaign.model';
+import { CAMPAIGN_PLATFORM_META, CampaignPlatform } from '../../../model/campaign.model';
 import { ModalShell } from '../../../shared/components/modal-shell/modal-shell';
 
 @Component({
@@ -27,15 +27,8 @@ export class PostModal {
   readonly editDate          = signal('');
   readonly editTime          = signal('');
 
-  readonly platformConfig: Record<CampaignPlatform, { icon: string; color: string; label: string }> = {
-    instagram: { icon: 'fa-brands fa-instagram',  color: 'var(--color-instagram)', label: 'إنستغرام' },
-    facebook:  { icon: 'fa-brands fa-facebook-f', color: 'var(--color-facebook)',  label: 'فيسبوك'   },
-    tiktok:    { icon: 'fa-brands fa-tiktok',      color: 'var(--color-tiktok)',    label: 'تيك توك'  },
-    youtube:   { icon: 'fa-brands fa-youtube',     color: 'var(--color-youtube)',   label: 'يوتيوب'  },
-    x:         { icon: 'fa-brands fa-x-twitter',   color: 'var(--color-x)',         label: 'إكس'      },
-    snapchat:  { icon: 'fa-brands fa-snapchat',    color: 'var(--color-snapchat)',  label: 'سناب شات' },
-    linkedin:  { icon: 'fa-brands fa-linkedin-in', color: 'var(--color-linkedin)',  label: 'لينكد إن' },
-  };
+  /** Shared across every surface that renders a platform badge — see CAMPAIGN_PLATFORM_META. */
+  readonly platformConfig = CAMPAIGN_PLATFORM_META;
 
   readonly statusOptions: { value: PostStatus; label: string; color: string }[] = [
     { value: 'scheduled', label: 'مجدول', color: '#3B82F6' },

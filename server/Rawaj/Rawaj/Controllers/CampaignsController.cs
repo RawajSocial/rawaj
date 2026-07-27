@@ -14,6 +14,7 @@ using Rawaj.Application.Features.Campaigns.GetCampaigns;
 using Rawaj.Application.Features.Campaigns.RefineCampaignPlan;
 using Rawaj.Application.Features.Campaigns.ResearchCampaignCompetitors;
 using Rawaj.Application.Features.Campaigns.ScheduleCampaignPosts;
+using Rawaj.Application.Features.Campaigns.UnarchiveCampaign;
 using Rawaj.Application.Features.Campaigns.UpdateCampaign;
 using Rawaj.Common;
 using Rawaj.Domain.Enums;
@@ -37,9 +38,10 @@ public class CampaignsController(ISender sender) : ControllerBase
 
     [HttpGet]
     public async Task<IActionResult> GetAll(
-        [FromQuery] Guid? brandProfileId, [FromQuery] int page = 1, [FromQuery] int pageSize = 20, CancellationToken cancellationToken = default)
+        [FromQuery] Guid? brandProfileId, [FromQuery] int page = 1, [FromQuery] int pageSize = 20,
+        [FromQuery] bool includeArchived = false, CancellationToken cancellationToken = default)
     {
-        var result = await sender.Send(new GetCampaignsQuery(brandProfileId, page, pageSize), cancellationToken);
+        var result = await sender.Send(new GetCampaignsQuery(brandProfileId, page, pageSize, includeArchived), cancellationToken);
 
         return result.Succeeded
             ? Ok(ApiResponse<PagedResult<CampaignSummary>>.Success(result.Data!))
@@ -78,6 +80,16 @@ public class CampaignsController(ISender sender) : ControllerBase
         return result.Succeeded
             ? Ok(ApiResponse<bool>.Success(result.Data!))
             : BadRequest(ApiResponse<bool>.Fail(result.ErrorMessage!));
+    }
+
+    [HttpPost("{campaignId:guid}/unarchive")]
+    public async Task<IActionResult> Unarchive(Guid campaignId, CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new UnarchiveCampaignCommand(campaignId), cancellationToken);
+
+        return result.Succeeded
+            ? Ok(ApiResponse<UnarchiveCampaignResponse>.Success(result.Data!))
+            : BadRequest(ApiResponse<UnarchiveCampaignResponse>.Fail(result.ErrorMessage!));
     }
 
     [EnableRateLimiting("ai-generation")]

@@ -43,6 +43,7 @@ public class GenerateOnboardingQuestionsCommandHandler(
         }
 
         var prompt = ContentPromptBuilder.BuildOnboardingQuestionsPrompt(brand, request.OnboardingContextJson);
+        var startedAt = DateTime.UtcNow;
         var generation = await textGenerationService.GenerateTextAsync(prompt, cancellationToken);
 
         var now = DateTime.UtcNow;
@@ -58,7 +59,7 @@ public class GenerateOnboardingQuestionsCommandHandler(
             OutputRefType = "onboarding_questions",
             Tokens = generation.TokensUsed,
             ErrorMessage = generation.ErrorMessage,
-            StartedAt = now,
+            StartedAt = startedAt,
             CompletedAt = now,
             CreatedAt = now
         };

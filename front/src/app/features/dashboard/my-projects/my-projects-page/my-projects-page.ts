@@ -41,6 +41,7 @@ export class MyProjectsPage {
   protected readonly brandProfiles = this.brandProfileService.profiles;
 
   protected readonly campaignsByBrand = computed(() => {
+    // Excludes archived campaigns server-side — an abandoned draft isn't a project.
     const campaigns = this.campaignService.campaigns();
     const map = new Map<string, typeof campaigns>();
     for (const c of campaigns) {

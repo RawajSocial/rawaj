@@ -63,6 +63,7 @@ public class GenerateMarketingPlanCommandHandler(
         // approval flow) with competitor research folded in as advisory-only input.
         var prompt = ContentPromptBuilder.BuildCampaignStrategyPrompt(
             brand, campaign, campaign.BriefJson, campaign.DiagnosisJson, campaign.CompetitorResearchJson);
+        var startedAt = DateTime.UtcNow;
         var generation = await textGenerationService.GenerateTextAsync(prompt, cancellationToken);
 
         var now = DateTime.UtcNow;
@@ -79,7 +80,7 @@ public class GenerateMarketingPlanCommandHandler(
             OutputRefType = "marketing_campaign",
             Tokens = generation.TokensUsed,
             ErrorMessage = generation.ErrorMessage,
-            StartedAt = now,
+            StartedAt = startedAt,
             CompletedAt = now,
             CreatedAt = now
         };
@@ -92,7 +93,19 @@ public class GenerateMarketingPlanCommandHandler(
                 generation.ErrorMessage ?? "Marketing plan generation failed. Please try again.");
         }
 
-        campaign.AiPlanJson = generation.Text!;
+        // The model is asked for bare JSON but doesn't always comply (markdown fences, a line of
+        // commentary). Store only what actually parses — a column named AiPlanJson that holds a
+        // fenced blob passes the "a plan exists" check everywhere while rendering as nothing in
+        // the review UI, which is indistinguishable from a broken page for the user who paid for it.
+        var planJson = AiJsonResponseParser.ExtractJsonPayload(generation.Text);
+        if (planJson is null)
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+            return Result<GenerateMarketingPlanResponse>.Failure(
+                "The generated marketing plan could not be read. Please try again.");
+        }
+
+        campaign.AiPlanJson = planJson;
         campaign.AiGeneratedAt = now;
         campaign.UpdatedAt = now;
 

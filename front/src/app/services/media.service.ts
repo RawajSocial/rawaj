@@ -119,11 +119,4 @@ export class MediaService {
     this.items.update(list => list.map(i => i.id === oldId ? { ...i, id: newId } : i));
   }
 
-  update(updated: GeneratedItem): void {
-    this.items.update(list => list.map(i => i.id === updated.id ? updated : i));
-  }
-
-  remove(id: string): void {
-    this.items.update(list => list.filter(i => i.id !== id));
-  }
 }

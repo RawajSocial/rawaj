@@ -25,9 +25,9 @@
   width: 34px;
   height: 34px;
   border-radius: 8px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--color-border);
   background: #fff;
-  color: #6b7280;
+  color: var(--color-text-secondary);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -35,7 +35,7 @@
   font-size: 0.75rem;
   transition: background 0.15s, color 0.15s;
 }
-.cal-nav-btn:hover { background: #f4f4f8; color: #374151; }
+.cal-nav-btn:hover { background: #f4f4f8; color: var(--color-text-secondary); }
 
 .cal-today-btn {
   height: 34px;
@@ -78,7 +78,7 @@
   text-align: center;
   font-size: 0.72rem;
   font-weight: 700;
-  color: #9ca3af;
+  color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   border-bottom: 1px solid #f0f0f5;
@@ -109,12 +109,12 @@
   border-radius: 50%;
   font-size: 0.78rem;
   font-weight: 500;
-  color: #374151;
+  color: var(--color-text-secondary);
   margin-bottom: 4px;
 }
 
 .day-num.today-num {
-  background: var(--color-secondary, #7C3AED);
+  background: var(--color-secondary);
   color: #fff;
   font-weight: 700;
 }
@@ -150,9 +150,16 @@
 .more-badge {
   display: block;
   font-size: 10px;
-  color: #9ca3af;
+  color: var(--color-text-muted);
   padding: 1px 4px;
   text-align: right;
+}
+
+/* ── Loading (matches campaign-detail-page's .detail-loading) ── */
+.detail-loading {
+  padding: 3rem;
+  text-align: center;
+  color: var(--color-text-muted);
 }
 
 /* ── Not found ── */

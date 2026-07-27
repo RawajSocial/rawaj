@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Rawaj.Application.Common.Models;
+using Rawaj.Application.Features.Content.DeleteContentItem;
 using Rawaj.Application.Features.Content.GenerateContentItem;
 using Rawaj.Application.Features.Content.GetContentItem;
 using Rawaj.Application.Features.Content.GetContentItems;
@@ -70,6 +71,16 @@ public class ContentController(ISender sender) : ControllerBase
         return result.Succeeded
             ? Ok(ApiResponse<RegenerateContentItemResponse>.Success(result.Data!))
             : BadRequest(ApiResponse<RegenerateContentItemResponse>.Fail(result.ErrorMessage!));
+    }
+
+    [HttpDelete("{contentItemId:guid}")]
+    public async Task<IActionResult> Delete(Guid contentItemId, CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new DeleteContentItemCommand(contentItemId), cancellationToken);
+
+        return result.Succeeded
+            ? Ok(ApiResponse<bool>.Success(result.Data))
+            : BadRequest(ApiResponse<bool>.Fail(result.ErrorMessage!));
     }
 
     [HttpGet("{contentItemId:guid}/revisions")]

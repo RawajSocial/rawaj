@@ -97,6 +97,7 @@ public class GenerateContentItemCommandHandler(
                 request.AdditionalInstructions,
                 request.TemplateStyle);
 
+        var startedAt = DateTime.UtcNow;
         var generation = await textGenerationService.GenerateTextAsync(prompt, cancellationToken);
 
         var now = DateTime.UtcNow;
@@ -114,7 +115,7 @@ public class GenerateContentItemCommandHandler(
             OutputRefType = "content_item",
             Tokens = generation.TokensUsed,
             ErrorMessage = generation.ErrorMessage,
-            StartedAt = now,
+            StartedAt = startedAt,
             CompletedAt = now,
             CreatedAt = now
         };

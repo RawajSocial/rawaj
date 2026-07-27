@@ -3,10 +3,13 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Rawaj.Application.Common.Models;
+using Rawaj.Application.Features.Content.CreatePostFromVisualAsset;
+using Rawaj.Application.Features.Content.DeleteVisualAsset;
 using Rawaj.Application.Features.Content.GenerateVisualAsset;
 using Rawaj.Application.Features.Content.GetVisualAssets;
 using Rawaj.Application.Features.Content.ReviewVisualAsset;
 using Rawaj.Common;
+using Rawaj.Domain.Enums;
 
 namespace Rawaj.Controllers;
 
@@ -49,5 +52,29 @@ public class VisualAssetsController(ISender sender) : ControllerBase
             : BadRequest(ApiResponse<ReviewVisualAssetResponse>.Fail(result.ErrorMessage!));
     }
 
+    [HttpPost("{visualAssetId:guid}/create-post")]
+    public async Task<IActionResult> CreatePost(
+        Guid visualAssetId, [FromBody] CreatePostFromVisualAssetRequest request, CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(
+            new CreatePostFromVisualAssetCommand(visualAssetId, request.Platform, request.Language), cancellationToken);
+
+        return result.Succeeded
+            ? Ok(ApiResponse<CreatePostFromVisualAssetResponse>.Success(result.Data!))
+            : BadRequest(ApiResponse<CreatePostFromVisualAssetResponse>.Fail(result.ErrorMessage!));
+    }
+
+    [HttpDelete("{visualAssetId:guid}")]
+    public async Task<IActionResult> Delete(Guid visualAssetId, CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new DeleteVisualAssetCommand(visualAssetId), cancellationToken);
+
+        return result.Succeeded
+            ? Ok(ApiResponse<bool>.Success(result.Data))
+            : BadRequest(ApiResponse<bool>.Fail(result.ErrorMessage!));
+    }
+
     public record ReviewVisualAssetRequest(bool Approve);
+
+    public record CreatePostFromVisualAssetRequest(SocialPlatform Platform, Language Language);
 }

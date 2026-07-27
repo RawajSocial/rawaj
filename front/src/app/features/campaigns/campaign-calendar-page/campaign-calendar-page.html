@@ -1,5 +1,7 @@
 <div class="page-shell">
-  @if (campaign(); as c) {
+  @if (loading()) {
+    <div class="detail-loading"><i class="fa-solid fa-circle-notch fa-spin"></i> جاري التحميل...</div>
+  } @else if (campaign(); as c) {
     <app-page-header
       title="تقويم الحملة"
       [breadcrumbs]="[
@@ -13,11 +15,11 @@
     <div class="rw-card cal-card">
       <div class="cal-toolbar">
         <div class="cal-nav-group">
-          <button class="cal-nav-btn" (click)="next()" title="التالي">
+          <button class="cal-nav-btn" (click)="next()" title="التالي" aria-label="الشهر التالي">
             <i class="fa-solid fa-chevron-right"></i>
           </button>
           <button class="cal-today-btn" (click)="goToday()">اليوم</button>
-          <button class="cal-nav-btn" (click)="prev()" title="السابق">
+          <button class="cal-nav-btn" (click)="prev()" title="السابق" aria-label="الشهر السابق">
             <i class="fa-solid fa-chevron-left"></i>
           </button>
         </div>
@@ -57,7 +59,7 @@
     </div>
   } @else {
     <div class="not-found">
-      <h3>الحملة غير موجودة</h3>
+      <h3>{{ loadError() ?? 'الحملة غير موجودة' }}</h3>
       <a routerLink="/dashboard/campaigns">العودة إلى الحملات</a>
     </div>
   }

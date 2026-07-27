@@ -1,22 +1,6 @@
 .page-shell { padding: 24px 28px; }
 
 /* ── Page top row ── */
-.page-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 24px;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-
-.page-title {
-  font-size: var(--font-size-xl);
-  font-weight: var(--font-bold);
-  color: var(--color-dark);
-  margin: 0 0 4px;
-}
-
 /* ── Dropdown overrides for filter bar context ── */
 .filters-bar .dropdown { min-width: 160px; }
 .filters-bar .dropdown-trigger { padding: 8px 12px; font-size: var(--font-size-sm); }
@@ -102,6 +86,26 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 20px;
+}
+
+/* ── Loading placeholders — same shimmer treatment as the content page's generation skeletons
+   (see campaign-content-page.css) so loading reads the same way across the module. ── */
+.camp-card-skeleton {
+  height: 300px;
+  border-radius: 14px;
+  border: 1.5px solid var(--color-border);
+  background: linear-gradient(90deg, var(--color-bg-secondary) 25%, var(--color-border) 37%, var(--color-bg-secondary) 63%);
+  background-size: 400% 100%;
+  animation: camp-card-shimmer 1.4s ease infinite;
+}
+
+@keyframes camp-card-shimmer {
+  0%   { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .camp-card-skeleton { animation: none; }
 }
 
 /* ── New campaign card ── */

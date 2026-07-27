@@ -1,3 +1,4 @@
+using System.Net;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Http.Resilience;
 
@@ -42,6 +43,24 @@ public static class ResilientHttpClientExtensions
             }
 
             options.Retry.MaxRetryAttempts = retryCount;
+
+            // 429 is deliberately excluded from both retry and the circuit breaker. The AI
+            // providers return it for quota exhaustion (Groq's tokens-per-day, HuggingFace's
+            // monthly credits) with a Retry-After measured in *hours* - and since the retry
+            // strategy honours Retry-After, retrying meant sleeping until TotalRequestTimeout
+            // fired, turning an instantly-knowable "you're out of quota" into a two-minute hang
+            // that surfaced as a generic "generation failed". Letting the 429 through unretried
+            // lets the caller read the provider's own message and report it immediately. Quota
+            // limits don't clear within a request's lifetime, so a retry could never have helped.
+            options.Retry.ShouldHandle = static args => ValueTask.FromResult(
+                args.Outcome.Result?.StatusCode != HttpStatusCode.TooManyRequests &&
+                HttpClientResiliencePredicates.IsTransient(args.Outcome));
+
+            // Likewise, one tenant burning the daily token budget must not open the breaker and
+            // take down calls for everyone else.
+            options.CircuitBreaker.ShouldHandle = static args => ValueTask.FromResult(
+                args.Outcome.Result?.StatusCode != HttpStatusCode.TooManyRequests &&
+                HttpClientResiliencePredicates.IsTransient(args.Outcome));
 
             // The circuit breaker's sampling window must be at least double the attempt timeout
             // (the resilience handler validates this), so it's derived rather than left default

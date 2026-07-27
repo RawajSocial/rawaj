@@ -95,6 +95,7 @@
 .camp-status-badge[data-status="paused"]    i { color: var(--color-danger); }
 .camp-status-badge[data-status="completed"] i { color: var(--color-primary); }
 .camp-status-badge[data-status="draft"]     i { color: var(--color-accent-active); }
+.camp-status-badge[data-status="archived"]  i { color: var(--color-text-muted); }
 
 /* ── Body ── */
 .camp-card-body {
@@ -168,99 +169,63 @@
   color: var(--color-text-muted);
 }
 
-/* ── Budget ── */
-.camp-budget {
+/* ── Next step CTA ── */
+/* The card's primary action: routes straight to whichever step the campaign is actually waiting
+   on. Replaces the old budget-spend ring, which was bound to a `spent` value the campaigns API
+   never returned and so always rendered 0%. */
+.camp-next-step {
   display: flex;
   align-items: center;
-  gap: 14px;
-}
-
-.budget-ring {
-  position: relative;
-  width: 72px;
-  height: 72px;
-  flex-shrink: 0;
-}
-
-.ring-svg {
+  justify-content: center;
+  gap: 8px;
   width: 100%;
-  height: 100%;
-  transform: rotate(-90deg);
-}
-
-.ring-track {
-  fill: none;
-  stroke: var(--color-bg-secondary);
-  stroke-width: 9;
-}
-
-.ring-fill {
-  fill: none;
-  stroke: var(--color-secondary);
-  stroke-width: 9;
-  stroke-linecap: round;
-  transition: stroke-dashoffset 0.6s ease;
-}
-
-.ring-label {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
+  padding: 10px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md, 10px);
+  background: var(--color-bg-secondary);
+  color: var(--color-dark);
+  font-family: inherit;
   font-size: var(--font-size-sm);
   font-weight: var(--font-bold);
-  color: var(--color-dark);
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 
-.budget-details {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+.camp-next-step:hover {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
 }
 
-.budget-lbl {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: var(--font-size-xs);
+.camp-next-step:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* A campaign still awaiting its strategy is the most urgent state, so it reads as the primary
+   action rather than a neutral one. */
+.camp-next-step[data-stage='needs-strategy'] {
+  background: color-mix(in srgb, var(--color-primary) 12%, transparent);
+  border-color: color-mix(in srgb, var(--color-primary) 35%, transparent);
+  color: var(--color-primary);
+}
+
+.camp-next-step[data-stage='needs-strategy']:hover {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+/* Restoring is the only step available on an archived campaign — neutral, not urgent. */
+.camp-next-step[data-stage='archived'] {
+  background: transparent;
+  border-color: var(--color-border);
   color: var(--color-text-secondary);
 }
 
-.budget-track {
-  height: 6px;
-  border-radius: 999px;
-  background: var(--color-border);
-  overflow: hidden;
-}
-
-.budget-fill {
-  height: 100%;
-  border-radius: 999px;
-  background: linear-gradient(90deg, var(--color-secondary), var(--color-primary));
-  transition: width 0.6s ease;
-}
-
-.budget-amounts {
-  display: flex;
-  justify-content: space-between;
-}
-
-.amount-block {
-  display: flex;
-  flex-direction: column;
-}
-
-.amount-block strong {
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-bold);
-  color: var(--color-dark);
-}
-
-.amount-block small {
-  font-size: 0.66rem;
-  color: var(--color-text-muted);
+.camp-next-step[data-stage='archived']:hover {
+  background: var(--color-success);
+  border-color: var(--color-success);
+  color: #fff;
 }
 
 /* ── Footer ── */
@@ -298,7 +263,16 @@
   visibility: hidden;
 }
 
+/* The footer holds up to three actions now (pause/resume, archive, view), so they sit together
+   rather than each being pushed to an edge by the shared space-between. */
+.camp-card-foot-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .camp-action-btn:hover    { border-color: var(--color-secondary); color: var(--color-secondary); }
 .pause-btn:hover          { border-color: var(--color-accent); color: var(--color-accent); }
 .resume-btn:hover         { border-color: var(--color-success); color: var(--color-success); }
 .view-btn:hover           { border-color: var(--color-secondary); color: var(--color-secondary); }
+.archive-btn:hover        { border-color: var(--color-danger); color: var(--color-danger); }

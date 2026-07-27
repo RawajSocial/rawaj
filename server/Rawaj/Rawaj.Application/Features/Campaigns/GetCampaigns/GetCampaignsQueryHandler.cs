@@ -17,7 +17,8 @@ public class GetCampaignsQueryHandler(
 
         var query = dbContext.MarketingCampaigns
             .Where(c => c.BrandProfile.TenantId == tenantId)
-            .Where(c => request.BrandProfileId == null || c.BrandProfileId == request.BrandProfileId);
+            .Where(c => request.BrandProfileId == null || c.BrandProfileId == request.BrandProfileId)
+            .Where(c => request.IncludeArchived || c.Status != CampaignStatus.Archived);
 
         // No explicit brand filter and the caller is Editor/Viewer: restrict to their accessible
         // brands rather than leaking every brand's campaigns tenant-wide (same rule as
@@ -37,7 +38,10 @@ public class GetCampaignsQueryHandler(
         var campaigns = await orderedQuery
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(c => new CampaignSummary(c.Id, c.BrandProfileId, c.Name, c.Status, c.StartDate, c.EndDate, c.CreatedAt))
+            .Select(c => new CampaignSummary(
+                c.Id, c.BrandProfileId, c.Name, c.Status, c.StartDate, c.EndDate, c.CreatedAt,
+                c.Objective, c.TargetPlatforms, c.BudgetAmount, c.BudgetCurrency, c.PlanApprovedAt,
+                c.ContentItems.Count(i => !i.IsDeleted)))
             .ToListAsync(cancellationToken);
 
         return Result<PagedResult<CampaignSummary>>.Success(new PagedResult<CampaignSummary>(campaigns, page, pageSize, totalCount));

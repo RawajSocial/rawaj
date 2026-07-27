@@ -6,6 +6,17 @@ namespace Rawaj.Application.Features.Content.Common;
 
 public static class ContentPromptBuilder
 {
+    /// <summary>
+    /// Closing instruction on every image prompt. Diffusion models render text badly at the best of
+    /// times and near-unreadably in Arabic script, so a prompt carrying Arabic marketing copy used
+    /// to come back with mangled pseudo-Arabic lettering baked into the picture. Asking for a clean
+    /// image with no lettering, and stating the prompt language explicitly, is what keeps the output
+    /// usable — the caption stays where it belongs, next to the image, not inside it.
+    /// </summary>
+    private const string NoRenderedTextInstruction =
+        "Render a clean photographic or illustrative image with no words, letters, captions, logos or watermarks " +
+        "anywhere in it. Interpret this prompt as English.";
+
     private static void AddBrandIdentityLines(List<string> lines, TenantBrandProfile brand)
     {
         if (!string.IsNullOrWhiteSpace(brand.Description))
@@ -236,6 +247,23 @@ public static class ContentPromptBuilder
         return string.Join(" ", lines);
     }
 
+    /// <summary>
+    /// The campaign content batch. Grounded in the <b>approved strategy</b> (and the onboarding
+    /// brief behind it), not just the brand's identity fields — the user pays for and explicitly
+    /// approves that strategy, and content generation is gated on the approval, so generating posts
+    /// that ignore it would make the whole approval step decorative.
+    /// </summary>
+    /// <param name="strategyJson">
+    /// <c>MarketingCampaign.AiPlanJson</c> — the approved strategy. Its <c>campaignBlueprint</c>
+    /// (pillars, key themes, posting cadence, content mix) is what the posts must actually follow.
+    /// </param>
+    /// <param name="briefJson">
+    /// <c>MarketingCampaign.BriefJson</c> — the raw onboarding answers plus the AI follow-up
+    /// questions. Supplies audience/tone specifics that the strategy summarises but doesn't repeat
+    /// verbatim. The business diagnosis is deliberately *not* passed as well: the strategy was
+    /// already built on top of it, so including it again would spend tokens re-stating grounding
+    /// the strategy has absorbed.
+    /// </param>
     public static string BuildCampaignContentPlanPrompt(
         TenantBrandProfile brand,
         MarketingCampaign campaign,
@@ -244,6 +272,8 @@ public static class ContentPromptBuilder
         int postCount,
         List<SocialPlatform> platforms,
         Language language,
+        string? strategyJson = null,
+        string? briefJson = null,
         ContentTemplateStyle templateStyle = ContentTemplateStyle.Auto)
     {
         var lines = new List<string>
@@ -264,6 +294,23 @@ public static class ContentPromptBuilder
             lines.Add($"Campaign runs from {campaign.StartDate} to {campaign.EndDate}.");
         }
 
+        if (!string.IsNullOrWhiteSpace(strategyJson))
+        {
+            lines.Add(
+                "This campaign already has a marketing strategy that the business owner reviewed and approved. " +
+                "These posts are the execution of that strategy, so follow it: draw the themes from its " +
+                "campaignBlueprint.pillars and keyThemes, respect its contentMix when choosing each post's " +
+                "contentType, and keep the voice consistent with its brandStrategy and marketingStrategy. " +
+                "Approved strategy JSON: " + strategyJson);
+        }
+
+        if (!string.IsNullOrWhiteSpace(briefJson))
+        {
+            lines.Add(
+                "The business's own onboarding answers, including their replies to AI follow-up questions — use " +
+                "these for audience and tone specifics: " + briefJson);
+        }
+
         if (competitorInsights.Count > 0)
         {
             lines.Add("Known competitor intelligence: " + string.Join(" | ", competitorInsights));
@@ -279,12 +326,22 @@ public static class ContentPromptBuilder
             "(0-23) that best matches the posting time guidance above. contentType must be one of: " +
             "Post, Story, ReelScript, AdCopy, Blog, Caption. platform must be one of the target platforms listed above.");
 
+        // The image model is trained on English captions and renders Arabic prompts poorly, and the
+        // post copy itself is persuasion, not a description of a picture — so the model that writes
+        // the post also writes a separate English description of the image to accompany it.
+        lines.Add(
+            "For each post also write an \"imagePrompt\": a description of the photo or illustration that should " +
+            "accompany it, for a text-to-image model. The imagePrompt MUST be written in English even when the post " +
+            "copy is in another language, and it must describe what is literally visible in the picture — subject, " +
+            "setting, composition, lighting, mood, style — not the marketing message. Do not put slogans, calls to " +
+            "action, hashtags, prices or any text-to-be-rendered in it. Keep it under 60 words.");
+
         lines.Add(ContentTemplateCatalog.StructureGuidance(templateStyle));
 
         lines.Add(
             "Respond with ONLY a valid JSON object (no markdown fences, no commentary) with this exact shape: " +
             "{\"posts\":[{\"platform\":\"...\",\"contentType\":\"...\",\"dayOffset\":0,\"hour\":18,\"content\":\"...\"," +
-            "\"hashtags\":[\"...\"],\"cta\":\"...\"}]}. " +
+            "\"hashtags\":[\"...\"],\"cta\":\"...\",\"imagePrompt\":\"...\"}]}. " +
             $"Return exactly {postCount} posts in the array.");
 
         return string.Join(" ", lines);
@@ -313,6 +370,13 @@ public static class ContentPromptBuilder
         return string.Join(" ", lines);
     }
 
+    /// <param name="userPrompt">
+    /// What the picture should show. For campaign posts this is the model-authored English
+    /// <c>ContentItem.ImagePrompt</c>, not the post copy — see that field's remarks. For a
+    /// user-typed prompt it is whatever they wrote, in whatever language; the closing instruction
+    /// below tells the model to interpret it and render an English-described scene rather than
+    /// attempting to typeset the words.
+    /// </param>
     public static string BuildImagePrompt(
         TenantBrandProfile brand,
         MarketingCampaign? campaign,
@@ -343,6 +407,7 @@ public static class ContentPromptBuilder
         }
 
         lines.Add(ContentTemplateCatalog.ImageStyleHint(templateStyle));
+        lines.Add(NoRenderedTextInstruction);
 
         return string.Join(" ", lines);
     }
@@ -386,6 +451,7 @@ public static class ContentPromptBuilder
     {
         var lines = new List<string> { userPrompt, $"Style fits a {visualType}." };
         lines.Add(ContentTemplateCatalog.ImageStyleHint(templateStyle));
+        lines.Add(NoRenderedTextInstruction);
         return string.Join(" ", lines);
     }
 }

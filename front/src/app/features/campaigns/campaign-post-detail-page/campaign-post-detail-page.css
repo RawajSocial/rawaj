@@ -153,7 +153,7 @@
   gap: 10px;
 }
 
-.insights-head h3 {
+.insights-head h2 {
   margin: 0;
   font-size: var(--font-size-base);
   font-weight: var(--font-bold);
@@ -209,6 +209,13 @@
   color: var(--color-text-muted);
 }
 
+/* ── Loading (matches campaign-detail-page's .detail-loading) ── */
+.detail-loading {
+  padding: 3rem;
+  text-align: center;
+  color: var(--color-text-muted);
+}
+
 /* ── Not found ── */
 .not-found {
   display: flex;
@@ -220,7 +227,7 @@
   text-align: center;
 }
 
-.not-found h3 {
+.not-found h1 {
   margin: 0;
   font-size: var(--font-size-base);
   font-weight: var(--font-bold);

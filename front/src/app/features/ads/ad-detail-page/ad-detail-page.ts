@@ -4,26 +4,13 @@ import { PageHeader } from '../../../shared/components/page-header/page-header';
 import { KpiCard } from '../../dashboard/kpi-card/kpi-card';
 import { AdService } from '../../../services/ad.service';
 import { Ad, AdFormat, AdStatus } from '../../../model/ad.model';
-import { CampaignPlatform } from '../../../model/campaign.model';
+import { CAMPAIGN_PLATFORM_META, CampaignPlatform } from '../../../model/campaign.model';
 import { SeoService } from '../../../services/seo.service';
 import { TenantService } from '../../../core/tenant/tenant.service';
 import { ErrorModalService } from '../../../services/error-modal.service';
 
-interface PlatformMeta {
-  icon: string;
-  color: string;
-  label: string;
-}
-
-const PLATFORM_META: Record<CampaignPlatform, PlatformMeta> = {
-  instagram: { icon: 'fa-brands fa-instagram',   color: 'var(--color-instagram)', label: 'إنستغرام' },
-  facebook:  { icon: 'fa-brands fa-facebook-f',  color: 'var(--color-facebook)',  label: 'فيسبوك' },
-  tiktok:    { icon: 'fa-brands fa-tiktok',      color: 'var(--color-tiktok)',    label: 'تيك توك' },
-  youtube:   { icon: 'fa-brands fa-youtube',     color: 'var(--color-youtube)',   label: 'يوتيوب' },
-  x:         { icon: 'fa-brands fa-x-twitter',   color: 'var(--color-x)',         label: 'إكس' },
-  snapchat:  { icon: 'fa-brands fa-snapchat',    color: 'var(--color-snapchat)',  label: 'سناب شات' },
-  linkedin:  { icon: 'fa-brands fa-linkedin-in', color: 'var(--color-linkedin)',  label: 'لينكد إن' },
-};
+/** Shared across every surface that renders a platform badge — see CAMPAIGN_PLATFORM_META. */
+const PLATFORM_META = CAMPAIGN_PLATFORM_META;
 
 const STATUS_LABELS: Record<AdStatus, string> = {
   active: 'نشط', paused: 'موقوف', rejected: 'مرفوض', pending: 'قيد المراجعة', completed: 'مكتمل',

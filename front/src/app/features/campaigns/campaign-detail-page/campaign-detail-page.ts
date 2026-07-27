@@ -6,52 +6,22 @@ import { CampaignService } from '../../../services/campaign.service';
 import { BrandProfileService } from '../../../services/brand-profile.service';
 import { ScheduledPostService } from '../../../services/scheduled-post.service';
 import { AnalyticsService } from '../../../services/analytics.service';
-import { CampaignObjective, CampaignPlatform, CampaignStatus, GetCampaignResponse } from '../../../model/campaign.model';
+import {
+  BACKEND_TO_CAMPAIGN_PLATFORM, BACKEND_TO_CAMPAIGN_STATUS, CAMPAIGN_PLATFORM_META,
+  CAMPAIGN_STATUS_LABELS, CampaignPlatform, CampaignPlatformMeta, GetCampaignResponse,
+  campaignObjectiveLabel,
+} from '../../../model/campaign.model';
 import { BackendSocialPlatform } from '../../../model/content-item.model';
 import { CampaignAnalyticsSummary, metricAvailable } from '../../../model/analytics.model';
 import { SeoService } from '../../../services/seo.service';
 import { extractApiErrorMessage } from '../../../core/auth/api-error.util';
-
-interface PlatformMeta {
-  icon: string;
-  color: string;
-  label: string;
-}
-
-const PLATFORM_META: Record<CampaignPlatform, PlatformMeta> = {
-  instagram: { icon: 'fa-brands fa-instagram',   color: 'var(--color-instagram)', label: 'إنستغرام' },
-  facebook:  { icon: 'fa-brands fa-facebook-f',  color: 'var(--color-facebook)',  label: 'فيسبوك' },
-  tiktok:    { icon: 'fa-brands fa-tiktok',      color: 'var(--color-tiktok)',    label: 'تيك توك' },
-  youtube:   { icon: 'fa-brands fa-youtube',     color: 'var(--color-youtube)',   label: 'يوتيوب' },
-  x:         { icon: 'fa-brands fa-x-twitter',   color: 'var(--color-x)',         label: 'إكس' },
-  snapchat:  { icon: 'fa-brands fa-snapchat',    color: 'var(--color-snapchat)',  label: 'سناب شات' },
-  linkedin:  { icon: 'fa-brands fa-linkedin-in', color: 'var(--color-linkedin)',  label: 'لينكد إن' },
-};
-
-/** GetCampaignResponse.targetPlatforms comes back as the backend SocialPlatform enum's PascalCase
- *  name (see CreateCampaignCommandHandler: `Enum.Parse<SocialPlatform>(p, true).ToString()`), not
- *  the frontend's lowercase CampaignPlatform — this bridges the two, same mapping as
- *  ScheduledPostService.PLATFORM_MAP. */
-const BACKEND_TO_FRONT_PLATFORM: Record<BackendSocialPlatform, CampaignPlatform> = {
-  Instagram: 'instagram',
-  Facebook: 'facebook',
-  Tiktok: 'tiktok',
-  Youtube: 'youtube',
-  Twitter: 'x',
-  Linkedin: 'linkedin',
-};
-
-const OBJECTIVE_LABELS: Record<CampaignObjective, string> = {
-  awareness: 'الوعي بالعلامة', traffic: 'زيارات الموقع', engagement: 'التفاعل', leads: 'توليد عملاء', sales: 'رفع المبيعات',
-};
-
-const STATUS_LABELS: Record<CampaignStatus, string> = {
-  active: 'نشطة', paused: 'موقوفة', completed: 'مكتملة', draft: 'مسودة', archived: 'مؤرشفة',
-};
+import { formatCampaignBudget, formatCampaignDateRange } from '../campaign-format.util';
+import { CampaignEditModal } from '../campaign-edit-modal/campaign-edit-modal';
+import { PermissionService } from '../../../core/tenant/permission.service';
 
 @Component({
   selector: 'app-campaign-detail-page',
-  imports: [PageHeader, RouterLink],
+  imports: [PageHeader, RouterLink, CampaignEditModal],
   templateUrl: './campaign-detail-page.html',
   styleUrls: ['../../dashboard/dashboard-shared.css', './campaign-detail-page.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -63,15 +33,20 @@ export class CampaignDetailPage {
   private readonly scheduledPostService = inject(ScheduledPostService);
   private readonly analyticsService = inject(AnalyticsService);
   private readonly seo = inject(SeoService);
+  protected readonly perms = inject(PermissionService);
+
+  /** `PUT /campaigns/{id}` existed and was fully wired, but nothing outside the onboarding
+   *  wizard's autosave ever called it — so a campaign's name, dates, budget, objective and
+   *  platforms could never be corrected once onboarding was done. */
+  protected readonly editOpen = signal(false);
 
   /// Reactive route param — the router reuses this component instance across navigations that
   /// only change `:id`, so a snapshot read here would freeze on the first campaign forever.
   private readonly paramMap = toSignal(this.route.paramMap, { requireSync: true });
   protected readonly campaignId = computed(() => this.paramMap().get('id') ?? '');
-  /** The list-derived summary (name, status) — always already loaded by user-layout. */
-  protected readonly campaignSummary = computed(() => this.campaignService.getById(this.campaignId())());
-  /** The full detail record (objective, platforms, budget, planApprovedAt) — the list summary
-   *  doesn't carry these, so they're fetched directly rather than defaulted. */
+  /** The one source of campaign data on this page. It used to also read a "summary" out of
+   *  CampaignService's list for the name and status, which meant those two fields were blank on
+   *  any deep link (the list is loaded once by UserLayout) even though this record has them. */
   protected readonly detail = signal<GetCampaignResponse | null>(null);
   protected readonly detailError = signal<string | null>(null);
 
@@ -83,17 +58,36 @@ export class CampaignDetailPage {
   protected readonly platforms = computed<CampaignPlatform[]>(() => {
     const raw = this.detail()?.targetPlatforms ?? [];
     return raw
-      .map(p => BACKEND_TO_FRONT_PLATFORM[p as BackendSocialPlatform])
+      .map(p => BACKEND_TO_CAMPAIGN_PLATFORM[p as BackendSocialPlatform])
       .filter((p): p is CampaignPlatform => !!p);
   });
 
-  protected readonly objectiveLabel = computed(() => {
-    const objective = this.detail()?.objective?.toLowerCase() as CampaignObjective | undefined;
-    return objective && OBJECTIVE_LABELS[objective] ? OBJECTIVE_LABELS[objective] : (this.detail()?.objective ?? '—');
+  protected readonly objectiveLabel = computed(() => campaignObjectiveLabel(this.detail()?.objective));
+
+  /** The campaign's own period and budget, formatted — these were rendered as raw API values
+   *  (an ISO date, an unseparated number) directly in the template. */
+  protected readonly dateRangeLabel = computed(() =>
+    formatCampaignDateRange(this.detail()?.startDate, this.detail()?.endDate),
+  );
+
+  protected readonly budgetLabel = computed(() =>
+    formatCampaignBudget(this.detail()?.budgetAmount, this.detail()?.budgetCurrency),
+  );
+
+  /** Status comes from the full detail record, not the list summary: the list is loaded once by
+   *  UserLayout, so a deep link (or an archived campaign, which the list now hides) left the
+   *  status pill missing entirely on a page that had the real status in hand all along. */
+  protected readonly status = computed(() => {
+    const backendStatus = this.detail()?.status;
+    return backendStatus ? BACKEND_TO_CAMPAIGN_STATUS[backendStatus] : null;
   });
 
-  protected readonly platformMeta = PLATFORM_META;
-  protected readonly statusLabels = STATUS_LABELS;
+  protected readonly statusLabel = computed(() => {
+    const status = this.status();
+    return status ? CAMPAIGN_STATUS_LABELS[status] : '';
+  });
+
+  protected readonly platformMeta = CAMPAIGN_PLATFORM_META;
   protected readonly platformFilter = signal<CampaignPlatform | 'all'>('all');
 
   private readonly campaignPosts = computed(() => this.scheduledPostService.byCampaign(this.campaignId())());
@@ -119,12 +113,23 @@ export class CampaignDetailPage {
       .slice(0, 5);
   });
 
+  /** "Overall performance" — there's no separate backend-computed score (nor should there be one
+   *  fabricated); this is an honest rollup of the real, already-available engagement totals so the
+   *  campaign has one at-a-glance number instead of just four separate tiles. */
+  protected readonly totalEngagement = computed(() => {
+    const a = this.analytics();
+    if (!a) return 0;
+    return a.totalLikes + a.totalComments + a.totalShares + (this.clicksAvailable() ? a.totalClicks : 0);
+  });
+
   constructor() {
     effect(() => {
-      const c = this.campaignSummary();
+      // Read from the fetched detail, not the list summary — on a deep link the list hasn't
+      // loaded yet, so the page title used to drop the campaign name entirely.
+      const name = this.detail()?.name;
       const id = this.campaignId();
       this.seo.setPageSeo({
-        title: (c ? c.name + ' | ' : '') + 'الحملات | رواج',
+        title: (name ? name + ' | ' : '') + 'الحملات | رواج',
         description: 'تفاصيل الحملة: الإحصائيات، الأداء، والمنشورات القادمة.',
         keywords: 'رواج, تفاصيل الحملة, أداء الحملة, إحصائيات',
         path: '/dashboard/campaigns/' + id,
@@ -164,6 +169,11 @@ export class CampaignDetailPage {
   }
 
   private loadAnalytics(campaignId: string): void {
+    // Reset first — the router reuses this component across campaigns, so without clearing these
+    // the previous campaign's KPI tiles (or its error) stayed on screen while the new campaign's
+    // analytics were still in flight.
+    this.analytics.set(null);
+    this.analyticsError.set(null);
     this.analyticsLoading.set(true);
     this.analyticsService.getCampaign(campaignId).subscribe({
       next: res => {
@@ -189,8 +199,22 @@ export class CampaignDetailPage {
     return this.analytics()?.engagementRateAvailable ?? metricAvailable(this.analytics()?.posts ?? [], 'engagementRate');
   }
 
-  protected platformMetaFor(p: CampaignPlatform): PlatformMeta {
-    return PLATFORM_META[p];
+  protected clicksAvailable(): boolean {
+    return this.analytics()?.clicksAvailable ?? metricAvailable(this.analytics()?.posts ?? [], 'clicks');
+  }
+
+  protected platformMetaFor(p: CampaignPlatform): CampaignPlatformMeta {
+    return CAMPAIGN_PLATFORM_META[p];
+  }
+
+  protected openEdit(): void {
+    if (this.perms.canEdit()) this.editOpen.set(true);
+  }
+
+  /** The modal returns the saved record, so the page updates from the response rather than
+   *  issuing another GET for data it was just handed. */
+  protected onCampaignSaved(updated: GetCampaignResponse): void {
+    this.detail.set(updated);
   }
 
   protected setPlatformFilter(p: CampaignPlatform | 'all'): void {

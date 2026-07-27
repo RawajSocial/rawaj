@@ -63,6 +63,7 @@ public class RegenerateContentItemCommandHandler(
         }
 
         var prompt = ContentPromptBuilder.BuildRevisionPrompt(brand, campaign, contentItem, request.Feedback);
+        var startedAt = DateTime.UtcNow;
         var generation = await textGenerationService.GenerateTextAsync(prompt, cancellationToken);
 
         var now = DateTime.UtcNow;
@@ -79,7 +80,7 @@ public class RegenerateContentItemCommandHandler(
             OutputRefType = "content_item",
             Tokens = generation.TokensUsed,
             ErrorMessage = generation.ErrorMessage,
-            StartedAt = now,
+            StartedAt = startedAt,
             CompletedAt = now,
             CreatedAt = now
         };

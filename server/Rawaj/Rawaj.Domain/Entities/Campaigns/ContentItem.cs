@@ -20,6 +20,22 @@ public class ContentItem : BaseEntity, IConcurrencyAware
     public string? Cta { get; set; }
     public string? Tone { get; set; }
     public string? AiPromptUsed { get; set; }
+
+    /// <summary>
+    /// An <b>English</b> visual description of the image that should accompany this post, written by
+    /// the text model at the same time as the post copy.
+    /// <para>
+    /// This exists because the image model (HuggingFace FLUX) is trained on English captions and
+    /// produces poor results for Arabic input — and <see cref="Content"/>, which used to be sent
+    /// straight to it, is Arabic marketing copy ("get 50% off now!"), which is not a description of
+    /// a picture even once translated. Keeping the illustration prompt as its own field lets the
+    /// post stay Arabic for the reader while the image model gets something it can actually render,
+    /// and lets a later image retry reuse the same description instead of falling back to the copy.
+    /// </para>
+    /// Null for content items generated before this field existed, and for standalone (non-campaign)
+    /// generations, which have no image-planning step — callers must fall back.
+    /// </summary>
+    public string? ImagePrompt { get; set; }
     public ContentStatus Status { get; set; }
     public Guid? ReviewedBy { get; set; }
     public DateTime? ReviewedAt { get; set; }

@@ -1,6 +1,6 @@
 import { Component, HostListener, computed, effect, inject, signal } from '@angular/core';
 import { ScheduledPost } from '../../../model/scheduled-post.model';
-import { CampaignPlatform } from '../../../model/campaign.model';
+import { CAMPAIGN_PLATFORM_META, CampaignPlatform } from '../../../model/campaign.model';
 import { PostModal } from '../post-modal/post-modal';
 import { PageHeader } from '../../../shared/components/page-header/page-header';
 import { BrandLock } from '../../../shared/components/brand-lock/brand-lock';
@@ -17,15 +17,9 @@ import { Router, RouterLink } from '@angular/router';
 
 export type ViewMode = 'month' | 'week' | 'day' | 'list';
 
-const PLATFORM_CFG: Record<CampaignPlatform, { icon: string; color: string; label: string }> = {
-  instagram: { icon: 'fa-brands fa-instagram',  color: 'var(--color-instagram)', label: 'إنستغرام' },
-  facebook:  { icon: 'fa-brands fa-facebook-f', color: 'var(--color-facebook)',  label: 'فيسبوك'   },
-  tiktok:    { icon: 'fa-brands fa-tiktok',      color: 'var(--color-tiktok)',    label: 'تيك توك'  },
-  youtube:   { icon: 'fa-brands fa-youtube',     color: 'var(--color-youtube)',   label: 'يوتيوب'  },
-  x:         { icon: 'fa-brands fa-x-twitter',   color: 'var(--color-x)',         label: 'إكس'      },
-  snapchat:  { icon: 'fa-brands fa-snapchat',    color: 'var(--color-snapchat)',  label: 'سناب شات' },
-  linkedin:  { icon: 'fa-brands fa-linkedin-in', color: 'var(--color-linkedin)',  label: 'لينكد إن' },
-};
+/** Shared with the campaign card/detail/calendar/post pages and the ads module — see
+ *  CAMPAIGN_PLATFORM_META. Each of those carried its own identical copy until now. */
+const PLATFORM_CFG = CAMPAIGN_PLATFORM_META;
 
 @Component({
   selector: 'app-calendar-page',

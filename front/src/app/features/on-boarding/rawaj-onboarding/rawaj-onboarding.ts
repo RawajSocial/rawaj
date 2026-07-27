@@ -69,6 +69,9 @@ export class RawajOnboarding {
   protected readonly selectedBrandProfileId = signal<string | null>(null);
   protected readonly creatingCampaign = signal(false);
   protected readonly campaignId = signal<string | null>(null);
+  /** Set when `createDraft()` fails so `finishOnboarding()` can report the real reason instead of
+   *  always blaming a missing brand profile. */
+  private readonly draftCreationError = signal<string | null>(null);
 
   protected readonly selectedBrandProfile = computed(() =>
     this.brandProfiles().find(p => p.id === this.selectedBrandProfileId()),
@@ -175,12 +178,16 @@ export class RawajOnboarding {
         if (res.data) {
           localStorage.setItem(this.draftIdKey, res.data.campaignId);
           this.campaignId.set(res.data.campaignId);
+          this.draftCreationError.set(null);
         }
         this.draftReady.set(true);
       },
-      error: () => {
-        // The wizard still works locally even if the initial draft row couldn't be created —
-        // finishOnboarding() will surface a clear error when it tries to save for real.
+      error: err => {
+        // The wizard still works locally even if the initial draft row couldn't be created (e.g.
+        // the tenant already hit its plan's monthly campaign cap, or isn't activated yet) —
+        // recorded here so finishOnboarding() can surface the REAL reason instead of always
+        // assuming "no brand profile", which used to be the only message it ever showed.
+        this.draftCreationError.set(extractApiErrorMessage(err, 'تعذّر إنشاء الحملة. حاول مرة أخرى.'));
         this.draftReady.set(true);
       },
     });
@@ -246,7 +253,18 @@ export class RawajOnboarding {
   protected finishOnboarding(): void {
     const id = this.campaignId();
     if (!id) {
-      this.redirectToCreateBrandProfile();
+      // A brand-new tenant with zero brand profiles is redirected before the wizard ever mounts
+      // its steps (see the constructor) — reaching here with no id almost always means the draft
+      // campaign itself failed to create (plan limit reached, tenant not activated, network
+      // error), so report THAT, not the "no brand profile" message that used to fire regardless.
+      if (this.brandProfiles().length === 0) {
+        this.redirectToCreateBrandProfile();
+      } else {
+        this.errorModalService.show(
+          this.draftCreationError() ?? 'تعذّر إنشاء الحملة. حاول مرة أخرى أو أعد تحميل الصفحة.',
+          { variant: 'error', title: 'تعذّر إنشاء الحملة' },
+        );
+      }
       return;
     }
 

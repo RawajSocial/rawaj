@@ -63,19 +63,27 @@ export class MyMediaPage {
       thumbnailUrl: i.imageUrl ?? undefined,
       brandProfileId: brandId,
       campaignId: cid,
+      sourceKind: 'content-item',
     }));
 
-    const fromAssets: GeneratedItem[] = this.visualAssetService.assets().map((a: VisualAssetSummary) => ({
-      id: a.visualAssetId,
-      type: 'static-ad',
-      title: 'صورة مولّدة',
-      brand: brandName,
-      status: 'generated',
-      createdAt: a.createdAt,
-      thumbnailUrl: a.fileUrl,
-      brandProfileId: brandId,
-      campaignId: cid,
-    }));
+    const contentItemIds = new Set(this.contentItemService.items().map(i => i.contentItemId));
+
+    // A visual asset already shown embedded in its parent content item's card (fromContent
+    // above) must not also appear as its own standalone card here — same image, two ids.
+    const fromAssets: GeneratedItem[] = this.visualAssetService.assets()
+      .filter((a: VisualAssetSummary) => !a.contentItemId || !contentItemIds.has(a.contentItemId))
+      .map((a: VisualAssetSummary) => ({
+        id: a.visualAssetId,
+        type: 'static-ad',
+        title: 'صورة مولّدة',
+        brand: brandName,
+        status: 'generated',
+        createdAt: a.createdAt,
+        thumbnailUrl: a.fileUrl,
+        brandProfileId: brandId,
+        campaignId: cid,
+        sourceKind: 'visual-asset',
+      }));
 
     return [...fromContent, ...fromAssets];
   });

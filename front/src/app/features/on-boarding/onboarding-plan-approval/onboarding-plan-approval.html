@@ -1,325 +1,625 @@
-<!-- ═══════════════════════════════════════════════════════
-     LOADING PHASE
-════════════════════════════════════════════════════════ -->
-@if (phase() === 'loading') {
-  <div class="plan-loader" dir="rtl">
-    <div class="loader-orbit">
-      <div class="loader-core">
-        <img src="assets/icons/logo.png" width="54" alt="">
-      </div>
-      <div class="orbit-ring ring-1"></div>
-      <div class="orbit-ring ring-2"></div>
-      <div class="orbit-ring ring-3"></div>
-    </div>
+<div class="plan-wrap" dir="rtl">
 
-    <div class="loader-text">
-      <h2>رواج AI يبني خطتك...</h2>
-      @if (data()?.brandName) {
-        <p>يحلل <strong>{{ data()?.brandName }}</strong> ويصمم الاستراتيجية المثلى لك</p>
+  <!-- ── HERO ── -->
+  <div class="plan-hero" appGsapReveal="fade-in">
+    <div class="plan-ai-badge">
+      <i class="fa-brands fa-openai"></i>
+      خطة رواج AI — {{ approved() ? 'معتمدة' : 'جاهزة للمراجعة' }}
+    </div>
+    <h2 class="plan-brand-name">{{ data()?.brandName ?? 'علامتك التجارية' }}</h2>
+    <p class="plan-hero-sub">راجع فهمنا لنشاطك واستراتيجية حملتك أدناه، ثم اعتمدها لتبدأ في توليد المحتوى.</p>
+  </div>
+
+  <!-- ── INLINE "AI STILL WORKING" STRIP — replaces a blocking full-page loader; the sections
+       below already render whatever's ready (including your own answers, instantly), so this is
+       just a slim status strip for the parts still being generated, not a gate on the whole page. ── -->
+  @if (!pipelineFinished()) {
+    <div class="plan-progress-strip" role="status" aria-live="polite">
+      <div class="progress-strip-icon"><i class="fa-solid fa-circle-notch fa-spin"></i></div>
+      <div class="progress-strip-body">
+        <p class="progress-strip-title">رواج AI يبني خطتك...</p>
+        <div class="progress-strip-steps">
+          @for (stage of pipelineStages; track stage.key) {
+            <span class="progress-chip"
+                  [class.done]="stage.key === 'research' ? researchDone() : stage.key === 'diagnosis' ? diagnosisDone() : strategyDone()">
+              <i class="fa-solid" [class.fa-circle-check]="(stage.key === 'research' ? researchDone() : stage.key === 'diagnosis' ? diagnosisDone() : strategyDone())"
+                 [class.fa-circle-notch]="!(stage.key === 'research' ? researchDone() : stage.key === 'diagnosis' ? diagnosisDone() : strategyDone())"
+                 [class.fa-spin]="!(stage.key === 'research' ? researchDone() : stage.key === 'diagnosis' ? diagnosisDone() : strategyDone())"></i>
+              {{ stage.label }}
+            </span>
+          }
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ── NOTHING GENERATED YET, AND WE WEREN'T ASKED TO ── The campaign has no strategy and this
+       isn't the onboarding wizard, so generating one is a deliberate, priced action the user
+       opts into — not a side effect of opening a page called "review the strategy". -->
+  @if (awaitingGenerateConsent()) {
+    <div class="rw-card plan-card plan-generate-prompt">
+      <h3>لم تُنشأ استراتيجية لهذه الحملة بعد</h3>
+      <p>
+        سيقوم رواج AI بتحليل نشاطك والبحث عن منافسيك وبناء استراتيجية حملة كاملة.
+        @if (pipelineCost(); as cost) {
+          تكلفة التوليد {{ cost.toLocaleString('ar-SA') }} كوين تقريبًا (يُضاف بحث المنافسين فقط عند توفّر نتائج).
+        }
+      </p>
+      @if (perms.canEdit()) {
+        <button type="button" class="rw-btn rw-btn--primary" (click)="startPipeline()">
+          <i class="fa-solid fa-wand-magic-sparkles"></i>
+          توليد الاستراتيجية
+        </button>
       } @else {
-        <p>يحلل بياناتك ويصمم الاستراتيجية المثلى</p>
+        <p class="plan-generate-denied">{{ perms.editDeniedReason() }}</p>
       }
     </div>
+  }
 
-    <div class="loader-steps">
-      @for (msg of loadingMessages; track msg; let i = $index) {
-        <div class="loader-step" [class.done]="loadingStep() > i" [class.active]="loadingStep() === i">
-          <span class="step-icon">
-            @if (loadingStep() > i) {
-              <i class="fa-solid fa-circle-check"></i>
-            } @else if (loadingStep() === i) {
-              <i class="fa-solid fa-circle-notch fa-spin"></i>
-            } @else {
-              <i class="fa-regular fa-circle"></i>
-            }
-          </span>
-          <span class="step-label">{{ msg }}</span>
+  @if (pipelineError()) {
+    <div class="pipeline-note">
+      <p><i class="fa-solid fa-triangle-exclamation"></i> {{ pipelineError() }}</p>
+    </div>
+  }
+
+  <!-- ── STRATEGY GENERATION FAILED ── The pipeline ran but produced no usable strategy. Without
+       this the page was a dead end: approving is impossible (the backend rejects a campaign with
+       no AiPlanJson), nothing offered a way to try again, and the only clue was an error note. -->
+  @if (strategyFailed()) {
+    <div class="rw-card plan-card plan-generate-prompt">
+      <h3>لم تكتمل استراتيجية الحملة</h3>
+      <p>
+        تم تحليل نشاطك بنجاح، لكن توليد الاستراتيجية لم يكتمل. يمكنك إعادة المحاولة —
+        لن تُخصم أي كوينات إضافية عن المحاولة التي لم تنجح.
+      </p>
+      @if (perms.canEdit()) {
+        <button type="button" class="rw-btn rw-btn--primary" (click)="retryStrategy()">
+          <i class="fa-solid fa-arrows-rotate"></i>
+          إعادة توليد الاستراتيجية
+        </button>
+      } @else {
+        <p class="plan-generate-denied">{{ perms.editDeniedReason() }}</p>
+      }
+    </div>
+  }
+
+  <!-- ══════════════════════════════════════════════════════
+       1) BUSINESS UNDERSTANDING — AI diagnosis + the business
+          basics the user already gave us in onboarding.
+  ══════════════════════════════════════════════════════ -->
+  <section class="rw-card plan-card" appGsapReveal="fade-up">
+    <div class="rw-card__header">
+      <div class="card-header-row">
+        <div class="section-icon ai-glow"><i class="fa-brands fa-openai"></i></div>
+        <div>
+          <h3 class="rw-card__title">هذا ما فهمناه عن نشاطك</h3>
+          <p class="rw-card__hint">تحليل رواج AI لعملك بناءً على بيانات الإعداد وأي أبحاث منافسين متاحة</p>
         </div>
-      }
-    </div>
-  </div>
-}
-
-<!-- ═══════════════════════════════════════════════════════
-     PLAN PHASE — every section below renders the AI's actual response
-     (CampaignStrategy / BusinessDiagnosis / CompetitorResearch) or is
-     omitted; nothing here is a locally-fabricated stand-in for it.
-════════════════════════════════════════════════════════ -->
-@if (phase() === 'plan') {
-  <div class="plan-wrap" dir="rtl">
-
-    <!-- ── HERO ── -->
-    <div class="plan-hero">
-      <div class="plan-ai-badge">
-        <i class="fa-brands fa-openai"></i>
-        خطة رواج AI — جاهزة للاعتماد
       </div>
-      <h1 class="plan-brand-name">{{ data()?.brandName ?? 'علامتك التجارية' }}</h1>
-
-      @if (strategy(); as s) {
-        <div class="plan-stats-row">
-          @if (s.campaignBlueprint?.pillars?.length) {
-            <div class="plan-stat">
-              <span class="stat-num">{{ s.campaignBlueprint!.pillars!.length }}</span>
-              <span class="stat-lbl">محاور رئيسية</span>
-            </div>
-            <div class="stat-divider"></div>
-          }
-          @if (s.campaignBlueprint?.recommendedPlatforms?.length) {
-            <div class="plan-stat">
-              <span class="stat-num">{{ s.campaignBlueprint!.recommendedPlatforms!.length }}</span>
-              <span class="stat-lbl">منصة موصى بها</span>
-            </div>
-          }
-        </div>
-      }
     </div>
 
-    @if (pipelineError()) {
-      <div class="plan-section pipeline-note">
-        <p><i class="fa-solid fa-triangle-exclamation"></i> {{ pipelineError() }}</p>
+    @if (data(); as d) {
+      <div class="plan-chip-row">
+        @if (d.sector) { <span class="plan-chip"><i class="fa-solid fa-industry"></i> {{ d.sector }}</span> }
+        @if (d.businessAge) { <span class="plan-chip"><i class="fa-regular fa-clock"></i> {{ d.businessAge }}</span> }
+        @if (d.stage) { <span class="plan-chip"><i class="fa-solid fa-seedling"></i> {{ d.stage }}</span> }
+        @if (d.pricePositioning) {
+          <span class="plan-chip"><i class="fa-solid fa-tag"></i> {{ pricePositioningLabels[d.pricePositioning] ?? d.pricePositioning }}</span>
+        }
       </div>
+      @if (d.productDesc) { <p class="ai-diagnosis-summary">{{ d.productDesc }}</p> }
     }
 
-    <!-- ── WHAT WE UNDERSTOOD ABOUT YOUR BUSINESS (AI Business Diagnosis) ── -->
-    @if (diagnosis(); as d) {
-      <section class="plan-section">
-        <div class="section-hdr">
-          <div class="section-icon ai-glow"><i class="fa-brands fa-openai"></i></div>
-          <div>
-            <h3 class="section-title">هذا ما فهمناه عن نشاطك</h3>
-            <p class="section-sub">تحليل رواج AI لعملك بناءً على بيانات الإعداد وأي أبحاث منافسين متاحة</p>
-          </div>
+    @if (!diagnosisDone()) {
+      <div class="section-skeleton">
+        <span class="sk-line sk-line--80"></span>
+        <span class="sk-line sk-line--60"></span>
+        <span class="sk-line sk-line--40"></span>
+      </div>
+    } @else if (diagnosis(); as diag) {
+      @if (diag.businessSummary) {
+        <p class="ai-diagnosis-summary">{{ diag.businessSummary }}</p>
+      }
+
+      <div class="ai-diagnosis-grid">
+        @if (diag.businessMaturity) {
+          <div class="ai-diagnosis-chip"><span>مرحلة النشاط</span><strong>{{ diag.businessMaturity }}</strong></div>
+        }
+        @if (diag.growthStage) {
+          <div class="ai-diagnosis-chip"><span>مرحلة النمو</span><strong>{{ diag.growthStage }}</strong></div>
+        }
+        @if (diag.marketingReadiness) {
+          <div class="ai-diagnosis-chip"><span>جاهزية التسويق</span><strong>{{ diag.marketingReadiness }}</strong></div>
+        }
+      </div>
+
+      @if (diag.swot; as swot) {
+        <div class="ai-swot-grid">
+          @if (swot.strengths?.length) {
+            <div class="ai-swot-card"><h4>نقاط القوة</h4><ul>@for (s of swot.strengths; track s) { <li>{{ s }}</li> }</ul></div>
+          }
+          @if (swot.weaknesses?.length) {
+            <div class="ai-swot-card"><h4>نقاط الضعف</h4><ul>@for (s of swot.weaknesses; track s) { <li>{{ s }}</li> }</ul></div>
+          }
+          @if (swot.opportunities?.length) {
+            <div class="ai-swot-card"><h4>الفرص</h4><ul>@for (s of swot.opportunities; track s) { <li>{{ s }}</li> }</ul></div>
+          }
+          @if (swot.threats?.length) {
+            <div class="ai-swot-card"><h4>التهديدات</h4><ul>@for (s of swot.threats; track s) { <li>{{ s }}</li> }</ul></div>
+          }
         </div>
+      }
 
-        @if (d.businessSummary) {
-          <p class="ai-diagnosis-summary">{{ d.businessSummary }}</p>
-        }
-
-        <div class="ai-diagnosis-grid">
-          @if (d.businessMaturity) {
-            <div class="ai-diagnosis-chip"><span>مرحلة النشاط</span><strong>{{ d.businessMaturity }}</strong></div>
-          }
-          @if (d.growthStage) {
-            <div class="ai-diagnosis-chip"><span>مرحلة النمو</span><strong>{{ d.growthStage }}</strong></div>
-          }
-          @if (d.marketingReadiness) {
-            <div class="ai-diagnosis-chip"><span>جاهزية التسويق</span><strong>{{ d.marketingReadiness }}</strong></div>
-          }
-        </div>
-
-        @if (d.swot; as swot) {
-          <div class="ai-swot-grid">
-            @if (swot.strengths?.length) {
-              <div class="ai-swot-card"><h4>نقاط القوة</h4><ul>@for (s of swot.strengths; track s) { <li>{{ s }}</li> }</ul></div>
-            }
-            @if (swot.weaknesses?.length) {
-              <div class="ai-swot-card"><h4>نقاط الضعف</h4><ul>@for (s of swot.weaknesses; track s) { <li>{{ s }}</li> }</ul></div>
-            }
-            @if (swot.opportunities?.length) {
-              <div class="ai-swot-card"><h4>الفرص</h4><ul>@for (s of swot.opportunities; track s) { <li>{{ s }}</li> }</ul></div>
-            }
-            @if (swot.threats?.length) {
-              <div class="ai-swot-card"><h4>التهديدات</h4><ul>@for (s of swot.threats; track s) { <li>{{ s }}</li> }</ul></div>
-            }
-          </div>
-        }
-
-        @if (d.missingInformation?.length) {
-          <p class="ai-diagnosis-missing">
-            <i class="fa-solid fa-circle-info"></i>
-            معلومات قد تساعدنا أكثر: {{ d.missingInformation!.join('، ') }}
-          </p>
-        }
-      </section>
+      @if (diag.missingInformation?.length) {
+        <p class="ai-diagnosis-missing">
+          <i class="fa-solid fa-circle-info"></i>
+          معلومات قد تساعدنا أكثر: {{ diag.missingInformation!.join('، ') }}
+        </p>
+      }
+    } @else if (!hasBusinessUnderstanding()) {
+      <div class="section-empty">
+        <div class="section-empty-icon"><i class="fa-solid fa-magnifying-glass"></i></div>
+        <p>لم نتمكن من تحليل نشاطك بعد. يمكنك المتابعة، أو الرجوع لإضافة تفاصيل أكثر عن علامتك.</p>
+      </div>
     }
+  </section>
 
-    <!-- ── COMPETITOR RESEARCH (best-effort — may or may not be relevant) ── -->
-    @if (competitorResearch(); as cr) {
-      <section class="plan-section">
-        <div class="section-hdr">
-          <div class="section-icon"><i class="fa-solid fa-magnifying-glass-chart"></i></div>
-          <div>
-            <h3 class="section-title">أبحاث المنافسين</h3>
-            <p class="section-sub">بحث آلي قد يفيد أو لا يفيد — استخدمناه كمدخل استرشادي فقط لبناء الاستراتيجية</p>
-          </div>
+  <!-- ══════════════════════════════════════════════════════
+       2) CAMPAIGN OBJECTIVE — entirely the user's own answers,
+          so this renders immediately with no wait at all.
+  ══════════════════════════════════════════════════════ -->
+  <section class="rw-card plan-card" appGsapReveal="fade-up">
+    <div class="rw-card__header">
+      <div class="card-header-row">
+        <div class="section-icon"><i class="fa-solid fa-bullseye"></i></div>
+        <div>
+          <h3 class="rw-card__title">هدف الحملة</h3>
+          <p class="rw-card__hint">ما الذي تريد تحقيقه من هذه الحملة</p>
         </div>
+      </div>
+    </div>
 
-        @if (cr.unavailable) {
-          <p class="ai-diagnosis-missing"><i class="fa-solid fa-circle-info"></i> {{ cr.note || 'تعذّر إيجاد بيانات منافسين لهذا النشاط الآن.' }}</p>
-        } @else {
-          @if (cr.summary) { <p class="ai-diagnosis-summary">{{ cr.summary }}</p> }
-          @if (cr.competitors?.length) {
-            <div class="ai-swot-grid">
-              @for (c of cr.competitors; track c.url) {
-                <div class="ai-swot-card"><h4>{{ c.name }}</h4><p>{{ c.snippet }}</p></div>
+    @if (hasObjectiveData()) {
+      <div class="plan-chip-row">
+        @if (data()?.campaignType) {
+          <span class="plan-chip plan-chip--accent">{{ campaignTypeLabels[data()!.campaignType!] ?? data()!.campaignType }}</span>
+        }
+        @if (data()?.monthlyBudget) { <span class="plan-chip"><i class="fa-solid fa-wallet"></i> {{ data()!.monthlyBudget }}</span> }
+        @if (data()?.campaignDuration) { <span class="plan-chip"><i class="fa-regular fa-calendar"></i> {{ data()!.campaignDuration }}</span> }
+        @if (data()?.positioningVs) {
+          <span class="plan-chip"><i class="fa-solid fa-chart-line"></i> {{ positioningLabels[data()!.positioningVs!] ?? data()!.positioningVs }}</span>
+        }
+      </div>
+      @if (data()?.campaignGoal) {
+        <p class="ai-diagnosis-summary">{{ data()!.campaignGoal }}</p>
+      }
+      @if (data()?.campaignOutcome) {
+        <p class="ai-diagnosis-summary"><strong>الرسالة الجوهرية:</strong> {{ data()!.campaignOutcome }}</p>
+      }
+    } @else {
+      <div class="section-empty">
+        <div class="section-empty-icon"><i class="fa-solid fa-bullseye"></i></div>
+        <p>لم تُحدَّد تفاصيل هدف الحملة بعد.</p>
+      </div>
+    }
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════
+       3) TARGET AUDIENCE — the user's own answers, immediate.
+  ══════════════════════════════════════════════════════ -->
+  <section class="rw-card plan-card" appGsapReveal="fade-up">
+    <div class="rw-card__header">
+      <div class="card-header-row">
+        <div class="section-icon"><i class="fa-solid fa-users"></i></div>
+        <div>
+          <h3 class="rw-card__title">الجمهور المستهدف</h3>
+          <p class="rw-card__hint">من تحاول حملتك الوصول إليه</p>
+        </div>
+      </div>
+    </div>
+
+    @if (hasAudienceData()) {
+      <div class="plan-chip-row">
+        @if (data()?.gender) { <span class="plan-chip"><i class="fa-solid fa-venus-mars"></i> {{ genderLabels[data()!.gender!] }}</span> }
+        @if (data()?.customerType) { <span class="plan-chip">{{ customerTypeLabels[data()!.customerType!] ?? data()!.customerType }}</span> }
+        @if (data()?.customerLocation) {
+          <span class="plan-chip"><i class="fa-solid fa-location-dot"></i> {{ customerLocationLabels[data()!.customerLocation!] ?? data()!.customerLocation }}</span>
+        }
+        @if (data()?.educationLevel) { <span class="plan-chip">{{ data()!.educationLevel }}</span> }
+      </div>
+
+      @if (data()?.ageRanges?.length) {
+        <p class="blueprint-sub-label">الفئات العمرية</p>
+        <div class="ct-tags">
+          @for (a of data()!.ageRanges; track a) { <span class="ct-tag">{{ a }}</span> }
+        </div>
+      }
+
+      @if (data()?.incomeLevel?.length) {
+        <p class="blueprint-sub-label">مستوى الدخل</p>
+        <div class="ct-tags">
+          @for (i of data()!.incomeLevel; track i) { <span class="ct-tag">{{ incomeLevelLabels[i] ?? i }}</span> }
+        </div>
+      }
+
+      @if (data()?.interests?.length) {
+        <p class="blueprint-sub-label">الاهتمامات</p>
+        <div class="ct-tags">
+          @for (i of data()!.interests; track i) { <span class="ct-tag">{{ i }}</span> }
+        </div>
+      }
+
+      @if (data()?.buyingBehavior?.length) {
+        <p class="blueprint-sub-label">طريقة الشراء</p>
+        <div class="ct-tags">
+          @for (b of data()!.buyingBehavior; track b) { <span class="ct-tag">{{ buyingBehaviorLabels[b] ?? b }}</span> }
+        </div>
+      }
+
+      @if (data()?.audiencePlatforms?.length) {
+        <p class="blueprint-sub-label">أين يتواجد جمهورك</p>
+        <div class="platforms-row">
+          @for (p of data()!.audiencePlatforms; track p) {
+            <span class="platform-chip" [style.color]="platformColor(p)">
+              <i [class]="platformIcon(p)"></i> {{ platformLabel(p) }}
+            </span>
+          }
+        </div>
+      }
+
+      @if (data()?.painPoints) {
+        <p class="ai-diagnosis-summary"><strong>أبرز مشكلة يعاني منها العميل:</strong> {{ data()!.painPoints }}</p>
+      }
+      @if (data()?.targetDescription) {
+        <p class="ai-diagnosis-summary">{{ data()!.targetDescription }}</p>
+      }
+    } @else {
+      <div class="section-empty">
+        <div class="section-empty-icon"><i class="fa-solid fa-users"></i></div>
+        <p>لم تُحدَّد ملامح الجمهور المستهدف بعد.</p>
+      </div>
+    }
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════
+       4) BRAND VOICE — the user's own answers, immediate.
+  ══════════════════════════════════════════════════════ -->
+  <section class="rw-card plan-card" appGsapReveal="fade-up">
+    <div class="rw-card__header">
+      <div class="card-header-row">
+        <div class="section-icon"><i class="fa-solid fa-comment-dots"></i></div>
+        <div>
+          <h3 class="rw-card__title">هوية العلامة الصوتية</h3>
+          <p class="rw-card__hint">كيف يجب أن تبدو وتتحدث حملتك</p>
+        </div>
+      </div>
+    </div>
+
+    @if (hasBrandVoiceData()) {
+      @if (data()?.tagline) {
+        <p class="ai-diagnosis-summary">"{{ data()!.tagline }}"</p>
+      }
+
+      @if (data()?.brandWord1 || data()?.brandWord2 || data()?.brandWord3) {
+        <p class="blueprint-sub-label">العلامة في 3 كلمات</p>
+        <div class="ct-tags">
+          @if (data()?.brandWord1) { <span class="ct-tag">{{ data()!.brandWord1 }}</span> }
+          @if (data()?.brandWord2) { <span class="ct-tag">{{ data()!.brandWord2 }}</span> }
+          @if (data()?.brandWord3) { <span class="ct-tag">{{ data()!.brandWord3 }}</span> }
+        </div>
+      }
+
+      @if (data()?.brandTone?.length) {
+        <p class="blueprint-sub-label">نبرة العلامة</p>
+        <div class="ct-tags">
+          @for (t of data()!.brandTone; track t) { <span class="ct-tag ct-tag--accent">{{ t }}</span> }
+        </div>
+      }
+
+      @if (data()?.brandColors?.length) {
+        <p class="blueprint-sub-label">الألوان الأساسية</p>
+        <div class="brand-colors-row">
+          @for (c of data()!.brandColors; track c) {
+            <span class="brand-color-swatch" [style.background]="c" [title]="c"></span>
+          }
+        </div>
+      }
+
+      @if (data()?.languages?.length) {
+        <p class="blueprint-sub-label">لغة التواصل</p>
+        <div class="ct-tags">
+          @for (l of data()!.languages; track l) { <span class="ct-tag">{{ languageLabels[l] ?? l }}</span> }
+        </div>
+      }
+    } @else {
+      <div class="section-empty">
+        <div class="section-empty-icon"><i class="fa-solid fa-comment-dots"></i></div>
+        <p>لم تُحدَّد هوية صوتية للعلامة بعد.</p>
+      </div>
+    }
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════
+       5) MARKETING APPROACH — from the AI strategy.
+  ══════════════════════════════════════════════════════ -->
+  <section class="rw-card plan-card" appGsapReveal="fade-up">
+    <div class="rw-card__header">
+      <div class="card-header-row">
+        <div class="section-icon ai-glow"><i class="fa-brands fa-openai"></i></div>
+        <div>
+          <h3 class="rw-card__title">الأسلوب التسويقي</h3>
+          <p class="rw-card__hint">كيف ستصل استراتيجية رواج AI بحملتك إلى جمهورها</p>
+        </div>
+      </div>
+    </div>
+
+    @if (!strategyDone()) {
+      <div class="section-skeleton">
+        <span class="sk-line sk-line--90"></span>
+        <span class="sk-line sk-line--70"></span>
+        <span class="sk-line sk-line--50"></span>
+      </div>
+    } @else if (strategy(); as s) {
+      @if (s.brandStrategy) {
+        <div class="ai-strategy-block">
+          <h4>استراتيجية العلامة التجارية</h4>
+          <p class="ai-diagnosis-summary">{{ s.brandStrategy }}</p>
+        </div>
+      }
+
+      @if (s.marketingStrategy) {
+        <div class="ai-strategy-block">
+          <h4>الاستراتيجية التسويقية</h4>
+          <p class="ai-diagnosis-summary">{{ s.marketingStrategy }}</p>
+        </div>
+      }
+
+      @if (s.campaignBlueprint; as bp) {
+        <div class="ai-strategy-block">
+          <h4>مخطط الحملة</h4>
+
+          @if (bp.pillars?.length) {
+            <p class="blueprint-sub-label">المحاور الرئيسية</p>
+            <div class="ct-tags">
+              @for (p of bp.pillars; track p) { <span class="ct-tag">{{ p }}</span> }
+            </div>
+          }
+
+          @if (bp.keyThemes?.length) {
+            <p class="blueprint-sub-label">المواضيع الأساسية</p>
+            <div class="ct-tags">
+              @for (t of bp.keyThemes; track t) { <span class="ct-tag">{{ t }}</span> }
+            </div>
+          }
+
+          @if (bp.recommendedPlatforms?.length) {
+            <p class="blueprint-sub-label">المنصات الموصى بها</p>
+            <div class="platforms-row">
+              @for (p of bp.recommendedPlatforms; track p) {
+                <span class="platform-chip" [style.color]="platformColor(p)">
+                  <i [class]="platformIcon(p)"></i> {{ platformLabel(p) }}
+                </span>
               }
             </div>
           }
-        }
-      </section>
-    }
 
-    <!-- ── AI STRATEGY (Complete Marketing Strategy) — rendered straight from CampaignStrategy,
-         the real GenerateMarketingPlan/RefineCampaignPlan response; sections with no data are
-         simply omitted rather than backfilled with an invented default. ── -->
-    @if (strategy(); as s) {
-      <section class="plan-section">
-        <div class="section-hdr">
-          <div class="section-icon ai-glow"><i class="fa-brands fa-openai"></i></div>
-          <div>
-            <h3 class="section-title">استراتيجية الحملة الكاملة</h3>
-            <p class="section-sub">استراتيجية رواج AI الكاملة لهذه الحملة</p>
-          </div>
-        </div>
-
-        @if (s.executiveSummary) {
-          <div class="ai-strategy-block">
-            <h4>الملخص التنفيذي</h4>
-            <p class="ai-diagnosis-summary">{{ s.executiveSummary }}</p>
-          </div>
-        }
-
-        @if (s.businessAndMarketAnalysis) {
-          <div class="ai-strategy-block">
-            <h4>تحليل النشاط والسوق</h4>
-            <p class="ai-diagnosis-summary">{{ s.businessAndMarketAnalysis }}</p>
-          </div>
-        }
-
-        @if (s.brandStrategy) {
-          <div class="ai-strategy-block">
-            <h4>استراتيجية العلامة التجارية</h4>
-            <p class="ai-diagnosis-summary">{{ s.brandStrategy }}</p>
-          </div>
-        }
-
-        @if (s.marketingStrategy) {
-          <div class="ai-strategy-block">
-            <h4>الاستراتيجية التسويقية</h4>
-            <p class="ai-diagnosis-summary">{{ s.marketingStrategy }}</p>
-          </div>
-        }
-
-        @if (s.campaignBlueprint; as bp) {
-          <div class="ai-strategy-block">
-            <h4>مخطط الحملة</h4>
-
-            @if (bp.pillars?.length) {
-              <p class="blueprint-sub-label">المحاور الرئيسية</p>
-              <div class="ct-tags">
-                @for (p of bp.pillars; track p) { <span class="ct-tag">{{ p }}</span> }
-              </div>
-            }
-
-            @if (bp.keyThemes?.length) {
-              <p class="blueprint-sub-label">المواضيع الأساسية</p>
-              <div class="ct-tags">
-                @for (t of bp.keyThemes; track t) { <span class="ct-tag">{{ t }}</span> }
-              </div>
-            }
-
-            @if (bp.recommendedPlatforms?.length) {
-              <p class="blueprint-sub-label">المنصات الموصى بها</p>
-              <div class="platforms-row">
-                @for (p of bp.recommendedPlatforms; track p) {
-                  <span class="platform-chip" [style.color]="platformColor(p)">
-                    <i [class]="platformIcon(p)"></i> {{ platformLabel(p) }}
-                  </span>
-                }
-              </div>
-            }
-
-            @if (bp.postingCadence; as cadence) {
-              <p class="blueprint-sub-label">وتيرة النشر</p>
-              <ul class="ai-recommendations-list">
-                @for (entry of objectEntries(cadence); track entry[0]) {
-                  <li><i class="fa-solid fa-clock"></i> {{ platformLabel(entry[0]) }}: {{ entry[1] }}</li>
-                }
-              </ul>
-            }
-
-            @if (bp.contentMix; as mix) {
-              <p class="blueprint-sub-label">مزيج المحتوى</p>
-              <ul class="ai-recommendations-list">
-                @for (entry of objectEntries(mix); track entry[0]) {
-                  <li><i class="fa-solid fa-layer-group"></i> {{ entry[0] }}: {{ entry[1] }}</li>
-                }
-              </ul>
-            }
-          </div>
-        }
-
-        @if (s.contentProductionPlan) {
-          <div class="ai-strategy-block">
-            <h4>خطة إنتاج المحتوى</h4>
-            <p class="ai-diagnosis-summary">{{ s.contentProductionPlan }}</p>
-          </div>
-        }
-
-        @if (s.executionRoadmap) {
-          <div class="ai-strategy-block">
-            <h4>خارطة طريق التنفيذ</h4>
-            <p class="ai-diagnosis-summary">{{ s.executionRoadmap }}</p>
-          </div>
-        }
-
-        @if (s.aiRecommendations?.length) {
-          <div class="ai-strategy-block">
-            <h4>توصيات رواج AI</h4>
+          @if (bp.postingCadence; as cadence) {
+            <p class="blueprint-sub-label">وتيرة النشر</p>
             <ul class="ai-recommendations-list">
-              @for (r of s.aiRecommendations; track r) { <li><i class="fa-solid fa-lightbulb"></i> {{ r }}</li> }
-            </ul>
-          </div>
-        }
-
-        <!-- ── Refine by prompt ── -->
-        <div class="ai-refine-box">
-          <label class="ai-refine-label" for="refine-input">عدّل الخطة بطلب حر</label>
-          <textarea
-            id="refine-input"
-            rows="2"
-            placeholder="مثال: ركّز أكثر على تيك توك وقلّل ميزانية الإعلانات المدفوعة"
-            [value]="refineFeedback()"
-            (input)="updateRefineFeedback($any($event.target).value)"></textarea>
-          <div class="ai-refine-actions">
-            <button type="button" class="btn-refine"
-              [class.is-perm-disabled]="!perms.canEdit()"
-              [attr.aria-disabled]="!perms.canEdit() || null"
-              [appTooltip]="perms.editDeniedReason()"
-              [disabled]="refining() || !refineFeedback().trim()" (click)="submitRefine()">
-              @if (refining()) {
-                <i class="fa-solid fa-circle-notch fa-spin"></i> جاري التعديل...
-              } @else {
-                <i class="fa-solid fa-wand-magic-sparkles"></i> تعديل الخطة
+              @for (entry of objectEntries(cadence); track entry[0]) {
+                <li><i class="fa-solid fa-clock"></i> {{ platformLabel(entry[0]) }}: {{ entry[1] }}</li>
               }
-            </button>
-            @if (pricing(); as pr) {
-              <app-coin-cost-hint [cost]="pr.discountedCosts.reasoningConversation" />
-            }
-          </div>
-        </div>
-      </section>
-    }
+            </ul>
+          }
 
-    <!-- ── ACTIONS ── -->
-    <div class="plan-actions">
-      <button type="button" class="btn-back" (click)="onBack()">
-        <i class="fa-solid fa-chevron-right"></i>
-        تعديل البيانات
-      </button>
-      <button type="button" class="btn-approve"
-        [class.is-perm-disabled]="!perms.canEdit()"
-        [attr.aria-disabled]="!perms.canEdit() || null"
-        [appTooltip]="perms.editDeniedReason()"
-        [disabled]="approving() || approved()" (click)="onApprove()">
-        @if (approving()) {
-          <i class="fa-solid fa-circle-notch fa-spin"></i> جاري الاعتماد...
-        } @else {
-          <i class="fa-solid fa-wand-magic-sparkles"></i> اعتمد وابدأ توليد المحتوى
-        }
-      </button>
+          @if (bp.contentMix; as mix) {
+            <p class="blueprint-sub-label">مزيج المحتوى</p>
+            <ul class="ai-recommendations-list">
+              @for (entry of objectEntries(mix); track entry[0]) {
+                <li><i class="fa-solid fa-layer-group"></i> {{ entry[0] }}: {{ entry[1] }}</li>
+              }
+            </ul>
+          }
+        </div>
+      }
+    } @else if (!hasMarketingApproach()) {
+      <div class="section-empty">
+        <div class="section-empty-icon"><i class="fa-solid fa-compass"></i></div>
+        <p>لم يُحدَّد أسلوب تسويقي بعد.</p>
+      </div>
+    }
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════
+       6) EXPECTED OUTCOME — success metrics (immediate) +
+          the AI's execution roadmap (progressive).
+  ══════════════════════════════════════════════════════ -->
+  <section class="rw-card plan-card" appGsapReveal="fade-up">
+    <div class="rw-card__header">
+      <div class="card-header-row">
+        <div class="section-icon"><i class="fa-solid fa-flag-checkered"></i></div>
+        <div>
+          <h3 class="rw-card__title">النتيجة المتوقعة</h3>
+          <p class="rw-card__hint">كيف يبدو النجاح لهذه الحملة</p>
+        </div>
+      </div>
     </div>
 
+    @if (data()?.successMetrics?.length) {
+      <p class="blueprint-sub-label">مؤشرات النجاح المستهدفة</p>
+      <div class="ct-tags">
+        @for (m of data()!.successMetrics; track m) { <span class="ct-tag ct-tag--accent">{{ successMetricLabels[m] ?? m }}</span> }
+      </div>
+    }
+
+    @if (!strategyDone()) {
+      <div class="section-skeleton section-skeleton--tight">
+        <span class="sk-line sk-line--80"></span>
+        <span class="sk-line sk-line--60"></span>
+      </div>
+    } @else {
+      @if (strategy()?.executionRoadmap; as roadmap) {
+        <div class="ai-strategy-block">
+          <h4>خارطة طريق التنفيذ</h4>
+          <p class="ai-diagnosis-summary">{{ roadmap }}</p>
+        </div>
+      }
+      @if (strategy()?.contentProductionPlan; as plan) {
+        <div class="ai-strategy-block">
+          <h4>خطة إنتاج المحتوى</h4>
+          <p class="ai-diagnosis-summary">{{ plan }}</p>
+        </div>
+      }
+      @if (!hasExpectedOutcome()) {
+        <div class="section-empty">
+          <div class="section-empty-icon"><i class="fa-solid fa-flag-checkered"></i></div>
+          <p>لم تُحدَّد نتيجة متوقعة بعد.</p>
+        </div>
+      }
+    }
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════
+       7) AI ANALYSIS — competitor research + risks/opportunities
+          + AI recommendations, each revealed as its own stage lands.
+  ══════════════════════════════════════════════════════ -->
+  <section class="rw-card plan-card" appGsapReveal="fade-up">
+    <div class="rw-card__header">
+      <div class="card-header-row">
+        <div class="section-icon ai-glow"><i class="fa-solid fa-magnifying-glass-chart"></i></div>
+        <div>
+          <h3 class="rw-card__title">تحليل رواج AI</h3>
+          <p class="rw-card__hint">أبحاث المنافسين، المخاطر، الفرص وتوصيات الذكاء الاصطناعي</p>
+        </div>
+      </div>
+    </div>
+
+    @if (!researchDone()) {
+      <div class="section-skeleton section-skeleton--tight">
+        <span class="sk-line sk-line--70"></span>
+      </div>
+    } @else if (competitorResearch(); as cr) {
+      @if (cr.unavailable) {
+        <p class="ai-diagnosis-missing"><i class="fa-solid fa-circle-info"></i> {{ cr.note || 'تعذّر إيجاد بيانات منافسين لهذا النشاط الآن.' }}</p>
+      } @else {
+        @if (cr.summary) { <p class="ai-diagnosis-summary">{{ cr.summary }}</p> }
+        @if (cr.competitors?.length) {
+          <p class="blueprint-sub-label">أبحاث المنافسين</p>
+          <div class="ai-swot-grid">
+            @for (c of cr.competitors; track c.url) {
+              <div class="ai-swot-card"><h4>{{ c.name }}</h4><p>{{ c.snippet }}</p></div>
+            }
+          </div>
+        }
+      }
+    }
+
+    @if (!diagnosisDone()) {
+      <div class="section-skeleton section-skeleton--tight">
+        <span class="sk-line sk-line--60"></span>
+      </div>
+    } @else if (diagnosis(); as diag) {
+      @if (diag.currentRisks?.length || diag.opportunities?.length) {
+        <div class="ai-swot-grid">
+          @if (diag.currentRisks?.length) {
+            <div class="ai-swot-card"><h4>مخاطر حالية</h4><ul>@for (r of diag.currentRisks; track r) { <li>{{ r }}</li> }</ul></div>
+          }
+          @if (diag.opportunities?.length) {
+            <div class="ai-swot-card"><h4>فرص محتملة</h4><ul>@for (o of diag.opportunities; track o) { <li>{{ o }}</li> }</ul></div>
+          }
+        </div>
+      }
+    }
+
+    @if (!strategyDone()) {
+      <div class="section-skeleton section-skeleton--tight">
+        <span class="sk-line sk-line--80"></span>
+        <span class="sk-line sk-line--50"></span>
+      </div>
+    } @else if (strategy(); as s) {
+      @if (s.executiveSummary) {
+        <div class="ai-strategy-block">
+          <h4>الملخص التنفيذي</h4>
+          <p class="ai-diagnosis-summary">{{ s.executiveSummary }}</p>
+        </div>
+      }
+      @if (s.businessAndMarketAnalysis) {
+        <div class="ai-strategy-block">
+          <h4>تحليل النشاط والسوق</h4>
+          <p class="ai-diagnosis-summary">{{ s.businessAndMarketAnalysis }}</p>
+        </div>
+      }
+      @if (s.aiRecommendations?.length) {
+        <div class="ai-strategy-block">
+          <h4>توصيات رواج AI</h4>
+          <ul class="ai-recommendations-list">
+            @for (r of s.aiRecommendations; track r) { <li><i class="fa-solid fa-lightbulb"></i> {{ r }}</li> }
+          </ul>
+        </div>
+      }
+    }
+
+    @if (pipelineFinished() && !hasAiAnalysis()) {
+      <div class="section-empty">
+        <div class="section-empty-icon"><i class="fa-solid fa-magnifying-glass-chart"></i></div>
+        <p>لا تتوفر بيانات تحليل كافية حالياً.</p>
+      </div>
+    }
+
+    <!-- ── Refine by prompt ── -->
+    @if (strategyDone()) {
+      <div class="ai-refine-box">
+        <label class="ai-refine-label" for="refine-input">عدّل الخطة بطلب حر</label>
+        <textarea
+          id="refine-input"
+          rows="2"
+          placeholder="مثال: ركّز أكثر على تيك توك وقلّل ميزانية الإعلانات المدفوعة"
+          [value]="refineFeedback()"
+          (input)="updateRefineFeedback($any($event.target).value)"></textarea>
+        <div class="ai-refine-actions">
+          <button type="button" class="rw-btn rw-btn--dark"
+            [class.is-perm-disabled]="!perms.canEdit()"
+            [attr.aria-disabled]="!perms.canEdit() || null"
+            [appTooltip]="perms.editDeniedReason()"
+            [disabled]="refining() || !refineFeedback().trim()" (click)="submitRefine()">
+            @if (refining()) {
+              <i class="fa-solid fa-circle-notch fa-spin"></i> جاري التعديل...
+            } @else {
+              <i class="fa-solid fa-wand-magic-sparkles"></i> تعديل الخطة
+            }
+          </button>
+          @if (pricing(); as pr) {
+            <app-coin-cost-hint [cost]="pr.discountedCosts.reasoningConversation" />
+          }
+        </div>
+      </div>
+    }
+  </section>
+
+  <!-- ── ACTIONS ── -->
+  <div class="plan-actions">
+    <button type="button" class="rw-btn rw-btn--outline" (click)="onBack()">
+      <i class="fa-solid fa-chevron-right"></i>
+      {{ backLabel() }}
+    </button>
+    <!-- Approving needs something to approve: the backend rejects approve-plan when the campaign
+         has no AiPlanJson, so offering the button before generation just produced a server error
+         the user could do nothing about. The tooltip has to say WHY it's disabled, though — a
+         greyed-out primary button with no explanation reads as the app being broken, and the
+         recovery card above is the way out of that state. -->
+    <button type="button" class="rw-btn rw-btn--primary plan-approve-btn"
+      [class.is-perm-disabled]="!perms.canEdit()"
+      [attr.aria-disabled]="!perms.canEdit() || null"
+      [appTooltip]="approveDisabledReason()"
+      [disabled]="approving() || approved() || !hasServerPlan()" (click)="onApprove()">
+      @if (approving()) {
+        <i class="fa-solid fa-circle-notch fa-spin"></i> جاري الاعتماد...
+      } @else if (approved()) {
+        <i class="fa-solid fa-circle-check"></i> تم اعتماد الخطة
+      } @else {
+        <i class="fa-solid fa-wand-magic-sparkles"></i> اعتمد وابدأ توليد المحتوى
+      }
+    </button>
   </div>
-}
+
+</div>

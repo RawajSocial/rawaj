@@ -49,6 +49,7 @@ public class GenerateBusinessDiagnosisCommandHandler(
         }
 
         var prompt = ContentPromptBuilder.BuildBusinessDiagnosisPrompt(brand, campaign.BriefJson, campaign.CompetitorResearchJson);
+        var startedAt = DateTime.UtcNow;
         var generation = await textGenerationService.GenerateTextAsync(prompt, cancellationToken);
 
         var now = DateTime.UtcNow;
@@ -65,7 +66,7 @@ public class GenerateBusinessDiagnosisCommandHandler(
             OutputRefType = "marketing_campaign",
             Tokens = generation.TokensUsed,
             ErrorMessage = generation.ErrorMessage,
-            StartedAt = now,
+            StartedAt = startedAt,
             CompletedAt = now,
             CreatedAt = now
         };
@@ -78,7 +79,17 @@ public class GenerateBusinessDiagnosisCommandHandler(
                 generation.ErrorMessage ?? "Business diagnosis failed. Please try again.");
         }
 
-        campaign.DiagnosisJson = generation.Text!;
+        // Only store what parses — see AiJsonResponseParser. Charging for a diagnosis the review
+        // UI can't render is the same failure as not producing one.
+        var diagnosisJson = AiJsonResponseParser.ExtractJsonPayload(generation.Text);
+        if (diagnosisJson is null)
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+            return Result<GenerateBusinessDiagnosisResponse>.Failure(
+                "The generated business diagnosis could not be read. Please try again.");
+        }
+
+        campaign.DiagnosisJson = diagnosisJson;
         campaign.UpdatedAt = now;
 
         await CoinPolicy.TrySpendAsync(dbContext, tenantId, userId, role, coinCost, cancellationToken, reason: "business_diagnosis");

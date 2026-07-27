@@ -1,10 +1,12 @@
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { ActivatedRoute, Router } from '@angular/router';
+import { catchError, forkJoin, map, of } from 'rxjs';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { PageHeader } from '../../../shared/components/page-header/page-header';
 import { CampaignService } from '../../../services/campaign.service';
 import { ContentItemService } from '../../../services/content-item.service';
 import { ScheduledPostService } from '../../../services/scheduled-post.service';
+import { VisualAssetService } from '../../../services/visual-asset.service';
 import { CoinPricingService } from '../../../services/coin-pricing.service';
 import { SocialAccountService } from '../../../core/social/social-account.service';
 import { PermissionService } from '../../../core/tenant/permission.service';
@@ -30,6 +32,17 @@ const STATUS_LABELS: Record<ContentItemSummary['status'], string> = {
   Draft: 'مسودة', Reviewed: 'تمت المراجعة', Approved: 'مقبول', Rejected: 'مرفوض', Published: 'منشور',
 };
 
+/** Quick-start prompts for the regenerate box — the exact tone shifts the workflow spec calls
+ *  out ("more professional", "humorous", "younger audience") as one-tap chips instead of the
+ *  user having to type them out for every post they want tweaked the same way. */
+const REGENERATE_PRESETS = ['اجعله أكثر احترافية', 'استخدم نبرة أكثر فكاهية', 'استهدف جمهورًا أصغر سنًا'];
+
+/** Mirrors GenerateCampaignContentCommandValidator's `InclusiveBetween(1, 15)` on the backend. */
+const MIN_POST_COUNT = 1;
+const MAX_POST_COUNT = 15;
+
+type GenerationStage = 'text' | 'images' | 'finishing';
+
 interface PlatformConnectionStatus {
   platform: ContentItemSummary['platform'];
   connected: boolean;
@@ -38,16 +51,18 @@ interface PlatformConnectionStatus {
 
 @Component({
   selector: 'app-campaign-content-page',
-  imports: [PageHeader, CoinCostHint, TooltipDirective],
+  imports: [PageHeader, CoinCostHint, TooltipDirective, RouterLink],
   templateUrl: './campaign-content-page.html',
   styleUrls: ['../../dashboard/dashboard-shared.css', './campaign-content-page.css'],
 })
 export class CampaignContentPage {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly campaignService = inject(CampaignService);
   private readonly contentItemService = inject(ContentItemService);
   private readonly scheduledPostService = inject(ScheduledPostService);
+  private readonly visualAssetService = inject(VisualAssetService);
   protected readonly coinPricingService = inject(CoinPricingService);
   private readonly socialAccountService = inject(SocialAccountService);
   protected readonly perms = inject(PermissionService);
@@ -58,6 +73,7 @@ export class CampaignContentPage {
   protected readonly platformLabels = PLATFORM_LABELS;
   protected readonly statusLabels = STATUS_LABELS;
   protected readonly pricing = this.coinPricingService.pricing;
+  protected readonly regeneratePresets = REGENERATE_PRESETS;
 
   /// Reactive route param — the router reuses this component instance across navigations that
   /// only change `:id`, so a snapshot read here would freeze on the first campaign forever.
@@ -70,6 +86,22 @@ export class CampaignContentPage {
   protected readonly items = this.contentItemService.items;
   protected readonly generating = signal(false);
   protected readonly postCount = signal(6);
+  protected readonly minPostCount = MIN_POST_COUNT;
+  protected readonly maxPostCount = MAX_POST_COUNT;
+
+  // ── Generation loading experience — the real call is one long synchronous round-trip with no
+  // server-side progress feed (see GenerateCampaignContentCommandHandler), so this is an honest
+  // simulated progress (capped short of 100% until the response actually lands) rather than a
+  // fake bar that claims to know something it doesn't. ──
+  protected readonly generationProgress = signal(0);
+  protected readonly generationStage = signal<GenerationStage>('text');
+  protected readonly generationStages: { key: GenerationStage; label: string }[] = [
+    { key: 'text', label: 'صياغة نصوص المنشورات' },
+    { key: 'images', label: 'توليد الصور المرافقة' },
+    { key: 'finishing', label: 'اللمسات الأخيرة' },
+  ];
+  protected readonly generationSkeletonCards = computed(() => Array.from({ length: this.postCount() }, (_, i) => i));
+  private generationTimer: ReturnType<typeof setInterval> | null = null;
 
   protected readonly socialAccounts = signal<SocialAccountSummary[]>([]);
 
@@ -99,6 +131,34 @@ export class CampaignContentPage {
   protected readonly regenerateFeedback = signal('');
   protected readonly busyItemId = signal<string | null>(null);
 
+  /** Per-item image retry — a post that came back from generation with no image (best-effort
+   *  image generation can fail or run out of monthly AI credits mid-batch) gets a distinct
+   *  "missing image" state and a one-click retry instead of silently being reviewable without one. */
+  protected readonly retryingImageId = signal<string | null>(null);
+
+  /** Per-item inline scheduling — one post at a time, alongside the bulk "schedule all approved"
+   *  action below for when there's nothing item-specific to decide (account/time). */
+  protected readonly schedulingItemId = signal<string | null>(null);
+  protected readonly scheduleAccountId = signal<string | null>(null);
+  protected readonly scheduleDate = signal('');
+  protected readonly scheduleTime = signal('');
+  protected readonly schedulingItemBusy = signal(false);
+
+  /** The backend rejects anything less than 10 minutes out (native platform scheduling needs the
+   *  lead time) — checked client-side too so a too-soon pick is caught here, with a plain-language
+   *  reason, instead of surfacing the backend's generic "Validation failed." with no detail (the
+   *  field-level FluentValidation message never reaches `extractApiErrorMessage`, which only reads
+   *  the top-level `message`). Shared by both the per-item and multi-select schedule panels, which
+   *  reuse the same `scheduleDate`/`scheduleTime` fields. */
+  protected readonly scheduleTimeTooSoon = computed(() => {
+    const date = this.scheduleDate();
+    const time = this.scheduleTime();
+    if (!date || !time) return false;
+    const picked = new Date(`${date}T${time}:00`);
+    if (isNaN(picked.getTime())) return false;
+    return picked.getTime() < Date.now() + 10 * 60 * 1000;
+  });
+
   /** Content items with an active (Pending or Published) scheduled post — the backend deliberately
    *  leaves ContentItem.Status as Approved after scheduling (dedup happens server-side against
    *  ScheduledPosts, not content status), so without this "approved" would keep including posts
@@ -111,9 +171,47 @@ export class CampaignContentPage {
       .map(p => p.contentItemId),
   ));
 
+  /** Approved AND has an image — a post is never eligible for scheduling (bulk or per-item)
+   *  without one, enforcing "no post should exist without an image" at the gate that actually
+   *  matters instead of at generation time, which can't be guaranteed server-side. */
   protected readonly approvedItems = computed(() =>
-    this.items().filter(i => i.status === 'Approved' && !this.activelyScheduledContentItemIds().has(i.contentItemId)),
+    this.items().filter(i => i.status === 'Approved' && !!i.imageUrl && !this.activelyScheduledContentItemIds().has(i.contentItemId)),
   );
+
+  protected readonly approvedMissingImageCount = computed(() =>
+    this.items().filter(i => i.status === 'Approved' && !i.imageUrl && !this.activelyScheduledContentItemIds().has(i.contentItemId)).length,
+  );
+
+  /** Multi-select scheduling — "schedule multiple posts" as its own path distinct from the
+   *  per-item panel (exactly one) and the bulk "schedule all approved" button (every eligible
+   *  post, no choice). Selection is only meaningful for posts that are actually schedulable. */
+  protected readonly selectedItemIds = signal<Set<string>>(new Set());
+  protected readonly selectedCount = computed(() => this.selectedItemIds().size);
+  protected readonly selectedSchedulePanelOpen = signal(false);
+  protected readonly bulkSelectedScheduling = signal(false);
+
+  protected isSchedulable(item: ContentItemSummary): boolean {
+    return item.status === 'Approved' && !!item.imageUrl && !this.activelyScheduledContentItemIds().has(item.contentItemId);
+  }
+
+  protected isSelected(item: ContentItemSummary): boolean {
+    return this.selectedItemIds().has(item.contentItemId);
+  }
+
+  protected toggleSelectItem(item: ContentItemSummary): void {
+    if (!this.isSchedulable(item)) return;
+    this.selectedItemIds.update(set => {
+      const next = new Set(set);
+      if (next.has(item.contentItemId)) next.delete(item.contentItemId);
+      else next.add(item.contentItemId);
+      return next;
+    });
+  }
+
+  protected clearSelection(): void {
+    this.selectedItemIds.set(new Set());
+    this.selectedSchedulePanelOpen.set(false);
+  }
 
   /** Guards the one-shot auto-generation triggered by ?autogenerate=1 (see rawaj-onboarding's
    *  approvePlan()) so a reload of this page never re-fires a 1000-coin generation. */
@@ -142,9 +240,12 @@ export class CampaignContentPage {
       const id = this.campaignId();
       if (id) this.load(id);
     });
+
+    this.destroyRef.onDestroy(() => this.clearGenerationTimer());
   }
 
   private load(campaignId: string): void {
+    this.resetCampaignScopedState();
     this.loading.set(true);
     this.campaignService.getCampaign(campaignId).subscribe({
       next: res => {
@@ -169,6 +270,25 @@ export class CampaignContentPage {
     });
   }
 
+  /** Everything on this page belongs to one campaign, but the router reuses the component instance
+   *  across campaigns and ContentItemService/ScheduledPostService hold a single global list. Without
+   *  this, switching campaigns left the previous one's posts, selection, open regenerate/schedule
+   *  panels, scheduling summary and load error on screen — the selection and the schedule panels
+   *  being the dangerous ones, since acting on them would have scheduled another campaign's posts. */
+  private resetCampaignScopedState(): void {
+    this.loadError.set(null);
+    this.contentItemService.clear();
+    this.socialAccounts.set([]);
+    this.scheduleResult.set(null);
+    this.selectedItemIds.set(new Set());
+    this.selectedSchedulePanelOpen.set(false);
+    this.regeneratingId.set(null);
+    this.regenerateFeedback.set('');
+    this.schedulingItemId.set(null);
+    this.busyItemId.set(null);
+    this.retryingImageId.set(null);
+  }
+
   /** Fires content generation automatically once, right after the onboarding wizard's approval
    *  step — "if he accepts it we should generate the content for him". Only when there's nothing
    *  generated yet and the user is actually allowed to generate (an Editor might approve then hand
@@ -185,9 +305,12 @@ export class CampaignContentPage {
     if (shouldAutogenerate) this.generateContent();
   }
 
+  /** Clamped to the range GenerateCampaignContentCommandValidator actually accepts (1–15). The
+   *  field used to allow up to 20, so asking for 16+ came back as the backend's bare
+   *  "Validation failed." with no indication of which field or limit was wrong. */
   protected updatePostCount(value: string): void {
     const n = parseInt(value, 10);
-    this.postCount.set(isNaN(n) ? 1 : Math.max(1, Math.min(n, 20)));
+    this.postCount.set(isNaN(n) ? 1 : Math.max(MIN_POST_COUNT, Math.min(n, MAX_POST_COUNT)));
   }
 
   protected generateContent(): void {
@@ -202,17 +325,21 @@ export class CampaignContentPage {
     }
 
     this.generating.set(true);
+    this.startGenerationProgress();
+
     this.campaignService.generateContent(this.campaignId(), {
       postCount: this.postCount(),
       language: 'Ar',
       includeImages: true,
     }).subscribe({
       next: () => {
+        this.completeGenerationProgress();
         this.generating.set(false);
         this.coinPricingService.refreshAfterSpend();
         this.contentItemService.refresh(campaign.brandProfileId, this.campaignId()).subscribe();
       },
       error: err => {
+        this.clearGenerationTimer();
         this.generating.set(false);
         this.coinPricingService.refreshAfterSpend();
         this.showSpendError(err, 'تعذّر توليد المحتوى.');
@@ -220,8 +347,41 @@ export class CampaignContentPage {
     });
   }
 
+  /** Simulated progress toward a real, uninterruptible backend call (see class doc comment) —
+   *  ticks up to 92% over an estimate scaled by `postCount` (image generation is sequential
+   *  per-post server-side, so more posts genuinely does take longer) and never claims 100% until
+   *  the response actually arrives, so a slow batch never looks stuck or dishonestly "done". */
+  private startGenerationProgress(): void {
+    this.clearGenerationTimer();
+    this.generationProgress.set(0);
+    this.generationStage.set('text');
+
+    const cap = 92;
+    const estimatedMs = 2500 + this.postCount() * 1600;
+    const tickMs = 200;
+    const increment = (cap / estimatedMs) * tickMs;
+
+    this.generationTimer = setInterval(() => {
+      this.generationProgress.update(p => Math.min(cap, p + increment));
+      const pct = this.generationProgress();
+      this.generationStage.set(pct < 20 ? 'text' : pct < 85 ? 'images' : 'finishing');
+    }, tickMs);
+  }
+
+  private completeGenerationProgress(): void {
+    this.clearGenerationTimer();
+    this.generationStage.set('finishing');
+    this.generationProgress.set(100);
+  }
+
+  private clearGenerationTimer(): void {
+    if (this.generationTimer) clearInterval(this.generationTimer);
+    this.generationTimer = null;
+  }
+
   protected review(item: ContentItemSummary, approve: boolean): void {
     if (this.busyItemId() || !this.perms.canEdit()) return;
+    if (approve && !item.imageUrl) return; // enforced in the template too — no accepting an imageless post
     this.busyItemId.set(item.contentItemId);
     this.contentItemService.review(item.contentItemId, approve).subscribe({
       next: () => {
@@ -232,6 +392,34 @@ export class CampaignContentPage {
       error: err => {
         this.busyItemId.set(null);
         this.errorModalService.show(extractApiErrorMessage(err, 'تعذّر تحديث حالة المنشور.'), { variant: 'error' });
+      },
+    });
+  }
+
+  /** Retries just the image for a post that came back from generation without one — reuses the
+   *  standalone visual-asset generation endpoint, prompted with the post's own copy so the image
+   *  matches what was actually written, same as the original per-item prompt server-side builds. */
+  protected retryImage(item: ContentItemSummary): void {
+    const campaign = this.campaign();
+    if (!campaign || this.retryingImageId() || !this.perms.canEdit()) return;
+
+    this.retryingImageId.set(item.contentItemId);
+    this.visualAssetService.generate({
+      brandProfileId: campaign.brandProfileId,
+      campaignId: this.campaignId(),
+      contentItemId: item.contentItemId,
+      type: 'Image',
+      prompt: item.content,
+    }).subscribe({
+      next: () => {
+        this.retryingImageId.set(null);
+        this.coinPricingService.refreshAfterSpend();
+        this.contentItemService.refresh(campaign.brandProfileId, this.campaignId()).subscribe();
+      },
+      error: err => {
+        this.retryingImageId.set(null);
+        this.coinPricingService.refreshAfterSpend();
+        this.showSpendError(err, 'تعذّر توليد الصورة.');
       },
     });
   }
@@ -249,6 +437,13 @@ export class CampaignContentPage {
 
   protected updateRegenerateFeedback(value: string): void {
     this.regenerateFeedback.set(value);
+  }
+
+  /** Fills the feedback box from a quick preset ("more professional", etc.) instead of the user
+   *  typing it out — appends rather than overwrites if they'd already started their own note. */
+  protected applyRegeneratePreset(preset: string): void {
+    const current = this.regenerateFeedback().trim();
+    this.regenerateFeedback.set(current ? `${current}. ${preset}` : preset);
   }
 
   protected submitRegenerate(item: ContentItemSummary): void {
@@ -301,6 +496,148 @@ export class CampaignContentPage {
         this.coinPricingService.refreshAfterSpend();
         this.showSpendError(err, 'تعذّر جدولة منشورات الحملة.');
       },
+    });
+  }
+
+  /** Accounts connected for a given post's own platform — used both to default the per-item
+   *  schedule panel's account picker and to let the user switch it when more than one exists. */
+  protected accountsForPlatform(platform: ContentItemSummary['platform']): SocialAccountSummary[] {
+    return this.socialAccounts().filter(a => a.platform === platform && a.isActive);
+  }
+
+  protected startSchedulePost(item: ContentItemSummary): void {
+    if (!this.perms.canEdit()) return;
+    const defaultAccount = this.accountsForPlatform(item.platform)[0];
+    this.schedulingItemId.set(item.contentItemId);
+    this.scheduleAccountId.set(defaultAccount?.socialAccountId ?? null);
+    const soon = new Date(Date.now() + 60 * 60 * 1000); // an hour from now, a sensible default
+    this.scheduleDate.set(soon.toISOString().slice(0, 10));
+    this.scheduleTime.set(soon.toISOString().slice(11, 16));
+  }
+
+  protected cancelSchedulePost(): void {
+    this.schedulingItemId.set(null);
+  }
+
+  /** A stage reads as "done" once generation has moved past it in the fixed text→images→finishing
+   *  sequence — 'finishing' has no next stage, so it's only ever active, never done. */
+  protected isGenerationStageDone(stage: GenerationStage): boolean {
+    const order: GenerationStage[] = ['text', 'images', 'finishing'];
+    return order.indexOf(this.generationStage()) > order.indexOf(stage);
+  }
+
+  protected updateScheduleAccount(value: string): void { this.scheduleAccountId.set(value); }
+  protected updateScheduleDate(value: string): void { this.scheduleDate.set(value); }
+  protected updateScheduleTime(value: string): void { this.scheduleTime.set(value); }
+
+  /** Schedules exactly one post — the per-item counterpart to the bulk `schedulePosts()` below,
+   *  for when the user wants to pick a specific account/time for a single post rather than
+   *  accepting the bulk action's automatic per-platform routing. */
+  protected submitSchedulePost(item: ContentItemSummary): void {
+    const accountId = this.scheduleAccountId();
+    if (!accountId || !this.scheduleDate() || !this.scheduleTime() || this.scheduleTimeTooSoon()
+      || this.schedulingItemBusy() || !this.perms.canEdit()) return;
+
+    this.schedulingItemBusy.set(true);
+    const scheduledAt = `${this.scheduleDate()}T${this.scheduleTime()}:00`;
+    this.scheduledPostService.schedule({
+      contentItemId: item.contentItemId,
+      visualAssetId: item.visualAssetId ?? undefined,
+      socialAccountId: accountId,
+      scheduledAt,
+    }).subscribe({
+      next: () => {
+        this.schedulingItemBusy.set(false);
+        this.schedulingItemId.set(null);
+        this.coinPricingService.refreshAfterSpend();
+        const brandProfileId = this.campaign()?.brandProfileId;
+        if (brandProfileId) {
+          this.contentItemService.refresh(brandProfileId, this.campaignId()).subscribe();
+          this.scheduledPostService.refresh(brandProfileId, this.campaignId()).subscribe();
+        }
+      },
+      error: err => {
+        this.schedulingItemBusy.set(false);
+        this.coinPricingService.refreshAfterSpend();
+        this.showSpendError(err, 'تعذّر جدولة المنشور.');
+      },
+    });
+  }
+
+  protected openSelectedSchedulePanel(): void {
+    if (this.selectedCount() === 0) return;
+    const soon = new Date(Date.now() + 60 * 60 * 1000);
+    this.scheduleDate.set(soon.toISOString().slice(0, 10));
+    this.scheduleTime.set(soon.toISOString().slice(11, 16));
+    this.selectedSchedulePanelOpen.set(true);
+  }
+
+  protected cancelSelectedSchedule(): void {
+    this.selectedSchedulePanelOpen.set(false);
+  }
+
+  /** Schedules exactly the selected posts (as opposed to the single per-item panel, or the bulk
+   *  button's "every eligible post") — each still routes to its own platform's connected account
+   *  automatically, same as the bulk action, but only for the posts the user actually picked. Runs
+   *  every request in parallel and reports a per-post outcome, reusing the same `scheduleResult`
+   *  summary the bulk action renders so there's one consistent place to read the results. */
+  protected submitSelectedSchedule(): void {
+    if (!this.scheduleDate() || !this.scheduleTime() || this.scheduleTimeTooSoon()
+      || this.bulkSelectedScheduling() || !this.perms.canEdit()) return;
+    const items = this.items().filter(i => this.selectedItemIds().has(i.contentItemId));
+    if (items.length === 0) return;
+
+    this.bulkSelectedScheduling.set(true);
+    const scheduledAt = `${this.scheduleDate()}T${this.scheduleTime()}:00`;
+
+    interface Outcome {
+      item: ContentItemSummary; succeeded: boolean; error?: string; scheduledPostId?: string; scheduledAtResult?: string;
+    }
+
+    const requests = items.map((item): import('rxjs').Observable<Outcome> => {
+      const account = this.accountsForPlatform(item.platform)[0];
+      if (!account) {
+        return of<Outcome>({ item, succeeded: false, error: `لا يوجد حساب متصل لـ${this.platformLabels[item.platform]}` });
+      }
+      return this.scheduledPostService.schedule({
+        contentItemId: item.contentItemId,
+        visualAssetId: item.visualAssetId ?? undefined,
+        socialAccountId: account.socialAccountId,
+        scheduledAt,
+      }).pipe(
+        map((res): Outcome => ({
+          item, succeeded: !!res.data, scheduledPostId: res.data?.scheduledPostId, scheduledAtResult: res.data?.scheduledAt,
+        })),
+        catchError((err: unknown) => of<Outcome>({ item, succeeded: false, error: extractApiErrorMessage(err, 'تعذّر جدولة المنشور.') })),
+      );
+    });
+
+    forkJoin(requests).subscribe(outcomes => {
+      this.bulkSelectedScheduling.set(false);
+      this.coinPricingService.refreshAfterSpend();
+
+      const succeeded = outcomes.filter(o => o.succeeded).length;
+      this.scheduleResult.set({
+        succeeded,
+        failed: outcomes.length - succeeded,
+        skipped: 0,
+        results: outcomes.map(o => ({
+          contentItemId: o.item.contentItemId,
+          platform: o.item.platform,
+          succeeded: o.succeeded,
+          skipped: false,
+          error: o.error ?? null,
+          scheduledPostId: o.scheduledPostId ?? null,
+          scheduledAt: o.scheduledAtResult ?? null,
+        })),
+      });
+
+      this.clearSelection();
+      const brandProfileId = this.campaign()?.brandProfileId;
+      if (brandProfileId) {
+        this.contentItemService.refresh(brandProfileId, this.campaignId()).subscribe();
+        this.scheduledPostService.refresh(brandProfileId, this.campaignId()).subscribe();
+      }
     });
   }
 

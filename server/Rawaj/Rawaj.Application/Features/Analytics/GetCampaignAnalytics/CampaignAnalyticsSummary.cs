@@ -10,6 +10,7 @@ public record CampaignAnalyticsSummary(
     int TotalLikes,
     int TotalComments,
     int TotalShares,
+    int TotalClicks,
     decimal? AverageEngagementRate,
     List<PostAnalyticsSnapshot> Posts,
     // Totals above are summed with `?? 0`, so an unsupported metric (e.g. Meta's impressions/reach,
@@ -18,4 +19,5 @@ public record CampaignAnalyticsSummary(
     // re-deriving it from Posts themselves.
     bool ImpressionsAvailable,
     bool ReachAvailable,
-    bool EngagementRateAvailable);
+    bool EngagementRateAvailable,
+    bool ClicksAvailable);

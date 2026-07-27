@@ -4,6 +4,42 @@ export type CampaignStatus   = 'active' | 'paused' | 'completed' | 'draft' | 'ar
 export type CampaignPlatform = 'instagram' | 'facebook' | 'tiktok' | 'youtube' | 'x' | 'snapchat' | 'linkedin';
 export type CampaignObjective = 'awareness' | 'traffic' | 'engagement' | 'leads' | 'sales';
 
+/** Single source of truth for how a campaign renders, shared by the list card, the detail page,
+ *  the campaign calendar and the post detail page — each of which used to carry its own private
+ *  copy of these three maps, so a label fixed in one place stayed wrong in the other three. */
+export interface CampaignPlatformMeta {
+  icon: string;
+  color: string;
+  label: string;
+}
+
+export const CAMPAIGN_PLATFORM_META: Record<CampaignPlatform, CampaignPlatformMeta> = {
+  instagram: { icon: 'fa-brands fa-instagram',   color: 'var(--color-instagram)', label: 'إنستغرام' },
+  facebook:  { icon: 'fa-brands fa-facebook-f',  color: 'var(--color-facebook)',  label: 'فيسبوك' },
+  tiktok:    { icon: 'fa-brands fa-tiktok',      color: 'var(--color-tiktok)',    label: 'تيك توك' },
+  youtube:   { icon: 'fa-brands fa-youtube',     color: 'var(--color-youtube)',   label: 'يوتيوب' },
+  x:         { icon: 'fa-brands fa-x-twitter',   color: 'var(--color-x)',         label: 'إكس' },
+  snapchat:  { icon: 'fa-brands fa-snapchat',    color: 'var(--color-snapchat)',  label: 'سناب شات' },
+  linkedin:  { icon: 'fa-brands fa-linkedin-in', color: 'var(--color-linkedin)',  label: 'لينكد إن' },
+};
+
+export const CAMPAIGN_STATUS_LABELS: Record<CampaignStatus, string> = {
+  active: 'نشطة', paused: 'موقوفة', completed: 'مكتملة', draft: 'مسودة', archived: 'مؤرشفة',
+};
+
+export const CAMPAIGN_OBJECTIVE_LABELS: Record<CampaignObjective, string> = {
+  awareness: 'الوعي بالعلامة', traffic: 'زيارات الموقع',
+  engagement: 'التفاعل', leads: 'توليد عملاء', sales: 'رفع المبيعات',
+};
+
+/** `MarketingCampaign.Objective` is free text on the backend, so an objective that isn't one of
+ *  the five known ones renders as the user's own words rather than as a blank (which is what the
+ *  raw `Record` lookups used to produce) or as a fabricated "awareness". */
+export function campaignObjectiveLabel(objective: string | null | undefined): string {
+  if (!objective) return '—';
+  return CAMPAIGN_OBJECTIVE_LABELS[objective.toLowerCase() as CampaignObjective] ?? objective;
+}
+
 export interface Campaign {
   id: string;
   name: string;
@@ -12,16 +48,21 @@ export interface Campaign {
   brandProfileId: string;
   status: CampaignStatus;
   platforms: CampaignPlatform[];
-  objective: CampaignObjective;
+  /** Free text server-side — kept raw here (see `campaignObjectiveLabel`) rather than coerced
+   *  into the typed union, so an unrecognised objective isn't silently shown as "awareness". */
+  objective: string;
   industry?: string;
-  budget: number;
-  spent: number;
-  reach: number;
-  clicks: number;
-  ctr: number;
+  budget?: number | null;
+  budgetCurrency?: string | null;
   startDate: string;
   endDate: string;
   createdAt: string;
+  /** Set once the AI strategy is approved — decides whether the card offers "review the
+   *  strategy" or "review the content" as its next step. */
+  planApprovedAt?: string | null;
+  /** How many content items the campaign already has, so the list can tell a campaign with
+   *  generated posts apart from one that still needs generating. */
+  contentItemCount: number;
   adCount?: number;
   /** Per-campaign brand logo shown on the card banner. Falls back to the
    *  Rawaj logo (see CampaignCard) when not set. */
@@ -30,6 +71,27 @@ export interface Campaign {
 
 /** Backend `CampaignStatus` enum values (PascalCase, as serialized by the API). */
 export type BackendCampaignStatus = 'Draft' | 'Active' | 'Paused' | 'Completed' | 'Archived';
+
+export const BACKEND_TO_CAMPAIGN_STATUS: Record<BackendCampaignStatus, CampaignStatus> = {
+  Draft: 'draft',
+  Active: 'active',
+  Paused: 'paused',
+  Completed: 'completed',
+  Archived: 'archived',
+};
+
+/** Backend `SocialPlatform` enum names → the frontend's lowercase `CampaignPlatform`. The enum has
+ *  no Snapchat member, so a campaign can never target it — anything unmapped is dropped by callers
+ *  rather than guessed at. Lives here because CampaignService, ScheduledPostService, AdService and
+ *  the campaign detail page all need the exact same mapping. */
+export const BACKEND_TO_CAMPAIGN_PLATFORM: Record<string, CampaignPlatform> = {
+  Instagram: 'instagram',
+  Facebook: 'facebook',
+  Tiktok: 'tiktok',
+  Youtube: 'youtube',
+  Twitter: 'x',
+  Linkedin: 'linkedin',
+};
 
 /** GET /api/v1/campaigns — Rawaj.Application.Features.Campaigns.GetCampaigns.CampaignSummary */
 export interface CampaignSummary {
@@ -40,6 +102,14 @@ export interface CampaignSummary {
   startDate?: string | null;
   endDate?: string | null;
   createdAt: string;
+  objective?: string | null;
+  /** Backend SocialPlatform enum names (PascalCase), same as GetCampaignResponse.targetPlatforms. */
+  targetPlatforms: string[];
+  budgetAmount?: number | null;
+  budgetCurrency?: string | null;
+  /** Set once the AI strategy is approved — drives which step the list links the user to. */
+  planApprovedAt?: string | null;
+  contentItemCount: number;
 }
 
 /** POST /api/v1/campaigns — Rawaj.Application.Features.Campaigns.CreateCampaign.CreateCampaignResponse */
@@ -134,6 +204,14 @@ export interface GenerateMarketingPlanResponse {
   campaignId: string;
   aiPlanJson: string;
   aiGeneratedAt: string;
+}
+
+/** POST /api/v1/campaigns/{id}/unarchive — UnarchiveCampaignResponse. `status` is whichever side
+ *  of the plan-approval gate the campaign was on when it was archived, so the caller knows which
+ *  step it resumes at. */
+export interface UnarchiveCampaignResponse {
+  campaignId: string;
+  status: BackendCampaignStatus;
 }
 
 /** POST /api/v1/campaigns/{id}/approve-plan — ApproveCampaignPlanResponse */

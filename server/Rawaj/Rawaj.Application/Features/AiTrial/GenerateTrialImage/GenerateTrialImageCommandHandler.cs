@@ -30,6 +30,7 @@ public class GenerateTrialImageCommandHandler(
                 $"You've reached today's free trial limit ({TrialUsagePolicy.DailyLimit}). Subscribe to keep generating images.");
         }
 
+        var startedAt = DateTime.UtcNow;
         var generation = await imageGenerationService.GenerateImageAsync(request.Prompt, cancellationToken);
 
         var now = DateTime.UtcNow;
@@ -43,7 +44,7 @@ public class GenerateTrialImageCommandHandler(
             InputParams = System.Text.Json.JsonSerializer.Serialize(new { prompt = request.Prompt }),
             OutputRefType = "trial_image",
             ErrorMessage = generation.ErrorMessage,
-            StartedAt = now,
+            StartedAt = startedAt,
             CompletedAt = now,
             CreatedAt = now
         };

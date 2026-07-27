@@ -12,8 +12,9 @@ namespace Rawaj.Infrastructure.SocialPublishing;
 
 /// <summary>
 /// Publishes to a Facebook Page's feed using the Page access token obtained during OAuth
-/// connection. Posts with an attached image go through /{page-id}/photos (binary upload, so no
-/// public image URL is required); text-only posts go through /{page-id}/feed.
+/// connection. Posts with an attached image go through /{page-id}/photos — either by handing
+/// Facebook a public image URL (Cloudinary-hosted assets) or, when only raw bytes are available
+/// (the local base64 fallback), a binary upload; text-only posts go through /{page-id}/feed.
 /// </summary>
 public class MetaPostPublisher(
     IHttpClientFactory httpClientFactory,
@@ -32,7 +33,7 @@ public class MetaPostPublisher(
 
         try
         {
-            using var response = request.ImageBytes is not null
+            using var response = request.ImageBytes is not null || request.ImageUrl is not null
                 ? await PublishPhotoAsync(client, request, cancellationToken)
                 : await PublishTextAsync(client, request, cancellationToken);
 
@@ -105,6 +106,23 @@ public class MetaPostPublisher(
 
     private Task<HttpResponseMessage> PublishPhotoAsync(HttpClient client, SocialPublishRequest request, CancellationToken cancellationToken)
     {
+        var url = $"https://graph.facebook.com/{_settings.ApiVersion}/{request.AccountIdExternal}/photos";
+
+        if (request.ImageUrl is not null)
+        {
+            // Cloudinary-hosted (or otherwise already-public) image — let Facebook fetch it
+            // itself instead of round-tripping the bytes through us.
+            var fields = new Dictionary<string, string>
+            {
+                ["url"] = request.ImageUrl,
+                ["caption"] = request.Message,
+                ["access_token"] = request.AccessToken
+            };
+            AddSchedulingFields(fields, request.ScheduledAt);
+
+            return client.PostAsync(url, new FormUrlEncodedContent(fields), cancellationToken);
+        }
+
         var content = new MultipartFormDataContent();
 
         var imageContent = new ByteArrayContent(request.ImageBytes!);
@@ -120,7 +138,7 @@ public class MetaPostPublisher(
             content.Add(new StringContent(unixTime.ToString()), "scheduled_publish_time");
         }
 
-        return client.PostAsync($"https://graph.facebook.com/{_settings.ApiVersion}/{request.AccountIdExternal}/photos", content, cancellationToken);
+        return client.PostAsync(url, content, cancellationToken);
     }
 
     private static void AddSchedulingFields(Dictionary<string, string> fields, DateTime? scheduledAt)

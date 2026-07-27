@@ -29,6 +29,10 @@ export interface GeneratedItem {
   campaignId?: string;
   /** Reference assets the user attached to the generation request. */
   assets?: GeneratedAsset[];
+  /** Which real backend row this item is actually backed by, and its id kind — lets shared
+   *  viewers (e.g. `MediaViewer`) call the right delete endpoint (`ContentItemService` vs
+   *  `VisualAssetService`). Unset for locally-only/demo items with nothing real to delete. */
+  sourceKind?: 'content-item' | 'visual-asset';
 }
 
 export const TYPE_CFG: Record<GenType, { label: string; desc: string; icon: string; color: string }> = {

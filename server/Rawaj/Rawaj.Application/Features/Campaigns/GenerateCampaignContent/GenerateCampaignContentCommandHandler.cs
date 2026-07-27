@@ -100,9 +100,16 @@ public class GenerateCampaignContentCommandHandler(
         var timingSuggestions = await PostingTimeIntelligence.GetSuggestionsAsync(dbContext, brand.Id, platforms, cancellationToken);
         var timingSummary = PostingTimeIntelligence.BuildSummary(timingSuggestions);
 
+        // The approved strategy and the onboarding brief are what these posts are supposed to
+        // execute. This handler already refuses to run until PlanApprovedAt is set, but it used to
+        // then generate from the brand's identity fields and the campaign objective alone — the
+        // strategy the user paid ~12,000 coins for, reviewed and approved never reached the model,
+        // which made the whole approve-then-generate flow decorative.
         var prompt = ContentPromptBuilder.BuildCampaignContentPlanPrompt(
-            brand, campaign, competitorInsights, timingSummary, request.PostCount, platforms, request.Language, request.TemplateStyle);
+            brand, campaign, competitorInsights, timingSummary, request.PostCount, platforms, request.Language,
+            campaign.AiPlanJson, campaign.BriefJson, request.TemplateStyle);
 
+        var startedAt = DateTime.UtcNow;
         var generation = await textGenerationService.GenerateTextAsync(prompt, cancellationToken);
 
         var now = DateTime.UtcNow;
@@ -119,7 +126,7 @@ public class GenerateCampaignContentCommandHandler(
             OutputRefType = "marketing_campaign_batch",
             Tokens = generation.TokensUsed,
             ErrorMessage = generation.ErrorMessage,
-            StartedAt = now,
+            StartedAt = startedAt,
             CompletedAt = now,
             CreatedAt = now
         };
@@ -164,6 +171,7 @@ public class GenerateCampaignContentCommandHandler(
                 Content = draft.Content,
                 Hashtags = draft.Hashtags,
                 Cta = draft.Cta,
+                ImagePrompt = draft.ImagePrompt,
                 AiPromptUsed = prompt,
                 Status = ContentStatus.Draft,
                 SuggestedPostAt = draft.SuggestedPostAt,
@@ -177,6 +185,26 @@ public class GenerateCampaignContentCommandHandler(
         var imagesGenerated = 0;
         var imagesSkippedForCredits = 0;
 
+        // A ContentItem must never end up with no image at all — when the real image model can't
+        // produce one (monthly AI credits exhausted mid-batch, or the model itself fails/runs out
+        // of its own quota), attach this static placeholder instead of leaving ImageUrl null. The
+        // user can retry for a real image later (see VisualAssetsController's generate endpoint,
+        // reused per-item by the content-review page for exactly that).
+        VisualAsset CreatePlaceholderVisualAsset(ContentItem entity) => new()
+        {
+            Id = Guid.NewGuid(),
+            ContentItemId = entity.Id,
+            CampaignId = campaign.Id,
+            BrandProfileId = brand.Id,
+            TenantId = tenantId,
+            GenerationMode = GenerationMode.Campaign,
+            Type = VisualAssetType.Image,
+            SourceType = VisualAssetSourceType.Placeholder,
+            FileUrl = "/text-post.png",
+            IsApproved = false,
+            CreatedAt = DateTime.UtcNow
+        };
+
         if (request.IncludeImages)
         {
             var creditsRemaining = creditsUsage.MaxCreditsMonthly - creditsUsage.UsedThisMonth - 1;
@@ -186,12 +214,18 @@ public class GenerateCampaignContentCommandHandler(
                 if (creditsRemaining <= 0)
                 {
                     imagesSkippedForCredits++;
+                    dbContext.VisualAssets.Add(CreatePlaceholderVisualAsset(entity));
                     continue;
                 }
 
+                // Prefer the model's own English scene description over the post copy. The copy is
+                // Arabic persuasion text ("احصل على خصم ٥٠٪"), which FLUX neither understands nor
+                // should be trying to illustrate literally; falling back to it only happens when the
+                // model didn't return an imagePrompt at all.
                 var imagePrompt = ContentPromptBuilder.BuildImagePrompt(
-                    brand, campaign, entity.ContentType.ToString(), entity.Content, request.TemplateStyle);
+                    brand, campaign, entity.ContentType.ToString(), entity.ImagePrompt ?? entity.Content, request.TemplateStyle);
 
+                var imageStartedAt = DateTime.UtcNow;
                 var imageGeneration = await imageGenerationService.GenerateImageAsync(imagePrompt, cancellationToken);
                 creditsRemaining--;
 
@@ -209,13 +243,14 @@ public class GenerateCampaignContentCommandHandler(
                     OutputRefId = imageGeneration.Succeeded ? visualAssetId : null,
                     OutputRefType = "visual_asset",
                     ErrorMessage = imageGeneration.ErrorMessage,
-                    StartedAt = imageNow,
+                    StartedAt = imageStartedAt,
                     CompletedAt = imageNow,
                     CreatedAt = imageNow
                 });
 
                 if (!imageGeneration.Succeeded)
                 {
+                    dbContext.VisualAssets.Add(CreatePlaceholderVisualAsset(entity));
                     continue;
                 }
 
@@ -277,16 +312,26 @@ public class GenerateCampaignContentCommandHandler(
     }
 
     private record GeneratedPostDraft(
-        SocialPlatform Platform, ContentType ContentType, string Content, List<string> Hashtags, string? Cta, DateTime SuggestedPostAt);
+        SocialPlatform Platform, ContentType ContentType, string Content, List<string> Hashtags, string? Cta,
+        DateTime SuggestedPostAt, string? ImagePrompt);
 
     private static List<GeneratedPostDraft> ParseGeneratedPosts(string rawJson, List<SocialPlatform> allowedPlatforms, DateTime baseDate)
     {
         var drafts = new List<GeneratedPostDraft>();
 
+        // Same wrapper problem as the strategy/diagnosis handlers — a model that fences its JSON
+        // would otherwise fail every post in the batch and surface as "Could not parse the
+        // AI-generated campaign posts", after the text call had already been made.
+        var payload = AiJsonResponseParser.ExtractJsonPayload(rawJson);
+        if (payload is null)
+        {
+            return drafts;
+        }
+
         JsonDocument document;
         try
         {
-            document = JsonDocument.Parse(rawJson);
+            document = JsonDocument.Parse(payload);
         }
         catch (JsonException)
         {
@@ -350,8 +395,19 @@ public class GenerateCampaignContentCommandHandler(
                         cta = ctaProp.GetString();
                     }
 
+                    // Optional: an older/uncooperative model response without it still yields a
+                    // usable post, it just falls back to the post copy for the image (see the
+                    // image loop above).
+                    string? imagePrompt = null;
+                    if (post.TryGetProperty("imagePrompt", out var imagePromptProp) && imagePromptProp.ValueKind == JsonValueKind.String)
+                    {
+                        var value = imagePromptProp.GetString();
+                        imagePrompt = string.IsNullOrWhiteSpace(value) ? null : value;
+                    }
+
                     drafts.Add(new GeneratedPostDraft(
-                        platform, contentType, contentProp.GetString()!, hashtags, cta, baseDate.AddDays(dayOffset).AddHours(hour)));
+                        platform, contentType, contentProp.GetString()!, hashtags, cta,
+                        baseDate.AddDays(dayOffset).AddHours(hour), imagePrompt));
                 }
                 catch (JsonException)
                 {
