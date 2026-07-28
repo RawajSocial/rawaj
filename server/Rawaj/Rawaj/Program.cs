@@ -111,11 +111,11 @@ namespace Rawaj
                 await next();
             });
 
+            app.UseCors();
             app.UseHttpsRedirection();
             app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false });
             app.MapHealthChecks("/health");
             app.UseStaticFiles();
-            app.UseCors();
             app.UseAuthentication();
             app.UseAuthorization();
             app.UseRateLimiter();
