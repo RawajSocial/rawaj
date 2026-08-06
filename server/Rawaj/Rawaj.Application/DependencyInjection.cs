@@ -18,6 +18,17 @@ public static class DependencyInjection
 
         services.AddScoped<ICurrentTenantContext, CurrentTenantContext>();
         services.AddScoped<TenantProvisioningService>();
+        services.AddScoped<IPipelineArtifactStore, PipelineArtifactStore>();
+
+        // Stage executors are resolved as a set and matched on their Kind, so adding a stage is one
+        // new class plus one entry in AiPipelinePolicy.Graph — never an edit to a dispatch switch.
+        // Done by reflection rather than by pulling in Scrutor for a single registration.
+        foreach (var executorType in assembly.GetTypes()
+                     .Where(t => t is { IsAbstract: false, IsInterface: false })
+                     .Where(t => typeof(IPipelineStageExecutor).IsAssignableFrom(t)))
+        {
+            services.AddScoped(typeof(IPipelineStageExecutor), executorType);
+        }
 
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(TenantAuthorizationBehavior<,>));
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(BrandAccessAuthorizationBehavior<,>));
