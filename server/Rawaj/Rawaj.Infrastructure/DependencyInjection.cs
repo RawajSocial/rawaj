@@ -62,6 +62,7 @@ public static class DependencyInjection
         services.AddSingleton<ITokenEncryptor, AesTokenEncryptor>();
         services.AddSingleton<IPublicImageHostingService, LocalFilePublicImageHostingService>();
         services.AddSingleton<IMediaStorageService, CloudinaryMediaStorageService>();
+        services.AddSingleton<IAiProviderConcurrencyLimiter, AiProviderConcurrencyLimiter>();
 
         services.AddMemoryCache();
         services.AddSingleton<IAppCache, MemoryAppCache>();
@@ -102,6 +103,8 @@ public static class DependencyInjection
         services.AddHostedService<SocialAccountTokenRefresherHostedService>();
         services.AddHostedService<PostStatusSyncHostedService>();
         services.AddHostedService<OutboxDispatcherHostedService>();
+        services.AddHostedService<AiPipelineWorkerHostedService>();
+        services.AddHostedService<AiPipelineReaperHostedService>();
 
         return services;
     }

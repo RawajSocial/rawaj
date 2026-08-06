@@ -139,6 +139,28 @@ public static class AiPipelinePolicy
 
     public static AiPipelineStageDefinition Definition(AiPipelineStageKind kind) => ByKind[kind];
 
+    /// <summary>The external provider a stage's call counts against, for
+    /// <c>IAiProviderConcurrencyLimiter</c>. Null for a stage that calls no provider at all
+    /// (<c>StrategyAssemble</c> is pure composition, <c>HumanApproval</c> waits on a person) — those
+    /// need no throttling because they cost nothing to run concurrently without limit.
+    ///
+    /// <para>The two research stages call Tavily and then Groq; Tavily is the one worth gating here,
+    /// since it is the externally rate-limited step and the Groq synthesis call that follows it is
+    /// already covered by whatever limit the text-generation stages share.</para></summary>
+    public static string? Provider(AiPipelineStageKind kind) => kind switch
+    {
+        AiPipelineStageKind.BrandAnalysis => "Groq",
+        AiPipelineStageKind.CampaignAnalysis => "Groq",
+        AiPipelineStageKind.MarketResearch => "Tavily",
+        AiPipelineStageKind.CompetitorResearch => "Tavily",
+        AiPipelineStageKind.StrategyPositioning => "Groq",
+        AiPipelineStageKind.StrategyBlueprint => "Groq",
+        AiPipelineStageKind.StrategyRoadmap => "Groq",
+        AiPipelineStageKind.ContentPlan => "Groq",
+        AiPipelineStageKind.ContentImage => "HuggingFace",
+        _ => null
+    };
+
     /// <summary>The stages a fresh run starts with. Fan-out kinds are excluded: their rows can only
     /// be created once the stage that decides how many are needed has produced its output.</summary>
     public static IReadOnlyList<AiPipelineStageDefinition> InitialStages() =>

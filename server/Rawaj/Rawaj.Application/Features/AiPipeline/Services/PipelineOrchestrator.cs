@@ -19,17 +19,21 @@ namespace Rawaj.Application.Features.AiPipeline.Services;
 /// and deciding the run's next status. A stage never calls the next one — this is what decides what
 /// happens next, every time.</para>
 ///
-/// <para><b>Synchronous by design.</b> This is the graph-walking logic in isolation, driven directly
-/// rather than through a hosted service and a queue — that split is C16's job (concurrency, leases,
-/// bounded parallelism per provider, crash recovery via lease expiry). Everything here already
-/// behaves correctly under that later change: a stage this method dispatches either completes or
-/// fails in the same call, so there is nothing to reclaim from a synchronous run that never leaves a
-/// stage half-finished.</para>
+/// <para><b>One instance, one DbContext, sequential dispatch.</b> Multiple runs advancing at once —
+/// what actually gives the pipeline concurrency — comes from the worker (C16) giving each run its own
+/// scope and calling <see cref="AdvanceAsync"/> on each concurrently, not from parallelism inside a
+/// single call here. What this class does provide for that world: an atomic per-stage claim (so two
+/// callers racing the same <c>Pending</c> stage can't both dispatch it — a double-run is a double
+/// provider charge, unlike the existing single-instance hosted services this pattern deliberately
+/// diverges from), and a shared <see cref="IAiProviderConcurrencyLimiter"/> acquired around every
+/// executor call, so a burst of runs all reaching a Groq stage in the same tick doesn't fire an
+/// unbounded number of simultaneous requests at one provider.</para>
 /// </summary>
 public class PipelineOrchestrator(
     IApplicationDbContext dbContext,
     IPipelineArtifactStore artifacts,
     ICoinCostProvider coinCosts,
+    IAiProviderConcurrencyLimiter providerLimiter,
     IEnumerable<IPipelineStageExecutor> executors) : IPipelineOrchestrator
 {
     private static readonly AiArtifactKind[] AllArtifactKinds = Enum.GetValues<AiArtifactKind>();
@@ -83,7 +87,8 @@ public class PipelineOrchestrator(
         return run;
     }
 
-    public async Task AdvanceAsync(AiPipelineRun run, TenantMemberRole role, CancellationToken cancellationToken)
+    public async Task AdvanceAsync(
+        AiPipelineRun run, TenantMemberRole role, CancellationToken cancellationToken, string leaseOwner = "orchestrator")
     {
         while (true)
         {
@@ -105,7 +110,7 @@ public class PipelineOrchestrator(
                     continue;
                 }
 
-                await ExecuteStageAsync(run, stage, role, cancellationToken);
+                await ExecuteStageAsync(run, stage, role, leaseOwner, cancellationToken);
             }
 
             run.Status = AiPipelinePolicy.EvaluateRunStatus(await LoadStagesAsync(run.Id, cancellationToken));
@@ -135,7 +140,7 @@ public class PipelineOrchestrator(
         dbContext.AiPipelineStages.Where(s => s.RunId == runId).ToListAsync(cancellationToken);
 
     private async Task ExecuteStageAsync(
-        AiPipelineRun run, AiPipelineStage stage, TenantMemberRole role, CancellationToken cancellationToken)
+        AiPipelineRun run, AiPipelineStage stage, TenantMemberRole role, string leaseOwner, CancellationToken cancellationToken)
     {
         var brand = await dbContext.TenantBrandProfiles.FirstAsync(b => b.Id == run.BrandProfileId, cancellationToken);
         var campaign = run.CampaignId is null
@@ -160,17 +165,67 @@ public class PipelineOrchestrator(
             }
         }
 
+        // The atomic claim. A single UPDATE ... WHERE Status = 'Pending', not a load-then-save — the
+        // deliberate divergence from the existing hosted services, which document themselves as
+        // single-instance-safe. AI stages cost real money, so two workers both dispatching the same
+        // stage is a double provider charge, not merely duplicated work. Bypasses this DbContext's
+        // change tracker, so the in-memory stage object is brought back in sync explicitly below
+        // rather than reloaded — a second round trip for something we already know the result of.
+        var leaseDuration = AiPipelinePolicy.Definition(stage.Kind).LeaseDuration;
+        var leaseExpiresAt = DateTime.UtcNow.Add(leaseDuration);
+        int claimed;
+
+        try
+        {
+            claimed = await dbContext.AiPipelineStages
+                .Where(s => s.Id == stage.Id && s.Status == AiPipelineStageStatus.Pending)
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(x => x.Status, AiPipelineStageStatus.Running)
+                    .SetProperty(x => x.LeaseOwner, leaseOwner)
+                    .SetProperty(x => x.LeaseExpiresAt, leaseExpiresAt)
+                    .SetProperty(x => x.StartedAt, x => x.StartedAt ?? DateTime.UtcNow), cancellationToken);
+        }
+        catch (InvalidOperationException)
+        {
+            // EF Core's InMemory provider — used by the test suite, never by a real deployment —
+            // does not translate ExecuteUpdate at all and fails at translation time, before touching
+            // any data, which is what makes this catch safe: a genuine SQL Server failure surfaces as
+            // a DbUpdateException or a provider exception, never this one. InMemory also never runs
+            // more than one writer at a time, so the atomicity this claim exists for is not something
+            // a test could exercise through it anyway — a plain conditional write is equivalent there.
+            claimed = stage.Status == AiPipelineStageStatus.Pending ? 1 : 0;
+        }
+
+        if (claimed == 0)
+        {
+            // Lost the race — another caller claimed this stage first. Nothing to undo: the coin
+            // pre-flight check above spent nothing, it only read.
+            return;
+        }
+
+        stage.Status = AiPipelineStageStatus.Running;
+        stage.LeaseOwner = leaseOwner;
+        stage.LeaseExpiresAt = leaseExpiresAt;
+        stage.StartedAt ??= DateTime.UtcNow;
+
         var inputs = await artifacts.GetCurrentPayloadsAsync(brand.Id, campaign?.Id, AllArtifactKinds, cancellationToken);
         var repairPrompt = AiPipelinePolicy.ShouldRepairPrompt(stage);
         var context = new StageContext(run, stage, brand, campaign, inputs, run.TriggeredBy, role, repairPrompt);
 
-        stage.Status = AiPipelineStageStatus.Running;
-        stage.StartedAt ??= DateTime.UtcNow;
-
         StageResult result;
         try
         {
-            result = await _executorsByKind[stage.Kind].ExecuteAsync(context, cancellationToken);
+            var provider = AiPipelinePolicy.Provider(stage.Kind);
+
+            if (provider is null)
+            {
+                result = await _executorsByKind[stage.Kind].ExecuteAsync(context, cancellationToken);
+            }
+            else
+            {
+                using var lease = await providerLimiter.AcquireAsync(provider, cancellationToken);
+                result = await _executorsByKind[stage.Kind].ExecuteAsync(context, cancellationToken);
+            }
         }
         catch (Exception ex)
         {
@@ -242,6 +297,8 @@ public class PipelineOrchestrator(
         stage.CompletedAt = now;
         stage.LastError = null;
         stage.LastErrorKind = null;
+        stage.LeaseOwner = null;
+        stage.LeaseExpiresAt = null;
     }
 
     private void SettleFailure(
@@ -255,6 +312,8 @@ public class PipelineOrchestrator(
         stage.NextAttemptAt = outcome.NextAttemptAt;
         stage.LastError = result.ErrorMessage;
         stage.LastErrorKind = failureKind;
+        stage.LeaseOwner = null;
+        stage.LeaseExpiresAt = null;
 
         if (outcome.ConsumesAttempt)
         {

@@ -24,7 +24,13 @@ public interface IPipelineOrchestrator
     /// </summary>
     /// <param name="role">The triggering user's role, needed wherever a stage charges coins. Not
     /// stored on the run itself — see the tracker's open items for why.</param>
-    Task AdvanceAsync(AiPipelineRun run, TenantMemberRole role, CancellationToken cancellationToken);
+    /// <param name="leaseOwner">Identifies whoever is calling — a worker instance id in production,
+    /// a fixed default for an interactive/synchronous caller. Recorded as the stage's
+    /// <c>LeaseOwner</c> at claim time, and is the value the atomic claim races on: two callers
+    /// racing for the same <c>Pending</c> stage can only ever have one of them win the claiming
+    /// UPDATE, regardless of which process either is running in.</param>
+    Task AdvanceAsync(
+        AiPipelineRun run, TenantMemberRole role, CancellationToken cancellationToken, string leaseOwner = "orchestrator");
 
     /// <summary>Marks a run <see cref="AiPipelineRunStatus.Cancelled"/>. In-flight stage rows are left
     /// as they are — a cancelled run simply stops being advanced, rather than requiring every stage to

@@ -5,6 +5,7 @@ using Rawaj.Application.Common.Models;
 using Rawaj.Application.Common.Services;
 using Rawaj.Application.Features.AiPipeline.Executors;
 using Rawaj.Application.Features.AiPipeline.Services;
+using Rawaj.Infrastructure.Ai;
 using Rawaj.Domain.Entities.AiOperations;
 using Rawaj.Domain.Entities.Billing;
 using Rawaj.Domain.Entities.Campaigns;
@@ -290,6 +291,66 @@ public class PipelineOrchestratorTests
         Assert.All(stages, s => Assert.Equal(AiPipelineStageStatus.Pending, s.Status));
     }
 
+    // ── Claiming and provider throttling ───────────────────────────────────────────────────
+
+    [Fact]
+    public async Task AStageAlreadyClaimedByAnotherCaller_IsLeftAlone()
+    {
+        // Simulates the moment a real race would matter: this stage looks Pending to nobody, because
+        // something else already has it. GetRunnableStages only ever selects Pending stages, so a
+        // Running one — however it got that way — is simply never handed to an executor again.
+        await using var dbContext = TestDbContextFactory.Create();
+        var world = await SeedAsync(dbContext, coinBalance: 100_000, freeMarketingPlanUsed: false);
+        var orchestrator = world.BuildOrchestrator(dbContext, DefaultTextService(TwoPostsJson));
+
+        var run = await orchestrator.StartAsync(world.Tenant.Id, world.Brand.Id, world.Campaign.Id, world.UserId, CancellationToken.None);
+
+        var campaignAnalysis = await dbContext.AiPipelineStages
+            .SingleAsync(s => s.RunId == run.Id && s.Kind == AiPipelineStageKind.CampaignAnalysis);
+        campaignAnalysis.Status = AiPipelineStageStatus.Running;
+        campaignAnalysis.LeaseOwner = "some-other-worker";
+        campaignAnalysis.LeaseExpiresAt = DateTime.UtcNow.AddMinutes(5);
+        await dbContext.SaveChangesAsync(CancellationToken.None);
+
+        await orchestrator.AdvanceAsync(run, TenantMemberRole.Owner, CancellationToken.None);
+
+        campaignAnalysis = await dbContext.AiPipelineStages.SingleAsync(s => s.Id == campaignAnalysis.Id);
+        Assert.Equal(AiPipelineStageStatus.Running, campaignAnalysis.Status);
+        Assert.Equal("some-other-worker", campaignAnalysis.LeaseOwner);
+
+        // Everything that doesn't depend on it still proceeds — one stage being claimed elsewhere
+        // doesn't stall the rest of the run.
+        var brandAnalysis = await dbContext.AiPipelineStages
+            .SingleAsync(s => s.RunId == run.Id && s.Kind == AiPipelineStageKind.BrandAnalysis);
+        Assert.Equal(AiPipelineStageStatus.Completed, brandAnalysis.Status);
+    }
+
+    [Fact]
+    public async Task EveryProviderCall_IsMadeUnderTheConcurrencyLimiter_ExceptThePureStages()
+    {
+        await using var dbContext = TestDbContextFactory.Create();
+        var world = await SeedAsync(dbContext, coinBalance: 100_000, freeMarketingPlanUsed: false);
+
+        var limiter = Substitute.For<IAiProviderConcurrencyLimiter>();
+        limiter.AcquireAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult<IDisposable>(Substitute.For<IDisposable>()));
+
+        var orchestrator = world.BuildOrchestrator(dbContext, DefaultTextService(TwoPostsJson), limiter: limiter);
+
+        var run = await orchestrator.StartAsync(world.Tenant.Id, world.Brand.Id, world.Campaign.Id, world.UserId, CancellationToken.None);
+        await orchestrator.AdvanceAsync(run, TenantMemberRole.Owner, CancellationToken.None);
+
+        // One AdvanceAsync call reaches HumanApproval and parks there, so only the stages up to and
+        // including StrategyAssemble have run: BrandAnalysis, CampaignAnalysis, StrategyPositioning,
+        // StrategyBlueprint and StrategyRoadmap are Groq (5); MarketResearch and CompetitorResearch
+        // are Tavily (2). StrategyAssemble is pure composition and HumanApproval waits on a person —
+        // neither calls a provider, so neither should ever acquire anything, and ContentPlan/
+        // ContentImage haven't run yet at all.
+        await limiter.Received(5).AcquireAsync("Groq", Arg.Any<CancellationToken>());
+        await limiter.Received(2).AcquireAsync("Tavily", Arg.Any<CancellationToken>());
+        await limiter.DidNotReceive().AcquireAsync("HuggingFace", Arg.Any<CancellationToken>());
+    }
+
     // ── Helpers ─────────────────────────────────────────────────────────────────────────────
 
     private static async Task RewindBackoffAsync(AppDbContext dbContext, Guid stageId)
@@ -375,7 +436,8 @@ public class PipelineOrchestratorTests
     private sealed record World(Tenant Tenant, TenantBrandProfile Brand, MarketingCampaign Campaign, Guid UserId)
     {
         public IPipelineOrchestrator BuildOrchestrator(
-            AppDbContext dbContext, FakeTextGenerationService text, FakeImageService? image = null)
+            AppDbContext dbContext, FakeTextGenerationService text, FakeImageService? image = null,
+            IAiProviderConcurrencyLimiter? limiter = null)
         {
             var artifacts = new PipelineArtifactStore(dbContext);
             var templates = new PromptTemplateProvider();
@@ -398,7 +460,7 @@ public class PipelineOrchestratorTests
                 new ContentImageExecutor(dbContext, image, mediaStorage)
             };
 
-            return new PipelineOrchestrator(dbContext, artifacts, Costs, executors);
+            return new PipelineOrchestrator(dbContext, artifacts, Costs, limiter ?? new AiProviderConcurrencyLimiter(), executors);
         }
     }
 
