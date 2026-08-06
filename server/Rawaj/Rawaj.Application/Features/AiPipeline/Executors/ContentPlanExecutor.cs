@@ -144,7 +144,6 @@ public class ContentPlanExecutor(
                 Hashtags = draft.Hashtags,
                 Cta = draft.Cta,
                 ImagePrompt = draft.ImagePrompt,
-                AiPromptUsed = prompt,
                 PipelineStageId = context.Stage.Id,
                 Status = ContentStatus.Draft,
                 SuggestedPostAt = draft.SuggestedPostAt,

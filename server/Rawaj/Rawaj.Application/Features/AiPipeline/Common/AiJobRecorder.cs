@@ -58,9 +58,10 @@ public static class AiJobRecorder
             JobType = jobType,
             Status = result.Succeeded ? AiJobStatus.Completed : AiJobStatus.Failed,
 
-            // The prompt is stored once, here, and referenced by hash. Content generation currently
-            // copies the whole batch prompt onto every ContentItem it produces as well as into this
-            // row — roughly eleven copies of a multi-KB string per ten-post batch.
+            // The prompt is stored once, here, and referenced by hash — content generation used to
+            // also copy the whole batch prompt onto every ContentItem it produced (roughly eleven
+            // copies of a multi-KB string per ten-post batch); that field was retired in C23 since
+            // nothing ever read it back.
             InputParams = JsonSerializer.Serialize(new { prompt }),
             PromptHash = Hash(prompt),
 

@@ -20,7 +20,6 @@ public class ContentItem : BaseEntity, IConcurrencyAware
     public List<string> Hashtags { get; set; } = [];
     public string? Cta { get; set; }
     public string? Tone { get; set; }
-    public string? AiPromptUsed { get; set; }
 
     /// <summary>
     /// An <b>English</b> visual description of the image that should accompany this post, written by

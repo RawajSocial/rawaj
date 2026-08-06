@@ -91,6 +91,7 @@ public class AiCreditsPolicyTests
         dbContext.AiJobs.Add(new AiJob
         {
             Id = Guid.NewGuid(),
+            TenantId = tenantId,
             BrandProfileId = brandProfileId,
             TriggeredBy = Guid.NewGuid(),
             JobType = AiJobType.ContentGeneration,
@@ -100,6 +101,7 @@ public class AiCreditsPolicyTests
         dbContext.AiJobs.Add(new AiJob
         {
             Id = Guid.NewGuid(),
+            TenantId = tenantId,
             BrandProfileId = brandProfileId,
             TriggeredBy = Guid.NewGuid(),
             JobType = AiJobType.ImageGeneration,
@@ -123,6 +125,7 @@ public class AiCreditsPolicyTests
         dbContext.AiJobs.Add(new AiJob
         {
             Id = Guid.NewGuid(),
+            TenantId = tenantId,
             BrandProfileId = brandProfileId,
             TriggeredBy = Guid.NewGuid(),
             JobType = AiJobType.ContentGeneration,
@@ -134,5 +137,34 @@ public class AiCreditsPolicyTests
         var usage = await AiCreditsPolicy.GetUsageAsync(dbContext, tenantId, CancellationToken.None);
 
         Assert.False(usage.HasCreditsRemaining);
+    }
+
+    /// <summary>
+    /// C23: the count used to inner-join through <c>TenantBrandProfile</c>, so a brand-less trial
+    /// job (<c>AiJob.BrandProfileId == null</c>) was silently invisible to it. Filtering on
+    /// <c>AiJob.TenantId</c> directly (set on every job since C3, regardless of brand) fixes that —
+    /// this test would have failed against the old join.
+    /// </summary>
+    [Fact]
+    public async Task GetUsageAsync_CountsBrandlessTrialJobs()
+    {
+        using var dbContext = TestDbContextFactory.Create();
+        var (tenantId, _) = await SeedTenantWithPlanAsync(dbContext, maxAiCreditsMonthly: 2);
+
+        dbContext.AiJobs.Add(new AiJob
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            BrandProfileId = null,
+            TriggeredBy = Guid.NewGuid(),
+            JobType = AiJobType.ContentGeneration,
+            Status = AiJobStatus.Completed,
+            CreatedAt = DateTime.UtcNow
+        });
+        await dbContext.SaveChangesAsync(CancellationToken.None);
+
+        var usage = await AiCreditsPolicy.GetUsageAsync(dbContext, tenantId, CancellationToken.None);
+
+        Assert.Equal(1, usage.UsedThisMonth);
     }
 }

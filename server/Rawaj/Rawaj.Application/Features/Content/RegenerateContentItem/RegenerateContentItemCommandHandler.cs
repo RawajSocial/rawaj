@@ -47,13 +47,6 @@ public class RegenerateContentItemCommandHandler(
         var brand = await dbContext.TenantBrandProfiles
             .FirstAsync(b => b.Id == contentItem.BrandProfileId, cancellationToken);
 
-        var creditsUsage = await AiCreditsPolicy.GetUsageAsync(dbContext, tenantId, cancellationToken);
-        if (!creditsUsage.HasCreditsRemaining)
-        {
-            return Result<RegenerateContentItemResponse>.Failure(
-                $"Your subscription plan allows {creditsUsage.MaxCreditsMonthly} AI credits per month. Upgrade for more.");
-        }
-
         var coinCost = await CoinPricingPolicy.GetDiscountedCostAsync(dbContext, tenantId, coinCostProvider.ContentGeneration, cancellationToken);
         var coinBalance = await CoinPolicy.GetBalanceAsync(dbContext, tenantId, userId, role, cancellationToken);
         if (coinBalance < coinCost)

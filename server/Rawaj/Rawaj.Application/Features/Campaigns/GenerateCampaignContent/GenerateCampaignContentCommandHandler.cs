@@ -94,10 +94,10 @@ public class GenerateCampaignContentCommandHandler(
         await dbContext.SaveChangesAsync(cancellationToken);
 
         // AiCreditsPolicy's monthly image quota (and the mid-batch "skip for credits" it used to
-        // cause) is retired in favour of coins as the single meter — see C23. Every ContentItem still
-        // never ends up with no image at all: ContentImageExecutor exhausting its retries attaches the
-        // /text-post.png placeholder, same as before, it just no longer counts as "skipped for credits".
+        // cause) is retired in favour of coins as the single meter for this path — see C23. Every
+        // ContentItem still never ends up with no image at all: ContentImageExecutor exhausting its
+        // retries attaches the /text-post.png placeholder, same as before.
         return Result<GenerateCampaignContentResponse>.Success(
-            new GenerateCampaignContentResponse(campaign.Id, newItems.Count, imagesGenerated, ImagesSkippedForCredits: 0));
+            new GenerateCampaignContentResponse(campaign.Id, newItems.Count, imagesGenerated));
     }
 }
