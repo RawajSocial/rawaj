@@ -129,6 +129,27 @@ public class ApprovalAndRefinementServiceTests
     }
 
     [Fact]
+    public async Task Refine_WritesThroughToAiPlanJson()
+    {
+        // Phase 6 compatibility: the legacy strategy review UI reads campaign.AiPlanJson directly, not
+        // the artifact — a refinement that only wrote a new artifact version would be invisible to it.
+        await using var dbContext = TestDbContextFactory.Create();
+        var world = await SeedAsync(dbContext);
+        await world.AddStrategyVersionAsync(dbContext, StrategyV1);
+        await dbContext.SaveChangesAsync(CancellationToken.None);
+
+        var artifacts = new PipelineArtifactStore(dbContext);
+        var service = new PipelineStrategyRefinementService(dbContext, TextServiceReturning(StrategyRefined), artifacts);
+
+        var result = await service.RefineAsync(world.Brand, world.Campaign, world.Run.TriggeredBy, "make it punchier", CancellationToken.None);
+        await dbContext.SaveChangesAsync(CancellationToken.None);
+
+        Assert.True(result.Succeeded);
+        Assert.Contains("refined", world.Campaign.AiPlanJson);
+        Assert.NotNull(world.Campaign.AiGeneratedAt);
+    }
+
+    [Fact]
     public async Task Refine_LogsTheProviderCall_WithNoBackingStage()
     {
         await using var dbContext = TestDbContextFactory.Create();

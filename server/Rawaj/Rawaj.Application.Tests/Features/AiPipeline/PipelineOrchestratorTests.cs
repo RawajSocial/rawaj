@@ -113,6 +113,33 @@ public class PipelineOrchestratorTests
     }
 
     [Fact]
+    public async Task FullRun_WritesThroughToTheLegacyCampaignColumns()
+    {
+        // Phase 6 compatibility: the existing strategy review UI and campaign-strategy-page read
+        // campaign.CompetitorResearchJson/DiagnosisJson/AiPlanJson directly, not the new artifacts —
+        // this is what keeps them working, unmodified, once C19 cuts the legacy endpoints over.
+        await using var dbContext = TestDbContextFactory.Create();
+        var world = await SeedAsync(dbContext, coinBalance: 100_000, freeMarketingPlanUsed: false);
+        var orchestrator = world.BuildOrchestrator(dbContext, DefaultTextService(TwoPostsJson));
+
+        var run = await orchestrator.StartAsync(world.Tenant.Id, world.Brand.Id, world.Campaign.Id, world.UserId, CancellationToken.None);
+        await orchestrator.AdvanceAsync(run, TenantMemberRole.Owner, CancellationToken.None);
+
+        var campaign = await dbContext.MarketingCampaigns.FirstAsync(c => c.Id == world.Campaign.Id);
+
+        Assert.NotNull(campaign.CompetitorResearchJson);
+        Assert.Contains("\"c\"", campaign.CompetitorResearchJson);
+
+        Assert.NotNull(campaign.DiagnosisJson);
+        var diagnosis = System.Text.Json.JsonDocument.Parse(campaign.DiagnosisJson).RootElement;
+        Assert.Equal("ملخص", diagnosis.GetProperty("businessSummary").GetString());
+
+        Assert.NotNull(campaign.AiPlanJson);
+        Assert.Contains("executiveSummary", campaign.AiPlanJson); // assembled from the three strategy sub-artifacts
+        Assert.NotNull(campaign.AiGeneratedAt);
+    }
+
+    [Fact]
     public async Task BrandOnlyRun_StartsOnlyBrandAnalysis()
     {
         // No campaign to run the rest of the graph against — starting the full graph would just burn

@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Rawaj.Application.Common.Interfaces;
 using Rawaj.Application.Common.Policies;
+using Rawaj.Application.Features.AiPipeline.Common;
 using Rawaj.Domain.Entities.AiOperations;
 using Rawaj.Domain.Entities.Campaigns;
 using Rawaj.Domain.Entities.Tenants;
@@ -263,6 +264,11 @@ public class PipelineOrchestrator(
                 result.ArtifactJson, result.InputHash, cancellationToken);
         }
 
+        if (campaign is not null)
+        {
+            await WriteThroughLegacyColumnsAsync(campaign, brand, stage, result, now, cancellationToken);
+        }
+
         if (result.FanOutTargets is { Count: > 0 } targets)
         {
             // Only ContentPlan fans out today; the child kind is the one thing FanOutTargets doesn't
@@ -299,6 +305,48 @@ public class PipelineOrchestrator(
         stage.LastErrorKind = null;
         stage.LeaseOwner = null;
         stage.LeaseExpiresAt = null;
+    }
+
+    /// <summary>
+    /// Phase 6 compatibility: keeps <c>CompetitorResearchJson</c>, <c>DiagnosisJson</c> and
+    /// <c>AiPlanJson</c> current as projections of the artifacts that now produce them, so the
+    /// existing strategy review UI, <c>campaign-strategy-page</c>, and every already-generated
+    /// campaign keep reading a column that behaves exactly as it always has. Only three stages have a
+    /// legacy column to project into — the rest (research queries, the three strategy sub-stages,
+    /// content) never had one.
+    /// </summary>
+    private async Task WriteThroughLegacyColumnsAsync(
+        MarketingCampaign campaign, TenantBrandProfile brand, AiPipelineStage stage, StageResult result,
+        DateTime now, CancellationToken cancellationToken)
+    {
+        switch (stage.Kind)
+        {
+            case AiPipelineStageKind.CompetitorResearch when result.ArtifactJson is not null:
+                campaign.CompetitorResearchJson = LegacyCampaignProjection.ProjectCompetitorResearch(result.ArtifactJson);
+                campaign.UpdatedAt = now;
+                break;
+
+            case AiPipelineStageKind.CampaignAnalysis when result.ArtifactJson is not null:
+                // DiagnosisJson is a union of the brand and campaign readings — CampaignAnalysis
+                // always runs after BrandAnalysis (a graph dependency), so the brand's current
+                // artifact is already saved by the time this stage settles.
+                var brandAnalysis = await artifacts.GetCurrentAsync(
+                    brand.Id, campaignId: null, AiArtifactKind.BrandAnalysis, cancellationToken);
+                if (brandAnalysis is not null)
+                {
+                    campaign.DiagnosisJson = LegacyCampaignProjection.ProjectDiagnosis(
+                        brandAnalysis.ContentJson, result.ArtifactJson);
+                    campaign.UpdatedAt = now;
+                }
+                break;
+
+            case AiPipelineStageKind.StrategyAssemble when result.ArtifactJson is not null:
+                // Already built byte-compatible with AiPlanJson — see StrategyAssembleExecutor.
+                campaign.AiPlanJson = result.ArtifactJson;
+                campaign.AiGeneratedAt = now;
+                campaign.UpdatedAt = now;
+                break;
+        }
     }
 
     private void SettleFailure(

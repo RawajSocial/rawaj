@@ -89,6 +89,12 @@ public class PipelineStrategyRefinementService(
             stage: null, brand.TenantId, brand.Id, campaign.Id, AiArtifactKind.Strategy,
             refinedJson!, inputHash: null, cancellationToken);
 
+        // Phase 6 write-through — same reason StrategyAssemble's completion projects into
+        // AiPlanJson: the legacy strategy review UI reads the column, not the artifact.
+        campaign.AiPlanJson = refinedJson;
+        campaign.AiGeneratedAt = DateTime.UtcNow;
+        campaign.UpdatedAt = DateTime.UtcNow;
+
         return Result<AiArtifact>.Success(artifact);
     }
 }
