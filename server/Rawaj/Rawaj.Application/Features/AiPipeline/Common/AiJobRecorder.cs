@@ -116,6 +116,41 @@ public static class AiJobRecorder
         return job;
     }
 
+    public static AiJob RecordImage(
+        IApplicationDbContext dbContext,
+        StageContext context,
+        string prompt,
+        AiImageGenerationResult result,
+        DateTime startedAt,
+        Guid? visualAssetId)
+    {
+        var now = DateTime.UtcNow;
+
+        var job = new AiJob
+        {
+            Id = Guid.NewGuid(),
+            TenantId = context.TenantId,
+            BrandProfileId = context.Brand.Id,
+            TriggeredBy = context.UserId,
+            PipelineStageId = context.Stage.Id,
+            JobType = AiJobType.ImageGeneration,
+            Status = result.Succeeded ? AiJobStatus.Completed : AiJobStatus.Failed,
+            InputParams = JsonSerializer.Serialize(new { prompt }),
+            PromptHash = Hash(prompt),
+            Provider = "HuggingFace",
+            ErrorMessage = result.ErrorMessage,
+            OutputRefId = visualAssetId,
+            OutputRefType = "visual_asset",
+            StartedAt = startedAt,
+            CompletedAt = now,
+            CreatedAt = now
+        };
+
+        dbContext.AiJobs.Add(job);
+
+        return job;
+    }
+
     private static string Hash(string value) =>
         Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(value)));
 }

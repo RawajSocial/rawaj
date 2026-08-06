@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Rawaj.Application.Common.Interfaces;
 using Rawaj.Application.Common.Models;
 using Rawaj.Application.Common.Policies;
+using Rawaj.Application.Features.AiPipeline.Common;
 using Rawaj.Application.Features.Content.Common;
 using Rawaj.Application.Features.Scheduling.Common;
 using Rawaj.Domain.Entities.AiOperations;
@@ -145,7 +146,7 @@ public class GenerateCampaignContentCommandHandler(
         // being stamped into the past, which the scheduling step can no longer recover from.
         var startDate = campaign.StartDate?.ToDateTime(TimeOnly.MinValue);
         var baseDate = startDate is { } sd && sd > now.Date ? sd : now.Date;
-        var createdItems = ParseGeneratedPosts(generation.Text!, platforms, baseDate);
+        var createdItems = ContentPlanParser.Parse(generation.Text!, platforms, baseDate);
 
         if (createdItems.Count == 0)
         {
@@ -313,111 +314,4 @@ public class GenerateCampaignContentCommandHandler(
             new GenerateCampaignContentResponse(campaign.Id, createdItems.Count, imagesGenerated, imagesSkippedForCredits));
     }
 
-    private record GeneratedPostDraft(
-        SocialPlatform Platform, ContentType ContentType, string Content, List<string> Hashtags, string? Cta,
-        DateTime SuggestedPostAt, string? ImagePrompt);
-
-    private static List<GeneratedPostDraft> ParseGeneratedPosts(string rawJson, List<SocialPlatform> allowedPlatforms, DateTime baseDate)
-    {
-        var drafts = new List<GeneratedPostDraft>();
-
-        // Same wrapper problem as the strategy/diagnosis handlers — a model that fences its JSON
-        // would otherwise fail every post in the batch and surface as "Could not parse the
-        // AI-generated campaign posts", after the text call had already been made.
-        var payload = AiJsonResponseParser.ExtractJsonPayload(rawJson);
-        if (payload is null)
-        {
-            return drafts;
-        }
-
-        JsonDocument document;
-        try
-        {
-            document = JsonDocument.Parse(payload);
-        }
-        catch (JsonException)
-        {
-            return drafts;
-        }
-
-        using (document)
-        {
-            if (!document.RootElement.TryGetProperty("posts", out var postsElement) || postsElement.ValueKind != JsonValueKind.Array)
-            {
-                return drafts;
-            }
-
-            foreach (var post in postsElement.EnumerateArray())
-            {
-                try
-                {
-                    if (!post.TryGetProperty("platform", out var platformProp) ||
-                        !Enum.TryParse<SocialPlatform>(platformProp.GetString(), true, out var platform) ||
-                        !allowedPlatforms.Contains(platform))
-                    {
-                        continue;
-                    }
-
-                    if (!post.TryGetProperty("content", out var contentProp) || string.IsNullOrWhiteSpace(contentProp.GetString()))
-                    {
-                        continue;
-                    }
-
-                    var contentType = ContentType.Post;
-                    if (post.TryGetProperty("contentType", out var contentTypeProp))
-                    {
-                        Enum.TryParse(contentTypeProp.GetString(), true, out contentType);
-                    }
-
-                    var dayOffset = 0;
-                    if (post.TryGetProperty("dayOffset", out var dayOffsetProp) && dayOffsetProp.TryGetInt32(out var parsedDayOffset))
-                    {
-                        dayOffset = Math.Clamp(parsedDayOffset, 0, 90);
-                    }
-
-                    var hour = 12;
-                    if (post.TryGetProperty("hour", out var hourProp) && hourProp.TryGetInt32(out var parsedHour))
-                    {
-                        hour = Math.Clamp(parsedHour, 0, 23);
-                    }
-
-                    var hashtags = new List<string>();
-                    if (post.TryGetProperty("hashtags", out var hashtagsProp) && hashtagsProp.ValueKind == JsonValueKind.Array)
-                    {
-                        hashtags = hashtagsProp.EnumerateArray()
-                            .Select(h => h.GetString())
-                            .Where(h => !string.IsNullOrWhiteSpace(h))
-                            .Select(h => h!)
-                            .ToList();
-                    }
-
-                    string? cta = null;
-                    if (post.TryGetProperty("cta", out var ctaProp) && ctaProp.ValueKind == JsonValueKind.String)
-                    {
-                        cta = ctaProp.GetString();
-                    }
-
-                    // Optional: an older/uncooperative model response without it still yields a
-                    // usable post, it just falls back to the post copy for the image (see the
-                    // image loop above).
-                    string? imagePrompt = null;
-                    if (post.TryGetProperty("imagePrompt", out var imagePromptProp) && imagePromptProp.ValueKind == JsonValueKind.String)
-                    {
-                        var value = imagePromptProp.GetString();
-                        imagePrompt = string.IsNullOrWhiteSpace(value) ? null : value;
-                    }
-
-                    drafts.Add(new GeneratedPostDraft(
-                        platform, contentType, contentProp.GetString()!, hashtags, cta,
-                        baseDate.AddDays(dayOffset).AddHours(hour), imagePrompt));
-                }
-                catch (JsonException)
-                {
-                    // Skip malformed individual entries rather than discarding the whole batch.
-                }
-            }
-        }
-
-        return drafts;
-    }
 }
