@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -16,16 +17,40 @@ public class GroqTextGenerationService(
 {
     private readonly GroqSettings _settings = settings.Value;
 
-    public async Task<AiTextGenerationResult> GenerateTextAsync(string prompt, CancellationToken cancellationToken)
+    public async Task<AiTextGenerationResult> GenerateTextAsync(
+        string prompt, CancellationToken cancellationToken, AiTextGenerationOptions? options = null)
     {
+        options ??= AiTextGenerationOptions.Default;
+
         var apiKeys = _settings.ApiKeys.Where(k => !string.IsNullOrWhiteSpace(k)).ToList();
         if (apiKeys.Count == 0)
         {
             return AiTextGenerationResult.Failure("No Groq API key is configured.");
         }
 
-        var request = new GroqChatRequest(_settings.Model, [new GroqChatMessage("user", prompt)], _settings.MaxTokens);
+        var model = _settings.ResolveModel(options.TaskName);
+
+        // Groq's OpenAI-compatible JSON mode. It constrains syntax only — the response is still not
+        // guaranteed to match the shape the prompt asked for — so AiJsonResponseParser stays in
+        // place behind it rather than being replaced by it. That parser exists because a
+        // fence-wrapped response was once stored as a strategy, passing every "a plan exists" check
+        // while rendering as a blank page for a user who had paid 12,000 coins.
+        var responseFormat = options.JsonMode && _settings.EnableJsonMode
+            ? new GroqResponseFormat("json_object")
+            : null;
+
+        var request = new GroqChatRequest(
+            model,
+            [new GroqChatMessage("user", prompt)],
+            _settings.MaxTokens,
+            responseFormat,
+            options.Temperature,
+            options.Seed);
+
         string? lastError = null;
+        var startedAt = Stopwatch.GetTimestamp();
+
+        int ElapsedMs() => (int)Stopwatch.GetElapsedTime(startedAt).TotalMilliseconds;
 
         foreach (var apiKey in apiKeys)
         {
@@ -66,7 +91,7 @@ public class GroqTextGenerationService(
                     }
 
                     logger.LogWarning("Groq chat request failed with {StatusCode}: {Message}", response.StatusCode, message);
-                    return AiTextGenerationResult.Failure(message);
+                    return AiTextGenerationResult.Failure(message, model, ElapsedMs());
                 }
 
                 var payload = await response.Content.ReadFromJsonAsync<GroqChatResponse>(cancellationToken: cancellationToken);
@@ -74,10 +99,11 @@ public class GroqTextGenerationService(
 
                 if (string.IsNullOrWhiteSpace(outputText))
                 {
-                    return AiTextGenerationResult.Failure("Groq returned an empty response.");
+                    return AiTextGenerationResult.Failure("Groq returned an empty response.", model, ElapsedMs());
                 }
 
-                return AiTextGenerationResult.Success(outputText.Trim(), payload?.Usage?.TotalTokens);
+                return AiTextGenerationResult.Success(
+                    outputText.Trim(), payload?.Usage?.TotalTokens, model, ElapsedMs());
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
@@ -86,7 +112,8 @@ public class GroqTextGenerationService(
             }
         }
 
-        return AiTextGenerationResult.Failure(lastError ?? "Text generation failed. Please try again.");
+        return AiTextGenerationResult.Failure(
+            lastError ?? "Text generation failed. Please try again.", model, ElapsedMs());
     }
 
     /// <summary>Statuses that mean "this key can't serve the request" - quota exhausted, revoked,
@@ -97,10 +124,26 @@ public class GroqTextGenerationService(
             or HttpStatusCode.Forbidden
             or HttpStatusCode.PaymentRequired;
 
+    /// <summary>
+    /// Nulls are omitted from the payload (see <see cref="JsonIgnoreCondition.WhenWritingNull"/>),
+    /// so a call that asks for nothing extra sends byte-for-byte the request this service sent
+    /// before these fields existed.
+    /// </summary>
     private record GroqChatRequest(
         string Model,
         List<GroqChatMessage> Messages,
-        [property: JsonPropertyName("max_tokens")] int MaxTokens);
+        [property: JsonPropertyName("max_tokens")] int MaxTokens,
+        [property: JsonPropertyName("response_format")]
+        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        GroqResponseFormat? ResponseFormat,
+        [property: JsonPropertyName("temperature")]
+        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        double? Temperature,
+        [property: JsonPropertyName("seed")]
+        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        int? Seed);
+
+    private record GroqResponseFormat([property: JsonPropertyName("type")] string Type);
 
     private record GroqChatMessage(string Role, string Content);
 
