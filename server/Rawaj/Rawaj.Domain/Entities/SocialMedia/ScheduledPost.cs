@@ -22,6 +22,10 @@ public class ScheduledPost : BaseEntity
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 
+    public bool IsDeleted { get; set; }
+    public DateTime? DeletedAt { get; set; }
+    public Guid? DeletedBy { get; set; }
+
     public ContentItem ContentItem { get; set; } = null!;
     public VisualAsset? VisualAsset { get; set; }
     public SocialAccount SocialAccount { get; set; } = null!;

@@ -6,10 +6,12 @@ using Rawaj.Application.Common.Models;
 using Rawaj.Application.Features.Campaigns.ApproveCampaignPlan;
 using Rawaj.Application.Features.Campaigns.ArchiveCampaign;
 using Rawaj.Application.Features.Campaigns.CreateCampaign;
+using Rawaj.Application.Features.Campaigns.DeleteCampaign;
 using Rawaj.Application.Features.Campaigns.GenerateBusinessDiagnosis;
 using Rawaj.Application.Features.Campaigns.GenerateCampaignContent;
 using Rawaj.Application.Features.Campaigns.GenerateMarketingPlan;
 using Rawaj.Application.Features.Campaigns.GetCampaign;
+using Rawaj.Application.Features.Campaigns.GetCampaignDeleteSummary;
 using Rawaj.Application.Features.Campaigns.GetCampaigns;
 using Rawaj.Application.Features.Campaigns.RefineCampaignPlan;
 using Rawaj.Application.Features.Campaigns.ResearchCampaignCompetitors;
@@ -70,6 +72,26 @@ public class CampaignsController(ISender sender) : ControllerBase
         return result.Succeeded
             ? Ok(ApiResponse<GetCampaignResponse>.Success(result.Data!))
             : BadRequest(ApiResponse<GetCampaignResponse>.Fail(result.ErrorMessage!));
+    }
+
+    [HttpGet("{campaignId:guid}/delete-summary")]
+    public async Task<IActionResult> GetDeleteSummary(Guid campaignId, CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new GetCampaignDeleteSummaryQuery(campaignId), cancellationToken);
+
+        return result.Succeeded
+            ? Ok(ApiResponse<CampaignDeleteSummaryResponse>.Success(result.Data!))
+            : NotFound(ApiResponse<CampaignDeleteSummaryResponse>.Fail(result.ErrorMessage!));
+    }
+
+    [HttpDelete("{campaignId:guid}")]
+    public async Task<IActionResult> Delete(Guid campaignId, CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new DeleteCampaignCommand(campaignId), cancellationToken);
+
+        return result.Succeeded
+            ? Ok(ApiResponse<DeleteCampaignResponse>.Success(result.Data!))
+            : BadRequest(ApiResponse<DeleteCampaignResponse>.Fail(result.ErrorMessage!));
     }
 
     [HttpPost("{campaignId:guid}/archive")]

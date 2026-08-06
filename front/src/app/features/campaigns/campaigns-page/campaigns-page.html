@@ -134,9 +134,17 @@
           (resume)="resumeCampaign($event)"
           (archive)="archiveCampaign($event)"
           (restore)="restoreCampaign($event)"
+          (deleteCampaign)="requestDeleteCampaign($event)"
           (view)="viewCampaign($event)"
           (openNextStep)="openNextStep($event)" />
       }
     </div>
   }
+
+  <app-delete-campaign-modal
+    [open]="deleteModalOpen()"
+    [summary]="deleteSummary()"
+    [deleting]="deleting()"
+    (confirmDelete)="confirmDeleteCampaign()"
+    (cancel)="cancelDeleteCampaign()" />
 </div>

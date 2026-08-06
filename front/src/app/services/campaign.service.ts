@@ -6,8 +6,8 @@ import { ApiResponse } from '../model/auth.model';
 import { PagedResult } from '../model/paged-result.model';
 import {
   ApproveCampaignPlanResponse, BACKEND_TO_CAMPAIGN_PLATFORM, BACKEND_TO_CAMPAIGN_STATUS,
-  Campaign, CampaignPlatform, CampaignSummary,
-  CreateCampaignInput, CreateCampaignResponse,
+  Campaign, CampaignDeleteSummary, CampaignPlatform, CampaignSummary,
+  CreateCampaignInput, CreateCampaignResponse, DeleteCampaignResult,
   GetCampaignResponse, RefineCampaignPlanResponse,
   ScheduleCampaignPostsResponse, UnarchiveCampaignResponse,
   UpdateCampaignInput,
@@ -166,6 +166,23 @@ export class CampaignService {
   unarchive(campaignId: string): Observable<ApiResponse<UnarchiveCampaignResponse>> {
     return this.mutateAndRefresh(
       this.http.post<ApiResponse<UnarchiveCampaignResponse>>(`${this.baseUrl}/${campaignId}/unarchive`, {}),
+      true,
+    );
+  }
+
+  /** What deleting this campaign will actually do — fetched to populate the delete-confirmation
+   *  modal's breakdown before the user commits to it. */
+  getDeleteSummary(campaignId: string): Observable<ApiResponse<CampaignDeleteSummary>> {
+    return this.http.get<ApiResponse<CampaignDeleteSummary>>(`${this.baseUrl}/${campaignId}/delete-summary`);
+  }
+
+  /** Permanently deletes the campaign and cascades to its content items, images and scheduled
+   *  posts (pending ones are cancelled on their platform first; already-published posts are left
+   *  live — see CampaignDeleteResult). Refreshes both lists since the campaign could have been
+   *  deleted from either the default view or the archive. */
+  delete(campaignId: string): Observable<ApiResponse<DeleteCampaignResult>> {
+    return this.mutateAndRefresh(
+      this.http.delete<ApiResponse<DeleteCampaignResult>>(`${this.baseUrl}/${campaignId}`),
       true,
     );
   }

@@ -27,6 +27,10 @@ public class OutboxDispatcherHostedService(
     private const int MaxAttempts = 5;
     private const int BatchSize = 50;
 
+    /// <summary>The message types this dispatcher claims. Other types belong to another service and
+    /// are left alone — see the note in <see cref="DispatchPendingAsync"/>.</summary>
+    private static readonly string[] HandledTypes = [NotificationPublisher.NotificationCreatedType];
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         while (!stoppingToken.IsCancellationRequested)
@@ -57,8 +61,12 @@ public class OutboxDispatcherHostedService(
         var dbContext = scope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
         var broadcaster = scope.ServiceProvider.GetRequiredService<INotificationBroadcaster>();
 
+        // Scoped to the types this service owns. The outbox is shared with
+        // CampaignCleanupHostedService, whose messages are slow (many Cloudinary round-trips) and
+        // must not park notification delivery behind them — nor be burned through this service's
+        // attempt budget by the "unknown type" throw below.
         var pending = await dbContext.OutboxMessages
-            .Where(m => m.ProcessedAt == null && m.Attempts < MaxAttempts)
+            .Where(m => HandledTypes.Contains(m.Type) && m.ProcessedAt == null && m.Attempts < MaxAttempts)
             .OrderBy(m => m.CreatedAt)
             .Take(BatchSize)
             .ToListAsync(cancellationToken);

@@ -2,7 +2,8 @@ import { Component, HostListener, computed, inject, signal } from '@angular/core
 import { Router } from '@angular/router';
 import { ConfirmDialogService } from '../../../services/confirm-dialog.service';
 import { CampaignCard } from '../campaign-card/campaign-card';
-import { CampaignStatus, CampaignPlatform } from '../../../model/campaign.model';
+import { DeleteCampaignModal } from '../delete-campaign-modal/delete-campaign-modal';
+import { CampaignDeleteSummary, CampaignStatus, CampaignPlatform } from '../../../model/campaign.model';
 import { SeoService } from '../../../services/seo.service';
 import { CampaignService } from '../../../services/campaign.service';
 import { ErrorModalService } from '../../../services/error-modal.service';
@@ -16,7 +17,7 @@ import { TooltipDirective } from '../../../shared/directives/tooltip.directive';
 @Component({
   selector: 'app-campaigns-page',
   standalone: true,
-  imports: [CampaignCard, PageHeader, BrandLock, TooltipDirective],
+  imports: [CampaignCard, DeleteCampaignModal, PageHeader, BrandLock, TooltipDirective],
   templateUrl: './campaigns-page.html',
   styleUrls: ['../../../features/on-boarding/onboarding-shared.css', './campaigns-page.css'],
 })
@@ -155,6 +156,56 @@ export class CampaignsPage {
     this.campaignService.unarchive(id).subscribe({
       error: err => this.errorModalService.show(
         extractApiErrorMessage(err, 'تعذّرت استعادة الحملة.'), { variant: 'error' }),
+    });
+  }
+
+  /** Permanent delete — a dedicated modal (not the generic ConfirmDialogService text prompt) shows
+   *  the actual breakdown of what's about to be removed, fetched fresh so the counts are never
+   *  stale. `deleteCampaignId` is kept separate from `deleteSummary` so the modal can render its
+   *  loading state the instant it opens, before the summary request resolves. */
+  protected readonly deleteModalOpen = signal(false);
+  protected readonly deleteSummary = signal<CampaignDeleteSummary | null>(null);
+  protected readonly deleting = signal(false);
+  private deleteCampaignId: string | null = null;
+
+  protected requestDeleteCampaign(id: string): void {
+    if (!this.perms.canAdmin()) return;
+    this.deleteCampaignId = id;
+    this.deleteSummary.set(null);
+    this.deleteModalOpen.set(true);
+    this.campaignService.getDeleteSummary(id).subscribe({
+      next: res => {
+        if (res.data) this.deleteSummary.set(res.data);
+      },
+      error: err => {
+        this.cancelDeleteCampaign();
+        this.errorModalService.show(
+          extractApiErrorMessage(err, 'تعذّر تحميل تفاصيل الحملة.'), { variant: 'error' });
+      },
+    });
+  }
+
+  protected cancelDeleteCampaign(): void {
+    this.deleteModalOpen.set(false);
+    this.deleteSummary.set(null);
+    this.deleteCampaignId = null;
+  }
+
+  protected confirmDeleteCampaign(): void {
+    const id = this.deleteCampaignId;
+    if (!id || this.deleting()) return;
+
+    this.deleting.set(true);
+    this.campaignService.delete(id).subscribe({
+      next: () => {
+        this.deleting.set(false);
+        this.cancelDeleteCampaign();
+      },
+      error: err => {
+        this.deleting.set(false);
+        this.cancelDeleteCampaign();
+        this.errorModalService.show(extractApiErrorMessage(err, 'تعذّر حذف الحملة.'), { variant: 'error' });
+      },
     });
   }
 

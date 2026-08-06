@@ -103,6 +103,7 @@ public static class DependencyInjection
         services.AddHostedService<SocialAccountTokenRefresherHostedService>();
         services.AddHostedService<PostStatusSyncHostedService>();
         services.AddHostedService<OutboxDispatcherHostedService>();
+        services.AddHostedService<CampaignCleanupHostedService>();
         services.AddHostedService<AiPipelineWorkerHostedService>();
         services.AddHostedService<AiPipelineReaperHostedService>();
 

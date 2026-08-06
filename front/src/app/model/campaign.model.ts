@@ -193,6 +193,29 @@ export interface UnarchiveCampaignResponse {
   status: BackendCampaignStatus;
 }
 
+/** GET /api/v1/campaigns/{id}/delete-summary — CampaignDeleteSummaryResponse. Powers the delete
+ *  confirmation modal's breakdown, fetched before the user commits. No coin figure — coin-ledger
+ *  entries aren't attributed back to a campaign anywhere today, so any total shown would be a guess
+ *  dressed up as a fact (see the backend response's own doc comment). */
+export interface CampaignDeleteSummary {
+  campaignId: string;
+  name: string;
+  contentItemCount: number;
+  imageCount: number;
+  pendingScheduledCount: number;
+  publishedScheduledCount: number;
+}
+
+/** DELETE /api/v1/campaigns/{id} — DeleteCampaignResponse. Published posts are always left live on
+ *  their platform (deliberate — see docs); only pending ones are actually cancelled there. */
+export interface DeleteCampaignResult {
+  campaignId: string;
+  contentItemsDeleted: number;
+  imagesDeleted: number;
+  scheduledPostsCancelled: number;
+  publishedPostsLeftLive: number;
+}
+
 /** POST /api/v1/campaigns/{id}/approve-plan — ApproveCampaignPlanResponse */
 export interface ApproveCampaignPlanResponse {
   campaignId: string;

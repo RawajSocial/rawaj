@@ -44,7 +44,8 @@ public class ScheduledPostConfiguration : IEntityTypeConfiguration<ScheduledPost
         builder.HasIndex(s => new { s.Status, s.ScheduledAt });
         builder.HasIndex(s => new { s.BrandProfileId, s.ScheduledAt });
 
-        // Matches TenantBrandProfile's own IsDeleted filter — required (non-nullable) FK.
-        builder.HasQueryFilter(s => !s.BrandProfile.IsDeleted);
+        // Matches TenantBrandProfile's own IsDeleted filter — required (non-nullable) FK — plus this
+        // row's own IsDeleted, set when a campaign delete cascades to its scheduled posts.
+        builder.HasQueryFilter(s => !s.BrandProfile.IsDeleted && !s.IsDeleted);
     }
 }

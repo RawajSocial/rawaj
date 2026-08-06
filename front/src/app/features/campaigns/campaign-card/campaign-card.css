@@ -276,3 +276,5 @@
 .resume-btn:hover         { border-color: var(--color-success); color: var(--color-success); }
 .view-btn:hover           { border-color: var(--color-secondary); color: var(--color-secondary); }
 .archive-btn:hover        { border-color: var(--color-danger); color: var(--color-danger); }
+.delete-btn                { border-color: var(--color-danger); color: var(--color-danger); }
+.delete-btn:hover          { background: var(--color-danger); color: #fff; }

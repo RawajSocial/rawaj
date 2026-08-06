@@ -31,6 +31,10 @@ export class CampaignCard {
    *  card offers whichever applies to this campaign's current status. */
   readonly archive  = output<string>();
   readonly restore  = output<string>();
+  /** Permanent, cascades to content/images/scheduled posts — a stronger action than archive, so it
+   *  is offered regardless of the campaign's current status (including already-archived ones) and
+   *  gated at Admin rather than Editor. */
+  readonly deleteCampaign = output<string>();
   /** "Continue where you left off" — routes to the strategy review or the content review
    *  depending on how far the campaign has actually got. */
   readonly openNextStep = output<string>();
@@ -84,6 +88,8 @@ export class CampaignCard {
   protected get objectiveLabel(): string {
     return campaignObjectiveLabel(this.campaign().objective);
   }
+
+  protected readonly deleteDeniedReason = 'حذف الحملات متاح لمديري الحساب فقط.';
 
   /** The campaign's own dates, formatted — the raw ISO strings used to be printed straight into
    *  the footer, and a campaign with no dates rendered a bare "—" separator with nothing on
