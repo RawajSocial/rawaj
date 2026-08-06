@@ -184,5 +184,14 @@ public enum AiFailureKind
 
     /// <summary>The artifact parsed but failed schema validation. One repair re-ask, then fail —
     /// re-running identical input will not produce a different shape.</summary>
-    Validation = 5
+    Validation = 5,
+
+    /// <summary>
+    /// The request was bigger than the provider will accept in one call — distinct from
+    /// <see cref="Quota"/>, which is "you have used up your allowance" and clears on its own. This
+    /// one never clears: waiting changes nothing, every rotated key rejects it identically, and a
+    /// retry sends the exact same oversized request. Fails immediately without consuming the
+    /// retry budget.
+    /// </summary>
+    PromptTooLarge = 6
 }

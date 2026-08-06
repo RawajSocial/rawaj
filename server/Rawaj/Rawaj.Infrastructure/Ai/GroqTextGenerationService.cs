@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Rawaj.Application.Common.Interfaces;
 using Rawaj.Application.Common.Models;
+using Rawaj.Application.Common.Policies;
 
 namespace Rawaj.Infrastructure.Ai;
 
@@ -29,6 +30,25 @@ public class GroqTextGenerationService(
         }
 
         var model = _settings.ResolveModel(options.TaskName);
+
+        // Rejected here rather than by Groq, when we can already tell it cannot fit. Sending it
+        // anyway costs a round-trip per configured key — IsKeyRejection treats the resulting 429 as
+        // a key problem and rotates — and returns an error phrased as a rate limit, which is exactly
+        // the wrong mental model for a request that will never fit no matter how long you wait.
+        if (AiTokenEstimator.ExceedsBudget(prompt, _settings.MaxTokens, _settings.TokensPerMinuteLimit, out var estimated))
+        {
+            logger.LogWarning(
+                "Groq request skipped before sending: about {Estimated} tokens (prompt plus a {MaxTokens}-token completion) " +
+                "against a configured limit of {Limit}.",
+                estimated, _settings.MaxTokens, _settings.TokensPerMinuteLimit);
+
+            // Phrased to match Groq's own wording on purpose: AiPipelinePolicy.ClassifyProviderError
+            // keys off "request too large"/"reduce your message size" to mark this non-retryable, so
+            // a locally-detected oversize and a provider-detected one take the same path.
+            return AiTextGenerationResult.Failure(
+                $"Request too large for {model}: about {estimated} tokens against a limit of " +
+                $"{_settings.TokensPerMinuteLimit}. Reduce your message size.");
+        }
 
         // Groq's OpenAI-compatible JSON mode. It constrains syntax only — the response is still not
         // guaranteed to match the shape the prompt asked for — so AiJsonResponseParser stays in

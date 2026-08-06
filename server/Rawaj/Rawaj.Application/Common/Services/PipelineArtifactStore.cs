@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Rawaj.Application.Common.Interfaces;
 using Rawaj.Domain.Entities.AiOperations;
+using Rawaj.Application.Features.Content.Common;
 using Rawaj.Domain.Enums;
 
 namespace Rawaj.Application.Common.Services;
@@ -22,6 +23,16 @@ public class PipelineArtifactStore(IApplicationDbContext dbContext) : IPipelineA
             .Where(a => a.IsCurrent)
             .OrderByDescending(a => a.Version)
             .FirstOrDefaultAsync(cancellationToken);
+
+    /// <summary>
+    /// Every payload handed to a prompt goes through here. Artifacts written before
+    /// <see cref="AiJsonResponseParser"/> started normalizing on the way in still hold Groq's
+    /// <c>\uXXXX</c>-escaped Arabic, which costs roughly 4.7x the tokens of the identical unescaped
+    /// JSON — enough on its own to push a ContentPlan request past Groq's per-minute budget. Doing it
+    /// on read means those rows stop inflating prompts without rewriting anyone's stored data.
+    /// </summary>
+    private static string ForPrompt(string contentJson) =>
+        AiJsonResponseParser.Normalize(contentJson) ?? contentJson;
 
     public async Task<IReadOnlyDictionary<AiArtifactKind, string>> GetCurrentPayloadsAsync(
         Guid brandProfileId, Guid? campaignId, IReadOnlyCollection<AiArtifactKind> kinds, CancellationToken cancellationToken)
@@ -45,7 +56,7 @@ public class PipelineArtifactStore(IApplicationDbContext dbContext) : IPipelineA
 
             foreach (var row in rows)
             {
-                results[row.Kind] = row.ContentJson;
+                results[row.Kind] = ForPrompt(row.ContentJson);
             }
         }
 
@@ -58,7 +69,7 @@ public class PipelineArtifactStore(IApplicationDbContext dbContext) : IPipelineA
 
             foreach (var row in rows)
             {
-                results[row.Kind] = row.ContentJson;
+                results[row.Kind] = ForPrompt(row.ContentJson);
             }
         }
 

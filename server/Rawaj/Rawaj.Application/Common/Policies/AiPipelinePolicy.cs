@@ -276,6 +276,18 @@ public static class AiPipelinePolicy
         }
 
         var definition = Definition(stage.Kind);
+
+        // An oversized request is the one failure where retrying is provably pointless: the next
+        // attempt would send byte-for-byte the same prompt to the same limit. Burning two more
+        // attempts (and, on a Quota misclassification, every rotated API key) only delays telling
+        // the user the one thing they can act on.
+        if (failureKind == AiFailureKind.PromptTooLarge)
+        {
+            return new StageFailureOutcome(
+                definition.IsOptional ? AiPipelineStageStatus.Skipped : AiPipelineStageStatus.Failed,
+                null,
+                ConsumesAttempt: true);
+        }
         var attemptsAfterThis = stage.Attempts + 1;
 
         if (attemptsAfterThis >= definition.MaxAttempts)
@@ -333,6 +345,18 @@ public static class AiPipelinePolicy
         }
 
         var message = errorMessage.ToLowerInvariant();
+
+        // Checked before the quota branch, which this would otherwise fall into: Groq returns
+        // "request too large ... on tokens per minute (TPM): Limit 12000, Requested 15318" as a 429,
+        // which reads like a rate limit but isn't one. A rate limit clears if you wait; a single
+        // request larger than the whole per-minute budget can never succeed, so it must not be
+        // retried or rotated onto another key.
+        if (message.Contains("request too large") || message.Contains("reduce your message size") ||
+            message.Contains("too many tokens") || message.Contains("context length") ||
+            message.Contains("maximum context"))
+        {
+            return AiFailureKind.PromptTooLarge;
+        }
 
         // Quota and auth rejections are the ones worth separating: they exhaust every rotated key
         // identically, so a fast retry just burns through the list again for nothing.

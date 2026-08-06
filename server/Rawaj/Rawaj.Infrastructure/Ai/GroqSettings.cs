@@ -34,6 +34,19 @@ public class GroqSettings
     public int MaxTokens { get; set; } = 4000;
 
     /// <summary>
+    /// The account's tokens-per-minute allowance, which Groq also enforces as a per-request ceiling —
+    /// a single call asking for more than this is rejected outright, no matter how idle the account
+    /// is. Set it to the limit your Groq tier actually has (12,000 on the free tier) and an oversized
+    /// prompt fails immediately with a clear message instead of a 429 that reads like a transient
+    /// rate limit.
+    ///
+    /// <para>Zero disables the client-side check entirely, which is the default: guessing a limit on
+    /// behalf of an account we cannot inspect would reject requests a paid tier would have accepted.
+    /// The provider's own rejection is still classified correctly either way.</para>
+    /// </summary>
+    public int TokensPerMinuteLimit { get; set; }
+
+    /// <summary>
     /// Whether to send <c>response_format: {"type":"json_object"}</c> when a caller asks for JSON
     /// mode. A kill switch, not a preference — if a future model or a Groq-compatible endpoint
     /// rejects the parameter, this turns it off without a redeploy, and the JSON parser that has

@@ -58,7 +58,10 @@ public class PipelineStrategyRefinementService(
             return Result<AiArtifact>.Failure("Generate a strategy before refining it.");
         }
 
-        var prompt = StrategyRefinementPrompt.Build(brand, campaign, current.ContentJson, feedback);
+        // Normalized for the same reason the artifact store does it on read: a strategy stored with
+        // escaped Arabic costs ~4.7x the tokens here, and this prompt embeds the whole thing.
+        var prompt = StrategyRefinementPrompt.Build(
+            brand, campaign, AiJsonResponseParser.Normalize(current.ContentJson) ?? current.ContentJson, feedback);
         var startedAt = DateTime.UtcNow;
 
         var generation = await textGenerationService.GenerateTextAsync(prompt, cancellationToken);
