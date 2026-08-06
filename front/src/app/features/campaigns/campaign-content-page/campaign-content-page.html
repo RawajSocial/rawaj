@@ -50,10 +50,13 @@
     </section>
 
     <!-- ══════════════════════════════════════════════════════
-         GENERATION IN PROGRESS — a real, honest simulated progress
-         (never claims 100% before the response actually lands) plus
-         a skeleton preview of what's coming, so a long batch never
-         looks stuck.
+         GENERATION IN PROGRESS — real progress from the pipeline run's
+         stage rows (AiPipelineProgressPolicy, polled via GetRunStatus),
+         not a simulated timer. Shows up here even after a reload, since
+         `load()` starts watching whatever run the campaign is already
+         on — that's what closes the double-spend gap: the button stays
+         disabled and this card keeps rendering instead of the page
+         looking like nothing is happening.
     ══════════════════════════════════════════════════════ -->
     @if (generating()) {
       <section class="cc-card cc-generating" role="status" aria-live="polite">
@@ -74,25 +77,27 @@
         </div>
 
         <div class="cc-generating-bar-track">
-          <div class="cc-generating-bar-fill" [style.width.%]="generationProgress()"></div>
+          <div class="cc-generating-bar-fill" [style.width.%]="aiPipelineService.run()?.progress?.percent ?? 0"></div>
         </div>
 
         <div class="cc-generating-stages">
-          @for (stage of generationStages; track stage.key) {
-            <span class="cc-generating-stage"
-                  [class.done]="isGenerationStageDone(stage.key)"
-                  [class.active]="generationStage() === stage.key">
-              @if (generationStage() === stage.key) {
-                <i class="fa-solid fa-circle-notch fa-spin"></i>
-              } @else if (isGenerationStageDone(stage.key)) {
-                <i class="fa-solid fa-circle-check"></i>
-              } @else {
-                <i class="fa-regular fa-circle"></i>
-              }
-              {{ stage.label }}
+          <span class="cc-generating-stage active">
+            <i class="fa-solid fa-circle-notch fa-spin"></i>
+            {{ aiPipelineService.run()?.progress?.currentStageLabel ?? 'جارٍ العمل…' }}
+          </span>
+          @if ((aiPipelineService.run()?.progress?.imagesTotal ?? 0) > 0) {
+            <span class="cc-generating-stage">
+              <i class="fa-regular fa-image"></i>
+              {{ aiPipelineService.run()?.progress?.imagesCompleted }} من {{ aiPipelineService.run()?.progress?.imagesTotal }} صورة
             </span>
           }
         </div>
+
+        @if (awaitingCoins()) {
+          <div class="cc-banner cc-banner-warning">
+            <i class="fa-solid fa-coins"></i> رصيدك من الكوينات غير كافٍ لإكمال توليد المحتوى. أضف رصيدًا وستُكمل تلقائيًا.
+          </div>
+        }
 
         <div class="cc-skeleton-grid">
           @for (n of generationSkeletonCards(); track n) {

@@ -8,6 +8,7 @@ import { ContentItemService } from '../../../services/content-item.service';
 import { ScheduledPostService } from '../../../services/scheduled-post.service';
 import { VisualAssetService } from '../../../services/visual-asset.service';
 import { CoinPricingService } from '../../../services/coin-pricing.service';
+import { AiPipelineService } from '../../../services/ai-pipeline.service';
 import { SocialAccountService } from '../../../core/social/social-account.service';
 import { PermissionService } from '../../../core/tenant/permission.service';
 import { SeoService } from '../../../services/seo.service';
@@ -41,8 +42,6 @@ const REGENERATE_PRESETS = ['اجعله أكثر احترافية', 'استخد�
 const MIN_POST_COUNT = 1;
 const MAX_POST_COUNT = 15;
 
-type GenerationStage = 'text' | 'images' | 'finishing';
-
 interface PlatformConnectionStatus {
   platform: ContentItemSummary['platform'];
   connected: boolean;
@@ -64,6 +63,7 @@ export class CampaignContentPage {
   private readonly scheduledPostService = inject(ScheduledPostService);
   private readonly visualAssetService = inject(VisualAssetService);
   protected readonly coinPricingService = inject(CoinPricingService);
+  protected readonly aiPipelineService = inject(AiPipelineService);
   private readonly socialAccountService = inject(SocialAccountService);
   protected readonly perms = inject(PermissionService);
   private readonly errorModalService = inject(ErrorModalService);
@@ -84,24 +84,38 @@ export class CampaignContentPage {
   protected readonly loadError = signal<string | null>(null);
 
   protected readonly items = this.contentItemService.items;
-  protected readonly generating = signal(false);
   protected readonly postCount = signal(6);
   protected readonly minPostCount = MIN_POST_COUNT;
   protected readonly maxPostCount = MAX_POST_COUNT;
 
-  // ── Generation loading experience — the real call is one long synchronous round-trip with no
-  // server-side progress feed (see GenerateCampaignContentCommandHandler), so this is an honest
-  // simulated progress (capped short of 100% until the response actually lands) rather than a
-  // fake bar that claims to know something it doesn't. ──
-  protected readonly generationProgress = signal(0);
-  protected readonly generationStage = signal<GenerationStage>('text');
-  protected readonly generationStages: { key: GenerationStage; label: string }[] = [
-    { key: 'text', label: 'صياغة نصوص المنشورات' },
-    { key: 'images', label: 'توليد الصور المرافقة' },
-    { key: 'finishing', label: 'اللمسات الأخيرة' },
-  ];
+  /** Set the moment "توليد المحتوى" is clicked, cleared once that call's own response lands —
+   *  gives the button an instant disabled state on click, before the first poll tick could
+   *  possibly reflect it. */
+  private readonly requestInFlight = signal(false);
+
+  /** True while the campaign's pipeline run actually has a `ContentPlan`/`ContentImage` stage
+   *  outstanding (`Pending` or `Running`) — real, server-derived state, not a local guess. This is
+   *  what closes the reload double-spend gap: a reload picks this up from the very first poll tick
+   *  (started in `load()` whenever the campaign has a `currentPipelineRunId`), so a batch already
+   *  running from a previous tab/session disables the button here too, not just in the tab that
+   *  started it. */
+  protected readonly contentBatchInFlight = computed(() => {
+    const run = this.aiPipelineService.run();
+    if (!run) return false;
+    return run.stages.some(s =>
+      (s.kind === 'ContentPlan' || s.kind === 'ContentImage') && (s.status === 'Pending' || s.status === 'Running'));
+  });
+
+  protected readonly generating = computed(() => this.requestInFlight() || this.contentBatchInFlight());
+
+  /** Informational only — the backend worker retries a coins-blocked stage on its own poll cycle
+   *  once a top-up lands, so there is nothing to click here (same as the strategy page's note). */
+  protected readonly awaitingCoins = computed(() => this.aiPipelineService.run()?.status === 'AwaitingCoins');
+
+  /** `postCount` reflects what's *requested* in the field right now, not necessarily what a batch
+   *  discovered mid-flight on reload actually asked for — good enough for a loading skeleton, which
+   *  is decorative. Real progress (percent, current stage, image count) comes from the polled run. */
   protected readonly generationSkeletonCards = computed(() => Array.from({ length: this.postCount() }, (_, i) => i));
-  private generationTimer: ReturnType<typeof setInterval> | null = null;
 
   protected readonly socialAccounts = signal<SocialAccountSummary[]>([]);
 
@@ -241,7 +255,7 @@ export class CampaignContentPage {
       if (id) this.load(id);
     });
 
-    this.destroyRef.onDestroy(() => this.clearGenerationTimer());
+    this.destroyRef.onDestroy(() => this.aiPipelineService.clear());
   }
 
   private load(campaignId: string): void {
@@ -255,6 +269,9 @@ export class CampaignContentPage {
           return;
         }
         this.campaign.set(res.data);
+        // Watches whatever run the campaign is already on, if any — a batch left running by a
+        // previous tab/session shows up here on the very first poll tick, closing the reload gap.
+        if (res.data.currentPipelineRunId) this.aiPipelineService.startPolling(res.data.currentPipelineRunId);
         this.contentItemService.refresh(res.data.brandProfileId, campaignId).subscribe(() => {
           this.maybeAutogenerate(res.data!);
         });
@@ -278,6 +295,7 @@ export class CampaignContentPage {
   private resetCampaignScopedState(): void {
     this.loadError.set(null);
     this.contentItemService.clear();
+    this.aiPipelineService.clear();
     this.socialAccounts.set([]);
     this.scheduleResult.set(null);
     this.selectedItemIds.set(new Set());
@@ -324,8 +342,7 @@ export class CampaignContentPage {
       return;
     }
 
-    this.generating.set(true);
-    this.startGenerationProgress();
+    this.requestInFlight.set(true);
 
     this.campaignService.generateContent(this.campaignId(), {
       postCount: this.postCount(),
@@ -333,50 +350,16 @@ export class CampaignContentPage {
       includeImages: true,
     }).subscribe({
       next: () => {
-        this.completeGenerationProgress();
-        this.generating.set(false);
+        this.requestInFlight.set(false);
         this.coinPricingService.refreshAfterSpend();
         this.contentItemService.refresh(campaign.brandProfileId, this.campaignId()).subscribe();
       },
       error: err => {
-        this.clearGenerationTimer();
-        this.generating.set(false);
+        this.requestInFlight.set(false);
         this.coinPricingService.refreshAfterSpend();
         this.showSpendError(err, 'تعذّر توليد المحتوى.');
       },
     });
-  }
-
-  /** Simulated progress toward a real, uninterruptible backend call (see class doc comment) —
-   *  ticks up to 92% over an estimate scaled by `postCount` (image generation is sequential
-   *  per-post server-side, so more posts genuinely does take longer) and never claims 100% until
-   *  the response actually arrives, so a slow batch never looks stuck or dishonestly "done". */
-  private startGenerationProgress(): void {
-    this.clearGenerationTimer();
-    this.generationProgress.set(0);
-    this.generationStage.set('text');
-
-    const cap = 92;
-    const estimatedMs = 2500 + this.postCount() * 1600;
-    const tickMs = 200;
-    const increment = (cap / estimatedMs) * tickMs;
-
-    this.generationTimer = setInterval(() => {
-      this.generationProgress.update(p => Math.min(cap, p + increment));
-      const pct = this.generationProgress();
-      this.generationStage.set(pct < 20 ? 'text' : pct < 85 ? 'images' : 'finishing');
-    }, tickMs);
-  }
-
-  private completeGenerationProgress(): void {
-    this.clearGenerationTimer();
-    this.generationStage.set('finishing');
-    this.generationProgress.set(100);
-  }
-
-  private clearGenerationTimer(): void {
-    if (this.generationTimer) clearInterval(this.generationTimer);
-    this.generationTimer = null;
   }
 
   protected review(item: ContentItemSummary, approve: boolean): void {
@@ -517,13 +500,6 @@ export class CampaignContentPage {
 
   protected cancelSchedulePost(): void {
     this.schedulingItemId.set(null);
-  }
-
-  /** A stage reads as "done" once generation has moved past it in the fixed text→images→finishing
-   *  sequence — 'finishing' has no next stage, so it's only ever active, never done. */
-  protected isGenerationStageDone(stage: GenerationStage): boolean {
-    const order: GenerationStage[] = ['text', 'images', 'finishing'];
-    return order.indexOf(this.generationStage()) > order.indexOf(stage);
   }
 
   protected updateScheduleAccount(value: string): void { this.scheduleAccountId.set(value); }

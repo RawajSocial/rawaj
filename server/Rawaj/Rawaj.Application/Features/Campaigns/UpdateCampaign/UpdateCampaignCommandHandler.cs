@@ -102,7 +102,8 @@ public class UpdateCampaignCommandHandler(
             campaign.DiagnosisJson,
             campaign.PlanApprovedAt,
             campaign.CreatedAt,
-            campaign.UpdatedAt);
+            campaign.UpdatedAt,
+            campaign.CurrentPipelineRunId);
 
         return Result<GetCampaignResponse>.Success(response);
     }

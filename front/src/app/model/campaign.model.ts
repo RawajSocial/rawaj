@@ -144,6 +144,10 @@ export interface GetCampaignResponse {
   planApprovedAt?: string | null;
   createdAt: string;
   updatedAt: string;
+  /** The AI pipeline run currently (or most recently) associated with this campaign — set once a
+   *  run starts, never cleared. Lets a page discover and resume watching an in-progress run (e.g.
+   *  content generation) instead of only knowing about one it started itself in this page load. */
+  currentPipelineRunId?: string | null;
 }
 
 /** POST /api/v1/campaigns request body. */
