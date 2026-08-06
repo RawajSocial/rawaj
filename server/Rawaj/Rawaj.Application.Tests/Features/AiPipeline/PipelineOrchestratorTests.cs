@@ -301,6 +301,100 @@ public class PipelineOrchestratorTests
         Assert.Equal("/text-post.png", asset.FileUrl);
     }
 
+    // ── EnsureContentBatchAsync (generate-content's "generate another batch") ─────────────
+
+    [Fact]
+    public async Task EnsureContentBatchAsync_LetsAnApprovedRun_GenerateASecondBatch_AndChargesCoinsAgain()
+    {
+        await using var dbContext = TestDbContextFactory.Create();
+        var world = await SeedAsync(dbContext, coinBalance: 100_000, freeMarketingPlanUsed: false);
+        var orchestrator = world.BuildOrchestrator(dbContext, DefaultTextService(TwoPostsJson));
+
+        var run = await orchestrator.StartAsync(world.Tenant.Id, world.Brand.Id, world.Campaign.Id, world.UserId, CancellationToken.None);
+        await orchestrator.AdvanceAsync(run, TenantMemberRole.Owner, CancellationToken.None);
+        var campaign = await dbContext.MarketingCampaigns.FirstAsync(c => c.Id == world.Campaign.Id);
+        await new PipelineApprovalService(dbContext).ApproveAsync(run, campaign, CancellationToken.None);
+        await dbContext.SaveChangesAsync(CancellationToken.None);
+        await orchestrator.AdvanceAsync(run, TenantMemberRole.Owner, CancellationToken.None); // first batch
+
+        Assert.Equal(2, await dbContext.ContentItems.CountAsync(c => c.CampaignId == world.Campaign.Id));
+        var stageAfterFirst = await dbContext.AiPipelineStages
+            .SingleAsync(s => s.RunId == run.Id && s.Kind == AiPipelineStageKind.ContentPlan);
+        Assert.Equal(AiPipelineStageStatus.Completed, stageAfterFirst.Status);
+        Assert.True(stageAfterFirst.CoinsCharged > 0);
+
+        // What the generate-content shim does for a repeat call: reset the same row rather than
+        // insert a second one (the unique index wouldn't allow that anyway), with CoinsCharged
+        // zeroed — a second batch is its own billable action, not a free re-run.
+        var stage = await orchestrator.EnsureContentBatchAsync(run, CancellationToken.None);
+        Assert.Equal(AiPipelineStageStatus.Pending, stage.Status);
+        Assert.Equal(0, stage.CoinsCharged);
+
+        await orchestrator.AdvanceAsync(run, TenantMemberRole.Owner, CancellationToken.None);
+
+        Assert.Equal(4, await dbContext.ContentItems.CountAsync(c => c.CampaignId == world.Campaign.Id)); // added, not replaced
+
+        var reloadedRun = await dbContext.AiPipelineRuns.SingleAsync(r => r.Id == run.Id);
+        // 8,500 for the full first run (see the full-run test's breakdown) + another 1,000 for the
+        // second content batch — content generation is charged per batch, not once per run.
+        Assert.Equal(9_500, reloadedRun.TotalCoinsSpent);
+    }
+
+    [Fact]
+    public async Task EnsureContentBatchAsync_CreatesTheStage_WhenTheRunNeverHadOne()
+    {
+        // The shape of every C18-backfilled run: HumanApproval Completed, no ContentPlan row at all,
+        // since the backfill migration only reconstructs the strategy half of the graph.
+        await using var dbContext = TestDbContextFactory.Create();
+        var world = await SeedAsync(dbContext, coinBalance: 100_000, freeMarketingPlanUsed: false);
+        var orchestrator = world.BuildOrchestrator(dbContext, DefaultTextService(TwoPostsJson));
+        var run = new AiPipelineRun
+        {
+            Id = Guid.NewGuid(), TenantId = world.Tenant.Id, BrandProfileId = world.Brand.Id, CampaignId = world.Campaign.Id,
+            TriggeredBy = world.UserId, Status = AiPipelineRunStatus.Completed, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow
+        };
+        dbContext.AiPipelineRuns.Add(run);
+        dbContext.AiPipelineStages.Add(new AiPipelineStage
+        {
+            Id = Guid.NewGuid(), RunId = run.Id, Kind = AiPipelineStageKind.HumanApproval,
+            Status = AiPipelineStageStatus.Completed, MaxAttempts = 1, CreatedAt = DateTime.UtcNow
+        });
+        await dbContext.SaveChangesAsync(CancellationToken.None);
+
+        var stage = await orchestrator.EnsureContentBatchAsync(run, CancellationToken.None);
+
+        Assert.Equal(AiPipelineStageKind.ContentPlan, stage.Kind);
+        Assert.Equal(AiPipelineStageStatus.Pending, stage.Status);
+        var persisted = await dbContext.AiPipelineStages.SingleAsync(s => s.Id == stage.Id);
+        Assert.Equal(AiPipelineStageStatus.Pending, persisted.Status);
+    }
+
+    [Fact]
+    public async Task EnsureContentBatchAsync_LeavesARunningStageAlone()
+    {
+        await using var dbContext = TestDbContextFactory.Create();
+        var world = await SeedAsync(dbContext, coinBalance: 100_000, freeMarketingPlanUsed: false);
+        var orchestrator = world.BuildOrchestrator(dbContext, DefaultTextService(TwoPostsJson));
+        var run = new AiPipelineRun
+        {
+            Id = Guid.NewGuid(), TenantId = world.Tenant.Id, BrandProfileId = world.Brand.Id, CampaignId = world.Campaign.Id,
+            TriggeredBy = world.UserId, Status = AiPipelineRunStatus.Running, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow
+        };
+        dbContext.AiPipelineRuns.Add(run);
+        var running = new AiPipelineStage
+        {
+            Id = Guid.NewGuid(), RunId = run.Id, Kind = AiPipelineStageKind.ContentPlan,
+            Status = AiPipelineStageStatus.Running, LeaseOwner = "some-other-worker", MaxAttempts = 3, CreatedAt = DateTime.UtcNow
+        };
+        dbContext.AiPipelineStages.Add(running);
+        await dbContext.SaveChangesAsync(CancellationToken.None);
+
+        var stage = await orchestrator.EnsureContentBatchAsync(run, CancellationToken.None);
+
+        Assert.Equal(AiPipelineStageStatus.Running, stage.Status);
+        Assert.Equal("some-other-worker", stage.LeaseOwner);
+    }
+
     // ── Cancel ──────────────────────────────────────────────────────────────────────────────
 
     [Fact]

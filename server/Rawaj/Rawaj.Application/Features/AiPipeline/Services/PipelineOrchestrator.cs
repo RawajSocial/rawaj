@@ -146,6 +146,38 @@ public class PipelineOrchestrator(
         return dbContext.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task<AiPipelineStage> EnsureContentBatchAsync(AiPipelineRun run, CancellationToken cancellationToken)
+    {
+        var stage = await dbContext.AiPipelineStages
+            .FirstOrDefaultAsync(s => s.RunId == run.Id && s.Kind == AiPipelineStageKind.ContentPlan, cancellationToken);
+
+        if (stage is null)
+        {
+            var definition = AiPipelinePolicy.Definition(AiPipelineStageKind.ContentPlan);
+            stage = new AiPipelineStage
+            {
+                Id = Guid.NewGuid(),
+                RunId = run.Id,
+                Kind = definition.Kind,
+                Ordinal = definition.Ordinal,
+                Status = AiPipelineStageStatus.Pending,
+                IsOptional = definition.IsOptional,
+                MaxAttempts = definition.MaxAttempts,
+                CreatedAt = DateTime.UtcNow
+            };
+            dbContext.AiPipelineStages.Add(stage);
+        }
+        else if (stage.Status is AiPipelineStageStatus.Completed or AiPipelineStageStatus.Failed)
+        {
+            stage.Status = AiPipelineStageStatus.Pending;
+            stage.NextAttemptAt = null;
+            stage.CoinsCharged = 0;
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return stage;
+    }
+
     private Task<List<AiPipelineStage>> LoadStagesAsync(Guid runId, CancellationToken cancellationToken) =>
         dbContext.AiPipelineStages.Where(s => s.RunId == runId).ToListAsync(cancellationToken);
 

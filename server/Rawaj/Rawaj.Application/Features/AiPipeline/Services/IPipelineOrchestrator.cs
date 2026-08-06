@@ -47,4 +47,14 @@ public interface IPipelineOrchestrator
     /// as they are — a cancelled run simply stops being advanced, rather than requiring every stage to
     /// be rewritten to a new terminal state it didn't actually reach.</summary>
     Task CancelAsync(AiPipelineRun run, CancellationToken cancellationToken);
+
+    /// <summary>Prepares a run's <c>ContentPlan</c> stage for one more batch of posts, then saves —
+    /// the caller still has to call <see cref="AdvanceAsync"/> separately to actually run it. Creates
+    /// the stage row if this run predates content generation entirely (every run a pre-C19 campaign's
+    /// approval was backfilled onto never got one), or resets it from <c>Completed</c>/<c>Failed</c>
+    /// back to <c>Pending</c> with <c>CoinsCharged</c> zeroed — unlike every other stage, each
+    /// <c>ContentPlan</c> batch is its own billable action, not a one-time charge to guard against
+    /// repeating. A <c>Running</c> stage is left alone: something else is already generating a batch
+    /// for this run.</summary>
+    Task<AiPipelineStage> EnsureContentBatchAsync(AiPipelineRun run, CancellationToken cancellationToken);
 }
