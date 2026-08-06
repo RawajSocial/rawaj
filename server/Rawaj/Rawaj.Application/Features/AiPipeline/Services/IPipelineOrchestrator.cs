@@ -12,8 +12,19 @@ public interface IPipelineOrchestrator
     /// stage in the graph (later ones simply wait on their dependencies); a brand-only run
     /// (<paramref name="campaignId"/> null) starts only <c>BrandAnalysis</c> — nothing else in the
     /// graph makes sense without a campaign to run it for.</summary>
+    /// <param name="contentPostCount">How many posts <c>ContentPlan</c> should generate. Null keeps
+    /// <see cref="AiPipelineRun"/>'s default (8) — every caller that isn't a legacy shim carrying a
+    /// user-specified count.</param>
+    /// <param name="contentLanguage">Null keeps the default (Arabic).</param>
+    /// <param name="contentIncludeImages">Null keeps the default (true). False stops <c>ContentPlan</c>
+    /// from fanning out to <c>ContentImage</c> stages at all — no VisualAsset rows, not even
+    /// placeholders, matching what <c>GenerateCampaignContentCommandHandler</c> did when a caller
+    /// opted out of images.</param>
+    /// <param name="contentTemplateStyle">Null keeps the default (Auto).</param>
     Task<AiPipelineRun> StartAsync(
-        Guid tenantId, Guid brandProfileId, Guid? campaignId, Guid triggeredBy, CancellationToken cancellationToken);
+        Guid tenantId, Guid brandProfileId, Guid? campaignId, Guid triggeredBy, CancellationToken cancellationToken,
+        int? contentPostCount = null, Language? contentLanguage = null,
+        bool? contentIncludeImages = null, ContentTemplateStyle? contentTemplateStyle = null);
 
     /// <summary>
     /// Runs the graph forward until nothing more can happen without a person, a top-up, or time

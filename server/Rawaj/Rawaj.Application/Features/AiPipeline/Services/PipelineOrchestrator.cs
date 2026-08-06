@@ -43,7 +43,9 @@ public class PipelineOrchestrator(
         executors.ToDictionary(e => e.Kind);
 
     public async Task<AiPipelineRun> StartAsync(
-        Guid tenantId, Guid brandProfileId, Guid? campaignId, Guid triggeredBy, CancellationToken cancellationToken)
+        Guid tenantId, Guid brandProfileId, Guid? campaignId, Guid triggeredBy, CancellationToken cancellationToken,
+        int? contentPostCount = null, Domain.Enums.Language? contentLanguage = null,
+        bool? contentIncludeImages = null, Domain.Enums.ContentTemplateStyle? contentTemplateStyle = null)
     {
         var now = DateTime.UtcNow;
 
@@ -58,6 +60,13 @@ public class PipelineOrchestrator(
             CreatedAt = now,
             UpdatedAt = now
         };
+
+        // Only overridden by callers that actually have a caller-specified value (today, the
+        // generate-content legacy shim) — everyone else keeps AiPipelineRun's own defaults.
+        if (contentPostCount is { } postCount) run.ContentPostCount = postCount;
+        if (contentLanguage is { } language) run.ContentLanguage = language;
+        if (contentIncludeImages is { } includeImages) run.ContentIncludeImages = includeImages;
+        if (contentTemplateStyle is { } templateStyle) run.ContentTemplateStyle = templateStyle;
         dbContext.AiPipelineRuns.Add(run);
 
         // A brand-only run (computing a brand analysis outside any campaign) has nothing for the
@@ -266,7 +275,7 @@ public class PipelineOrchestrator(
 
         if (campaign is not null)
         {
-            await WriteThroughLegacyColumnsAsync(campaign, brand, stage, result, now, cancellationToken);
+            await WriteThroughLegacyColumnsAsync(run, campaign, brand, stage, result, now, cancellationToken);
         }
 
         if (result.FanOutTargets is { Count: > 0 } targets)
@@ -316,8 +325,8 @@ public class PipelineOrchestrator(
     /// content) never had one.
     /// </summary>
     private async Task WriteThroughLegacyColumnsAsync(
-        MarketingCampaign campaign, TenantBrandProfile brand, AiPipelineStage stage, StageResult result,
-        DateTime now, CancellationToken cancellationToken)
+        AiPipelineRun run, MarketingCampaign campaign, TenantBrandProfile brand, AiPipelineStage stage,
+        StageResult result, DateTime now, CancellationToken cancellationToken)
     {
         switch (stage.Kind)
         {
@@ -345,6 +354,14 @@ public class PipelineOrchestrator(
                 campaign.AiPlanJson = result.ArtifactJson;
                 campaign.AiGeneratedAt = now;
                 campaign.UpdatedAt = now;
+
+                // GenerateMarketingPlanCommandHandler always sent this — a real user-facing signal,
+                // not an AI-mechanics detail, so it belongs here rather than in any one caller of the
+                // orchestrator specifically.
+                NotificationPublisher.Notify(
+                    dbContext, run.TriggeredBy, brand.Id, NotificationType.Success, NotificationCategory.AiJob,
+                    "Marketing plan ready", $"An AI-generated strategy for \"{campaign.Name}\" is ready to review.",
+                    campaign.Id, "marketing_campaign");
                 break;
         }
     }
@@ -392,6 +409,18 @@ public class PipelineOrchestrator(
                 IsApproved = false,
                 CreatedAt = now
             });
+        }
+
+        // ResearchCampaignCompetitorsCommandHandler always wrote *something* to
+        // CompetitorResearchJson, even on failure — the "unavailable" sentinel, never null. A Skipped
+        // CompetitorResearch stage never reaches SettleSuccessAsync's write-through, so without this
+        // the legacy shim (C19) would see a null column where the old handler never left one.
+        if (outcome.Status == AiPipelineStageStatus.Skipped &&
+            stage.Kind == AiPipelineStageKind.CompetitorResearch &&
+            campaign is not null)
+        {
+            campaign.CompetitorResearchJson = LegacyCampaignProjection.CompetitorResearchUnavailable(result.ErrorMessage);
+            campaign.UpdatedAt = now;
         }
     }
 }

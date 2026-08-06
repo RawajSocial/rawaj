@@ -52,6 +52,17 @@ public class AiPipelineRun : BaseEntity, IConcurrencyAware
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 
+    /// <summary>Content-generation parameters, fixed for the run at <c>StartAsync</c> — the graph and
+    /// <c>StageContext</c> carry no other run-level configuration, so <c>ContentPlanExecutor</c> and
+    /// <c>ContentImageExecutor</c> read these directly off <see cref="StageContext.Run"/> rather than
+    /// through a separate parameters object. Only those two stages read them; everything upstream of
+    /// content generation ignores them entirely. Defaults match what the placeholder constants in
+    /// <c>ContentPlanExecutor</c> used before this run-level surface existed.</summary>
+    public int ContentPostCount { get; set; } = 8;
+    public Language ContentLanguage { get; set; } = Language.Ar;
+    public bool ContentIncludeImages { get; set; } = true;
+    public ContentTemplateStyle ContentTemplateStyle { get; set; } = ContentTemplateStyle.Auto;
+
     /// <summary>EF concurrency token, matching MarketingCampaign. The worker and an interactive
     /// request (approve, cancel, run-one-stage) can touch the same run concurrently; without this
     /// one would silently overwrite the other's status transition.</summary>

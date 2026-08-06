@@ -107,118 +107,6 @@ public static class ContentPromptBuilder
     }
 
     /// <summary>
-    /// "What we understood about your business" — the AI Business Diagnosis pricing-sheet feature.
-    /// Combines the onboarding brief with (best-effort, possibly-empty) competitor research into a
-    /// diagnosis the user sees and confirms before a strategy is built on top of it.
-    /// </summary>
-    public static string BuildBusinessDiagnosisPrompt(TenantBrandProfile brand, string? briefJson, string? competitorJson)
-    {
-        var lines = new List<string>
-        {
-            $"You are a marketing strategist producing a business diagnosis for \"{brand.Name}\" that its owner will read and confirm before any campaign strategy is built."
-        };
-
-        AddBrandIdentityLines(lines, brand);
-
-        if (!string.IsNullOrWhiteSpace(briefJson))
-        {
-            lines.Add(
-                "Here is the JSON of everything they entered in the onboarding wizard (campaign type, brand details, " +
-                "target audience, positioning, budget, and their answers to AI follow-up questions):");
-            lines.Add(briefJson);
-        }
-
-        if (!string.IsNullOrWhiteSpace(competitorJson))
-        {
-            lines.Add(
-                "Here is automated competitor research gathered for this business. It is best-effort and may or may " +
-                "not be relevant or accurate — weigh it accordingly and ignore anything that looks off-topic:");
-            lines.Add(competitorJson);
-        }
-
-        lines.Add(
-            "Write, in Arabic, a plain-language summary of what this business is and does, a SWOT analysis, its business " +
-            "maturity stage, its growth stage, how ready its marketing currently is, the key risks it currently faces, " +
-            "the opportunities it should pursue, and anything important that's still missing from what they told you.");
-
-        lines.Add(
-            "Respond with ONLY a valid JSON object (no markdown fences, no commentary) with this exact shape: " +
-            "{\"businessSummary\":\"...\",\"swot\":{\"strengths\":[\"...\"],\"weaknesses\":[\"...\"],\"opportunities\":[\"...\"],\"threats\":[\"...\"]}," +
-            "\"businessMaturity\":\"...\",\"growthStage\":\"...\",\"marketingReadiness\":\"...\",\"currentRisks\":[\"...\"]," +
-            "\"opportunities\":[\"...\"],\"missingInformation\":[\"...\"]}");
-
-        return string.Join(" ", lines);
-    }
-
-    /// <summary>
-    /// The Complete Marketing Strategy pricing-sheet feature. Grounds the strategy in the onboarding
-    /// brief and the business diagnosis (both already confirmed by the user), and folds in competitor
-    /// research as advisory input only — it may or may not be relevant, and the model is told to
-    /// disregard it where it isn't rather than force-fit it into the plan.
-    /// </summary>
-    public static string BuildCampaignStrategyPrompt(
-        TenantBrandProfile brand,
-        MarketingCampaign campaign,
-        string? briefJson,
-        string? diagnosisJson,
-        string? competitorJson)
-    {
-        var lines = new List<string>
-        {
-            $"Create a complete marketing strategy for the campaign \"{campaign.Name}\" for the brand \"{brand.Name}\"."
-        };
-
-        AddBrandIdentityLines(lines, brand);
-
-        if (!string.IsNullOrWhiteSpace(campaign.Objective))
-        {
-            lines.Add($"Campaign objective: {campaign.Objective}.");
-        }
-
-        if (campaign.TargetPlatforms.Count > 0)
-        {
-            lines.Add($"Target platforms: {string.Join(", ", campaign.TargetPlatforms)}.");
-        }
-
-        if (campaign.StartDate.HasValue && campaign.EndDate.HasValue)
-        {
-            lines.Add($"Campaign runs from {campaign.StartDate} to {campaign.EndDate}.");
-        }
-
-        if (campaign.BudgetAmount.HasValue)
-        {
-            lines.Add($"Budget: {campaign.BudgetAmount} {campaign.BudgetCurrency}.");
-        }
-
-        if (!string.IsNullOrWhiteSpace(briefJson))
-        {
-            lines.Add("Onboarding brief JSON: " + briefJson);
-        }
-
-        if (!string.IsNullOrWhiteSpace(diagnosisJson))
-        {
-            lines.Add("Business diagnosis already produced and confirmed for this business — use it as grounding: " + diagnosisJson);
-        }
-
-        if (!string.IsNullOrWhiteSpace(competitorJson))
-        {
-            lines.Add(
-                "Competitor research gathered for this campaign. It is best-effort automated research — it may or may " +
-                "not be relevant, so use it only where it genuinely strengthens the strategy and disregard it otherwise: " +
-                competitorJson);
-        }
-
-        lines.Add(
-            "Respond with ONLY a valid JSON object (no markdown fences, no commentary) with this exact shape: " +
-            "{\"executiveSummary\":\"...\",\"businessAndMarketAnalysis\":\"...\",\"brandStrategy\":\"...\",\"marketingStrategy\":\"...\"," +
-            "\"campaignBlueprint\":{\"pillars\":[\"...\"],\"keyThemes\":[\"...\"],\"postingCadence\":{\"platform\":\"e.g. 3 posts/week\"}," +
-            "\"contentMix\":{\"contentType\":\"percentage or note\"},\"recommendedPlatforms\":[\"...\"]}," +
-            "\"contentProductionPlan\":\"...\",\"executionRoadmap\":\"...\",\"aiRecommendations\":[\"...\"]}");
-
-        return string.Join(" ", lines);
-    }
-
-    /// <summary>
     /// The campaign content batch. Grounded in the <b>approved strategy</b> (and the onboarding
     /// brief behind it), not just the brand's identity fields — the user pays for and explicitly
     /// approves that strategy, and content generation is gated on the approval, so generating posts
@@ -250,14 +138,6 @@ public static class ContentPromptBuilder
         ContentPlanPrompt.Build(
             brand, campaign, competitorInsights, postingTimeSummary, postCount, platforms, language,
             strategyJson, briefJson, templateStyle);
-
-    /// <inheritdoc cref="StrategyRefinementPrompt.Build"/>
-    public static string BuildPlanRefinementPrompt(
-        TenantBrandProfile brand,
-        MarketingCampaign campaign,
-        string currentPlanJson,
-        string feedback) =>
-        StrategyRefinementPrompt.Build(brand, campaign, currentPlanJson, feedback);
 
     /// <param name="userPrompt">
     /// What the picture should show. For campaign posts this is the model-authored English

@@ -25,6 +25,19 @@ namespace Rawaj.Application.Features.AiPipeline.Common;
 /// </summary>
 public static class LegacyCampaignProjection
 {
+    /// <summary>The sentinel <c>ResearchCampaignCompetitorsCommandHandler</c> wrote when Tavily found
+    /// nothing (or nothing usable) — for a <c>CompetitorResearch</c> stage that ends up
+    /// <c>Skipped</c>, which never reaches an artifact to project from.</summary>
+    public static string CompetitorResearchUnavailable(string? note) =>
+        new JsonObject
+        {
+            ["summary"] = null,
+            ["competitors"] = new JsonArray(),
+            ["sources"] = new JsonArray(),
+            ["unavailable"] = true,
+            ["note"] = note ?? "No competitor data was found for this brand."
+        }.ToJsonString();
+
     /// <summary>Projects a <c>CompetitorResearch</c> artifact into the
     /// <c>{summary, competitors, sources, unavailable, note}</c> shape
     /// <c>ResearchCampaignCompetitorsCommandHandler</c> used to write.</summary>

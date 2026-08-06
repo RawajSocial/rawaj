@@ -1,26 +1,23 @@
-using System.Text.Json;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Rawaj.Application.Common.Interfaces;
 using Rawaj.Application.Common.Models;
 using Rawaj.Application.Common.Policies;
-using Rawaj.Application.Features.Content.Common;
-using Rawaj.Domain.Entities.AiOperations;
-using Rawaj.Domain.Enums;
+using Rawaj.Application.Features.AiPipeline.Services;
 
 namespace Rawaj.Application.Features.Campaigns.RefineCampaignPlan;
 
 /// <summary>
-/// Lets the user nudge an already-generated campaign strategy by free text (the "عدّل الخطة" box)
-/// before approving it — mirrors RegenerateContentItemCommandHandler's feedback-driven revision,
-/// but for the whole strategy JSON rather than a single content item. Charges AI Reasoning
-/// Conversation, the pricing-sheet line item for exactly this kind of iterative back-and-forth.
+/// C19 cutover: a thin shim onto <see cref="IPipelineStrategyRefinementService"/> — the pipeline-native
+/// replacement this command handed off to as of C13/C18, request/response contract unchanged. Coins
+/// are still checked and charged here (the caller), matching every other pipeline entry point; the
+/// service only produces the new version and writes it through to <c>AiPlanJson</c>.
 /// </summary>
 public class RefineCampaignPlanCommandHandler(
     IApplicationDbContext dbContext,
     ICurrentUserService currentUserService,
     ICurrentTenantContext currentTenantContext,
-    IAiTextGenerationService textGenerationService,
+    IPipelineStrategyRefinementService refinementService,
     ICoinCostProvider coinCostProvider)
     : IRequestHandler<RefineCampaignPlanCommand, Result<RefineCampaignPlanResponse>>
 {
@@ -38,19 +35,10 @@ public class RefineCampaignPlanCommandHandler(
             return Result<RefineCampaignPlanResponse>.Failure("Campaign not found.");
         }
 
-        if (string.IsNullOrWhiteSpace(campaign.AiPlanJson))
-        {
-            return Result<RefineCampaignPlanResponse>.Failure("Generate a strategy before refining it.");
-        }
-
-        if (campaign.PlanApprovedAt is not null)
-        {
-            return Result<RefineCampaignPlanResponse>.Failure("This campaign's strategy is already approved and can no longer be refined.");
-        }
-
         var brand = await dbContext.TenantBrandProfiles.FirstAsync(b => b.Id == campaign.BrandProfileId, cancellationToken);
 
-        var coinCost = await CoinPricingPolicy.GetDiscountedCostAsync(dbContext, tenantId, coinCostProvider.ReasoningConversation, cancellationToken);
+        var coinCost = await CoinPricingPolicy.GetDiscountedCostAsync(
+            dbContext, tenantId, coinCostProvider.ReasoningConversation, cancellationToken);
         var coinBalance = await CoinPolicy.GetBalanceAsync(dbContext, tenantId, userId, role, cancellationToken);
         if (coinBalance < coinCost)
         {
@@ -58,58 +46,19 @@ public class RefineCampaignPlanCommandHandler(
                 CoinPolicy.InsufficientCoinsMessage(coinCost, coinBalance, "refine the strategy"));
         }
 
-        var prompt = ContentPromptBuilder.BuildPlanRefinementPrompt(brand, campaign, campaign.AiPlanJson, request.Feedback);
-        var startedAt = DateTime.UtcNow;
-        var generation = await textGenerationService.GenerateTextAsync(prompt, cancellationToken);
-
-        var now = DateTime.UtcNow;
-
-        var job = new AiJob
-        {
-            Id = Guid.NewGuid(),
-            TenantId = tenantId,
-            BrandProfileId = brand.Id,
-            TriggeredBy = userId,
-            JobType = AiJobType.PlanGeneration,
-            Status = generation.Succeeded ? AiJobStatus.Completed : AiJobStatus.Failed,
-            InputParams = JsonSerializer.Serialize(new { prompt }),
-            OutputRefId = generation.Succeeded ? campaign.Id : null,
-            OutputRefType = "marketing_campaign",
-            Tokens = generation.TokensUsed,
-            ErrorMessage = generation.ErrorMessage,
-            StartedAt = startedAt,
-            CompletedAt = now,
-            CreatedAt = now
-        };
-        dbContext.AiJobs.Add(job);
-
-        if (!generation.Succeeded)
+        var refined = await refinementService.RefineAsync(brand, campaign, userId, request.Feedback, cancellationToken);
+        if (!refined.Succeeded)
         {
             await dbContext.SaveChangesAsync(cancellationToken);
-            return Result<RefineCampaignPlanResponse>.Failure(
-                generation.ErrorMessage ?? "Strategy refinement failed. Please try again.");
+            return Result<RefineCampaignPlanResponse>.Failure(refined.ErrorMessage!);
         }
 
-        // Only store what parses — see AiJsonResponseParser. Especially important here: this
-        // overwrites an existing, already-paid-for strategy, so an unreadable refinement must
-        // leave the previous plan intact rather than replacing it with something unrenderable.
-        var refinedJson = AiJsonResponseParser.ExtractJsonPayload(generation.Text);
-        if (refinedJson is null)
-        {
-            await dbContext.SaveChangesAsync(cancellationToken);
-            return Result<RefineCampaignPlanResponse>.Failure(
-                "The refined strategy could not be read. Your existing strategy is unchanged — please try again.");
-        }
-
-        campaign.AiPlanJson = refinedJson;
-        campaign.AiGeneratedAt = now;
-        campaign.UpdatedAt = now;
-
-        await CoinPolicy.TrySpendAsync(dbContext, tenantId, userId, role, coinCost, cancellationToken, reason: "refine_campaign_plan");
+        await CoinPolicy.TrySpendAsync(
+            dbContext, tenantId, userId, role, coinCost, cancellationToken, reason: "refine_campaign_plan");
 
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return Result<RefineCampaignPlanResponse>.Success(
-            new RefineCampaignPlanResponse(campaign.Id, campaign.AiPlanJson, now));
+            new RefineCampaignPlanResponse(campaign.Id, campaign.AiPlanJson!, campaign.AiGeneratedAt!.Value));
     }
 }

@@ -16,6 +16,8 @@ public class AiPipelineRunConfiguration : IEntityTypeConfiguration<AiPipelineRun
         builder.Property(r => r.Status).HasConversion<string>().HasMaxLength(30).IsRequired();
         builder.Property(r => r.CurrentStage).HasConversion<string>().HasMaxLength(40);
         builder.Property(r => r.LastError).HasColumnType("nvarchar(max)");
+        builder.Property(r => r.ContentLanguage).HasConversion<string>().HasMaxLength(5).IsRequired();
+        builder.Property(r => r.ContentTemplateStyle).HasConversion<string>().HasMaxLength(20).IsRequired();
         builder.Property(r => r.RowVersion).IsRowVersion();
 
         builder.HasOne(r => r.Tenant)

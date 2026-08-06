@@ -21,10 +21,10 @@ namespace Rawaj.Application.Features.AiPipeline.Executors;
 /// guidance needs its own database queries before the prompt can even be built, which
 /// <c>TextStageExecutor.BuildPrompt</c>'s synchronous contract has no room for.</para>
 ///
-/// <para><b>Post count, language and platforms are placeholder defaults</b> — the graph and
-/// <c>StageContext</c> carry no run-level parameters yet. That surface arrives with the orchestrator
-/// and API layer (see the tracker); until then this stage cannot honour a user's chosen post count or
-/// language, which is a known, tracked gap rather than an oversight.</para>
+/// <para>Post count, language, template style and whether to generate images at all come from
+/// <see cref="StageContext.Run"/>'s content parameters (<c>AiPipelineRun.ContentPostCount</c> etc.) —
+/// the one piece of run-level configuration the graph carries, since only this stage and
+/// <see cref="Executors.ContentImageExecutor"/> need any.</para>
 /// </summary>
 public class ContentPlanExecutor(
     IApplicationDbContext dbContext,
@@ -32,9 +32,6 @@ public class ContentPlanExecutor(
     IPromptTemplateProvider templates) : IPipelineStageExecutor
 {
     private const int MaxCompetitorInsights = 5;
-
-    /// <summary>Placeholder until run-level parameters exist — see the type doc.</summary>
-    private const int DefaultPostCount = 8;
 
     public AiPipelineStageKind Kind => AiPipelineStageKind.ContentPlan;
 
@@ -79,8 +76,9 @@ public class ContentPlanExecutor(
         var timingSummary = PostingTimeIntelligence.BuildSummary(timingSuggestions);
 
         var prompt = ContentPlanPrompt.Build(
-            context.Brand, campaign, competitorInsights, timingSummary, DefaultPostCount, platforms, Language.Ar,
-            context.Input(AiArtifactKind.Strategy), campaign.BriefJson);
+            context.Brand, campaign, competitorInsights, timingSummary, context.Run.ContentPostCount, platforms,
+            context.Run.ContentLanguage, context.Input(AiArtifactKind.Strategy), campaign.BriefJson,
+            context.Run.ContentTemplateStyle);
 
         if (context.RepairPrompt)
         {
@@ -141,7 +139,7 @@ public class ContentPlanExecutor(
                 GenerationMode = GenerationMode.Campaign,
                 ContentType = draft.ContentType,
                 Platform = draft.Platform,
-                Language = Language.Ar,
+                Language = context.Run.ContentLanguage,
                 Content = draft.Content,
                 Hashtags = draft.Hashtags,
                 Cta = draft.Cta,
@@ -158,6 +156,11 @@ public class ContentPlanExecutor(
             createdIds.Add(entity.Id);
         }
 
-        return StageResult.FannedOut(AiArtifactKind.ContentPlan, payload!, createdIds, [job.Id]);
+        // Opting out of images means no ContentImage stages at all — no VisualAsset rows, not even
+        // placeholders, matching GenerateCampaignContentCommandHandler's behaviour when a caller set
+        // IncludeImages to false.
+        return context.Run.ContentIncludeImages
+            ? StageResult.FannedOut(AiArtifactKind.ContentPlan, payload!, createdIds, [job.Id])
+            : StageResult.Success(AiArtifactKind.ContentPlan, payload!, [job.Id]);
     }
 }
