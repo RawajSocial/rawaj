@@ -1,4 +1,5 @@
 using Rawaj.Domain.Common;
+using Rawaj.Domain.Entities.AiOperations;
 using Rawaj.Domain.Entities.Tenants;
 using Rawaj.Domain.Enums;
 
@@ -36,6 +37,12 @@ public class ContentItem : BaseEntity, IConcurrencyAware
     /// generations, which have no image-planning step — callers must fall back.
     /// </summary>
     public string? ImagePrompt { get; set; }
+    /// <summary>The pipeline stage that produced this item, when it came from a campaign run. Null
+    /// for standalone generations and for everything created before the pipeline existed. It is what
+    /// makes the per-post image stages addressable: each ContentImage stage targets one item, so
+    /// "which post is this retry for" is a lookup rather than an inference.</summary>
+    public Guid? PipelineStageId { get; set; }
+
     public ContentStatus Status { get; set; }
     public Guid? ReviewedBy { get; set; }
     public DateTime? ReviewedAt { get; set; }
@@ -51,6 +58,7 @@ public class ContentItem : BaseEntity, IConcurrencyAware
 
     public MarketingCampaign? Campaign { get; set; }
     public TenantBrandProfile? BrandProfile { get; set; }
+    public AiPipelineStage? PipelineStage { get; set; }
     public ICollection<ContentRevision> Revisions { get; set; } = [];
     public ICollection<VisualAsset> VisualAssets { get; set; } = [];
 }

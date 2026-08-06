@@ -55,8 +55,17 @@ public class ContentItemConfiguration : IEntityTypeConfiguration<ContentItem>
             .HasForeignKey(c => c.ReviewedBy)
             .OnDelete(DeleteBehavior.Restrict);
 
+        // No cycle here, so this one can carry real behaviour: purging pipeline history detaches the
+        // provenance pointer and leaves the post itself alone. The post is the deliverable; which
+        // stage produced it is metadata.
+        builder.HasOne(c => c.PipelineStage)
+            .WithMany()
+            .HasForeignKey(c => c.PipelineStageId)
+            .OnDelete(DeleteBehavior.SetNull);
+
         builder.HasIndex(c => new { c.BrandProfileId, c.Status });
         builder.HasIndex(c => new { c.TenantId, c.Status });
+        builder.HasIndex(c => c.PipelineStageId);
 
         builder.HasQueryFilter(c => !c.IsDeleted);
     }

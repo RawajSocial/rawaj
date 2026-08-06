@@ -35,6 +35,20 @@ public class MarketingCampaignConfiguration : IEntityTypeConfiguration<Marketing
             .HasForeignKey(c => c.CreatedBy)
             .OnDelete(DeleteBehavior.Restrict);
 
+        // Both of these point into tables that point back at marketing_campaigns, so both must be
+        // NoAction — any delete behaviour here would be a second cascade path into the same table
+        // and SQL Server refuses the schema outright. Nothing is lost: a run and an approved
+        // strategy are history, and history should not evaporate because a campaign row went away.
+        builder.HasOne(c => c.CurrentPipelineRun)
+            .WithMany()
+            .HasForeignKey(c => c.CurrentPipelineRunId)
+            .OnDelete(DeleteBehavior.NoAction);
+
+        builder.HasOne(c => c.ApprovedStrategyArtifact)
+            .WithMany()
+            .HasForeignKey(c => c.ApprovedStrategyArtifactId)
+            .OnDelete(DeleteBehavior.NoAction);
+
         builder.HasIndex(c => new { c.BrandProfileId, c.Status });
 
         builder.HasQueryFilter(c => !c.IsDeleted);
