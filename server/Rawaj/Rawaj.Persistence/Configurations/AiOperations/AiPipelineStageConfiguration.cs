@@ -34,10 +34,8 @@ public class AiPipelineStageConfiguration : IEntityTypeConfiguration<AiPipelineS
             .HasForeignKey(s => s.ArtifactId)
             .OnDelete(DeleteBehavior.NoAction);
 
-        builder.HasOne(s => s.AiJob)
-            .WithMany()
-            .HasForeignKey(s => s.AiJobId)
-            .OnDelete(DeleteBehavior.NoAction);
+        // The stage→AiJob side is a collection, configured from the AiJob end (see
+        // AiJobConfiguration): a stage makes one call, several, or none at all.
 
         // One row per stage of a run — except the fan-out stages, which are distinguished by what
         // they act on (ContentImage: one row per ContentItem). SQL Server treats NULLs as equal in a

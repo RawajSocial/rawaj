@@ -48,6 +48,7 @@ public class ScrapeWebsiteCommandHandler(
         var job = new AiJob
         {
             Id = Guid.NewGuid(),
+            TenantId = tenantId,
             BrandProfileId = competitor.BrandProfileId,
             TriggeredBy = userId,
             JobType = AiJobType.RagIndex,

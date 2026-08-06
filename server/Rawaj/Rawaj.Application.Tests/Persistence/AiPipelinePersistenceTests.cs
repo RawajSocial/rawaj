@@ -218,6 +218,62 @@ public class AiPipelinePersistenceTests
         Assert.Null(cached.CampaignId);
     }
 
+    [Fact]
+    public async Task AiJobs_AreCountableByTenant_IncludingRowsWithNoBrandProfile()
+    {
+        var dbName = Guid.NewGuid().ToString();
+        var now = DateTime.UtcNow;
+        var (tenantId, brandProfileId, _) = await SeedAsync(dbName, now);
+
+        await using (var seedContext = TestDbContextFactory.Create(dbName))
+        {
+            seedContext.AiJobs.Add(new AiJob
+            {
+                Id = Guid.NewGuid(),
+                TenantId = tenantId,
+                BrandProfileId = brandProfileId,
+                TriggeredBy = Guid.NewGuid(),
+                JobType = AiJobType.PlanGeneration,
+                Status = AiJobStatus.Completed,
+                Provider = "Groq",
+                Model = "llama-3.3-70b-versatile",
+                LatencyMs = 4200,
+                CreatedAt = now
+            });
+
+            // A trial generation: no brand profile, which is why the old
+            // AiJobs-inner-join-TenantBrandProfiles usage query could never see it.
+            seedContext.AiJobs.Add(new AiJob
+            {
+                Id = Guid.NewGuid(),
+                TenantId = tenantId,
+                BrandProfileId = null,
+                TriggeredBy = Guid.NewGuid(),
+                JobType = AiJobType.ImageGeneration,
+                Status = AiJobStatus.Completed,
+                Provider = "HuggingFace",
+                CreatedAt = now
+            });
+
+            await seedContext.SaveChangesAsync(CancellationToken.None);
+        }
+
+        await using var readContext = TestDbContextFactory.Create(dbName);
+
+        var direct = await readContext.AiJobs.CountAsync(j => j.TenantId == tenantId);
+
+        // The shape of the query that was blind to trial rows, kept here as the contrast: it still
+        // returns 1, and that gap is the whole reason TenantId exists on this table.
+        var viaBrandJoin = await (
+            from job in readContext.AiJobs
+            join brand in readContext.TenantBrandProfiles on job.BrandProfileId equals brand.Id
+            where brand.TenantId == tenantId
+            select job.Id).CountAsync();
+
+        Assert.Equal(2, direct);
+        Assert.Equal(1, viaBrandJoin);
+    }
+
     private static async Task<(Guid TenantId, Guid BrandProfileId, Guid CampaignId)> SeedAsync(
         string dbName, DateTime now)
     {

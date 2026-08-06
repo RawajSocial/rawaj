@@ -117,6 +117,7 @@ public class GenerateCampaignContentCommandHandler(
         var job = new AiJob
         {
             Id = Guid.NewGuid(),
+            TenantId = tenantId,
             BrandProfileId = brand.Id,
             TriggeredBy = userId,
             JobType = AiJobType.ContentGeneration,
@@ -235,6 +236,7 @@ public class GenerateCampaignContentCommandHandler(
                 dbContext.AiJobs.Add(new AiJob
                 {
                     Id = Guid.NewGuid(),
+                    TenantId = tenantId,
                     BrandProfileId = brand.Id,
                     TriggeredBy = userId,
                     JobType = AiJobType.ImageGeneration,

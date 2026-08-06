@@ -67,6 +67,7 @@ public class RefineCampaignPlanCommandHandler(
         var job = new AiJob
         {
             Id = Guid.NewGuid(),
+            TenantId = tenantId,
             BrandProfileId = brand.Id,
             TriggeredBy = userId,
             JobType = AiJobType.PlanGeneration,

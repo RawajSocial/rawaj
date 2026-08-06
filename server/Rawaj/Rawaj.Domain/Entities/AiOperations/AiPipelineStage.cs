@@ -71,10 +71,6 @@ public class AiPipelineStage : BaseEntity
     /// (docs/AI_PIPELINE.md §7).</summary>
     public int CoinsCharged { get; set; }
 
-    /// <summary>The provider-call log row for this stage's work, when it made one. Pure stages
-    /// (StrategyAssemble, HumanApproval) and cache hits leave this null.</summary>
-    public Guid? AiJobId { get; set; }
-
     public string? LastError { get; set; }
 
     /// <summary>What kind of failure the last one was, which decides the retry policy — a parse
@@ -95,5 +91,10 @@ public class AiPipelineStage : BaseEntity
 
     public AiPipelineRun Run { get; set; } = null!;
     public AiArtifact? Artifact { get; set; }
-    public AiJob? AiJob { get; set; }
+
+    /// <summary>The provider calls this stage made — plural, because one stage is not one call: the
+    /// research stages issue a Tavily search and then a Groq synthesis, and a parse-repair re-ask is
+    /// a second call to the same model. Pure stages (StrategyAssemble, HumanApproval) and cache hits
+    /// make none.</summary>
+    public ICollection<AiJob> AiJobs { get; set; } = [];
 }
