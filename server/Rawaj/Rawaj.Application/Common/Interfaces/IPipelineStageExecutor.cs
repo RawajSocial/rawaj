@@ -48,6 +48,12 @@ public sealed record StageContext(
 /// <param name="AiJobIds">Provider-call log rows this stage created, so the orchestrator can point
 /// them at the stage. Plural because one stage can make several calls — a research stage searches
 /// and then synthesises.</param>
+/// <param name="ReusedArtifactId">Set when the stage satisfied itself from an existing artifact
+/// instead of generating one. The orchestrator points the stage at it and charges nothing: no
+/// provider was called, so there is nothing to bill for. Distinct from producing an artifact, which
+/// would otherwise write a needless duplicate version of identical content.</param>
+/// <param name="InputHash">The fingerprint of what this execution was based on, recorded on the
+/// stage so a later re-invocation can tell whether anything has actually changed.</param>
 public sealed record StageResult(
     bool Succeeded,
     string? ArtifactJson = null,
@@ -56,7 +62,9 @@ public sealed record StageResult(
     AiFailureKind? FailureKind = null,
     string? ErrorMessage = null,
     IReadOnlyList<Guid>? FanOutTargets = null,
-    IReadOnlyList<Guid>? AiJobIds = null)
+    IReadOnlyList<Guid>? AiJobIds = null,
+    Guid? ReusedArtifactId = null,
+    string? InputHash = null)
 {
     public static StageResult Success(AiArtifactKind kind, string artifactJson, IReadOnlyList<Guid>? aiJobIds = null) =>
         new(true, artifactJson, kind, AiJobIds: aiJobIds);
@@ -69,6 +77,10 @@ public sealed record StageResult(
     /// <summary>Completed and produced no artifact — approval, and the image stages.</summary>
     public static StageResult Completed(IReadOnlyList<Guid>? aiJobIds = null) =>
         new(true, AiJobIds: aiJobIds);
+
+    /// <summary>Satisfied from an existing artifact — no provider call, nothing to charge.</summary>
+    public static StageResult Reused(Guid artifactId) =>
+        new(true, ReusedArtifactId: artifactId, ValueDelivered: false);
 
     public static StageResult FannedOut(
         AiArtifactKind kind, string artifactJson, IReadOnlyList<Guid> targets, IReadOnlyList<Guid>? aiJobIds = null) =>
