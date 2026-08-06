@@ -1,5 +1,8 @@
-import { Component, computed, inject, input, OnInit, output, signal } from '@angular/core';
+import { Component, computed, effect, inject, input, OnDestroy, OnInit, output, signal } from '@angular/core';
+import { from } from 'rxjs';
+import { concatMap, map } from 'rxjs/operators';
 import { CampaignService } from '../../../services/campaign.service';
+import { AiPipelineService } from '../../../services/ai-pipeline.service';
 import { CoinPricingService } from '../../../services/coin-pricing.service';
 import { ErrorModalService } from '../../../services/error-modal.service';
 import { CelebrationModalService } from '../../../services/celebration-modal.service';
@@ -11,6 +14,7 @@ import { GsapRevealDirective } from '../../../shared/directives/gsap-reveal.dire
 import {
   BusinessDiagnosis, CampaignStrategy, CompetitorResearch,
 } from '../../../model/campaign.model';
+import { AiPipelineStageKind, AiPipelineStageStatus, GetRunStatusResponse } from '../../../model/ai-pipeline.model';
 
 // ──── Platform metadata — used for recommendedPlatforms, audiencePlatforms and existingPlatforms,
 // all of which reference the same slug set the onboarding wizard collects. ──
@@ -54,7 +58,7 @@ const PRICE_POSITIONING_LABELS: Partial<Record<string, string>> = { budget: 'ا�
   templateUrl: './onboarding-plan-approval.html',
   styleUrl: './onboarding-plan-approval.css',
 })
-export class OnboardingPlanApproval implements OnInit {
+export class OnboardingPlanApproval implements OnInit, OnDestroy {
   readonly data       = input<ApprovalOnboardingData | null>(null);
   readonly campaignId = input<string | null>(null);
   /** Label for the "back" action — the onboarding wizard goes back a step ("تعديل البيانات"),
@@ -70,20 +74,36 @@ export class OnboardingPlanApproval implements OnInit {
   readonly back       = output<void>();
 
   private readonly campaignService = inject(CampaignService);
+  private readonly aiPipelineService = inject(AiPipelineService);
   private readonly coinPricingService = inject(CoinPricingService);
   private readonly errorModalService = inject(ErrorModalService);
   private readonly celebrationModalService = inject(CelebrationModalService);
   protected readonly perms = inject(PermissionService);
 
-  // ── Real AI pipeline state (research → diagnosis → strategy) — this IS the plan; there is no
-  // separate locally-fabricated "plan" model here. Each stage's `*Done` flag flips independently
-  // (in both the success and error path of its call) so every section of the review below can
-  // reveal itself the moment its own data is ready, instead of the whole page waiting on the
-  // slowest of the three calls. ──
+  // ── Real AI pipeline state (research → diagnosis → strategy), now server-side: a run started
+  // through AiPipelineService advances on its own (worker-driven), and this component only polls
+  // GetRunStatus and reflects what it sees — there is no separate locally-fabricated "plan" model
+  // here, and no client-side chain of one-call-per-stage requests either. Each stage's `*Done` flag
+  // flips independently, the moment ITS OWN stage reaches a terminal status, so every section of
+  // the review below can reveal itself as its data actually lands rather than the whole page
+  // waiting on the slowest of the three. ──
   protected readonly competitorResearch = signal<CompetitorResearch | null>(null);
   protected readonly diagnosis          = signal<BusinessDiagnosis | null>(null);
   protected readonly strategy           = signal<CampaignStrategy | null>(null);
   protected readonly pipelineError      = signal<string | null>(null);
+
+  /** The active run's id, once `AiPipelineService.start()` succeeds — needed to call `runStage`/
+   *  `resume` on it later (see `retryStrategy`). */
+  protected readonly runId = signal<string | null>(null);
+  /** True while the run is parked short of coins. Self-heals: the backend worker keeps retrying
+   *  the blocked stage on its own poll cycle and clears this the moment a top-up lands, so this is
+   *  informational only — nothing here needs a "resume" button for it. */
+  protected readonly awaitingCoins = computed(() => this.aiPipelineService.run()?.status === 'AwaitingCoins');
+
+  /** Which of the three watched stages this component has already reacted to becoming terminal —
+   *  guards against re-fetching the campaign (and re-flipping an already-true `*Done` flag) on
+   *  every single poll tick once a stage is done. */
+  private readonly seenTerminalStages = new Set<AiPipelineStageKind>();
 
   /** Whether the campaign has a strategy stored server-side, which is a different question from
    *  whether `strategy()` parsed. `ApproveCampaignPlanCommandHandler` gates approval on
@@ -186,6 +206,13 @@ export class OnboardingPlanApproval implements OnInit {
 
   constructor() {
     this.coinPricingService.ensureLoaded();
+    effect(() => this.handleRunUpdate(this.aiPipelineService.run()));
+  }
+
+  ngOnDestroy(): void {
+    // Stops polling and drops the held run — otherwise a later page reusing this singleton service
+    // would briefly render a previous campaign's status before its own first poll lands.
+    this.aiPipelineService.clear();
   }
 
   ngOnInit(): void {
@@ -236,7 +263,7 @@ export class OnboardingPlanApproval implements OnInit {
       this.strategyDone.set(true);
       return;
     }
-    this.runPipeline(campaignId);
+    this.startPipelineRun(campaignId);
   }
 
   /** The explicit "generate my strategy" action behind `awaitingGenerateConsent`. */
@@ -249,7 +276,7 @@ export class OnboardingPlanApproval implements OnInit {
     this.strategyDone.set(false);
     this.hasServerPlan.set(false);
     this.pipelineError.set(null);
-    this.runPipeline(campaignId);
+    this.startPipelineRun(campaignId);
   }
 
   /** True once the pipeline has finished but produced no usable strategy — the model call failed,
@@ -271,82 +298,134 @@ export class OnboardingPlanApproval implements OnInit {
     return '';
   });
 
-  /** Re-runs only the strategy step after a failure. Research and diagnosis already succeeded and
-   *  were already paid for, so re-running the whole pipeline would charge for them twice.
-   *  `GenerateMarketingPlanCommandHandler` charges only after a successful generation (it returns
-   *  before `CoinPolicy.TrySpendAsync` when the model call fails), so the failed attempt cost
-   *  nothing and this retry is not a double-charge. */
+  /** Retries whichever stage(s) actually failed — almost always just `StrategyAssemble`, but a
+   *  required upstream stage (e.g. `CampaignAnalysis`) can fail the run before assembly is ever
+   *  reached, and both must be retried the same way. Research and diagnosis stages that already
+   *  succeeded are untouched and not re-charged — `RunStageCommand` only resets the one stage
+   *  named, and `AiPipelineCoinPolicy` never charges a stage twice regardless. */
   protected retryStrategy(): void {
-    const campaignId = this.campaignId();
-    if (!campaignId || !this.strategyFailed() || !this.perms.canEdit()) return;
+    const runId = this.runId();
+    const run = this.aiPipelineService.run();
+    if (!runId || !run || !this.strategyFailed() || !this.perms.canEdit()) return;
+
+    const failedKinds = run.stages.filter(s => s.status === 'Failed').map(s => s.kind);
+
     this.pipelineError.set(null);
     this.strategyDone.set(false);
-    this.runStrategy(campaignId);
-  }
+    this.seenTerminalStages.delete('StrategyAssemble');
 
-  /** Runs the real research → diagnosis → strategy pipeline once, in order, against the campaign
-   *  the wizard just created. Competitor research is best-effort and never blocks progress — a
-   *  Tavily failure just means the "unavailable" note renders instead of competitor cards. Every
-   *  charged step refreshes the coin balance so the header chip never lags behind the spend. */
-  private runPipeline(campaignId: string): void {
-    this.campaignService.researchCompetitors(campaignId).subscribe({
-      next: res => {
-        if (res.data) {
-          this.competitorResearch.set(this.parseJson<CompetitorResearch>(res.data.competitorResearchJson));
-        }
-        this.researchDone.set(true);
-        this.coinPricingService.refreshAfterSpend();
-        this.runDiagnosis(campaignId);
+    // No stage on record as Failed (e.g. the page was reloaded and lost the run's stage detail) —
+    // ask the backend to resume instead; a safe no-op if there is genuinely nothing left to do.
+    const retry$ = failedKinds.length > 0
+      ? from(failedKinds).pipe(concatMap(kind => this.aiPipelineService.runStage(runId, kind)), map(() => undefined))
+      : this.aiPipelineService.resume(runId).pipe(map(() => undefined));
+
+    retry$.subscribe({
+      error: (err: unknown) => {
+        this.pipelineError.set(extractApiErrorMessage(err, 'تعذّر إعادة توليد الاستراتيجية.'));
+        this.strategyDone.set(true);
       },
-      error: () => {
-        this.researchDone.set(true);
-        this.coinPricingService.refreshAfterSpend();
-        this.runDiagnosis(campaignId); // best-effort — proceed regardless
-      },
+      complete: () => this.aiPipelineService.startPolling(runId),
     });
   }
 
-  private runDiagnosis(campaignId: string): void {
-    this.campaignService.diagnoseBusiness(campaignId).subscribe({
+  /** Starts a pipeline run for the campaign and begins polling its status. Replaces what used to
+   *  be three sequential HTTP calls (research → diagnosis → strategy) hand-chained here — the
+   *  worker now advances the run on its own, usually finishing all three in the time between two
+   *  polls, and this component only reflects what `GetRunStatus` reports. */
+  private startPipelineRun(campaignId: string): void {
+    this.seenTerminalStages.clear();
+    this.aiPipelineService.start(campaignId).subscribe({
       next: res => {
-        if (res.data) this.diagnosis.set(this.parseJson<BusinessDiagnosis>(res.data.diagnosisJson));
-        this.diagnosisDone.set(true);
-        this.coinPricingService.refreshAfterSpend();
-        this.runStrategy(campaignId);
+        const startedRunId = res.data?.runId;
+        if (!startedRunId) {
+          this.failPipelineStart('تعذّر بدء توليد الاستراتيجية.');
+          return;
+        }
+        this.runId.set(startedRunId);
+        this.aiPipelineService.startPolling(startedRunId);
       },
-      error: err => {
-        this.pipelineError.set(extractApiErrorMessage(err, 'تعذّر إعداد تحليل النشاط.'));
-        this.diagnosisDone.set(true);
-        this.coinPricingService.refreshAfterSpend();
-        this.runStrategy(campaignId); // still attempt the strategy — diagnosis is advisory input to it
-      },
+      // Most likely cause: a run is already in progress for this campaign (e.g. the page was
+      // reloaded mid-generation) — the backend refuses a second one rather than double-charging.
+      // There is currently no way for this page to discover and resume that existing run instead
+      // (closing that gap, the same one C22 documents for the content page, is tracked as a
+      // follow-up); showing the real reason is still strictly better than the pre-C21 behaviour,
+      // which silently re-ran and re-charged research and diagnosis on every reload.
+      error: err => this.failPipelineStart(extractApiErrorMessage(err, 'تعذّر بدء توليد الاستراتيجية.')),
     });
   }
 
-  private runStrategy(campaignId: string): void {
-    this.campaignService.generatePlan(campaignId).subscribe({
-      next: res => {
-        if (res.data?.aiPlanJson) this.hasServerPlan.set(true);
-        const parsed = res.data ? this.parseJson<CampaignStrategy>(res.data.aiPlanJson) : null;
-        this.strategy.set(parsed);
-        // A 200 whose body doesn't parse into the expected shape is still a failed generation as
-        // far as the user is concerned — without this it looked like a success that silently
-        // rendered nothing. (The backend now rejects unparseable output rather than storing it,
-        // so this should no longer be reachable for new generations; kept as a safety net.)
-        if (!parsed) {
-          this.pipelineError.set('تعذّر قراءة الاستراتيجية التي وصلت من الذكاء الاصطناعي. أعد المحاولة.');
-        }
-        this.strategyDone.set(true);
-        this.coinPricingService.refreshAfterSpend();
-      },
-      error: err => {
-        // The old message promised the user could "try again or continue with the initial plan" —
-        // neither existed: there was no retry control, and there is no initial plan to continue
-        // with. The recovery card in the template now provides the retry this refers to.
-        this.pipelineError.set(extractApiErrorMessage(err, 'تعذّر توليد الاستراتيجية.'));
-        this.strategyDone.set(true);
-        this.coinPricingService.refreshAfterSpend();
-      },
+  private failPipelineStart(message: string): void {
+    this.pipelineError.set(message);
+    this.researchDone.set(true);
+    this.diagnosisDone.set(true);
+    this.strategyDone.set(true);
+  }
+
+  /** Reflects the polled run status onto this page's state: flips a stage's `*Done` flag the
+   *  moment ITS OWN row reaches a terminal status (not when the whole run finishes), and refetches
+   *  the campaign row exactly once per newly-terminal stage — `CompetitorResearchJson`/
+   *  `DiagnosisJson`/`AiPlanJson` are write-through projections (see docs/AI_PIPELINE.md §11), so
+   *  reading them back off the campaign is simpler than parsing three different artifact shapes. */
+  private handleRunUpdate(run: GetRunStatusResponse | null): void {
+    if (!run) return;
+
+    const watched: [AiPipelineStageKind, () => void][] = [
+      ['CompetitorResearch', () => this.researchDone.set(true)],
+      ['CampaignAnalysis', () => this.diagnosisDone.set(true)],
+      ['StrategyAssemble', () => this.strategyDone.set(true)],
+    ];
+
+    let newlyTerminal = false;
+    for (const [kind, markDone] of watched) {
+      if (this.seenTerminalStages.has(kind)) continue;
+      const stage = run.stages.find(s => s.kind === kind);
+      if (!stage || !this.isStageTerminal(stage.status)) continue;
+      this.seenTerminalStages.add(kind);
+      markDone();
+      newlyTerminal = true;
+    }
+
+    if (newlyTerminal) {
+      const campaignId = this.campaignId();
+      if (campaignId) this.refreshFromCampaign(campaignId);
+    }
+
+    if (run.status === 'Failed') {
+      // A stage the three watched kinds never cover (BrandAnalysis, or one of the strategy
+      // sub-stages) can fail the run before any watched stage is ever attempted — without this the
+      // progress strip would spin forever, since nothing here would ever mark it finished.
+      this.researchDone.set(true);
+      this.diagnosisDone.set(true);
+      this.strategyDone.set(true);
+      if (!this.pipelineError()) {
+        this.pipelineError.set(run.lastError ?? 'تعذّر إكمال توليد الاستراتيجية.');
+      }
+    }
+  }
+
+  private isStageTerminal(status: AiPipelineStageStatus): boolean {
+    return status === 'Completed' || status === 'Skipped' || status === 'Failed';
+  }
+
+  /** Re-reads the campaign row for whichever of `competitorResearchJson`/`diagnosisJson`/
+   *  `aiPlanJson` the write-through has populated so far — a column still `null` at this point just
+   *  hasn't been reached yet (or its stage failed outright) and is left as-is rather than clobbered. */
+  private refreshFromCampaign(campaignId: string): void {
+    this.campaignService.getCampaign(campaignId).subscribe(res => {
+      const d = res.data;
+      if (!d) return;
+      if (d.competitorResearchJson) {
+        this.competitorResearch.set(this.parseJson<CompetitorResearch>(d.competitorResearchJson));
+      }
+      if (d.diagnosisJson) {
+        this.diagnosis.set(this.parseJson<BusinessDiagnosis>(d.diagnosisJson));
+      }
+      if (d.aiPlanJson) {
+        this.strategy.set(this.parseJson<CampaignStrategy>(d.aiPlanJson));
+        this.hasServerPlan.set(true);
+      }
+      this.coinPricingService.refreshAfterSpend();
     });
   }
 

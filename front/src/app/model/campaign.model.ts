@@ -174,33 +174,8 @@ export interface UpdateCampaignInput {
   briefJson?: string;
 }
 
-/** POST /api/v1/campaigns/{id}/research-competitors — ResearchCampaignCompetitorsResponse.
- *  Succeeded reflects whether Tavily actually returned usable data — the endpoint itself never
- *  fails the flow, so a false here means "show an unavailable note", not an error. */
-export interface ResearchCampaignCompetitorsResponse {
-  campaignId: string;
-  competitorResearchJson: string;
-  succeeded: boolean;
-  note?: string | null;
-  researchedAt: string;
-}
-
-/** POST /api/v1/campaigns/{id}/diagnose-business — GenerateBusinessDiagnosisResponse */
-export interface GenerateBusinessDiagnosisResponse {
-  campaignId: string;
-  diagnosisJson: string;
-  diagnosedAt: string;
-}
-
 /** POST /api/v1/campaigns/{id}/refine-plan — RefineCampaignPlanResponse */
 export interface RefineCampaignPlanResponse {
-  campaignId: string;
-  aiPlanJson: string;
-  aiGeneratedAt: string;
-}
-
-/** POST /api/v1/campaigns/{id}/generate-plan — GenerateMarketingPlanResponse */
-export interface GenerateMarketingPlanResponse {
   campaignId: string;
   aiPlanJson: string;
   aiGeneratedAt: string;

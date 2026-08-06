@@ -7,9 +7,9 @@ import { PagedResult } from '../model/paged-result.model';
 import {
   ApproveCampaignPlanResponse, BACKEND_TO_CAMPAIGN_PLATFORM, BACKEND_TO_CAMPAIGN_STATUS,
   Campaign, CampaignPlatform, CampaignSummary,
-  CreateCampaignInput, CreateCampaignResponse, GenerateBusinessDiagnosisResponse,
-  GenerateMarketingPlanResponse, GetCampaignResponse, RefineCampaignPlanResponse,
-  ResearchCampaignCompetitorsResponse, ScheduleCampaignPostsResponse, UnarchiveCampaignResponse,
+  CreateCampaignInput, CreateCampaignResponse,
+  GetCampaignResponse, RefineCampaignPlanResponse,
+  ScheduleCampaignPostsResponse, UnarchiveCampaignResponse,
   UpdateCampaignInput,
 } from '../model/campaign.model';
 import { GenerateCampaignContentInput, GenerateCampaignContentResponse } from '../model/content-item.model';
@@ -172,28 +172,6 @@ export class CampaignService {
 
   getCampaign(campaignId: string): Observable<ApiResponse<GetCampaignResponse>> {
     return this.http.get<ApiResponse<GetCampaignResponse>>(`${this.baseUrl}/${campaignId}`);
-  }
-
-  /** Best-effort Tavily competitor research — charges coins only when it actually finds data;
-   *  never throws a "flow failure" the caller needs to special-case (see backend doc comment). */
-  researchCompetitors(campaignId: string): Observable<ApiResponse<ResearchCampaignCompetitorsResponse>> {
-    return this.http.post<ApiResponse<ResearchCampaignCompetitorsResponse>>(
-      `${this.baseUrl}/${campaignId}/research-competitors`, {},
-    );
-  }
-
-  /** "What we understood about your business" — AI Business Diagnosis (4,000 coins). */
-  diagnoseBusiness(campaignId: string): Observable<ApiResponse<GenerateBusinessDiagnosisResponse>> {
-    return this.http.post<ApiResponse<GenerateBusinessDiagnosisResponse>>(
-      `${this.baseUrl}/${campaignId}/diagnose-business`, {},
-    );
-  }
-
-  /** Complete Marketing Strategy — free on the tenant's first campaign, 12,000 coins after. */
-  generatePlan(campaignId: string): Observable<ApiResponse<GenerateMarketingPlanResponse>> {
-    return this.http.post<ApiResponse<GenerateMarketingPlanResponse>>(
-      `${this.baseUrl}/${campaignId}/generate-plan`, {},
-    );
   }
 
   /** Free-text "عدّل الخطة" refinement — AI Reasoning Conversation (2,500 coins). */
