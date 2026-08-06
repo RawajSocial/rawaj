@@ -28,6 +28,9 @@ public interface IApplicationDbContext
     DbSet<ContentRevision> ContentRevisions { get; }
     DbSet<VisualAsset> VisualAssets { get; }
     DbSet<AiJob> AiJobs { get; }
+    DbSet<AiPipelineRun> AiPipelineRuns { get; }
+    DbSet<AiPipelineStage> AiPipelineStages { get; }
+    DbSet<AiArtifact> AiArtifacts { get; }
     DbSet<Competitor> Competitors { get; }
     DbSet<RagDocument> RagDocuments { get; }
     DbSet<SocialAccount> SocialAccounts { get; }
