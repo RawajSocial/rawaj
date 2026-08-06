@@ -19,6 +19,7 @@ public static class DependencyInjection
         services.AddScoped<ICurrentTenantContext, CurrentTenantContext>();
         services.AddScoped<TenantProvisioningService>();
         services.AddScoped<IPipelineArtifactStore, PipelineArtifactStore>();
+        services.AddSingleton<IPromptTemplateProvider, PromptTemplateProvider>();
 
         // Stage executors are resolved as a set and matched on their Kind, so adding a stage is one
         // new class plus one entry in AiPipelinePolicy.Graph — never an edit to a dispatch switch.

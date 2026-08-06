@@ -1,54 +1,25 @@
+using Rawaj.Application.Features.AiPipeline.Prompts;
 using Rawaj.Domain.Entities.Campaigns;
 using Rawaj.Domain.Entities.Tenants;
 using Rawaj.Domain.Enums;
 
 namespace Rawaj.Application.Features.Content.Common;
 
+/// <summary>
+/// Prompts for the standalone (non-pipeline) generators — single content items, revisions, trial
+/// generations — plus the prompts still used by the campaign handlers the pipeline will replace.
+///
+/// <para>The pipeline's own prompts have moved to <c>Features/AiPipeline/Prompts/</c>, one file per
+/// stage, sharing <see cref="PromptFragments"/>. The methods below that a pipeline stage also needs
+/// now delegate there, so both paths produce identical text and there is no second copy to drift.</para>
+/// </summary>
 public static class ContentPromptBuilder
 {
-    /// <summary>
-    /// Closing instruction on every image prompt. Diffusion models render text badly at the best of
-    /// times and near-unreadably in Arabic script, so a prompt carrying Arabic marketing copy used
-    /// to come back with mangled pseudo-Arabic lettering baked into the picture. Asking for a clean
-    /// image with no lettering, and stating the prompt language explicitly, is what keeps the output
-    /// usable — the caption stays where it belongs, next to the image, not inside it.
-    /// </summary>
-    private const string NoRenderedTextInstruction =
-        "Render a clean photographic or illustrative image with no words, letters, captions, logos or watermarks " +
-        "anywhere in it. Interpret this prompt as English.";
+    /// <inheritdoc cref="PromptFragments.NoRenderedTextInstruction"/>
+    private const string NoRenderedTextInstruction = PromptFragments.NoRenderedTextInstruction;
 
-    private static void AddBrandIdentityLines(List<string> lines, TenantBrandProfile brand)
-    {
-        if (!string.IsNullOrWhiteSpace(brand.Description))
-        {
-            lines.Add($"Brand description: {brand.Description}.");
-        }
-
-        if (!string.IsNullOrWhiteSpace(brand.BrandInfo?.Tagline))
-        {
-            lines.Add($"Brand tagline: {brand.BrandInfo.Tagline}.");
-        }
-
-        if (!string.IsNullOrWhiteSpace(brand.BrandInfo?.Industry))
-        {
-            lines.Add($"Industry: {brand.BrandInfo.Industry}.");
-        }
-
-        if (!string.IsNullOrWhiteSpace(brand.BrandInfo?.TargetAudience))
-        {
-            lines.Add($"Target audience: {brand.BrandInfo.TargetAudience}.");
-        }
-
-        if (brand.BrandInfo?.Keywords is { Count: > 0 })
-        {
-            lines.Add($"Relevant keywords: {string.Join(", ", brand.BrandInfo.Keywords)}.");
-        }
-
-        if (brand.BrandVoice.HasValue)
-        {
-            lines.Add($"Brand voice: {brand.BrandVoice}.");
-        }
-    }
+    private static void AddBrandIdentityLines(List<string> lines, TenantBrandProfile brand) =>
+        PromptFragments.AddBrandIdentity(lines, brand);
 
     public static string BuildTextPrompt(
         TenantBrandProfile brand,
@@ -264,6 +235,7 @@ public static class ContentPromptBuilder
     /// already built on top of it, so including it again would spend tokens re-stating grounding
     /// the strategy has absorbed.
     /// </param>
+    /// <inheritdoc cref="ContentPlanPrompt.Build"/>
     public static string BuildCampaignContentPlanPrompt(
         TenantBrandProfile brand,
         MarketingCampaign campaign,
@@ -274,78 +246,10 @@ public static class ContentPromptBuilder
         Language language,
         string? strategyJson = null,
         string? briefJson = null,
-        ContentTemplateStyle templateStyle = ContentTemplateStyle.Auto)
-    {
-        var lines = new List<string>
-        {
-            $"Create {postCount} distinct social media posts for the campaign \"{campaign.Name}\" for the brand \"{brand.Name}\", " +
-            $"written in {language}, distributed across these platforms: {string.Join(", ", platforms)}."
-        };
-
-        AddBrandIdentityLines(lines, brand);
-
-        if (!string.IsNullOrWhiteSpace(campaign.Objective))
-        {
-            lines.Add($"Campaign objective: {campaign.Objective}.");
-        }
-
-        if (campaign.StartDate.HasValue && campaign.EndDate.HasValue)
-        {
-            lines.Add($"Campaign runs from {campaign.StartDate} to {campaign.EndDate}.");
-        }
-
-        if (!string.IsNullOrWhiteSpace(strategyJson))
-        {
-            lines.Add(
-                "This campaign already has a marketing strategy that the business owner reviewed and approved. " +
-                "These posts are the execution of that strategy, so follow it: draw the themes from its " +
-                "campaignBlueprint.pillars and keyThemes, respect its contentMix when choosing each post's " +
-                "contentType, and keep the voice consistent with its brandStrategy and marketingStrategy. " +
-                "Approved strategy JSON: " + strategyJson);
-        }
-
-        if (!string.IsNullOrWhiteSpace(briefJson))
-        {
-            lines.Add(
-                "The business's own onboarding answers, including their replies to AI follow-up questions — use " +
-                "these for audience and tone specifics: " + briefJson);
-        }
-
-        if (competitorInsights.Count > 0)
-        {
-            lines.Add("Known competitor intelligence: " + string.Join(" | ", competitorInsights));
-        }
-
-        if (!string.IsNullOrWhiteSpace(postingTimeSummary))
-        {
-            lines.Add("Optimal posting time guidance: " + postingTimeSummary);
-        }
-
-        lines.Add(
-            $"For each post choose a dayOffset (integer, 0 = campaign start day, {postCount * 2} = latest allowed) and an hour " +
-            "(0-23) that best matches the posting time guidance above. contentType must be one of: " +
-            "Post, Story, ReelScript, AdCopy, Blog, Caption. platform must be one of the target platforms listed above.");
-
-        // The image model is trained on English captions and renders Arabic prompts poorly, and the
-        // post copy itself is persuasion, not a description of a picture — so the model that writes
-        // the post also writes a separate English description of the image to accompany it.
-        lines.Add(
-            "For each post also write an \"imagePrompt\": a description of the photo or illustration that should " +
-            "accompany it, for a text-to-image model. The imagePrompt MUST be written in English even when the post " +
-            "copy is in another language, and it must describe what is literally visible in the picture — subject, " +
-            "setting, composition, lighting, mood, style — not the marketing message. Do not put slogans, calls to " +
-            "action, hashtags, prices or any text-to-be-rendered in it. Keep it under 60 words.");
-
-        lines.Add(ContentTemplateCatalog.StructureGuidance(templateStyle));
-
-        lines.Add(
-            "Respond with ONLY a valid JSON object (no markdown fences, no commentary) with this exact shape: " +
-            "{\"posts\":[{\"platform\":\"...\",\"contentType\":\"...\",\"dayOffset\":0,\"hour\":18,\"content\":\"...\"," +
-            "\"hashtags\":[\"...\"],\"cta\":\"...\",\"imagePrompt\":\"...\"}]}. " +
-            $"Return exactly {postCount} posts in the array.");
-
-        return string.Join(" ", lines);
-    }
+        ContentTemplateStyle templateStyle = ContentTemplateStyle.Auto) =>
+        ContentPlanPrompt.Build(
+            brand, campaign, competitorInsights, postingTimeSummary, postCount, platforms, language,
+            strategyJson, briefJson, templateStyle);
 
     /// <summary>
     /// Refines an already-generated campaign strategy by free-text feedback, mirroring how
@@ -382,35 +286,8 @@ public static class ContentPromptBuilder
         MarketingCampaign? campaign,
         string visualType,
         string userPrompt,
-        ContentTemplateStyle templateStyle = ContentTemplateStyle.Auto)
-    {
-        var lines = new List<string> { userPrompt, $"Style fits a {visualType} for the brand \"{brand.Name}\"." };
-
-        if (!string.IsNullOrWhiteSpace(brand.BrandInfo?.Industry))
-        {
-            lines.Add($"Industry: {brand.BrandInfo.Industry}.");
-        }
-
-        if (brand.BrandInfo?.Colors is { Count: > 0 })
-        {
-            lines.Add($"Use brand colors: {string.Join(", ", brand.BrandInfo.Colors)}.");
-        }
-
-        if (brand.BrandInfo?.Keywords is { Count: > 0 })
-        {
-            lines.Add($"Relevant keywords: {string.Join(", ", brand.BrandInfo.Keywords)}.");
-        }
-
-        if (campaign is not null)
-        {
-            lines.Add($"Campaign context: {campaign.Name}.");
-        }
-
-        lines.Add(ContentTemplateCatalog.ImageStyleHint(templateStyle));
-        lines.Add(NoRenderedTextInstruction);
-
-        return string.Join(" ", lines);
-    }
+        ContentTemplateStyle templateStyle = ContentTemplateStyle.Auto) =>
+        VisualPrompt.Build(brand, campaign, visualType, userPrompt, templateStyle);
 
     /// <summary>Text prompt for a "standalone" generation with no brand profile (trying the product
     /// out) — same shape as <see cref="BuildTextPrompt"/> minus every brand-identity line.</summary>
@@ -447,11 +324,6 @@ public static class ContentPromptBuilder
 
     /// <summary>Image prompt for a "standalone" generation with no brand profile — see
     /// <see cref="BuildStandaloneTextPrompt"/>.</summary>
-    public static string BuildStandaloneImagePrompt(string visualType, string userPrompt, ContentTemplateStyle templateStyle = ContentTemplateStyle.Auto)
-    {
-        var lines = new List<string> { userPrompt, $"Style fits a {visualType}." };
-        lines.Add(ContentTemplateCatalog.ImageStyleHint(templateStyle));
-        lines.Add(NoRenderedTextInstruction);
-        return string.Join(" ", lines);
-    }
+    public static string BuildStandaloneImagePrompt(string visualType, string userPrompt, ContentTemplateStyle templateStyle = ContentTemplateStyle.Auto) =>
+        VisualPrompt.BuildStandalone(visualType, userPrompt, templateStyle);
 }
