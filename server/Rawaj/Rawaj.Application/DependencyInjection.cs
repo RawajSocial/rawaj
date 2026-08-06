@@ -23,6 +23,7 @@ public static class DependencyInjection
         services.AddSingleton<IPromptTemplateProvider, PromptTemplateProvider>();
         services.AddScoped<IPipelineApprovalService, PipelineApprovalService>();
         services.AddScoped<IPipelineStrategyRefinementService, PipelineStrategyRefinementService>();
+        services.AddScoped<IPipelineOrchestrator, PipelineOrchestrator>();
 
         // Stage executors are resolved as a set and matched on their Kind, so adding a stage is one
         // new class plus one entry in AiPipelinePolicy.Graph — never an edit to a dispatch switch.

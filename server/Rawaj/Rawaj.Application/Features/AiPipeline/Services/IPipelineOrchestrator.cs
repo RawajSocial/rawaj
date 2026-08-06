@@ -1,0 +1,33 @@
+using Rawaj.Domain.Entities.AiOperations;
+using Rawaj.Domain.Enums;
+
+namespace Rawaj.Application.Features.AiPipeline.Services;
+
+/// <summary>
+/// Starts, advances and cancels pipeline runs. See <see cref="PipelineOrchestrator"/>.
+/// </summary>
+public interface IPipelineOrchestrator
+{
+    /// <summary>Creates a run and its initial stage rows. A campaign run starts every non-fan-out
+    /// stage in the graph (later ones simply wait on their dependencies); a brand-only run
+    /// (<paramref name="campaignId"/> null) starts only <c>BrandAnalysis</c> — nothing else in the
+    /// graph makes sense without a campaign to run it for.</summary>
+    Task<AiPipelineRun> StartAsync(
+        Guid tenantId, Guid brandProfileId, Guid? campaignId, Guid triggeredBy, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Runs the graph forward until nothing more can happen without a person, a top-up, or time
+    /// passing: dispatches every currently-runnable stage, settles each result (artifact + idempotent
+    /// charge + Completed, or classified failure + backoff/Failed/Skipped), and repeats while the run
+    /// stays <see cref="AiPipelineRunStatus.Running"/>. Safe to call repeatedly — on a fresh run, a
+    /// parked one whose block has cleared, or one a stage's backoff has just passed for.
+    /// </summary>
+    /// <param name="role">The triggering user's role, needed wherever a stage charges coins. Not
+    /// stored on the run itself — see the tracker's open items for why.</param>
+    Task AdvanceAsync(AiPipelineRun run, TenantMemberRole role, CancellationToken cancellationToken);
+
+    /// <summary>Marks a run <see cref="AiPipelineRunStatus.Cancelled"/>. In-flight stage rows are left
+    /// as they are — a cancelled run simply stops being advanced, rather than requiring every stage to
+    /// be rewritten to a new terminal state it didn't actually reach.</summary>
+    Task CancelAsync(AiPipelineRun run, CancellationToken cancellationToken);
+}
