@@ -24,6 +24,26 @@ public static class AiJobRecorder
         AiJobType jobType,
         string prompt,
         AiTextGenerationResult result,
+        DateTime startedAt) =>
+        RecordText(
+            dbContext, context.TenantId, context.Brand.Id, context.UserId, context.Run.CampaignId,
+            context.Stage.Id, jobType, prompt, result, startedAt);
+
+    /// <summary>
+    /// The stage-less overload — for an AI call that has no backing <see cref="AiPipelineStage"/> at
+    /// all, such as strategy refinement, which is a versioned write but not a node in the graph.
+    /// Kept as one place rather than a second copy of this construction, same as the stage-bound one.
+    /// </summary>
+    public static AiJob RecordText(
+        IApplicationDbContext dbContext,
+        Guid tenantId,
+        Guid brandProfileId,
+        Guid triggeredBy,
+        Guid? campaignId,
+        Guid? pipelineStageId,
+        AiJobType jobType,
+        string prompt,
+        AiTextGenerationResult result,
         DateTime startedAt)
     {
         var now = DateTime.UtcNow;
@@ -31,10 +51,10 @@ public static class AiJobRecorder
         var job = new AiJob
         {
             Id = Guid.NewGuid(),
-            TenantId = context.TenantId,
-            BrandProfileId = context.Brand.Id,
-            TriggeredBy = context.UserId,
-            PipelineStageId = context.Stage.Id,
+            TenantId = tenantId,
+            BrandProfileId = brandProfileId,
+            TriggeredBy = triggeredBy,
+            PipelineStageId = pipelineStageId,
             JobType = jobType,
             Status = result.Succeeded ? AiJobStatus.Completed : AiJobStatus.Failed,
 
@@ -49,7 +69,7 @@ public static class AiJobRecorder
             LatencyMs = result.LatencyMs,
             Tokens = result.TokensUsed,
             ErrorMessage = result.ErrorMessage,
-            OutputRefId = context.Run.CampaignId,
+            OutputRefId = campaignId,
             OutputRefType = "marketing_campaign",
             StartedAt = startedAt,
             CompletedAt = now,

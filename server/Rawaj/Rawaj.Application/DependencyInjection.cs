@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Rawaj.Application.Common.Behaviors;
 using Rawaj.Application.Common.Interfaces;
 using Rawaj.Application.Common.Services;
+using Rawaj.Application.Features.AiPipeline.Services;
 
 namespace Rawaj.Application;
 
@@ -20,6 +21,8 @@ public static class DependencyInjection
         services.AddScoped<TenantProvisioningService>();
         services.AddScoped<IPipelineArtifactStore, PipelineArtifactStore>();
         services.AddSingleton<IPromptTemplateProvider, PromptTemplateProvider>();
+        services.AddScoped<IPipelineApprovalService, PipelineApprovalService>();
+        services.AddScoped<IPipelineStrategyRefinementService, PipelineStrategyRefinementService>();
 
         // Stage executors are resolved as a set and matched on their Kind, so adding a stage is one
         // new class plus one entry in AiPipelinePolicy.Graph — never an edit to a dispatch switch.

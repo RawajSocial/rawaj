@@ -159,6 +159,23 @@ public class PipelineArtifactStoreTests
         Assert.Equal(artifact.Id, stage.ArtifactId);
     }
 
+    [Fact]
+    public async Task AddVersionAsync_AcceptsNoBackingStage_ForAWriteThatIsNotAGraphNode()
+    {
+        // Strategy refinement is a versioned write with no stage row behind it — the graph has no
+        // node for "user typed feedback into a box".
+        await using var dbContext = TestDbContextFactory.Create();
+        var (tenantId, brandId, campaignId) = await SeedAsync(dbContext);
+        var store = new PipelineArtifactStore(dbContext);
+
+        var artifact = await store.AddVersionAsync(
+            stage: null, tenantId, brandId, campaignId, AiArtifactKind.Strategy, "{}", null, CancellationToken.None);
+        await dbContext.SaveChangesAsync(CancellationToken.None);
+
+        Assert.Null(artifact.SourceStageId);
+        Assert.True(artifact.IsCurrent);
+    }
+
     private static AiPipelineStage Stage() => new()
     {
         Id = Guid.NewGuid(),

@@ -251,28 +251,13 @@ public static class ContentPromptBuilder
             brand, campaign, competitorInsights, postingTimeSummary, postCount, platforms, language,
             strategyJson, briefJson, templateStyle);
 
-    /// <summary>
-    /// Refines an already-generated campaign strategy by free-text feedback, mirroring how
-    /// BuildRevisionPrompt handles feedback-driven revision for a single content item — the model
-    /// is asked to keep the same JSON shape so the approval UI keeps rendering it unchanged.
-    /// </summary>
+    /// <inheritdoc cref="StrategyRefinementPrompt.Build"/>
     public static string BuildPlanRefinementPrompt(
         TenantBrandProfile brand,
         MarketingCampaign campaign,
         string currentPlanJson,
-        string feedback)
-    {
-        var lines = new List<string>
-        {
-            $"Revise the following marketing strategy for the campaign \"{campaign.Name}\" for the brand \"{brand.Name}\".",
-            $"Current strategy JSON: {currentPlanJson}",
-            $"Requested changes: {feedback}",
-            "Keep everything that wasn't asked to change, and apply the requested changes precisely.",
-            "Respond with ONLY a valid JSON object (no markdown fences, no commentary) using the exact same shape as the current strategy JSON above."
-        };
-
-        return string.Join(" ", lines);
-    }
+        string feedback) =>
+        StrategyRefinementPrompt.Build(brand, campaign, currentPlanJson, feedback);
 
     /// <param name="userPrompt">
     /// What the picture should show. For campaign posts this is the model-authored English

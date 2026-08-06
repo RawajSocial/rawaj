@@ -78,7 +78,7 @@ public class PipelineArtifactStore(IApplicationDbContext dbContext) : IPipelineA
             .FirstOrDefaultAsync(cancellationToken);
 
     public async Task<AiArtifact> AddVersionAsync(
-        AiPipelineStage stage,
+        AiPipelineStage? stage,
         Guid tenantId,
         Guid brandProfileId,
         Guid? campaignId,
@@ -113,13 +113,17 @@ public class PipelineArtifactStore(IApplicationDbContext dbContext) : IPipelineA
             IsCurrent = true,
             ContentJson = contentJson,
             SchemaVersion = CurrentSchemaVersion,
-            SourceStageId = stage.Id,
+            SourceStageId = stage?.Id,
             InputHash = inputHash,
             CreatedAt = DateTime.UtcNow
         };
 
         dbContext.AiArtifacts.Add(created);
-        stage.ArtifactId = created.Id;
+
+        if (stage is not null)
+        {
+            stage.ArtifactId = created.Id;
+        }
 
         return created;
     }

@@ -40,8 +40,12 @@ public interface IPipelineArtifactStore
     /// caller commits, so an artifact and the stage row that produced it land in the same
     /// transaction and a crash between them is impossible.
     /// </summary>
+    /// <param name="stage">The stage that produced this version, so the artifact and the stage that
+    /// made it can be traced to each other. Null for a write with no backing stage — strategy
+    /// refinement is a versioned write too (the whole point is that it must not overwrite the
+    /// artifact in place), but the graph has no node for "user typed feedback into a box".</param>
     Task<AiArtifact> AddVersionAsync(
-        AiPipelineStage stage,
+        AiPipelineStage? stage,
         Guid tenantId,
         Guid brandProfileId,
         Guid? campaignId,
