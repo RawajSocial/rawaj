@@ -33,7 +33,7 @@ public class AiJob : BaseEntity
     public Guid? OutputRefId { get; set; }
     public string? OutputRefType { get; set; }
 
-    /// <summary>Which service was called ("Groq", "HuggingFace", "Tavily").</summary>
+    /// <summary>Which service was called ("Groq", "Cloudflare", "HuggingFace", "Tavily").</summary>
     public string? Provider { get; set; }
 
     /// <summary>The specific model or endpoint used. Everything runs on one text model today; this

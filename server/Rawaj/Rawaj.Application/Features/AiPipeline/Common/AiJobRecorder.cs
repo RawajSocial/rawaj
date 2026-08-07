@@ -138,7 +138,7 @@ public static class AiJobRecorder
             Status = result.Succeeded ? AiJobStatus.Completed : AiJobStatus.Failed,
             InputParams = JsonSerializer.Serialize(new { prompt }),
             PromptHash = Hash(prompt),
-            Provider = "HuggingFace",
+            Provider = "Cloudflare",
             ErrorMessage = result.ErrorMessage,
             OutputRefId = visualAssetId,
             OutputRefType = "visual_asset",

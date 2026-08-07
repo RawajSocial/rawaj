@@ -28,6 +28,7 @@ public static class DependencyInjection
 
         services.Configure<GroqSettings>(configuration.GetSection(GroqSettings.SectionName));
         services.Configure<HuggingFaceSettings>(configuration.GetSection(HuggingFaceSettings.SectionName));
+        services.Configure<CloudflareWorkersAiSettings>(configuration.GetSection(CloudflareWorkersAiSettings.SectionName));
         services.Configure<TavilySettings>(configuration.GetSection(TavilySettings.SectionName));
         services.Configure<EncryptionSettings>(configuration.GetSection(EncryptionSettings.SectionName));
         services.Configure<MetaOAuthSettings>(configuration.GetSection(MetaOAuthSettings.SectionName));
@@ -45,6 +46,7 @@ public static class DependencyInjection
 
         services.AddResilientHttpClient("Groq", attemptTimeout: TimeSpan.FromSeconds(45), totalTimeout: TimeSpan.FromSeconds(120));
         services.AddResilientHttpClient("HuggingFace", attemptTimeout: TimeSpan.FromSeconds(60), totalTimeout: TimeSpan.FromSeconds(150));
+        services.AddResilientHttpClient("Cloudflare", attemptTimeout: TimeSpan.FromSeconds(60), totalTimeout: TimeSpan.FromSeconds(150));
         services.AddResilientHttpClient("Tavily", attemptTimeout: TimeSpan.FromSeconds(30), totalTimeout: TimeSpan.FromSeconds(60));
         services.AddResilientHttpClient("Meta", attemptTimeout: TimeSpan.FromSeconds(20), totalTimeout: TimeSpan.FromSeconds(45));
         services.AddResilientHttpClient("LinkedIn", attemptTimeout: TimeSpan.FromSeconds(20), totalTimeout: TimeSpan.FromSeconds(45));
@@ -56,7 +58,7 @@ public static class DependencyInjection
                 "Mozilla/5.0 (compatible; RawajBot/1.0; +https://rawaj.example/bot)"));
 
         services.AddScoped<IAiTextGenerationService, GroqTextGenerationService>();
-        services.AddScoped<IAiImageGenerationService, HuggingFaceImageGenerationService>();
+        services.AddScoped<IAiImageGenerationService, CloudflareWorkersAiImageGenerationService>();
         services.AddScoped<ITavilySearchService, TavilySearchService>();
         services.AddScoped<IWebScraperService, HtmlAgilityPackWebScraperService>();
         services.AddSingleton<ITokenEncryptor, AesTokenEncryptor>();

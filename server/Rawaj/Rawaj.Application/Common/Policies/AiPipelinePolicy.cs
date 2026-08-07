@@ -157,7 +157,7 @@ public static class AiPipelinePolicy
         AiPipelineStageKind.StrategyBlueprint => "Groq",
         AiPipelineStageKind.StrategyRoadmap => "Groq",
         AiPipelineStageKind.ContentPlan => "Groq",
-        AiPipelineStageKind.ContentImage => "HuggingFace",
+        AiPipelineStageKind.ContentImage => "Cloudflare",
         _ => null
     };
 

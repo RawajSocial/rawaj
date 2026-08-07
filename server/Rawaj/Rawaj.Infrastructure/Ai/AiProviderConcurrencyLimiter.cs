@@ -15,7 +15,7 @@ public class AiProviderConcurrencyLimiter : IAiProviderConcurrencyLimiter
     {
         ["Groq"] = 4,
         ["Tavily"] = 4,
-        ["HuggingFace"] = 2
+        ["Cloudflare"] = 2
     };
 
     private const int FallbackLimit = 2;
