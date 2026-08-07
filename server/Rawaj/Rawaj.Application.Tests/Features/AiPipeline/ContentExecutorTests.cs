@@ -188,7 +188,7 @@ public class ContentExecutorTests
         await dbContext.SaveChangesAsync(CancellationToken.None);
 
         var job = await dbContext.AiJobs.SingleAsync();
-        Assert.Equal("HuggingFace", job.Provider);
+        Assert.Equal("Cloudflare", job.Provider);
         Assert.Equal(AiJobStatus.Failed, job.Status);
     }
 

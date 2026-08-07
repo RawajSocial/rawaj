@@ -1,12 +1,11 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { HubConnection, HubConnectionBuilder, HubConnectionState } from '@microsoft/signalr';
 import { Observable, map, tap } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { ApiResponse } from '../model/auth.model';
 import { PagedResult } from '../model/paged-result.model';
 import { NotificationSummary } from '../model/notification.model';
-import { AuthService } from '../core/auth/auth.service';
+import { RealtimeHubService } from './realtime-hub.service';
 
 /** Payload shape of the "notificationReceived" SignalR event — mirrors the backend's
  *  NotificationCreatedPayload (Rawaj.Application.Common.Policies.NotificationPublisher). */
@@ -25,10 +24,8 @@ interface NotificationCreatedEvent {
 @Injectable({ providedIn: 'root' })
 export class NotificationService {
   private readonly http = inject(HttpClient);
-  private readonly authService = inject(AuthService);
+  private readonly hub = inject(RealtimeHubService);
   private readonly baseUrl = `${environment.apiUrl}/notifications`;
-  /** The API's base origin without the "/api/v1" REST prefix — SignalR hubs live at the app root. */
-  private readonly hubUrl = `${environment.apiUrl.replace(/\/api\/v\d+\/?$/, '')}/hubs/notifications`;
 
   private readonly _items = signal<NotificationSummary[]>([]);
   private readonly _unreadCount = signal(0);
@@ -41,7 +38,11 @@ export class NotificationService {
   readonly recent = computed(() => this._items().slice(0, 5));
 
   private pollHandle: ReturnType<typeof setInterval> | null = null;
-  private hubConnection: HubConnection | null = null;
+  private realtimeConnected = false;
+  /** Stable reference so RealtimeHubService can dedupe repeated `on()` registrations across a
+   *  disconnect/reconnect cycle. */
+  private readonly onNotificationReceived = (payload: NotificationCreatedEvent) =>
+    this.handleRealtimeNotification(payload);
 
   refresh(page = 1, pageSize = 30): Observable<ApiResponse<PagedResult<NotificationSummary>>> {
     this._loading.set(true);
@@ -126,30 +127,21 @@ export class NotificationService {
     }
   }
 
-  /** Opens the SignalR connection and starts listening for "notificationReceived" pushes. Safe to
-   *  call more than once — a no-op if already connected/connecting. Connection failures (offline,
-   *  server down) are swallowed here; the reduced-frequency polling in startPolling() covers for it. */
+  /** Joins the shared hub connection and starts listening for "notificationReceived" pushes. Safe
+   *  to call more than once — a no-op if already joined. Connection failures (offline, server
+   *  down) are swallowed by RealtimeHubService; the reduced-frequency polling in startPolling()
+   *  covers for it. */
   connectRealtime(): void {
-    if (this.hubConnection && this.hubConnection.state !== HubConnectionState.Disconnected) return;
-
-    const connection = new HubConnectionBuilder()
-      .withUrl(this.hubUrl, { accessTokenFactory: () => this.authService.accessToken() ?? '' })
-      .withAutomaticReconnect()
-      .build();
-
-    connection.on('notificationReceived', (payload: NotificationCreatedEvent) => this.handleRealtimeNotification(payload));
-
-    connection.start().catch(() => {
-      // No real-time push for this session — the polling fallback keeps the badge from going
-      // stale for more than a few minutes.
-    });
-
-    this.hubConnection = connection;
+    if (this.realtimeConnected) return;
+    this.realtimeConnected = true;
+    this.hub.connect();
+    this.hub.on('notificationReceived', this.onNotificationReceived);
   }
 
   disconnectRealtime(): void {
-    this.hubConnection?.stop();
-    this.hubConnection = null;
+    if (!this.realtimeConnected) return;
+    this.realtimeConnected = false;
+    this.hub.release();
   }
 
   private handleRealtimeNotification(payload: NotificationCreatedEvent): void {

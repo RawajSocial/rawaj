@@ -123,8 +123,10 @@ public class PipelineOrchestrator(
                 await ExecuteStageAsync(run, stage, role, leaseOwner, cancellationToken);
             }
 
-            run.Status = AiPipelinePolicy.EvaluateRunStatus(await LoadStagesAsync(run.Id, cancellationToken));
+            var updatedStages = await LoadStagesAsync(run.Id, cancellationToken);
+            run.Status = AiPipelinePolicy.EvaluateRunStatus(updatedStages);
             run.UpdatedAt = DateTime.UtcNow;
+            PipelineRunPublisher.Queue(dbContext, run, updatedStages);
             await dbContext.SaveChangesAsync(cancellationToken);
 
             // Anything other than Running means the run cannot make further progress on its own right
