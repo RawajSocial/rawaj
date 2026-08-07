@@ -22,4 +22,5 @@ public record CampaignSummary(
     decimal? BudgetAmount,
     string? BudgetCurrency,
     DateTime? PlanApprovedAt,
-    int ContentItemCount);
+    int ContentItemCount,
+    DateTime? OnboardingCompletedAt);

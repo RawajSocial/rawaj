@@ -112,10 +112,28 @@ export class CampaignContentPage {
    *  once a top-up lands, so there is nothing to click here (same as the strategy page's note). */
   protected readonly awaitingCoins = computed(() => this.aiPipelineService.run()?.status === 'AwaitingCoins');
 
-  /** `postCount` reflects what's *requested* in the field right now, not necessarily what a batch
-   *  discovered mid-flight on reload actually asked for — good enough for a loading skeleton, which
-   *  is decorative. Real progress (percent, current stage, image count) comes from the polled run. */
-  protected readonly generationSkeletonCards = computed(() => Array.from({ length: this.postCount() }, (_, i) => i));
+  /** How many posts are actually ready to render as real cards — has its image, whether generated
+   *  or the exhausted-retries placeholder every post ends up with eventually, same `!!imageUrl`
+   *  gate `approvedItems` below already uses. A post whose text exists but whose image hasn't
+   *  landed yet stays a skeleton rather than a text-only card, so this page keeps the two visual
+   *  states it already had instead of inventing a third. */
+  protected readonly readyItems = computed(() => this.items().filter(i => !!i.imageUrl));
+
+  /** Real per-image progress from the polled run (`AiPipelineProgressPolicy`, server-computed) —
+   *  zero before ContentPlan's fan-out exists, i.e. before individual post identities even exist. */
+  private readonly imagesTotal = computed(() => this.aiPipelineService.run()?.progress.imagesTotal ?? 0);
+  private readonly imagesCompleted = computed(() => this.aiPipelineService.run()?.progress.imagesCompleted ?? 0);
+
+  /** Only the posts still missing, not the whole requested batch — this used to be `postCount()`'s
+   *  CURRENT field value (wrong after a reload, or if that field changed) and never shrank as
+   *  individual posts finished, so every slot stayed a skeleton until the entire batch completed
+   *  and the page was reloaded. Falls back to the requested count before the fan-out exists, since
+   *  real post identities aren't known yet at that point. */
+  protected readonly generationSkeletonCards = computed(() => {
+    const total = this.imagesTotal() || this.postCount();
+    const remaining = Math.max(0, total - this.readyItems().length);
+    return Array.from({ length: remaining }, (_, i) => i);
+  });
 
   protected readonly socialAccounts = signal<SocialAccountSummary[]>([]);
 
@@ -231,6 +249,11 @@ export class CampaignContentPage {
    *  approvePlan()) so a reload of this page never re-fires a 1000-coin generation. */
   private autogenerateRequested = false;
 
+  /** Last `imagesCompleted` value content items were actually re-fetched for — lets the effect
+   *  below tell "a new image just finished" apart from "the same poll tick landed again", so it
+   *  fetches once per real change instead of once per 2-second poll regardless of progress. */
+  private lastRefreshedImageCount = -1;
+
   constructor() {
     this.coinPricingService.ensureLoaded();
     this.autogenerateRequested = this.route.snapshot.queryParamMap.get('autogenerate') === '1';
@@ -253,6 +276,22 @@ export class CampaignContentPage {
     effect(() => {
       const id = this.campaignId();
       if (id) this.load(id);
+    });
+
+    // The poll (AiPipelineService.startPolling) only ever updates run/stage STATUS — it never
+    // re-fetches the content items themselves. Without this, a post's card never appeared until
+    // the user reloaded the page: contentItemService.items() was fetched once in load() and once
+    // right after generateContent()'s POST resolved, then never again — even though images keep
+    // finishing for seconds or minutes afterward, one at a time, via the background worker.
+    effect(() => {
+      const run = this.aiPipelineService.run();
+      if (!run) return;
+      const completed = run.progress.imagesCompleted;
+      if (completed === this.lastRefreshedImageCount) return;
+      this.lastRefreshedImageCount = completed;
+
+      const campaign = this.campaign();
+      if (campaign) this.contentItemService.refresh(campaign.brandProfileId, this.campaignId()).subscribe();
     });
 
     this.destroyRef.onDestroy(() => this.aiPipelineService.clear());
@@ -305,6 +344,7 @@ export class CampaignContentPage {
     this.schedulingItemId.set(null);
     this.busyItemId.set(null);
     this.retryingImageId.set(null);
+    this.lastRefreshedImageCount = -1;
   }
 
   /** Fires content generation automatically once, right after the onboarding wizard's approval

@@ -154,7 +154,7 @@
     }
 
     <section class="cc-items">
-      @for (item of items(); track item.contentItemId) {
+      @for (item of readyItems(); track item.contentItemId) {
         <div class="cc-item-card" [class.cc-item-card--no-image]="!item.imageUrl">
           <div class="cc-item-head">
             @if (isSchedulable(item) && perms.canEdit()) {

@@ -47,6 +47,7 @@ export class CampaignService {
       endDate: summary.endDate ?? '',
       createdAt: summary.createdAt,
       planApprovedAt: summary.planApprovedAt,
+      onboardingCompletedAt: summary.onboardingCompletedAt,
       contentItemCount: summary.contentItemCount ?? 0,
       adCount: undefined,
       logoUrl: this.brandProfileService.getById(summary.brandProfileId)()?.logoUrl,

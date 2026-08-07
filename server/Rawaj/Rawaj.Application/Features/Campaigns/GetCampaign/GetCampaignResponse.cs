@@ -21,4 +21,5 @@ public record GetCampaignResponse(
     DateTime? PlanApprovedAt,
     DateTime CreatedAt,
     DateTime UpdatedAt,
-    Guid? CurrentPipelineRunId);
+    Guid? CurrentPipelineRunId,
+    DateTime? OnboardingCompletedAt);

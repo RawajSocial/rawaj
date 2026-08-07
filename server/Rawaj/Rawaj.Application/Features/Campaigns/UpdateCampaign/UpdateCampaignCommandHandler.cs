@@ -48,6 +48,10 @@ public class UpdateCampaignCommandHandler(
         if (request.Objective is not null) campaign.Objective = request.Objective;
         if (request.BudgetCurrency is not null) campaign.BudgetCurrency = request.BudgetCurrency;
         if (request.BriefJson is not null) campaign.BriefJson = request.BriefJson;
+        if (request.MarkOnboardingCompleted && campaign.OnboardingCompletedAt is null)
+        {
+            campaign.OnboardingCompletedAt = DateTime.UtcNow;
+        }
         if (request.TargetPlatforms is not null)
         {
             campaign.TargetPlatforms = request.TargetPlatforms
@@ -103,7 +107,8 @@ public class UpdateCampaignCommandHandler(
             campaign.PlanApprovedAt,
             campaign.CreatedAt,
             campaign.UpdatedAt,
-            campaign.CurrentPipelineRunId);
+            campaign.CurrentPipelineRunId,
+            campaign.OnboardingCompletedAt);
 
         return Result<GetCampaignResponse>.Success(response);
     }

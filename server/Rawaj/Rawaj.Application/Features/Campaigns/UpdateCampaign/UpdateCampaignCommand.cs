@@ -17,7 +17,12 @@ public record UpdateCampaignCommand(
     string? Objective = null,
     List<string>? TargetPlatforms = null,
     string? BudgetCurrency = null,
-    string? BriefJson = null)
+    string? BriefJson = null,
+    /// <summary>Stamps <see cref="Rawaj.Domain.Entities.Campaigns.MarketingCampaign.OnboardingCompletedAt"/>
+    /// the first time it's sent — the onboarding wizard sends this exactly once, in the same update
+    /// call it already makes before advancing from step 7 into strategy review. Idempotent in the
+    /// handler, so a retried autosave can't stamp it twice or move it later.</summary>
+    bool MarkOnboardingCompleted = false)
     : IRequest<Result<GetCampaignResponse>>, IRequireTenantRole, IRequireResolvedBrandAccess
 {
     public TenantMemberRole MinimumRole => TenantMemberRole.Editor;

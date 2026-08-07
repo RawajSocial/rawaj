@@ -243,6 +243,15 @@ export class OnboardingPlanApproval implements OnInit, OnDestroy {
           this.researchDone.set(true);
           this.diagnosisDone.set(true);
           this.strategyDone.set(true);
+        } else if (res.data?.currentPipelineRunId) {
+          // No plan yet, but a run already exists for this campaign — it was left running when the
+          // user navigated away (StartRunCommandHandler stamps CurrentPipelineRunId the moment a run
+          // starts, well before any plan exists) and the background worker has kept advancing it the
+          // whole time regardless. Resume watching that SAME run instead of starting a new one: the
+          // backend refuses a second run outright ("A pipeline run is already in progress"), which is
+          // exactly the error this used to surface as the only visible reaction to coming back.
+          this.runId.set(res.data.currentPipelineRunId);
+          this.aiPipelineService.startPolling(res.data.currentPipelineRunId);
         } else {
           this.startOrOfferPipeline(campaignId);
         }
@@ -345,12 +354,10 @@ export class OnboardingPlanApproval implements OnInit, OnDestroy {
         this.runId.set(startedRunId);
         this.aiPipelineService.startPolling(startedRunId);
       },
-      // Most likely cause: a run is already in progress for this campaign (e.g. the page was
-      // reloaded mid-generation) — the backend refuses a second one rather than double-charging.
-      // There is currently no way for this page to discover and resume that existing run instead
-      // (closing that gap, the same one C22 documents for the content page, is tracked as a
-      // follow-up); showing the real reason is still strictly better than the pre-C21 behaviour,
-      // which silently re-ran and re-charged research and diagnosis on every reload.
+      // By the time this call can even be reached, ngOnInit has already checked for and resumed
+      // any existing run for this campaign — reaching this branch means the backend rejected the
+      // start for some other reason (rare race: a run was created by another tab between that check
+      // and this request), so there's nothing to resume here, only the real error to surface.
       error: err => this.failPipelineStart(extractApiErrorMessage(err, 'تعذّر بدء توليد الاستراتيجية.')),
     });
   }
@@ -391,10 +398,13 @@ export class OnboardingPlanApproval implements OnInit, OnDestroy {
       if (campaignId) this.refreshFromCampaign(campaignId);
     }
 
-    if (run.status === 'Failed') {
+    if (run.status === 'Failed' || run.status === 'Cancelled') {
       // A stage the three watched kinds never cover (BrandAnalysis, or one of the strategy
       // sub-stages) can fail the run before any watched stage is ever attempted — without this the
-      // progress strip would spin forever, since nothing here would ever mark it finished.
+      // progress strip would spin forever, since nothing here would ever mark it finished. Cancelled
+      // is included for the same reason a *resumed* run (see ngOnInit) can land here already
+      // cancelled, with its stages sitting wherever they were left rather than in a terminal status
+      // any watched stage would recognise.
       this.researchDone.set(true);
       this.diagnosisDone.set(true);
       this.strategyDone.set(true);

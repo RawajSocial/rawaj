@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, input } from '@angular/core';
+import { Component, computed, input, output } from '@angular/core';
 
 type SidebarStep = {
   index: number;
@@ -15,6 +15,9 @@ type SidebarStep = {
 })
 export class OnboardingSidebar {
   readonly currentStep = input(1);
+  /** The wizard's only way out before finishing every step — see RawajOnboarding.confirmExit,
+   *  which owns the confirm dialog and the navigation; this component just renders the trigger. */
+  readonly exit = output<void>();
 
   protected readonly steps: SidebarStep[] = [
     { index: 1, title: 'نوع الحملة',         subtitle: 'اختر نوع الحملة المناسبة' },

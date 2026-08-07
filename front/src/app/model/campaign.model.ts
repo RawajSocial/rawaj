@@ -60,6 +60,11 @@ export interface Campaign {
   /** Set once the AI strategy is approved — decides whether the card offers "review the
    *  strategy" or "review the content" as its next step. */
   planApprovedAt?: string | null;
+  /** Set once the onboarding wizard's answer-collection steps (1-7) are finished and the user
+   *  moves into strategy review — distinct from `planApprovedAt`. A Draft campaign with this unset
+   *  was abandoned mid-wizard (no brief data yet) and must route back into `/on-boarding`, not into
+   *  the strategy review page which expects a completed brief. */
+  onboardingCompletedAt?: string | null;
   /** How many content items the campaign already has, so the list can tell a campaign with
    *  generated posts apart from one that still needs generating. */
   contentItemCount: number;
@@ -110,6 +115,8 @@ export interface CampaignSummary {
   /** Set once the AI strategy is approved — drives which step the list links the user to. */
   planApprovedAt?: string | null;
   contentItemCount: number;
+  /** See `Campaign.onboardingCompletedAt`. */
+  onboardingCompletedAt?: string | null;
 }
 
 /** POST /api/v1/campaigns — Rawaj.Application.Features.Campaigns.CreateCampaign.CreateCampaignResponse */
@@ -148,6 +155,8 @@ export interface GetCampaignResponse {
    *  run starts, never cleared. Lets a page discover and resume watching an in-progress run (e.g.
    *  content generation) instead of only knowing about one it started itself in this page load. */
   currentPipelineRunId?: string | null;
+  /** See `Campaign.onboardingCompletedAt`. */
+  onboardingCompletedAt?: string | null;
 }
 
 /** POST /api/v1/campaigns request body. */
@@ -176,6 +185,9 @@ export interface UpdateCampaignInput {
   budgetCurrency?: string;
   /** The onboarding wizard's raw collected-answers JSON blob, autosaved as the user progresses. */
   briefJson?: string;
+  /** Sent exactly once, when the wizard advances from step 7 into strategy review — stamps
+   *  `Campaign.onboardingCompletedAt` server-side. See that field's doc comment. */
+  markOnboardingCompleted?: boolean;
 }
 
 /** POST /api/v1/campaigns/{id}/refine-plan — RefineCampaignPlanResponse */

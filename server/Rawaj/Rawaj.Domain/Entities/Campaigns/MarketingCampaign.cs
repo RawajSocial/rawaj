@@ -34,6 +34,15 @@ public class MarketingCampaign : BaseEntity, IConcurrencyAware
     /// which must not run against a plan nobody has signed off on.</summary>
     public DateTime? PlanApprovedAt { get; set; }
 
+    /// <summary>Stamped when the onboarding wizard's answer-collection steps (1-7) are finished and
+    /// the user moves into strategy review — <i>not</i> when the strategy itself is approved
+    /// (<see cref="PlanApprovedAt"/>). This is what tells a Draft campaign the user is returning to
+    /// apart from one abandoned mid-wizard, with no brief data collected yet, from one abandoned at
+    /// strategy review: the former must route back into the wizard, the latter into the strategy
+    /// review page — routing both the same way used to send an empty brief into the strategy
+    /// pipeline.</summary>
+    public DateTime? OnboardingCompletedAt { get; set; }
+
     /// <summary>The pipeline run currently producing this campaign's strategy and content, if any.
     /// A campaign can be run through the pipeline more than once over its life (regenerate after a
     /// rethink); this points at the latest, and the run rows themselves are the history.</summary>

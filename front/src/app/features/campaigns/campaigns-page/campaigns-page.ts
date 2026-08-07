@@ -13,6 +13,7 @@ import { BrandLock } from '../../../shared/components/brand-lock/brand-lock';
 import { TenantService } from '../../../core/tenant/tenant.service';
 import { PermissionService } from '../../../core/tenant/permission.service';
 import { TooltipDirective } from '../../../shared/directives/tooltip.directive';
+import { OnboardingEntryService } from '../../../services/onboarding-entry.service';
 
 @Component({
   selector: 'app-campaigns-page',
@@ -28,6 +29,7 @@ export class CampaignsPage {
   private readonly errorModalService = inject(ErrorModalService);
   private readonly confirmDialogService = inject(ConfirmDialogService);
   private readonly tenantService = inject(TenantService);
+  private readonly onboardingEntryService = inject(OnboardingEntryService);
   protected readonly perms = inject(PermissionService);
 
   constructor() {
@@ -214,11 +216,17 @@ export class CampaignsPage {
   }
 
   /** Sends the user straight to the step the campaign is waiting on, so the list is a way back
-   *  into an unfinished workflow rather than a dead end. A campaign whose strategy isn't approved
-   *  yet goes to the plan review; anything past that goes to the content review, which is where
-   *  both generating and reviewing posts happen. */
+   *  into an unfinished workflow rather than a dead end. Three destinations, not two: a campaign
+   *  abandoned mid-wizard (steps 1-7, `onboardingCompletedAt` unset — no brief data collected yet)
+   *  must go back into the wizard itself, not into strategy review, which used to run the
+   *  research/diagnose pipeline against an empty brief. Once the wizard is finished but the
+   *  strategy isn't approved, strategy review is correct; past that, content review is. */
   protected openNextStep(id: string): void {
     const campaign = this.campaignService.getById(id)();
+    if (campaign && !campaign.onboardingCompletedAt) {
+      this.router.navigate(['/on-boarding'], { queryParams: { resume: id } });
+      return;
+    }
     if (campaign && !campaign.planApprovedAt) {
       this.router.navigate(['/dashboard/campaigns', id, 'strategy']);
       return;
@@ -228,7 +236,7 @@ export class CampaignsPage {
 
   protected startNewCampaign(): void {
     if (!this.perms.canEdit() || !this.requireBrandProfile()) return;
-    this.router.navigate(['/on-boarding'], { queryParams: { fresh: 1 } });
+    void this.onboardingEntryService.startOrResumeOnboarding();
   }
 
   private requireBrandProfile(): boolean {
