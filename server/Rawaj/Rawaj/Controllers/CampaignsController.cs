@@ -66,7 +66,8 @@ public class CampaignsController(ISender sender) : ControllerBase
         var result = await sender.Send(
             new UpdateCampaignCommand(
                 campaignId, request.Name, request.Status, request.StartDate, request.EndDate, request.BudgetAmount,
-                request.Objective, request.TargetPlatforms, request.BudgetCurrency, request.BriefJson),
+                request.Objective, request.TargetPlatforms, request.BudgetCurrency, request.BriefJson,
+                request.MarkOnboardingCompleted),
             cancellationToken);
 
         return result.Succeeded
@@ -199,5 +200,5 @@ public class CampaignsController(ISender sender) : ControllerBase
     public record UpdateCampaignRequest(
         string? Name, CampaignStatus? Status, DateOnly? StartDate, DateOnly? EndDate, decimal? BudgetAmount,
         string? Objective = null, List<string>? TargetPlatforms = null, string? BudgetCurrency = null,
-        string? BriefJson = null);
+        string? BriefJson = null, bool MarkOnboardingCompleted = false);
 }
