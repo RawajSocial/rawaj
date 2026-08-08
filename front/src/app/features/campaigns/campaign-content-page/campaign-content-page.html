@@ -98,17 +98,6 @@
             <i class="fa-solid fa-coins"></i> رصيدك من الكوينات غير كافٍ لإكمال توليد المحتوى. أضف رصيدًا وستُكمل تلقائيًا.
           </div>
         }
-
-        <div class="cc-skeleton-grid">
-          @for (n of generationSkeletonCards(); track n) {
-            <div class="cc-skeleton-card">
-              <span class="cc-sk cc-sk-tag"></span>
-              <span class="cc-sk cc-sk-image"></span>
-              <span class="cc-sk cc-sk-line cc-sk-line--90"></span>
-              <span class="cc-sk cc-sk-line cc-sk-line--70"></span>
-            </div>
-          }
-        </div>
       </section>
     }
 
@@ -292,10 +281,19 @@
             </div>
           }
         </div>
-      } @empty {
-        @if (!generating()) {
-          <div class="cc-state">لا يوجد محتوى بعد — اضغط "توليد المحتوى" للبدء.</div>
+      }
+
+      @if (generating()) {
+        @for (n of generationSkeletonCards(); track n) {
+          <div class="cc-skeleton-card">
+            <span class="cc-sk cc-sk-tag"></span>
+            <span class="cc-sk cc-sk-image"></span>
+            <span class="cc-sk cc-sk-line cc-sk-line--90"></span>
+            <span class="cc-sk cc-sk-line cc-sk-line--70"></span>
+          </div>
         }
+      } @else if (readyItems().length === 0) {
+        <div class="cc-state">لا يوجد محتوى بعد — اضغط "توليد المحتوى" للبدء.</div>
       }
     </section>
 

@@ -96,8 +96,23 @@ public class ContentImageExecutor(
 
         if (mediaStorageService.IsConfigured)
         {
-            var upload = await mediaStorageService.UploadImageAsync(
-                generation.ImageBytes!, generation.ContentType ?? "image/jpeg", $"visual-assets/{context.TenantId}", cancellationToken);
+            // Retried here, separately from the pipeline's own stage-level retry: Cloudflare has
+            // already been paid for and has already succeeded by this point, so a transient
+            // Cloudinary hiccup should not throw away that result and force a second image
+            // generation. Only once these attempts are exhausted does the exception propagate and
+            // fall back to the stage-level retry (which does redo the Cloudflare call too — at that
+            // point something more than a transient blip is going on).
+            MediaUploadResult upload;
+            try
+            {
+                upload = await UploadWithRetryAsync(
+                    generation.ImageBytes!, generation.ContentType ?? "image/jpeg", $"visual-assets/{context.TenantId}", cancellationToken);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                return StageResult.Failure(AiFailureKind.Provider, $"Image storage failed: {ex.Message}", [job.Id]);
+            }
+
             visualAsset.FileUrl = upload.Url;
             visualAsset.PublicId = upload.PublicId;
             visualAsset.WidthPx = upload.WidthPx;
@@ -115,5 +130,28 @@ public class ContentImageExecutor(
         dbContext.VisualAssets.Add(visualAsset);
 
         return StageResult.Completed([job.Id]);
+    }
+
+    /// <summary>Three quick attempts at the Cloudinary upload alone, short fixed delay between —
+    /// deliberately not the minutes-long backoff a full stage retry uses, since this only needs to
+    /// ride out a brief network blip, not wait out a real outage (a real outage still falls through
+    /// to the stage-level retry once these are exhausted).</summary>
+    private async Task<MediaUploadResult> UploadWithRetryAsync(
+        byte[] imageBytes, string contentType, string folder, CancellationToken cancellationToken)
+    {
+        const int maxAttempts = 3;
+        var delay = TimeSpan.FromSeconds(2);
+
+        for (var attempt = 1; ; attempt++)
+        {
+            try
+            {
+                return await mediaStorageService.UploadImageAsync(imageBytes, contentType, folder, cancellationToken);
+            }
+            catch (Exception) when (attempt < maxAttempts)
+            {
+                await Task.Delay(delay, cancellationToken);
+            }
+        }
     }
 }

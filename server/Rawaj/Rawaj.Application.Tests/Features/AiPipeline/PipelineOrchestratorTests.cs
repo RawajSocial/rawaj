@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using Rawaj.Application.Common.Interfaces;
 using Rawaj.Application.Common.Models;
@@ -76,10 +77,11 @@ public class PipelineOrchestratorTests
     [Fact]
     public async Task FullRun_ParksForApproval_ThenCompletesWithContentAndImages_AfterApproval()
     {
-        await using var dbContext = TestDbContextFactory.Create();
+        var dbName = Guid.NewGuid().ToString();
+        await using var dbContext = TestDbContextFactory.Create(dbName);
         var world = await SeedAsync(dbContext, coinBalance: 100_000, freeMarketingPlanUsed: false);
         var text = DefaultTextService(TwoPostsJson);
-        var orchestrator = world.BuildOrchestrator(dbContext, text);
+        var orchestrator = world.BuildOrchestrator(dbContext, text, databaseName: dbName);
 
         var run = await orchestrator.StartAsync(world.Tenant.Id, world.Brand.Id, world.Campaign.Id, world.UserId, CancellationToken.None);
         await orchestrator.AdvanceAsync(run, TenantMemberRole.Owner, CancellationToken.None);
@@ -118,9 +120,10 @@ public class PipelineOrchestratorTests
         // Phase 6 compatibility: the existing strategy review UI and campaign-strategy-page read
         // campaign.CompetitorResearchJson/DiagnosisJson/AiPlanJson directly, not the new artifacts —
         // this is what keeps them working, unmodified, once C19 cuts the legacy endpoints over.
-        await using var dbContext = TestDbContextFactory.Create();
+        var dbName = Guid.NewGuid().ToString();
+        await using var dbContext = TestDbContextFactory.Create(dbName);
         var world = await SeedAsync(dbContext, coinBalance: 100_000, freeMarketingPlanUsed: false);
-        var orchestrator = world.BuildOrchestrator(dbContext, DefaultTextService(TwoPostsJson));
+        var orchestrator = world.BuildOrchestrator(dbContext, DefaultTextService(TwoPostsJson), databaseName: dbName);
 
         var run = await orchestrator.StartAsync(world.Tenant.Id, world.Brand.Id, world.Campaign.Id, world.UserId, CancellationToken.None);
         await orchestrator.AdvanceAsync(run, TenantMemberRole.Owner, CancellationToken.None);
@@ -144,9 +147,10 @@ public class PipelineOrchestratorTests
     {
         // No campaign to run the rest of the graph against — starting the full graph would just burn
         // attempts on stages that can never succeed.
-        await using var dbContext = TestDbContextFactory.Create();
+        var dbName = Guid.NewGuid().ToString();
+        await using var dbContext = TestDbContextFactory.Create(dbName);
         var world = await SeedAsync(dbContext, coinBalance: 100_000, freeMarketingPlanUsed: false);
-        var orchestrator = world.BuildOrchestrator(dbContext, DefaultTextService(TwoPostsJson));
+        var orchestrator = world.BuildOrchestrator(dbContext, DefaultTextService(TwoPostsJson), databaseName: dbName);
 
         var run = await orchestrator.StartAsync(world.Tenant.Id, world.Brand.Id, null, world.UserId, CancellationToken.None);
         await orchestrator.AdvanceAsync(run, TenantMemberRole.Owner, CancellationToken.None);
@@ -162,11 +166,12 @@ public class PipelineOrchestratorTests
     [Fact]
     public async Task TransientFailure_ParksTheStageOnBackoff_AndResumesOnceItPasses()
     {
-        await using var dbContext = TestDbContextFactory.Create();
+        var dbName = Guid.NewGuid().ToString();
+        await using var dbContext = TestDbContextFactory.Create(dbName);
         var world = await SeedAsync(dbContext, coinBalance: 100_000, freeMarketingPlanUsed: false);
         var text = DefaultTextService(TwoPostsJson);
         text.Enqueue("analysing the campaign", null, CampaignAnalysisJson); // fails once, then succeeds
-        var orchestrator = world.BuildOrchestrator(dbContext, text);
+        var orchestrator = world.BuildOrchestrator(dbContext, text, databaseName: dbName);
 
         var run = await orchestrator.StartAsync(world.Tenant.Id, world.Brand.Id, world.Campaign.Id, world.UserId, CancellationToken.None);
         await orchestrator.AdvanceAsync(run, TenantMemberRole.Owner, CancellationToken.None);
@@ -195,14 +200,15 @@ public class PipelineOrchestratorTests
     [Fact]
     public async Task OptionalStage_ExhaustingEveryRetry_SkipsWithoutFailingTheRun()
     {
-        await using var dbContext = TestDbContextFactory.Create();
+        var dbName = Guid.NewGuid().ToString();
+        await using var dbContext = TestDbContextFactory.Create(dbName);
         var world = await SeedAsync(dbContext, coinBalance: 100_000, freeMarketingPlanUsed: false);
         var text = DefaultTextService(TwoPostsJson);
         // Search succeeds (so this exercises the synthesis-call failure path, not the
         // already-covered "nothing found" best-effort path), but the model never returns anything
         // usable — three attempts, all bad.
         text.Enqueue("competitive analyst identifying", null, null, null);
-        var orchestrator = world.BuildOrchestrator(dbContext, text);
+        var orchestrator = world.BuildOrchestrator(dbContext, text, databaseName: dbName);
 
         var run = await orchestrator.StartAsync(world.Tenant.Id, world.Brand.Id, world.Campaign.Id, world.UserId, CancellationToken.None);
         await orchestrator.AdvanceAsync(run, TenantMemberRole.Owner, CancellationToken.None);
@@ -234,10 +240,11 @@ public class PipelineOrchestratorTests
     [Fact]
     public async Task CoinShortfall_ParksTheRun_ConsumesNoAttempt_AndTopUpResumes()
     {
-        await using var dbContext = TestDbContextFactory.Create();
+        var dbName = Guid.NewGuid().ToString();
+        await using var dbContext = TestDbContextFactory.Create(dbName);
         var world = await SeedAsync(dbContext, coinBalance: 100, freeMarketingPlanUsed: false);
         var text = DefaultTextService(TwoPostsJson);
-        var orchestrator = world.BuildOrchestrator(dbContext, text);
+        var orchestrator = world.BuildOrchestrator(dbContext, text, databaseName: dbName);
 
         var run = await orchestrator.StartAsync(world.Tenant.Id, world.Brand.Id, world.Campaign.Id, world.UserId, CancellationToken.None);
         await orchestrator.AdvanceAsync(run, TenantMemberRole.Owner, CancellationToken.None);
@@ -267,11 +274,12 @@ public class PipelineOrchestratorTests
     [Fact]
     public async Task ContentImage_ExhaustingEveryRetry_AttachesThePlaceholder_AndTheRunStillCompletes()
     {
-        await using var dbContext = TestDbContextFactory.Create();
+        var dbName = Guid.NewGuid().ToString();
+        await using var dbContext = TestDbContextFactory.Create(dbName);
         var world = await SeedAsync(dbContext, coinBalance: 100_000, freeMarketingPlanUsed: false);
         var text = DefaultTextService(OnePostJson);
         var image = new FakeImageService { AlwaysFail = true };
-        var orchestrator = world.BuildOrchestrator(dbContext, text, image);
+        var orchestrator = world.BuildOrchestrator(dbContext, text, image, databaseName: dbName);
 
         var run = await orchestrator.StartAsync(world.Tenant.Id, world.Brand.Id, world.Campaign.Id, world.UserId, CancellationToken.None);
         await orchestrator.AdvanceAsync(run, TenantMemberRole.Owner, CancellationToken.None);
@@ -306,9 +314,10 @@ public class PipelineOrchestratorTests
     [Fact]
     public async Task EnsureContentBatchAsync_LetsAnApprovedRun_GenerateASecondBatch_AndChargesCoinsAgain()
     {
-        await using var dbContext = TestDbContextFactory.Create();
+        var dbName = Guid.NewGuid().ToString();
+        await using var dbContext = TestDbContextFactory.Create(dbName);
         var world = await SeedAsync(dbContext, coinBalance: 100_000, freeMarketingPlanUsed: false);
-        var orchestrator = world.BuildOrchestrator(dbContext, DefaultTextService(TwoPostsJson));
+        var orchestrator = world.BuildOrchestrator(dbContext, DefaultTextService(TwoPostsJson), databaseName: dbName);
 
         var run = await orchestrator.StartAsync(world.Tenant.Id, world.Brand.Id, world.Campaign.Id, world.UserId, CancellationToken.None);
         await orchestrator.AdvanceAsync(run, TenantMemberRole.Owner, CancellationToken.None);
@@ -345,9 +354,10 @@ public class PipelineOrchestratorTests
     {
         // The shape of every C18-backfilled run: HumanApproval Completed, no ContentPlan row at all,
         // since the backfill migration only reconstructs the strategy half of the graph.
-        await using var dbContext = TestDbContextFactory.Create();
+        var dbName = Guid.NewGuid().ToString();
+        await using var dbContext = TestDbContextFactory.Create(dbName);
         var world = await SeedAsync(dbContext, coinBalance: 100_000, freeMarketingPlanUsed: false);
-        var orchestrator = world.BuildOrchestrator(dbContext, DefaultTextService(TwoPostsJson));
+        var orchestrator = world.BuildOrchestrator(dbContext, DefaultTextService(TwoPostsJson), databaseName: dbName);
         var run = new AiPipelineRun
         {
             Id = Guid.NewGuid(), TenantId = world.Tenant.Id, BrandProfileId = world.Brand.Id, CampaignId = world.Campaign.Id,
@@ -372,9 +382,10 @@ public class PipelineOrchestratorTests
     [Fact]
     public async Task EnsureContentBatchAsync_LeavesARunningStageAlone()
     {
-        await using var dbContext = TestDbContextFactory.Create();
+        var dbName = Guid.NewGuid().ToString();
+        await using var dbContext = TestDbContextFactory.Create(dbName);
         var world = await SeedAsync(dbContext, coinBalance: 100_000, freeMarketingPlanUsed: false);
-        var orchestrator = world.BuildOrchestrator(dbContext, DefaultTextService(TwoPostsJson));
+        var orchestrator = world.BuildOrchestrator(dbContext, DefaultTextService(TwoPostsJson), databaseName: dbName);
         var run = new AiPipelineRun
         {
             Id = Guid.NewGuid(), TenantId = world.Tenant.Id, BrandProfileId = world.Brand.Id, CampaignId = world.Campaign.Id,
@@ -400,9 +411,10 @@ public class PipelineOrchestratorTests
     [Fact]
     public async Task Cancel_MarksTheRunCancelled_WithoutTouchingInFlightStages()
     {
-        await using var dbContext = TestDbContextFactory.Create();
+        var dbName = Guid.NewGuid().ToString();
+        await using var dbContext = TestDbContextFactory.Create(dbName);
         var world = await SeedAsync(dbContext, coinBalance: 100_000, freeMarketingPlanUsed: false);
-        var orchestrator = world.BuildOrchestrator(dbContext, DefaultTextService(TwoPostsJson));
+        var orchestrator = world.BuildOrchestrator(dbContext, DefaultTextService(TwoPostsJson), databaseName: dbName);
 
         var run = await orchestrator.StartAsync(world.Tenant.Id, world.Brand.Id, world.Campaign.Id, world.UserId, CancellationToken.None);
         await orchestrator.CancelAsync(run, CancellationToken.None);
@@ -420,9 +432,10 @@ public class PipelineOrchestratorTests
         // Simulates the moment a real race would matter: this stage looks Pending to nobody, because
         // something else already has it. GetRunnableStages only ever selects Pending stages, so a
         // Running one — however it got that way — is simply never handed to an executor again.
-        await using var dbContext = TestDbContextFactory.Create();
+        var dbName = Guid.NewGuid().ToString();
+        await using var dbContext = TestDbContextFactory.Create(dbName);
         var world = await SeedAsync(dbContext, coinBalance: 100_000, freeMarketingPlanUsed: false);
-        var orchestrator = world.BuildOrchestrator(dbContext, DefaultTextService(TwoPostsJson));
+        var orchestrator = world.BuildOrchestrator(dbContext, DefaultTextService(TwoPostsJson), databaseName: dbName);
 
         var run = await orchestrator.StartAsync(world.Tenant.Id, world.Brand.Id, world.Campaign.Id, world.UserId, CancellationToken.None);
 
@@ -449,14 +462,15 @@ public class PipelineOrchestratorTests
     [Fact]
     public async Task EveryProviderCall_IsMadeUnderTheConcurrencyLimiter_ExceptThePureStages()
     {
-        await using var dbContext = TestDbContextFactory.Create();
+        var dbName = Guid.NewGuid().ToString();
+        await using var dbContext = TestDbContextFactory.Create(dbName);
         var world = await SeedAsync(dbContext, coinBalance: 100_000, freeMarketingPlanUsed: false);
 
         var limiter = Substitute.For<IAiProviderConcurrencyLimiter>();
         limiter.AcquireAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult<IDisposable>(Substitute.For<IDisposable>()));
 
-        var orchestrator = world.BuildOrchestrator(dbContext, DefaultTextService(TwoPostsJson), limiter: limiter);
+        var orchestrator = world.BuildOrchestrator(dbContext, DefaultTextService(TwoPostsJson), limiter: limiter, databaseName: dbName);
 
         var run = await orchestrator.StartAsync(world.Tenant.Id, world.Brand.Id, world.Campaign.Id, world.UserId, CancellationToken.None);
         await orchestrator.AdvanceAsync(run, TenantMemberRole.Owner, CancellationToken.None);
@@ -556,32 +570,86 @@ public class PipelineOrchestratorTests
 
     private sealed record World(Tenant Tenant, TenantBrandProfile Brand, MarketingCampaign Campaign, Guid UserId)
     {
+        /// <summary>
+        /// <paramref name="databaseName"/> is what makes a fanned-out batch (several ContentImage
+        /// stages, or any two independently-runnable stages) actually advance in this test the same
+        /// way it does in production: PipelineOrchestrator now dispatches everything runnable in one
+        /// tick concurrently, each under its own DI scope and therefore its own DbContext (see
+        /// PipelineOrchestrator.ExecuteStageInIsolatedScopeAsync — EF Core's context cannot be shared
+        /// across concurrent operations). FakeScopeFactory below mimics that: each CreateScope() call
+        /// opens a fresh AppDbContext pointed at the same named InMemory database, so every scope sees
+        /// the same rows the outer dbContext does. Omit it only for a test that never calls
+        /// AdvanceAsync (CreateScope would throw if it somehow did).
+        /// </summary>
         public IPipelineOrchestrator BuildOrchestrator(
             AppDbContext dbContext, FakeTextGenerationService text, FakeImageService? image = null,
-            IAiProviderConcurrencyLimiter? limiter = null)
+            IAiProviderConcurrencyLimiter? limiter = null, string? databaseName = null)
         {
-            var artifacts = new PipelineArtifactStore(dbContext);
-            var templates = new PromptTemplateProvider();
-            var search = new FakeSearchService();
-            image ??= new FakeImageService();
-            var mediaStorage = Substitute.For<IMediaStorageService>();
-            mediaStorage.IsConfigured.Returns(false);
+            var effectiveImage = image ?? new FakeImageService();
+            var effectiveLimiter = limiter ?? new AiProviderConcurrencyLimiter();
+            var scopeFactory = new FakeScopeFactory(databaseName, BuildFor);
 
-            var executors = new List<IPipelineStageExecutor>
+            return BuildFor(dbContext, scopeFactory);
+
+            PipelineOrchestrator BuildFor(AppDbContext ctx, IServiceScopeFactory scope)
             {
-                new BrandAnalysisExecutor(dbContext, text, templates, artifacts),
-                new CampaignAnalysisExecutor(dbContext, text, templates),
-                new MarketResearchExecutor(dbContext, search, text, templates),
-                new CompetitorResearchExecutor(dbContext, search, text, templates),
-                new StrategyPositioningExecutor(dbContext, text, templates),
-                new StrategyBlueprintExecutor(dbContext, text, templates),
-                new StrategyRoadmapExecutor(dbContext, text, templates),
-                new StrategyAssembleExecutor(),
-                new ContentPlanExecutor(dbContext, text, templates),
-                new ContentImageExecutor(dbContext, image, mediaStorage)
-            };
+                var artifacts = new PipelineArtifactStore(ctx);
+                var templates = new PromptTemplateProvider();
+                var search = new FakeSearchService();
+                var mediaStorage = Substitute.For<IMediaStorageService>();
+                mediaStorage.IsConfigured.Returns(false);
 
-            return new PipelineOrchestrator(dbContext, artifacts, Costs, limiter ?? new AiProviderConcurrencyLimiter(), executors);
+                var executors = new List<IPipelineStageExecutor>
+                {
+                    new BrandAnalysisExecutor(ctx, text, templates, artifacts),
+                    new CampaignAnalysisExecutor(ctx, text, templates),
+                    new MarketResearchExecutor(ctx, search, text, templates),
+                    new CompetitorResearchExecutor(ctx, search, text, templates),
+                    new StrategyPositioningExecutor(ctx, text, templates),
+                    new StrategyBlueprintExecutor(ctx, text, templates),
+                    new StrategyRoadmapExecutor(ctx, text, templates),
+                    new StrategyAssembleExecutor(),
+                    new ContentPlanExecutor(ctx, text, templates),
+                    new ContentImageExecutor(ctx, effectiveImage, mediaStorage)
+                };
+
+                return new PipelineOrchestrator(ctx, artifacts, Costs, effectiveLimiter, executors, scope);
+            }
+        }
+
+        /// <summary>Stands in for a real DI container's scoping: each CreateScope() builds a brand
+        /// new AppDbContext (same InMemory database, so it sees the same data) and a brand new
+        /// PipelineOrchestrator wired to it, exactly what production's real IServiceScopeFactory
+        /// would resolve.</summary>
+        private sealed class FakeScopeFactory(string? databaseName, Func<AppDbContext, IServiceScopeFactory, PipelineOrchestrator> buildFor)
+            : IServiceScopeFactory
+        {
+            public IServiceScope CreateScope()
+            {
+                if (databaseName is null)
+                {
+                    throw new InvalidOperationException(
+                        "This orchestrator was built without a shared database name (BuildOrchestrator's " +
+                        "databaseName parameter), so it has no way to open an isolated scope's DbContext " +
+                        "against the same data. Pass databaseName when the test calls AdvanceAsync.");
+                }
+
+                var ctx = TestDbContextFactory.Create(databaseName);
+                var orchestrator = buildFor(ctx, this);
+                return new FakeScope(ctx, orchestrator);
+            }
+        }
+
+        private sealed class FakeScope(AppDbContext ctx, IPipelineOrchestrator orchestrator) : IServiceScope
+        {
+            public IServiceProvider ServiceProvider { get; } = new FakeServiceProvider(orchestrator);
+            public void Dispose() => ctx.Dispose();
+        }
+
+        private sealed class FakeServiceProvider(IPipelineOrchestrator orchestrator) : IServiceProvider
+        {
+            public object? GetService(Type serviceType) =>
+                serviceType == typeof(IPipelineOrchestrator) ? orchestrator : null;
         }
     }
 

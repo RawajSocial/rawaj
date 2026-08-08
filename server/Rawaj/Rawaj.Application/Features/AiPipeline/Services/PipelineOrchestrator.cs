@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Rawaj.Application.Common.Interfaces;
 using Rawaj.Application.Common.Policies;
 using Rawaj.Application.Features.AiPipeline.Common;
@@ -35,7 +36,8 @@ public class PipelineOrchestrator(
     IPipelineArtifactStore artifacts,
     ICoinCostProvider coinCosts,
     IAiProviderConcurrencyLimiter providerLimiter,
-    IEnumerable<IPipelineStageExecutor> executors) : IPipelineOrchestrator
+    IEnumerable<IPipelineStageExecutor> executors,
+    IServiceScopeFactory scopeFactory) : IPipelineOrchestrator
 {
     private static readonly AiArtifactKind[] AllArtifactKinds = Enum.GetValues<AiArtifactKind>();
 
@@ -110,21 +112,67 @@ public class PipelineOrchestrator(
                 break;
             }
 
+            var dispatchable = new List<AiPipelineStage>();
+
             foreach (var stage in runnable)
             {
                 if (AiPipelinePolicy.Definition(stage.Kind).RequiresHuman)
                 {
                     // Never dispatched — the graph parks here until PipelineApprovalService clears it.
                     stage.Status = AiPipelineStageStatus.AwaitingApproval;
-                    await dbContext.SaveChangesAsync(cancellationToken);
                     continue;
                 }
 
-                await ExecuteStageAsync(run, stage, role, leaseOwner, cancellationToken);
+                dispatchable.Add(stage);
             }
 
+            await dbContext.SaveChangesAsync(cancellationToken);
+
+            // Every stage in `dispatchable` was computed runnable from the same freshly-loaded
+            // snapshot above, so none of them depends on another one in this same batch — dispatching
+            // them all at once doesn't violate the graph. Each gets its own DB scope (see
+            // ExecuteStageInIsolatedScopeAsync): EF Core's context cannot be shared across concurrent
+            // operations, so genuine parallelism needs one context per in-flight stage, not one
+            // shared across all of them the way a plain sequential loop could get away with.
+            await Task.WhenAll(dispatchable.Select(stage =>
+                ExecuteStageInIsolatedScopeAsync(run.Id, stage.Id, role, leaseOwner, cancellationToken)));
+
+            // Every stage just dispatched ran in its own isolated scope, on its own database context
+            // — but this outer context may already be tracking its own (now stale) copy of `run` and
+            // of any of those same stage rows from an earlier query in this loop or an earlier
+            // AdvanceAsync call on this run. EF Core's change tracker returns a tracked entity's own
+            // in-memory values on a later query for that same row rather than the fresh values a
+            // DIFFERENT context just wrote — without clearing it, `updatedStages` below would keep
+            // reporting every dispatched stage's pre-dispatch status forever, EvaluateRunStatus would
+            // never see anything as done, and this loop would never terminate (it would re-dispatch
+            // the same "still pending" stage on every iteration). Clearing forces every query for the
+            // rest of this iteration to read genuinely current values. IApplicationDbContext exposes
+            // no ChangeTracker/Entry of its own (only DbSets) — every real implementation is an EF
+            // Core DbContext, so this cast is the same escape hatch a mocked context in a unit test
+            // would never need to go through.
+            //
+            // `run` is reattached below via its entry's State, not via DbSet.Attach(run): Attach()
+            // cascades to every entity reachable from `run`'s object graph (Campaign, BrandProfile,
+            // Stages), and EF's automatic relationship fixup silently populates those navigations with
+            // whatever CLR instances this same context has ever tracked for this run — e.g. the
+            // MarketingCampaign SeedAsync originally inserted, still sitting on `run.Campaign` with a
+            // now-stale RowVersion, untouched by ChangeTracker.Clear() (that clears the *tracker*, not
+            // plain CLR references other objects hold). Cascading through Attach() would try to
+            // re-track those stale objects too — either colliding with genuinely fresh instances
+            // something else in this iteration already loaded for the same key, or (for RowVersion'd
+            // entities like MarketingCampaign) getting silently returned by a later tracked query for
+            // that key instead of the fresh row, causing a spurious DbUpdateConcurrencyException on the
+            // next save. Setting just this one entry's state touches nothing reachable from `run`.
+            var efContext = (DbContext)dbContext;
+            efContext.ChangeTracker.Clear();
+
             var updatedStages = await LoadStagesAsync(run.Id, cancellationToken);
-            run.Status = AiPipelinePolicy.EvaluateRunStatus(updatedStages);
+            var newStatus = AiPipelinePolicy.EvaluateRunStatus(updatedStages);
+
+            efContext.Entry(run).State = EntityState.Unchanged;
+            await efContext.Entry(run).ReloadAsync(cancellationToken);
+
+            run.Status = newStatus;
             run.UpdatedAt = DateTime.UtcNow;
             PipelineRunPublisher.Queue(dbContext, run, updatedStages);
             await dbContext.SaveChangesAsync(cancellationToken);
@@ -146,6 +194,36 @@ public class PipelineOrchestrator(
         run.Status = AiPipelineRunStatus.Cancelled;
         run.UpdatedAt = DateTime.UtcNow;
         return dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task ExecuteSingleStageAsync(
+        Guid runId, Guid stageId, TenantMemberRole role, CancellationToken cancellationToken, string leaseOwner)
+    {
+        var run = await dbContext.AiPipelineRuns.FirstOrDefaultAsync(r => r.Id == runId, cancellationToken);
+        var stage = await dbContext.AiPipelineStages.FirstOrDefaultAsync(s => s.Id == stageId, cancellationToken);
+
+        // Both were real rows moments ago in the caller's own snapshot — gone here would mean the run
+        // was deleted/cancelled out from under this stage between that snapshot and this scope
+        // opening, which nothing in this codebase does today, but a no-op is the safe response either
+        // way rather than throwing into a Task.WhenAll batch and failing every sibling with it.
+        if (run is null || stage is null)
+        {
+            return;
+        }
+
+        await ExecuteStageAsync(run, stage, role, leaseOwner, cancellationToken);
+    }
+
+    /// <summary>Opens a brand new DI scope — and therefore a brand new <see cref="IApplicationDbContext"/>
+    /// — to run one stage, so it can genuinely execute concurrently with siblings dispatched the same
+    /// way. See the doc comment on <see cref="IPipelineOrchestrator.ExecuteSingleStageAsync"/> for why
+    /// that isolation is required rather than optional.</summary>
+    private async Task ExecuteStageInIsolatedScopeAsync(
+        Guid runId, Guid stageId, TenantMemberRole role, string leaseOwner, CancellationToken cancellationToken)
+    {
+        using var scope = scopeFactory.CreateScope();
+        var scopedOrchestrator = scope.ServiceProvider.GetRequiredService<IPipelineOrchestrator>();
+        await scopedOrchestrator.ExecuteSingleStageAsync(runId, stageId, role, cancellationToken, leaseOwner);
     }
 
     public async Task<AiPipelineStage> EnsureContentBatchAsync(AiPipelineRun run, CancellationToken cancellationToken)

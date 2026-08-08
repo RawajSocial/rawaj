@@ -43,6 +43,18 @@ public interface IPipelineOrchestrator
     Task AdvanceAsync(
         AiPipelineRun run, TenantMemberRole role, CancellationToken cancellationToken, string leaseOwner = "orchestrator");
 
+    /// <summary>
+    /// Loads one run and one stage fresh from this instance's own database context, then dispatches
+    /// that single stage exactly as <see cref="AdvanceAsync"/> would. Exists so a caller can run
+    /// several stages of the same batch concurrently by resolving a separate scoped
+    /// <see cref="IPipelineOrchestrator"/> — and therefore a separate database context — per stage:
+    /// EF Core's context is not safe for concurrent use, so true parallel dispatch needs one per
+    /// in-flight stage, not one shared across all of them. Not meant to be called directly outside
+    /// that fan-out — <see cref="AdvanceAsync"/> is the entry point for advancing a run.
+    /// </summary>
+    Task ExecuteSingleStageAsync(
+        Guid runId, Guid stageId, TenantMemberRole role, CancellationToken cancellationToken, string leaseOwner);
+
     /// <summary>Marks a run <see cref="AiPipelineRunStatus.Cancelled"/>. In-flight stage rows are left
     /// as they are — a cancelled run simply stops being advanced, rather than requiring every stage to
     /// be rewritten to a new terminal state it didn't actually reach.</summary>
