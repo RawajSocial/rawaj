@@ -308,8 +308,21 @@ export class RawajOnboarding {
       { title: 'الخروج من إعداد الحملة', confirmLabel: 'الخروج', cancelLabel: 'متابعة الإعداد' },
     );
     if (confirmed) {
+      // Autosave is debounced (AUTOSAVE_DEBOUNCE_MS) — without this flush, an edit made less than a
+      // second before exiting never reaches the server: destroyRef's onDestroy below cancels the
+      // pending timer as the component tears down for the route change, so the last change would
+      // otherwise be silently lost despite the message above promising it's saved.
+      this.flushPendingAutosave();
       void this.router.navigate(['/dashboard/campaigns']);
     }
+  }
+
+  private flushPendingAutosave(): void {
+    if (this.autosaveTimer === null) return;
+    clearTimeout(this.autosaveTimer);
+    this.autosaveTimer = null;
+    const id = this.campaignId();
+    if (id) this.flushAutosave(id, this.onboardingData());
   }
 
   protected goToNextStep(): void {

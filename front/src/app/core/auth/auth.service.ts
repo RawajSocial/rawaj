@@ -9,6 +9,8 @@ import {
 } from '../../model/auth.model';
 import { decodeAccessToken, isTokenExpired } from './jwt.util';
 import { resolveMediaUrl } from './media-url.util';
+import { TenantService } from '../tenant/tenant.service';
+import { BrandContextService } from '../../services/brand-context.service';
 
 const ACCESS_TOKEN_KEY = 'rawaj_access_token';
 const REFRESH_TOKEN_KEY = 'rawaj_refresh_token';
@@ -17,6 +19,12 @@ const REFRESH_TOKEN_KEY = 'rawaj_refresh_token';
 export class AuthService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiUrl}/auth`;
+  // Neither of these (nor BrandContextService's own dependencies) inject AuthService, so this
+  // stays acyclic. NotificationService is deliberately NOT cleared here: it depends on
+  // RealtimeHubService, which does inject AuthService, and adding it would create
+  // AuthService -> NotificationService -> RealtimeHubService -> AuthService.
+  private readonly tenantService = inject(TenantService);
+  private readonly brandContextService = inject(BrandContextService);
 
   private readonly _accessToken = signal<string | null>(localStorage.getItem(ACCESS_TOKEN_KEY));
   private readonly _refreshToken = signal<string | null>(localStorage.getItem(REFRESH_TOKEN_KEY));
@@ -106,13 +114,18 @@ export class AuthService {
     return this.http.post<ApiResponse<boolean>>(`${this.baseUrl}/logout`, { refreshToken });
   }
 
-  /** Synchronous cleanup for cases (e.g. an unrecoverable 401) where no logout request is needed. */
+  /** Synchronous cleanup for cases (e.g. an unrecoverable 401) where no logout request is needed.
+   *  Also clears tenant/brand selection state - both are meaningless without a session, and leaving
+   *  them in localStorage let a stale tenant/brand id from one login survive into the next one on
+   *  the same browser (see BrandContextService's own doc comments for what that broke). */
   clearSession(): void {
     this._accessToken.set(null);
     this._refreshToken.set(null);
     this._profileOverride.set(null);
     localStorage.removeItem(ACCESS_TOKEN_KEY);
     localStorage.removeItem(REFRESH_TOKEN_KEY);
+    this.tenantService.clear();
+    this.brandContextService.clear();
   }
 
   fetchMyProfile(): Observable<ApiResponse<MyProfileResponse>> {
