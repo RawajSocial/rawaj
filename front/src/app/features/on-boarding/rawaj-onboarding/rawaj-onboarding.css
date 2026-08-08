@@ -4,6 +4,35 @@
   background: var(--color-bg-secondary);
 }
 
+/* Mobile-only fallback exit — the primary one lives in the sidebar (hidden below 992px, see the
+   `d-lg-block d-none` on app-onboarding-sidebar), so this is what mobile users actually see. */
+.onboarding-exit-btn-mobile {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  margin-bottom: 1.2rem;
+  padding: .5rem .9rem;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-size: .82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color .15s, color .15s, border-color .15s;
+}
+
+.onboarding-exit-btn-mobile:hover {
+  background: var(--color-bg-tertiary);
+  color: var(--color-dark);
+  border-color: var(--color-secondary);
+}
+
+.onboarding-exit-btn-mobile:focus-visible {
+  outline: 2px solid var(--color-secondary);
+  outline-offset: 2px;
+}
+
 .onboarding-layout {
   display: grid;
   grid-template-columns: minmax(250px, 330px) minmax(0, 1fr);

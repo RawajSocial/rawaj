@@ -20,4 +20,6 @@ public record GetCampaignResponse(
     string? DiagnosisJson,
     DateTime? PlanApprovedAt,
     DateTime CreatedAt,
-    DateTime UpdatedAt);
+    DateTime UpdatedAt,
+    Guid? CurrentPipelineRunId,
+    DateTime? OnboardingCompletedAt);

@@ -86,6 +86,64 @@ namespace Rawaj.Persistence.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("Rawaj.Domain.Entities.AiOperations.AiArtifact", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("BrandProfileId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CampaignId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ContentJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("InputHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<bool>("IsCurrent")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<int>("SchemaVersion")
+                        .HasColumnType("int");
+
+                    b.Property<Guid?>("SourceStageId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SourceStageId");
+
+                    b.HasIndex("TenantId");
+
+                    b.HasIndex("BrandProfileId", "Kind", "InputHash");
+
+                    b.HasIndex("CampaignId", "Kind", "IsCurrent");
+
+                    b.HasIndex("CampaignId", "Kind", "Version");
+
+                    b.ToTable("ai_artifacts", (string)null);
+                });
+
             modelBuilder.Entity("Rawaj.Domain.Entities.AiOperations.AiJob", b =>
                 {
                     b.Property<Guid>("Id")
@@ -115,12 +173,30 @@ namespace Rawaj.Persistence.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
 
+                    b.Property<int?>("LatencyMs")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Model")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
                     b.Property<Guid?>("OutputRefId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("OutputRefType")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
+
+                    b.Property<Guid?>("PipelineStageId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("PromptHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("Provider")
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
 
                     b.Property<DateTime?>("StartedAt")
                         .HasColumnType("datetime2");
@@ -129,6 +205,9 @@ namespace Rawaj.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<int?>("Tokens")
                         .HasColumnType("int");
@@ -140,9 +219,189 @@ namespace Rawaj.Persistence.Migrations
 
                     b.HasIndex("BrandProfileId");
 
+                    b.HasIndex("PipelineStageId");
+
                     b.HasIndex("TriggeredBy");
 
+                    b.HasIndex("TenantId", "CreatedAt");
+
                     b.ToTable("ai_jobs", (string)null);
+                });
+
+            modelBuilder.Entity("Rawaj.Domain.Entities.AiOperations.AiPipelineRun", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("BrandProfileId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CampaignId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("ContentIncludeImages")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("ContentLanguage")
+                        .IsRequired()
+                        .HasMaxLength(5)
+                        .HasColumnType("nvarchar(5)");
+
+                    b.Property<int>("ContentPostCount")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ContentTemplateStyle")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CurrentStage")
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<string>("LastError")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<DateTime?>("StartedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("TotalCoinsSpent")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("TriggeredBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BrandProfileId");
+
+                    b.HasIndex("Status")
+                        .HasDatabaseName("IX_ai_pipeline_runs_Status_Active")
+                        .HasFilter("[Status] IN ('Pending', 'Running')");
+
+                    b.HasIndex("TriggeredBy");
+
+                    b.HasIndex("CampaignId", "CreatedAt");
+
+                    b.HasIndex("TenantId", "Status");
+
+                    b.ToTable("ai_pipeline_runs", (string)null);
+                });
+
+            modelBuilder.Entity("Rawaj.Domain.Entities.AiOperations.AiPipelineStage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("ArtifactId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("int");
+
+                    b.Property<int>("CoinsCharged")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("InputHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<bool>("IsOptional")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<string>("LastError")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("LastErrorKind")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime?>("LeaseExpiresAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("LeaseOwner")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<int>("MaxAttempts")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("NextAttemptAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Ordinal")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("RunId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("StartedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<Guid?>("TargetRefId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("TargetRefType")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ArtifactId");
+
+                    b.HasIndex("Status", "LeaseExpiresAt")
+                        .HasDatabaseName("IX_ai_pipeline_stages_Running_Lease")
+                        .HasFilter("[Status] = 'Running'");
+
+                    b.HasIndex("Status", "NextAttemptAt")
+                        .HasDatabaseName("IX_ai_pipeline_stages_Pending")
+                        .HasFilter("[Status] = 'Pending'");
+
+                    b.HasIndex("RunId", "Kind", "TargetRefId")
+                        .IsUnique();
+
+                    b.ToTable("ai_pipeline_stages", (string)null);
                 });
 
             modelBuilder.Entity("Rawaj.Domain.Entities.Auth.EmailOtpCode", b =>
@@ -652,9 +911,6 @@ namespace Rawaj.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("AiPromptUsed")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<Guid?>("BrandProfileId")
                         .HasColumnType("uniqueidentifier");
 
@@ -706,6 +962,9 @@ namespace Rawaj.Persistence.Migrations
                         .HasMaxLength(5)
                         .HasColumnType("nvarchar(5)");
 
+                    b.Property<Guid?>("PipelineStageId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("Platform")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -750,6 +1009,8 @@ namespace Rawaj.Persistence.Migrations
                     b.HasIndex("CampaignId");
 
                     b.HasIndex("CreatedBy");
+
+                    b.HasIndex("PipelineStageId");
 
                     b.HasIndex("ReviewedBy");
 
@@ -811,6 +1072,9 @@ namespace Rawaj.Persistence.Migrations
                     b.Property<string>("AiPlanJson")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<Guid?>("ApprovedStrategyArtifactId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid>("BrandProfileId")
                         .HasColumnType("uniqueidentifier");
 
@@ -831,6 +1095,9 @@ namespace Rawaj.Persistence.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CurrentPipelineRunId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime?>("DeletedAt")
@@ -855,6 +1122,9 @@ namespace Rawaj.Persistence.Migrations
 
                     b.Property<string>("Objective")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("OnboardingCompletedAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<DateTime?>("PlanApprovedAt")
                         .HasColumnType("datetime2");
@@ -882,7 +1152,11 @@ namespace Rawaj.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ApprovedStrategyArtifactId");
+
                     b.HasIndex("CreatedBy");
+
+                    b.HasIndex("CurrentPipelineRunId");
 
                     b.HasIndex("BrandProfileId", "Status");
 
@@ -1214,8 +1488,17 @@ namespace Rawaj.Persistence.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("ErrorMessage")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
 
                     b.Property<string>("PostId")
                         .HasMaxLength(255)
@@ -1438,6 +1721,9 @@ namespace Rawaj.Persistence.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<Guid?>("CurrentBrandAnalysisArtifactId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime2");
 
@@ -1473,6 +1759,8 @@ namespace Rawaj.Persistence.Migrations
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CurrentBrandAnalysisArtifactId");
 
                     b.HasIndex("TenantId");
 
@@ -1731,12 +2019,50 @@ namespace Rawaj.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Rawaj.Domain.Entities.AiOperations.AiArtifact", b =>
+                {
+                    b.HasOne("Rawaj.Domain.Entities.Tenants.TenantBrandProfile", "BrandProfile")
+                        .WithMany()
+                        .HasForeignKey("BrandProfileId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Rawaj.Domain.Entities.Campaigns.MarketingCampaign", "Campaign")
+                        .WithMany()
+                        .HasForeignKey("CampaignId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Rawaj.Domain.Entities.AiOperations.AiPipelineStage", "SourceStage")
+                        .WithMany()
+                        .HasForeignKey("SourceStageId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("Rawaj.Domain.Entities.Tenants.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("BrandProfile");
+
+                    b.Navigation("Campaign");
+
+                    b.Navigation("SourceStage");
+
+                    b.Navigation("Tenant");
+                });
+
             modelBuilder.Entity("Rawaj.Domain.Entities.AiOperations.AiJob", b =>
                 {
                     b.HasOne("Rawaj.Domain.Entities.Tenants.TenantBrandProfile", "BrandProfile")
                         .WithMany()
                         .HasForeignKey("BrandProfileId")
                         .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Rawaj.Domain.Entities.AiOperations.AiPipelineStage", "PipelineStage")
+                        .WithMany("AiJobs")
+                        .HasForeignKey("PipelineStageId")
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("Rawaj.Persistence.Identity.ApplicationUser", null)
                         .WithMany()
@@ -1745,6 +2071,58 @@ namespace Rawaj.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("BrandProfile");
+
+                    b.Navigation("PipelineStage");
+                });
+
+            modelBuilder.Entity("Rawaj.Domain.Entities.AiOperations.AiPipelineRun", b =>
+                {
+                    b.HasOne("Rawaj.Domain.Entities.Tenants.TenantBrandProfile", "BrandProfile")
+                        .WithMany()
+                        .HasForeignKey("BrandProfileId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Rawaj.Domain.Entities.Campaigns.MarketingCampaign", "Campaign")
+                        .WithMany()
+                        .HasForeignKey("CampaignId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Rawaj.Domain.Entities.Tenants.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Rawaj.Persistence.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("TriggeredBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("BrandProfile");
+
+                    b.Navigation("Campaign");
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("Rawaj.Domain.Entities.AiOperations.AiPipelineStage", b =>
+                {
+                    b.HasOne("Rawaj.Domain.Entities.AiOperations.AiArtifact", "Artifact")
+                        .WithMany()
+                        .HasForeignKey("ArtifactId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("Rawaj.Domain.Entities.AiOperations.AiPipelineRun", "Run")
+                        .WithMany("Stages")
+                        .HasForeignKey("RunId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Artifact");
+
+                    b.Navigation("Run");
                 });
 
             modelBuilder.Entity("Rawaj.Domain.Entities.Auth.EmailOtpCode", b =>
@@ -1847,6 +2225,11 @@ namespace Rawaj.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("Rawaj.Domain.Entities.AiOperations.AiPipelineStage", "PipelineStage")
+                        .WithMany()
+                        .HasForeignKey("PipelineStageId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("Rawaj.Persistence.Identity.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("ReviewedBy")
@@ -1860,6 +2243,8 @@ namespace Rawaj.Persistence.Migrations
                     b.Navigation("BrandProfile");
 
                     b.Navigation("Campaign");
+
+                    b.Navigation("PipelineStage");
                 });
 
             modelBuilder.Entity("Rawaj.Domain.Entities.Campaigns.ContentRevision", b =>
@@ -1881,6 +2266,11 @@ namespace Rawaj.Persistence.Migrations
 
             modelBuilder.Entity("Rawaj.Domain.Entities.Campaigns.MarketingCampaign", b =>
                 {
+                    b.HasOne("Rawaj.Domain.Entities.AiOperations.AiArtifact", "ApprovedStrategyArtifact")
+                        .WithMany()
+                        .HasForeignKey("ApprovedStrategyArtifactId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
                     b.HasOne("Rawaj.Domain.Entities.Tenants.TenantBrandProfile", "BrandProfile")
                         .WithMany("Campaigns")
                         .HasForeignKey("BrandProfileId")
@@ -1893,7 +2283,16 @@ namespace Rawaj.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("Rawaj.Domain.Entities.AiOperations.AiPipelineRun", "CurrentPipelineRun")
+                        .WithMany()
+                        .HasForeignKey("CurrentPipelineRunId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.Navigation("ApprovedStrategyArtifact");
+
                     b.Navigation("BrandProfile");
+
+                    b.Navigation("CurrentPipelineRun");
                 });
 
             modelBuilder.Entity("Rawaj.Domain.Entities.Campaigns.VisualAsset", b =>
@@ -2043,11 +2442,18 @@ namespace Rawaj.Persistence.Migrations
 
             modelBuilder.Entity("Rawaj.Domain.Entities.Tenants.TenantBrandProfile", b =>
                 {
+                    b.HasOne("Rawaj.Domain.Entities.AiOperations.AiArtifact", "CurrentBrandAnalysisArtifact")
+                        .WithMany()
+                        .HasForeignKey("CurrentBrandAnalysisArtifactId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
                     b.HasOne("Rawaj.Domain.Entities.Tenants.Tenant", "Tenant")
                         .WithMany("BrandProfiles")
                         .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("CurrentBrandAnalysisArtifact");
 
                     b.Navigation("Tenant");
                 });
@@ -2108,6 +2514,16 @@ namespace Rawaj.Persistence.Migrations
                     b.Navigation("BrandProfile");
 
                     b.Navigation("TenantMember");
+                });
+
+            modelBuilder.Entity("Rawaj.Domain.Entities.AiOperations.AiPipelineRun", b =>
+                {
+                    b.Navigation("Stages");
+                });
+
+            modelBuilder.Entity("Rawaj.Domain.Entities.AiOperations.AiPipelineStage", b =>
+                {
+                    b.Navigation("AiJobs");
                 });
 
             modelBuilder.Entity("Rawaj.Domain.Entities.Billing.SubscriptionPlan", b =>

@@ -2,7 +2,8 @@ import { Component, HostListener, computed, inject, signal } from '@angular/core
 import { Router } from '@angular/router';
 import { ConfirmDialogService } from '../../../services/confirm-dialog.service';
 import { CampaignCard } from '../campaign-card/campaign-card';
-import { CampaignStatus, CampaignPlatform } from '../../../model/campaign.model';
+import { DeleteCampaignModal } from '../delete-campaign-modal/delete-campaign-modal';
+import { CampaignDeleteSummary, CampaignStatus, CampaignPlatform } from '../../../model/campaign.model';
 import { SeoService } from '../../../services/seo.service';
 import { CampaignService } from '../../../services/campaign.service';
 import { ErrorModalService } from '../../../services/error-modal.service';
@@ -12,11 +13,12 @@ import { BrandLock } from '../../../shared/components/brand-lock/brand-lock';
 import { TenantService } from '../../../core/tenant/tenant.service';
 import { PermissionService } from '../../../core/tenant/permission.service';
 import { TooltipDirective } from '../../../shared/directives/tooltip.directive';
+import { OnboardingEntryService } from '../../../services/onboarding-entry.service';
 
 @Component({
   selector: 'app-campaigns-page',
   standalone: true,
-  imports: [CampaignCard, PageHeader, BrandLock, TooltipDirective],
+  imports: [CampaignCard, DeleteCampaignModal, PageHeader, BrandLock, TooltipDirective],
   templateUrl: './campaigns-page.html',
   styleUrls: ['../../../features/on-boarding/onboarding-shared.css', './campaigns-page.css'],
 })
@@ -27,6 +29,7 @@ export class CampaignsPage {
   private readonly errorModalService = inject(ErrorModalService);
   private readonly confirmDialogService = inject(ConfirmDialogService);
   private readonly tenantService = inject(TenantService);
+  private readonly onboardingEntryService = inject(OnboardingEntryService);
   protected readonly perms = inject(PermissionService);
 
   constructor() {
@@ -158,16 +161,72 @@ export class CampaignsPage {
     });
   }
 
+  /** Permanent delete — a dedicated modal (not the generic ConfirmDialogService text prompt) shows
+   *  the actual breakdown of what's about to be removed, fetched fresh so the counts are never
+   *  stale. `deleteCampaignId` is kept separate from `deleteSummary` so the modal can render its
+   *  loading state the instant it opens, before the summary request resolves. */
+  protected readonly deleteModalOpen = signal(false);
+  protected readonly deleteSummary = signal<CampaignDeleteSummary | null>(null);
+  protected readonly deleting = signal(false);
+  private deleteCampaignId: string | null = null;
+
+  protected requestDeleteCampaign(id: string): void {
+    if (!this.perms.canAdmin()) return;
+    this.deleteCampaignId = id;
+    this.deleteSummary.set(null);
+    this.deleteModalOpen.set(true);
+    this.campaignService.getDeleteSummary(id).subscribe({
+      next: res => {
+        if (res.data) this.deleteSummary.set(res.data);
+      },
+      error: err => {
+        this.cancelDeleteCampaign();
+        this.errorModalService.show(
+          extractApiErrorMessage(err, 'تعذّر تحميل تفاصيل الحملة.'), { variant: 'error' });
+      },
+    });
+  }
+
+  protected cancelDeleteCampaign(): void {
+    this.deleteModalOpen.set(false);
+    this.deleteSummary.set(null);
+    this.deleteCampaignId = null;
+  }
+
+  protected confirmDeleteCampaign(): void {
+    const id = this.deleteCampaignId;
+    if (!id || this.deleting()) return;
+
+    this.deleting.set(true);
+    this.campaignService.delete(id).subscribe({
+      next: () => {
+        this.deleting.set(false);
+        this.cancelDeleteCampaign();
+      },
+      error: err => {
+        this.deleting.set(false);
+        this.cancelDeleteCampaign();
+        this.errorModalService.show(extractApiErrorMessage(err, 'تعذّر حذف الحملة.'), { variant: 'error' });
+      },
+    });
+  }
+
   protected viewCampaign(id: string): void {
     this.router.navigate(['/dashboard/campaigns', id]);
   }
 
   /** Sends the user straight to the step the campaign is waiting on, so the list is a way back
-   *  into an unfinished workflow rather than a dead end. A campaign whose strategy isn't approved
-   *  yet goes to the plan review; anything past that goes to the content review, which is where
-   *  both generating and reviewing posts happen. */
+   *  into an unfinished workflow rather than a dead end. Three destinations, not two: a campaign
+   *  abandoned mid-wizard (steps 1-7, `onboardingCompletedAt` unset — no brief data collected yet)
+   *  must go back into the wizard itself, not into strategy review, which used to run the
+   *  research/diagnose pipeline against an empty brief. Once the wizard is finished but the
+   *  strategy isn't approved, strategy review is correct; past that, content review is. */
   protected openNextStep(id: string): void {
     const campaign = this.campaignService.getById(id)();
+    if (campaign && !campaign.onboardingCompletedAt) {
+      this.router.navigate(['/on-boarding'], { queryParams: { resume: id } });
+      return;
+    }
     if (campaign && !campaign.planApprovedAt) {
       this.router.navigate(['/dashboard/campaigns', id, 'strategy']);
       return;
@@ -177,7 +236,7 @@ export class CampaignsPage {
 
   protected startNewCampaign(): void {
     if (!this.perms.canEdit() || !this.requireBrandProfile()) return;
-    this.router.navigate(['/on-boarding'], { queryParams: { fresh: 1 } });
+    void this.onboardingEntryService.startOrResumeOnboarding();
   }
 
   private requireBrandProfile(): boolean {

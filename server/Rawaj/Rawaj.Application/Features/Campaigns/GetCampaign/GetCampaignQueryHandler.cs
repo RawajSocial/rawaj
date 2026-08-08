@@ -32,7 +32,9 @@ public class GetCampaignQueryHandler(IApplicationDbContext dbContext, ICurrentTe
                 c.DiagnosisJson,
                 c.PlanApprovedAt,
                 c.CreatedAt,
-                c.UpdatedAt))
+                c.UpdatedAt,
+                c.CurrentPipelineRunId,
+                c.OnboardingCompletedAt))
             .FirstOrDefaultAsync(cancellationToken);
 
         return response is null

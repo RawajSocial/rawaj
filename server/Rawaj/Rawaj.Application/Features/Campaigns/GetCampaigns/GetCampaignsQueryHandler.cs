@@ -41,7 +41,7 @@ public class GetCampaignsQueryHandler(
             .Select(c => new CampaignSummary(
                 c.Id, c.BrandProfileId, c.Name, c.Status, c.StartDate, c.EndDate, c.CreatedAt,
                 c.Objective, c.TargetPlatforms, c.BudgetAmount, c.BudgetCurrency, c.PlanApprovedAt,
-                c.ContentItems.Count(i => !i.IsDeleted)))
+                c.ContentItems.Count(i => !i.IsDeleted), c.OnboardingCompletedAt))
             .ToListAsync(cancellationToken);
 
         return Result<PagedResult<CampaignSummary>>.Success(new PagedResult<CampaignSummary>(campaigns, page, pageSize, totalCount));

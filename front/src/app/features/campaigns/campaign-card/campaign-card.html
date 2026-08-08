@@ -112,6 +112,16 @@
         </button>
       }
 
+      <!-- Permanent delete — offered regardless of archive status, gated stricter (Admin) than
+           every other action here since it cascades to content/images/scheduled posts. -->
+      <button type="button" class="camp-action-btn delete-btn"
+        [class.is-perm-disabled]="!perms.canAdmin()"
+        [attr.aria-disabled]="!perms.canAdmin() || null"
+        (click)="perms.canAdmin() && deleteCampaign.emit(campaign().id); $event.stopPropagation()"
+        [appTooltip]="perms.canAdmin() ? 'حذف نهائي' : deleteDeniedReason" aria-label="حذف نهائي">
+        <i class="fa-solid fa-trash-can"></i>
+      </button>
+
       <button type="button" class="camp-action-btn view-btn" (click)="view.emit(campaign().id); $event.stopPropagation()" appTooltip="عرض التفاصيل" aria-label="عرض التفاصيل">
         <i class="fa-solid fa-arrow-up-left-from-square"></i>
       </button>

@@ -1,4 +1,5 @@
 using Rawaj.Domain.Common;
+using Rawaj.Domain.Entities.AiOperations;
 using Rawaj.Domain.Entities.Tenants;
 using Rawaj.Domain.Enums;
 
@@ -33,6 +34,26 @@ public class MarketingCampaign : BaseEntity, IConcurrencyAware
     /// which must not run against a plan nobody has signed off on.</summary>
     public DateTime? PlanApprovedAt { get; set; }
 
+    /// <summary>Stamped when the onboarding wizard's answer-collection steps (1-7) are finished and
+    /// the user moves into strategy review — <i>not</i> when the strategy itself is approved
+    /// (<see cref="PlanApprovedAt"/>). This is what tells a Draft campaign the user is returning to
+    /// apart from one abandoned mid-wizard, with no brief data collected yet, from one abandoned at
+    /// strategy review: the former must route back into the wizard, the latter into the strategy
+    /// review page — routing both the same way used to send an empty brief into the strategy
+    /// pipeline.</summary>
+    public DateTime? OnboardingCompletedAt { get; set; }
+
+    /// <summary>The pipeline run currently producing this campaign's strategy and content, if any.
+    /// A campaign can be run through the pipeline more than once over its life (regenerate after a
+    /// rethink); this points at the latest, and the run rows themselves are the history.</summary>
+    public Guid? CurrentPipelineRunId { get; set; }
+
+    /// <summary>The exact strategy artifact <see cref="PlanApprovedAt"/> refers to. Approval used to
+    /// be a bare timestamp against a plan column that refinement overwrote in place, so "which
+    /// strategy did the user actually approve" had no answer once it had been refined again. Content
+    /// generation executes this version specifically, not merely the most recent one.</summary>
+    public Guid? ApprovedStrategyArtifactId { get; set; }
+
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 
@@ -46,6 +67,8 @@ public class MarketingCampaign : BaseEntity, IConcurrencyAware
     public Guid? DeletedBy { get; set; }
 
     public TenantBrandProfile BrandProfile { get; set; } = null!;
+    public AiPipelineRun? CurrentPipelineRun { get; set; }
+    public AiArtifact? ApprovedStrategyArtifact { get; set; }
     public ICollection<ContentItem> ContentItems { get; set; } = [];
     public ICollection<VisualAsset> VisualAssets { get; set; } = [];
 }

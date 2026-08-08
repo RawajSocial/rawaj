@@ -10,6 +10,7 @@ namespace Rawaj.Application.Features.AiTrial.GenerateTrialImage;
 public class GenerateTrialImageCommandHandler(
     IApplicationDbContext dbContext,
     ICurrentUserService currentUserService,
+    ICurrentTenantContext currentTenantContext,
     IAiImageGenerationService imageGenerationService,
     IMediaStorageService mediaStorageService)
     : IRequestHandler<GenerateTrialImageCommand, Result<GenerateTrialImageResponse>>
@@ -37,6 +38,9 @@ public class GenerateTrialImageCommandHandler(
         var job = new AiJob
         {
             Id = Guid.NewGuid(),
+            // See GenerateTrialContentCommandHandler — trial calls are authenticated but not
+            // tenant-scoped, so this is recorded when known and left empty when it genuinely isn't.
+            TenantId = currentTenantContext.TenantId ?? Guid.Empty,
             BrandProfileId = null,
             TriggeredBy = userId.Value,
             JobType = AiJobType.ImageGeneration,

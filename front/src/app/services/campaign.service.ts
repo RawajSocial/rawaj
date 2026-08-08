@@ -6,10 +6,10 @@ import { ApiResponse } from '../model/auth.model';
 import { PagedResult } from '../model/paged-result.model';
 import {
   ApproveCampaignPlanResponse, BACKEND_TO_CAMPAIGN_PLATFORM, BACKEND_TO_CAMPAIGN_STATUS,
-  Campaign, CampaignPlatform, CampaignSummary,
-  CreateCampaignInput, CreateCampaignResponse, GenerateBusinessDiagnosisResponse,
-  GenerateMarketingPlanResponse, GetCampaignResponse, RefineCampaignPlanResponse,
-  ResearchCampaignCompetitorsResponse, ScheduleCampaignPostsResponse, UnarchiveCampaignResponse,
+  Campaign, CampaignDeleteSummary, CampaignPlatform, CampaignSummary,
+  CreateCampaignInput, CreateCampaignResponse, DeleteCampaignResult,
+  GetCampaignResponse, RefineCampaignPlanResponse,
+  ScheduleCampaignPostsResponse, UnarchiveCampaignResponse,
   UpdateCampaignInput,
 } from '../model/campaign.model';
 import { GenerateCampaignContentInput, GenerateCampaignContentResponse } from '../model/content-item.model';
@@ -47,6 +47,7 @@ export class CampaignService {
       endDate: summary.endDate ?? '',
       createdAt: summary.createdAt,
       planApprovedAt: summary.planApprovedAt,
+      onboardingCompletedAt: summary.onboardingCompletedAt,
       contentItemCount: summary.contentItemCount ?? 0,
       adCount: undefined,
       logoUrl: this.brandProfileService.getById(summary.brandProfileId)()?.logoUrl,
@@ -170,30 +171,25 @@ export class CampaignService {
     );
   }
 
+  /** What deleting this campaign will actually do — fetched to populate the delete-confirmation
+   *  modal's breakdown before the user commits to it. */
+  getDeleteSummary(campaignId: string): Observable<ApiResponse<CampaignDeleteSummary>> {
+    return this.http.get<ApiResponse<CampaignDeleteSummary>>(`${this.baseUrl}/${campaignId}/delete-summary`);
+  }
+
+  /** Permanently deletes the campaign and cascades to its content items, images and scheduled
+   *  posts (pending ones are cancelled on their platform first; already-published posts are left
+   *  live — see CampaignDeleteResult). Refreshes both lists since the campaign could have been
+   *  deleted from either the default view or the archive. */
+  delete(campaignId: string): Observable<ApiResponse<DeleteCampaignResult>> {
+    return this.mutateAndRefresh(
+      this.http.delete<ApiResponse<DeleteCampaignResult>>(`${this.baseUrl}/${campaignId}`),
+      true,
+    );
+  }
+
   getCampaign(campaignId: string): Observable<ApiResponse<GetCampaignResponse>> {
     return this.http.get<ApiResponse<GetCampaignResponse>>(`${this.baseUrl}/${campaignId}`);
-  }
-
-  /** Best-effort Tavily competitor research — charges coins only when it actually finds data;
-   *  never throws a "flow failure" the caller needs to special-case (see backend doc comment). */
-  researchCompetitors(campaignId: string): Observable<ApiResponse<ResearchCampaignCompetitorsResponse>> {
-    return this.http.post<ApiResponse<ResearchCampaignCompetitorsResponse>>(
-      `${this.baseUrl}/${campaignId}/research-competitors`, {},
-    );
-  }
-
-  /** "What we understood about your business" — AI Business Diagnosis (4,000 coins). */
-  diagnoseBusiness(campaignId: string): Observable<ApiResponse<GenerateBusinessDiagnosisResponse>> {
-    return this.http.post<ApiResponse<GenerateBusinessDiagnosisResponse>>(
-      `${this.baseUrl}/${campaignId}/diagnose-business`, {},
-    );
-  }
-
-  /** Complete Marketing Strategy — free on the tenant's first campaign, 12,000 coins after. */
-  generatePlan(campaignId: string): Observable<ApiResponse<GenerateMarketingPlanResponse>> {
-    return this.http.post<ApiResponse<GenerateMarketingPlanResponse>>(
-      `${this.baseUrl}/${campaignId}/generate-plan`, {},
-    );
   }
 
   /** Free-text "عدّل الخطة" refinement — AI Reasoning Conversation (2,500 coins). */

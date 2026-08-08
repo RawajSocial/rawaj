@@ -20,6 +20,13 @@ public class TenantBrandProfileConfiguration : IEntityTypeConfiguration<TenantBr
         builder.Property(b => b.BrandInfo!).HasJsonConversion().HasColumnType("nvarchar(max)");
         builder.Property(b => b.RowVersion).IsRowVersion();
 
+        // ai_artifacts references tenant_brand_profiles, so this closes a cycle — NoAction, same as
+        // the campaign-side pointers.
+        builder.HasOne(b => b.CurrentBrandAnalysisArtifact)
+            .WithMany()
+            .HasForeignKey(b => b.CurrentBrandAnalysisArtifactId)
+            .OnDelete(DeleteBehavior.NoAction);
+
         builder.HasIndex(b => b.TenantId);
 
         builder.HasQueryFilter(b => !b.IsDeleted);

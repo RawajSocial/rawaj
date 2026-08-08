@@ -10,6 +10,7 @@ import { Breadcrumb } from '../../../shared/components/breadcrumb/breadcrumb';
 import { BrandLock } from '../../../shared/components/brand-lock/brand-lock';
 import { TenantService } from '../../../core/tenant/tenant.service';
 import { ErrorModalService } from '../../../services/error-modal.service';
+import { OnboardingEntryService } from '../../../services/onboarding-entry.service';
 
 @Component({
   selector: 'app-ads-page',
@@ -25,6 +26,7 @@ export class AdsPage {
   private readonly brandContextService = inject(BrandContextService);
   private readonly tenantService = inject(TenantService);
   private readonly errorModalService = inject(ErrorModalService);
+  private readonly onboardingEntryService = inject(OnboardingEntryService);
 
   constructor() {
     this.seo.setPageSeo({
@@ -115,7 +117,7 @@ export class AdsPage {
 
   protected startNewCampaign(): void {
     if (!this.requireBrandProfile()) return;
-    this.router.navigate(['/on-boarding'], { queryParams: { fresh: 1 } });
+    void this.onboardingEntryService.startOrResumeOnboarding();
   }
 
   private requireBrandProfile(): boolean {

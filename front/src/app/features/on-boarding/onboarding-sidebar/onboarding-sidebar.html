@@ -7,6 +7,11 @@
     </div>
   </div>
 
+  <button type="button" class="sidebar-exit-btn" (click)="exit.emit()">
+    <i class="fa-solid fa-arrow-right-from-bracket"></i>
+    <span>الخروج والمتابعة لاحقًا</span>
+  </button>
+
   <ol class="steps-list">
     @for (step of steps; track step.index) {
       <li class="step-item"

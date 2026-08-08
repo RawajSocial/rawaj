@@ -15,6 +15,7 @@ import { BrandProfileService } from '../../../services/brand-profile.service';
 import { BrandContextService } from '../../../services/brand-context.service';
 import { CampaignService } from '../../../services/campaign.service';
 import { ErrorModalService } from '../../../services/error-modal.service';
+import { ConfirmDialogService } from '../../../services/confirm-dialog.service';
 import { extractApiErrorMessage } from '../../../core/auth/api-error.util';
 import { CreateCampaignInput, UpdateCampaignInput } from '../../../model/campaign.model';
 
@@ -61,6 +62,7 @@ export class RawajOnboarding {
   private readonly brandContextService = inject(BrandContextService);
   private readonly campaignService = inject(CampaignService);
   private readonly errorModalService = inject(ErrorModalService);
+  private readonly confirmDialogService = inject(ConfirmDialogService);
 
   /** The brand profile this campaign will be assigned to — defaults to whichever the header's
    *  global brand switcher already has selected, but the sidebar lets the user pick a different
@@ -97,30 +99,47 @@ export class RawajOnboarding {
       noIndex: true,
     });
 
+    // `resume`/`fresh` are one-shot entry signals, not a persistent mode — read once here and
+    // stripped from the URL the moment a draft is established (see `stripEntryQueryParams`). Before
+    // that stripping existed, `fresh=1` stayed in the address bar forever, so a plain refresh
+    // mid-wizard re-wiped and recreated the draft on every reload, even on a brand-new attempt.
     const isFresh = this.route.snapshot.queryParamMap.get('fresh') === '1';
+    const resumeId = this.route.snapshot.queryParamMap.get('resume');
     if (isFresh) {
       localStorage.removeItem(this.draftIdKey);
       localStorage.removeItem(this.stepStorageKey);
     }
 
-    const defaultBrandId = this.brandContextService.selectedBrandProfileId() ?? this.brandProfiles()[0]?.id ?? null;
-    this.selectedBrandProfileId.set(defaultBrandId);
-    if (defaultBrandId) {
-      this.initializeDraft(defaultBrandId, isFresh);
-    } else if (this.brandProfiles().length === 0) {
-      this.brandProfileService.refresh().subscribe(res => {
-        const first = res.data?.[0]?.brandProfileId;
-        if (first) {
-          this.selectedBrandProfileId.set(first);
-          this.initializeDraft(first, isFresh);
-        } else {
-          this.redirectToCreateBrandProfile();
-        }
-      });
+    if (resumeId) {
+      // Resuming a specific campaign by id (from a dashboard card, not a same-tab refresh) — the
+      // brand it belongs to comes from the campaign itself, not from whatever the global brand
+      // switcher happens to have selected right now.
+      this.resumeSpecificDraft(resumeId);
+    } else {
+      const defaultBrandId = this.brandContextService.selectedBrandProfileId() ?? this.brandProfiles()[0]?.id ?? null;
+      this.selectedBrandProfileId.set(defaultBrandId);
+      if (defaultBrandId) {
+        this.initializeDraft(defaultBrandId, isFresh);
+      } else if (this.brandProfiles().length === 0) {
+        this.brandProfileService.refresh().subscribe(res => {
+          const first = res.data?.[0]?.brandProfileId;
+          if (first) {
+            this.selectedBrandProfileId.set(first);
+            this.initializeDraft(first, isFresh);
+          } else {
+            this.redirectToCreateBrandProfile();
+          }
+        });
+      }
     }
 
     effect(() => {
       const step = this.currentStep();
+      // Guarded the same way the autosave effect below it is guarded: this fires on its first tick
+      // with the signal's initial value (1), before an async resume (localStorage or ?resume=<id>)
+      // has had a chance to load the real step — without this guard, that first tick stomped the
+      // saved step to '1' before `loadSavedStep()` ever got to read it back.
+      if (!this.draftReady()) return;
       if (step >= 1 && step <= this.totalSteps) {
         localStorage.setItem(this.stepStorageKey, String(step));
       }
@@ -156,6 +175,7 @@ export class RawajOnboarding {
             this.onboardingData.set(this.parseBriefJson(campaign.briefJson));
             this.currentStep.set(this.loadSavedStep());
             this.draftReady.set(true);
+            this.stripEntryQueryParams();
           } else {
             localStorage.removeItem(this.draftIdKey);
             this.createDraft(brandProfileId);
@@ -181,6 +201,7 @@ export class RawajOnboarding {
           this.draftCreationError.set(null);
         }
         this.draftReady.set(true);
+        this.stripEntryQueryParams();
       },
       error: err => {
         // The wizard still works locally even if the initial draft row couldn't be created (e.g.
@@ -189,8 +210,49 @@ export class RawajOnboarding {
         // assuming "no brand profile", which used to be the only message it ever showed.
         this.draftCreationError.set(extractApiErrorMessage(err, 'تعذّر إنشاء الحملة. حاول مرة أخرى.'));
         this.draftReady.set(true);
+        this.stripEntryQueryParams();
       },
     });
+  }
+
+  /** Resumes a specific campaign by id — the entry point a Draft campaign's dashboard card links
+   *  to, as opposed to `initializeDraft`'s same-tab-refresh path which only ever had a localStorage
+   *  pointer to go on. Only a Draft, not-yet-approved campaign is resumable this way; anything else
+   *  (deleted, already approved, belongs to another tenant) bounces back to the dashboard rather
+   *  than silently falling through into creating an unrelated new draft. */
+  private resumeSpecificDraft(campaignId: string): void {
+    this.campaignService.getCampaign(campaignId).subscribe({
+      next: res => {
+        const campaign = res.data;
+        if (!campaign || campaign.status !== 'Draft' || campaign.planApprovedAt) {
+          this.errorModalService.show(
+            'لم يعد من الممكن متابعة هذه الحملة.', { variant: 'warning' });
+          void this.router.navigate(['/dashboard/campaigns']);
+          return;
+        }
+
+        this.selectedBrandProfileId.set(campaign.brandProfileId);
+        this.campaignId.set(campaignId);
+        localStorage.setItem(this.draftIdKey, campaignId);
+        this.onboardingData.set(this.parseBriefJson(campaign.briefJson));
+        this.currentStep.set(campaign.onboardingCompletedAt ? this.totalSteps + 1 : this.loadSavedStep());
+        this.draftReady.set(true);
+        this.stripEntryQueryParams();
+      },
+      error: err => {
+        this.errorModalService.show(
+          extractApiErrorMessage(err, 'تعذّر تحميل الحملة.'), { variant: 'error' });
+        void this.router.navigate(['/dashboard/campaigns']);
+      },
+    });
+  }
+
+  /** `resume`/`fresh` are one-shot entry signals — once the draft they pointed at is established,
+   *  they're removed from the URL so a later refresh falls through to the (working) localStorage
+   *  resume path instead of re-reading a stale `fresh=1` and wiping progress all over again. */
+  private stripEntryQueryParams(): void {
+    if (this.route.snapshot.queryParamMap.keys.length === 0) return;
+    void this.router.navigate([], { relativeTo: this.route, queryParams: {}, replaceUrl: true });
   }
 
   private parseBriefJson(raw: string | null | undefined): OnboardingData {
@@ -236,6 +298,33 @@ export class RawajOnboarding {
     void this.router.navigate(['/dashboard/brand-profiles/new']);
   }
 
+  /** The wizard's only way out before finishing all steps — until this existed, leaving meant
+   *  finishing every step or hand-editing the URL. A pause, not an abandonment: progress is already
+   *  autosaved (Campaign.BriefJson), so nothing is archived or discarded here — the draft is exactly
+   *  where the user left it next time they open it from the campaigns list. */
+  protected async confirmExit(): Promise<void> {
+    const confirmed = await this.confirmDialogService.confirm(
+      'سيتم حفظ تقدمك تلقائيًا، ويمكنك المتابعة لاحقًا من قائمة حملاتك.',
+      { title: 'الخروج من إعداد الحملة', confirmLabel: 'الخروج', cancelLabel: 'متابعة الإعداد' },
+    );
+    if (confirmed) {
+      // Autosave is debounced (AUTOSAVE_DEBOUNCE_MS) — without this flush, an edit made less than a
+      // second before exiting never reaches the server: destroyRef's onDestroy below cancels the
+      // pending timer as the component tears down for the route change, so the last change would
+      // otherwise be silently lost despite the message above promising it's saved.
+      this.flushPendingAutosave();
+      void this.router.navigate(['/dashboard/campaigns']);
+    }
+  }
+
+  private flushPendingAutosave(): void {
+    if (this.autosaveTimer === null) return;
+    clearTimeout(this.autosaveTimer);
+    this.autosaveTimer = null;
+    const id = this.campaignId();
+    if (id) this.flushAutosave(id, this.onboardingData());
+  }
+
   protected goToNextStep(): void {
     this.currentStep.update((step) => Math.min(this.totalSteps + 2, step + 1));
     window.scrollTo({ top: 0 });
@@ -270,7 +359,10 @@ export class RawajOnboarding {
 
     if (this.autosaveTimer) clearTimeout(this.autosaveTimer);
     this.creatingCampaign.set(true);
-    const input = this.buildUpdateCampaignInput(this.onboardingData());
+    // Sent once, here — not on every autosave tick — so a Draft campaign's
+    // `onboardingCompletedAt` distinguishes "abandoned mid-wizard" from "reached strategy review",
+    // which decides whether its dashboard card routes back into the wizard or into that review page.
+    const input: UpdateCampaignInput = { ...this.buildUpdateCampaignInput(this.onboardingData()), markOnboardingCompleted: true };
     this.campaignService.update(id, input).subscribe({
       next: () => {
         this.creatingCampaign.set(false);

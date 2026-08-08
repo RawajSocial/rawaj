@@ -113,7 +113,9 @@ export class Header {
   }
 
   private finishLogout(): void {
-    this.tenantService.clear();
+    // Tenant/brand state is cleared by AuthService.clearSession() itself (called from
+    // authService.logout() above) - notifications aren't, since NotificationService can't be
+    // injected there without a circular dependency (see clearSession()'s comment).
     this.notifications.clear();
     this.router.navigate(['/login']);
   }

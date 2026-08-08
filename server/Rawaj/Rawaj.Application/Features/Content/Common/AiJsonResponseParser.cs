@@ -1,4 +1,6 @@
+using System.Text.Encodings.Web;
 using System.Text.Json;
+using System.Text.Unicode;
 
 namespace Rawaj.Application.Features.Content.Common;
 
@@ -22,6 +24,50 @@ namespace Rawaj.Application.Features.Content.Common;
 /// </summary>
 public static class AiJsonResponseParser
 {
+    /// <summary>
+    /// Writes non-ASCII characters as themselves instead of <c>\uXXXX</c> escapes.
+    ///
+    /// <para>This is a token-cost fix, not a cosmetic one. Groq returns Arabic escaped, and an
+    /// artifact stored that way is pasted verbatim into the next stage's prompt — so every Arabic
+    /// character costs six ASCII characters instead of one, and <c>ت</c> tokenizes into several
+    /// tokens where <c>ت</c> is one or two. Measured on a real stored Strategy artifact: 17,250
+    /// characters escaped versus 3,658 unescaped, with whitespace accounting for 32 of the
+    /// difference. That 4.7x inflation is what pushed a single ContentPlan request past Groq's
+    /// entire per-minute token budget, which no amount of retrying can get under.</para>
+    ///
+    /// <para>The content is byte-for-byte the same JSON either way, so nothing downstream can tell
+    /// the difference except the token bill.</para>
+    /// </summary>
+    private static readonly JsonSerializerOptions CompactUnicode = new()
+    {
+        Encoder = JavaScriptEncoder.Create(UnicodeRanges.All),
+    };
+
+    /// <summary>
+    /// Rewrites already-stored JSON into the unescaped form described on <see cref="CompactUnicode"/>.
+    /// Used on the way *out* of the artifact store as well as on the way in, so artifacts written
+    /// before this existed stop inflating prompts without needing their rows rewritten.
+    /// Returns the input unchanged if it isn't parseable — callers hold text a model produced, and
+    /// silently dropping it here would be worse than passing it along as-is.
+    /// </summary>
+    public static string? Normalize(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return json;
+        }
+
+        try
+        {
+            using var document = JsonDocument.Parse(json);
+            return JsonSerializer.Serialize(document.RootElement, CompactUnicode);
+        }
+        catch (JsonException)
+        {
+            return json;
+        }
+    }
+
     /// <summary>
     /// Returns the JSON object/array found in <paramref name="raw"/>, or <c>null</c> when there
     /// isn't one that parses. Callers should treat <c>null</c> as a failed generation rather than
@@ -82,8 +128,10 @@ public static class AiJsonResponseParser
 
         try
         {
-            using var _ = JsonDocument.Parse(candidate);
-            json = candidate;
+            using var document = JsonDocument.Parse(candidate);
+            // Re-serialized rather than returned verbatim, so the escaped Arabic Groq hands back
+            // never reaches storage in the first place — see CompactUnicode.
+            json = JsonSerializer.Serialize(document.RootElement, CompactUnicode);
             return true;
         }
         catch (JsonException)

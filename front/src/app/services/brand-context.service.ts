@@ -72,6 +72,35 @@ export class BrandContextService {
       // calendar, "my projects") permanently empty for the newly-active tenant until a full reload.
       this.campaignService.refresh().subscribe({ error: () => { /* pages surface their own errors */ } });
     });
+
+    // Self-heals a selection that doesn't belong to the currently-loaded (tenant-scoped) brand
+    // list - covers the window the tenant-change effect above can't reach on its own: the very
+    // first tick of a session (hasSeenInitialTenant skips it deliberately, so a stale id already
+    // sitting in localStorage from a previous tenant/login is otherwise never re-checked) and a
+    // mid-session tenant self-heal (see tenant.interceptor.ts) that changes activeTenantId without
+    // the brand id itself ever changing hands explicitly.
+    effect(() => {
+      const profiles = this.brandProfileService.profiles();
+      const selected = this._selectedBrandProfileId();
+      if (profiles.length === 0 || !selected) return;
+      if (!profiles.some(p => p.id === selected)) {
+        this._selectedBrandProfileId.set(null);
+        try { localStorage.removeItem(BRAND_KEY); } catch { /* noop */ }
+        this.initDefault();
+      }
+    });
+  }
+
+  /** Resets selection state and clears persisted storage - call on logout (see
+   *  AuthService.clearSession()) so a brand id from this session never survives into the next
+   *  login on the same browser. */
+  clear(): void {
+    this._selectedBrandProfileId.set(null);
+    this._selectedCampaignId.set('all');
+    try {
+      localStorage.removeItem(BRAND_KEY);
+      localStorage.removeItem(CAMPAIGN_KEY);
+    } catch { /* noop */ }
   }
 
   setBrandProfile(id: string): void {

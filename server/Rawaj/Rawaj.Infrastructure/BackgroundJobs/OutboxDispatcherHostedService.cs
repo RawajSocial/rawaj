@@ -10,8 +10,9 @@ using Rawaj.Domain.Entities.Platform;
 namespace Rawaj.Infrastructure.BackgroundJobs;
 
 /// <summary>
-/// Polls OutboxMessages for unprocessed rows and delivers them — today, only "NotificationCreated"
-/// is understood, broadcast over SignalR. This is the single place future delivery channels
+/// Polls OutboxMessages for unprocessed rows and delivers them — today, "NotificationCreated" and
+/// "PipelineRunUpdated" are understood, both broadcast over SignalR. This is the single place future
+/// delivery channels
 /// (email/push/webhook) would plug in without touching NotificationPublisher or any handler.
 ///
 /// Single-instance safe only: this doesn't yet claim rows atomically (e.g. a DB-level
@@ -26,6 +27,11 @@ public class OutboxDispatcherHostedService(
     private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(3);
     private const int MaxAttempts = 5;
     private const int BatchSize = 50;
+
+    /// <summary>The message types this dispatcher claims. Other types belong to another service and
+    /// are left alone — see the note in <see cref="DispatchPendingAsync"/>.</summary>
+    private static readonly string[] HandledTypes =
+        [NotificationPublisher.NotificationCreatedType, PipelineRunPublisher.PipelineRunUpdatedType];
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -57,8 +63,12 @@ public class OutboxDispatcherHostedService(
         var dbContext = scope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
         var broadcaster = scope.ServiceProvider.GetRequiredService<INotificationBroadcaster>();
 
+        // Scoped to the types this service owns. The outbox is shared with
+        // CampaignCleanupHostedService, whose messages are slow (many Cloudinary round-trips) and
+        // must not park notification delivery behind them — nor be burned through this service's
+        // attempt budget by the "unknown type" throw below.
         var pending = await dbContext.OutboxMessages
-            .Where(m => m.ProcessedAt == null && m.Attempts < MaxAttempts)
+            .Where(m => HandledTypes.Contains(m.Type) && m.ProcessedAt == null && m.Attempts < MaxAttempts)
             .OrderBy(m => m.CreatedAt)
             .Take(BatchSize)
             .ToListAsync(cancellationToken);
@@ -92,9 +102,14 @@ public class OutboxDispatcherHostedService(
         switch (message.Type)
         {
             case NotificationPublisher.NotificationCreatedType:
-                var payload = JsonSerializer.Deserialize<NotificationCreatedPayload>(message.PayloadJson)
+                var notification = JsonSerializer.Deserialize<NotificationCreatedPayload>(message.PayloadJson)
                     ?? throw new InvalidOperationException("Outbox message payload deserialized to null.");
-                await broadcaster.BroadcastAsync(payload.UserId, "notificationReceived", payload, cancellationToken);
+                await broadcaster.BroadcastAsync(notification.UserId, "notificationReceived", notification, cancellationToken);
+                break;
+            case PipelineRunPublisher.PipelineRunUpdatedType:
+                var pipelineRun = JsonSerializer.Deserialize<PipelineRunUpdatedPayload>(message.PayloadJson)
+                    ?? throw new InvalidOperationException("Outbox message payload deserialized to null.");
+                await broadcaster.BroadcastAsync(pipelineRun.UserId, "pipelineRunUpdated", pipelineRun, cancellationToken);
                 break;
             default:
                 // Unknown type — likely a message written by a newer app version during a rolling

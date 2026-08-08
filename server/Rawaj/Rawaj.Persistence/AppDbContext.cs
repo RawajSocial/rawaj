@@ -40,6 +40,9 @@ public class AppDbContext : IdentityUserContext<ApplicationUser, Guid>, IApplica
     public DbSet<PostAnalytics> PostAnalytics => Set<PostAnalytics>();
 
     public DbSet<AiJob> AiJobs => Set<AiJob>();
+    public DbSet<AiPipelineRun> AiPipelineRuns => Set<AiPipelineRun>();
+    public DbSet<AiPipelineStage> AiPipelineStages => Set<AiPipelineStage>();
+    public DbSet<AiArtifact> AiArtifacts => Set<AiArtifact>();
 
     public DbSet<SubscriptionPlan> SubscriptionPlans => Set<SubscriptionPlan>();
     public DbSet<Subscription> Subscriptions => Set<Subscription>();

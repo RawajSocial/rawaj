@@ -1,29 +1,31 @@
-using System.Text.Json;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Rawaj.Application.Common.Interfaces;
 using Rawaj.Application.Common.Models;
 using Rawaj.Application.Common.Policies;
-using Rawaj.Application.Features.Content.Common;
-using Rawaj.Application.Features.Scheduling.Common;
-using Rawaj.Domain.Entities.AiOperations;
+using Rawaj.Application.Features.AiPipeline.Common;
+using Rawaj.Application.Features.AiPipeline.Services;
 using Rawaj.Domain.Entities.Campaigns;
 using Rawaj.Domain.Enums;
 
 namespace Rawaj.Application.Features.Campaigns.GenerateCampaignContent;
 
+/// <summary>
+/// C19's follow-up: a shim onto the pipeline orchestrator, request/response contract unchanged —
+/// closes the one endpoint C19 itself deliberately left on its own handler. Unlike the other four
+/// AI campaign actions, this one legitimately gets called more than once per campaign ("generate
+/// another batch"), which the pipeline's single-<c>ContentPlan</c>-row-per-run model can't do by
+/// re-running <see cref="IPipelineOrchestrator.AdvanceAsync"/> alone — <see cref="IPipelineOrchestrator.EnsureContentBatchAsync"/>
+/// is what makes a second (or a backfilled campaign's first-ever) batch possible, by resetting that
+/// one row rather than creating a second.
+/// </summary>
 public class GenerateCampaignContentCommandHandler(
     IApplicationDbContext dbContext,
     ICurrentUserService currentUserService,
     ICurrentTenantContext currentTenantContext,
-    IAiTextGenerationService textGenerationService,
-    IAiImageGenerationService imageGenerationService,
-    IMediaStorageService mediaStorageService,
-    ICoinCostProvider coinCostProvider)
+    IPipelineOrchestrator orchestrator)
     : IRequestHandler<GenerateCampaignContentCommand, Result<GenerateCampaignContentResponse>>
 {
-    private const int MaxCompetitorInsights = 5;
-
     public async Task<Result<GenerateCampaignContentResponse>> Handle(
         GenerateCampaignContentCommand request, CancellationToken cancellationToken)
     {
@@ -43,379 +45,59 @@ public class GenerateCampaignContentCommandHandler(
             return Result<GenerateCampaignContentResponse>.Failure("Approve the campaign strategy before generating content.");
         }
 
-        var brand = await dbContext.TenantBrandProfiles
-            .FirstAsync(b => b.Id == campaign.BrandProfileId, cancellationToken);
-
-        var creditsUsage = await AiCreditsPolicy.GetUsageAsync(dbContext, tenantId, cancellationToken);
-        if (!creditsUsage.HasCreditsRemaining)
+        // Guaranteed by PipelineApprovalService and the C18 backfill migration alike — both always
+        // set CurrentPipelineRunId in the same transaction as PlanApprovedAt.
+        var run = await dbContext.AiPipelineRuns.FirstOrDefaultAsync(r => r.Id == campaign.CurrentPipelineRunId, cancellationToken);
+        if (run is null)
         {
-            return Result<GenerateCampaignContentResponse>.Failure(
-                $"Your subscription plan allows {creditsUsage.MaxCreditsMonthly} AI credits per month. Upgrade for more.");
+            return Result<GenerateCampaignContentResponse>.Failure("This campaign has no pipeline run to generate content from. Please try again.");
         }
 
-        // One flat charge for the whole batch, regardless of how many posts/images come out of
-        // it — the per-post cost accounting that GenerateContentItem/GenerateVisualAsset do would
-        // be unpredictable here up front, since the model decides how many posts to produce.
-        var coinCost = await CoinPricingPolicy.GetDiscountedCostAsync(dbContext, tenantId, coinCostProvider.CampaignContentGeneration, cancellationToken);
-        var coinBalance = await CoinPolicy.GetBalanceAsync(dbContext, tenantId, userId, role, cancellationToken);
-        if (coinBalance < coinCost)
-        {
-            return Result<GenerateCampaignContentResponse>.Failure(
-                CoinPolicy.InsufficientCoinsMessage(coinCost, coinBalance, "generate campaign content"));
-        }
+        run.ContentPostCount = request.PostCount;
+        run.ContentLanguage = request.Language;
+        run.ContentIncludeImages = request.IncludeImages;
+        run.ContentTemplateStyle = request.TemplateStyle;
 
-        // Prefer the brand's actually-connected accounts over the campaign's TargetPlatforms -
-        // that field is set once at campaign creation (often defaulted, e.g. by the onboarding
-        // wizard) and easily goes stale once accounts are connected/disconnected later. Content
-        // can only ever be scheduled to a connected account anyway, so generating for connected
-        // platforms first keeps the batch immediately actionable.
-        var platforms = await dbContext.SocialAccounts
-            .Where(s => s.BrandProfileId == brand.Id && s.IsActive)
-            .Select(s => s.Platform)
-            .Distinct()
+        var stage = await orchestrator.EnsureContentBatchAsync(run, cancellationToken);
+
+        var existingItemIds = await dbContext.ContentItems
+            .Where(c => c.CampaignId == campaign.Id)
+            .Select(c => c.Id)
             .ToListAsync(cancellationToken);
 
-        if (platforms.Count == 0)
-        {
-            platforms = campaign.TargetPlatforms
-                .Select(p => Enum.TryParse<SocialPlatform>(p, true, out var parsed) ? (SocialPlatform?)parsed : null)
-                .Where(p => p.HasValue)
-                .Select(p => p!.Value)
-                .Distinct()
-                .ToList();
-        }
+        await orchestrator.AdvanceAsync(run, role, cancellationToken);
 
-        if (platforms.Count == 0)
-        {
-            platforms = [SocialPlatform.Instagram, SocialPlatform.Facebook];
-        }
-
-        var competitorInsights = await dbContext.RagDocuments
-            .Where(d => d.BrandProfileId == brand.Id && d.CompetitorsData != null)
-            .OrderByDescending(d => d.CreatedAt)
-            .Take(MaxCompetitorInsights)
-            .Select(d => d.CompetitorsData!)
+        var newItems = await dbContext.ContentItems
+            .Where(c => c.CampaignId == campaign.Id && !existingItemIds.Contains(c.Id))
             .ToListAsync(cancellationToken);
 
-        var timingSuggestions = await PostingTimeIntelligence.GetSuggestionsAsync(dbContext, brand.Id, platforms, cancellationToken);
-        var timingSummary = PostingTimeIntelligence.BuildSummary(timingSuggestions);
-
-        // The approved strategy and the onboarding brief are what these posts are supposed to
-        // execute. This handler already refuses to run until PlanApprovedAt is set, but it used to
-        // then generate from the brand's identity fields and the campaign objective alone — the
-        // strategy the user paid ~12,000 coins for, reviewed and approved never reached the model,
-        // which made the whole approve-then-generate flow decorative.
-        var prompt = ContentPromptBuilder.BuildCampaignContentPlanPrompt(
-            brand, campaign, competitorInsights, timingSummary, request.PostCount, platforms, request.Language,
-            campaign.AiPlanJson, campaign.BriefJson, request.TemplateStyle);
-
-        var startedAt = DateTime.UtcNow;
-        var generation = await textGenerationService.GenerateTextAsync(prompt, cancellationToken);
-
-        var now = DateTime.UtcNow;
-
-        var job = new AiJob
+        if (newItems.Count == 0)
         {
-            Id = Guid.NewGuid(),
-            BrandProfileId = brand.Id,
-            TriggeredBy = userId,
-            JobType = AiJobType.ContentGeneration,
-            Status = generation.Succeeded ? AiJobStatus.Completed : AiJobStatus.Failed,
-            InputParams = JsonSerializer.Serialize(new { prompt }),
-            OutputRefId = generation.Succeeded ? campaign.Id : null,
-            OutputRefType = "marketing_campaign_batch",
-            Tokens = generation.TokensUsed,
-            ErrorMessage = generation.ErrorMessage,
-            StartedAt = startedAt,
-            CompletedAt = now,
-            CreatedAt = now
-        };
-        dbContext.AiJobs.Add(job);
-
-        if (!generation.Succeeded)
-        {
-            await dbContext.SaveChangesAsync(cancellationToken);
+            var reloadedStage = await dbContext.AiPipelineStages.FirstAsync(s => s.Id == stage.Id, cancellationToken);
+            var blockingError = reloadedStage.LastError
+                ?? await LegacyPipelineGateway.BlockingErrorAsync(dbContext, run.Id, cancellationToken);
             return Result<GenerateCampaignContentResponse>.Failure(
-                generation.ErrorMessage ?? "Campaign content generation failed. Please try again.");
+                blockingError ?? "Campaign content generation failed. Please try again.");
         }
 
-        // A campaign's StartDate can be in the past by the time content is generated (drafted,
-        // then approved days later) - falling back to today keeps suggested post times from
-        // being stamped into the past, which the scheduling step can no longer recover from.
-        var startDate = campaign.StartDate?.ToDateTime(TimeOnly.MinValue);
-        var baseDate = startDate is { } sd && sd > now.Date ? sd : now.Date;
-        var createdItems = ParseGeneratedPosts(generation.Text!, platforms, baseDate);
-
-        if (createdItems.Count == 0)
-        {
-            await dbContext.SaveChangesAsync(cancellationToken);
-            return Result<GenerateCampaignContentResponse>.Failure(
-                "Could not parse the AI-generated campaign posts. Please try again.");
-        }
-
-        await CoinPolicy.TrySpendAsync(dbContext, tenantId, userId, role, coinCost, cancellationToken, reason: "campaign_content_generation");
-
-        var contentItemEntities = new List<ContentItem>();
-        foreach (var draft in createdItems)
-        {
-            var entity = new ContentItem
-            {
-                Id = Guid.NewGuid(),
-                CampaignId = campaign.Id,
-                TenantId = tenantId,
-                BrandProfileId = brand.Id,
-                CreatedBy = userId,
-                ContentType = draft.ContentType,
-                Platform = draft.Platform,
-                Language = request.Language,
-                Content = draft.Content,
-                Hashtags = draft.Hashtags,
-                Cta = draft.Cta,
-                ImagePrompt = draft.ImagePrompt,
-                AiPromptUsed = prompt,
-                Status = ContentStatus.Draft,
-                SuggestedPostAt = draft.SuggestedPostAt,
-                CreatedAt = now,
-                UpdatedAt = now
-            };
-            contentItemEntities.Add(entity);
-            dbContext.ContentItems.Add(entity);
-        }
-
-        var imagesGenerated = 0;
-        var imagesSkippedForCredits = 0;
-
-        // A ContentItem must never end up with no image at all — when the real image model can't
-        // produce one (monthly AI credits exhausted mid-batch, or the model itself fails/runs out
-        // of its own quota), attach this static placeholder instead of leaving ImageUrl null. The
-        // user can retry for a real image later (see VisualAssetsController's generate endpoint,
-        // reused per-item by the content-review page for exactly that).
-        VisualAsset CreatePlaceholderVisualAsset(ContentItem entity) => new()
-        {
-            Id = Guid.NewGuid(),
-            ContentItemId = entity.Id,
-            CampaignId = campaign.Id,
-            BrandProfileId = brand.Id,
-            TenantId = tenantId,
-            GenerationMode = GenerationMode.Campaign,
-            Type = VisualAssetType.Image,
-            SourceType = VisualAssetSourceType.Placeholder,
-            FileUrl = "/text-post.png",
-            IsApproved = false,
-            CreatedAt = DateTime.UtcNow
-        };
-
-        if (request.IncludeImages)
-        {
-            var creditsRemaining = creditsUsage.MaxCreditsMonthly - creditsUsage.UsedThisMonth - 1;
-
-            foreach (var entity in contentItemEntities)
-            {
-                if (creditsRemaining <= 0)
-                {
-                    imagesSkippedForCredits++;
-                    dbContext.VisualAssets.Add(CreatePlaceholderVisualAsset(entity));
-                    continue;
-                }
-
-                // Prefer the model's own English scene description over the post copy. The copy is
-                // Arabic persuasion text ("احصل على خصم ٥٠٪"), which FLUX neither understands nor
-                // should be trying to illustrate literally; falling back to it only happens when the
-                // model didn't return an imagePrompt at all.
-                var imagePrompt = ContentPromptBuilder.BuildImagePrompt(
-                    brand, campaign, entity.ContentType.ToString(), entity.ImagePrompt ?? entity.Content, request.TemplateStyle);
-
-                var imageStartedAt = DateTime.UtcNow;
-                var imageGeneration = await imageGenerationService.GenerateImageAsync(imagePrompt, cancellationToken);
-                creditsRemaining--;
-
-                var imageNow = DateTime.UtcNow;
-                var visualAssetId = Guid.NewGuid();
-
-                dbContext.AiJobs.Add(new AiJob
-                {
-                    Id = Guid.NewGuid(),
-                    BrandProfileId = brand.Id,
-                    TriggeredBy = userId,
-                    JobType = AiJobType.ImageGeneration,
-                    Status = imageGeneration.Succeeded ? AiJobStatus.Completed : AiJobStatus.Failed,
-                    InputParams = JsonSerializer.Serialize(new { prompt = imagePrompt }),
-                    OutputRefId = imageGeneration.Succeeded ? visualAssetId : null,
-                    OutputRefType = "visual_asset",
-                    ErrorMessage = imageGeneration.ErrorMessage,
-                    StartedAt = imageStartedAt,
-                    CompletedAt = imageNow,
-                    CreatedAt = imageNow
-                });
-
-                if (!imageGeneration.Succeeded)
-                {
-                    dbContext.VisualAssets.Add(CreatePlaceholderVisualAsset(entity));
-                    continue;
-                }
-
-                var visualAsset = new VisualAsset
-                {
-                    Id = visualAssetId,
-                    ContentItemId = entity.Id,
-                    CampaignId = campaign.Id,
-                    BrandProfileId = brand.Id,
-                    TenantId = tenantId,
-                    GenerationMode = GenerationMode.Campaign,
-                    Type = VisualAssetType.Image,
-                    SourceType = VisualAssetSourceType.AiGenerated,
-                    AiPrompt = imagePrompt,
-                    Format = imageGeneration.ContentType?.Split('/').Last(),
-                    IsApproved = false,
-                    CreatedAt = imageNow
-                };
-
-                if (mediaStorageService.IsConfigured)
-                {
-                    var upload = await mediaStorageService.UploadImageAsync(
-                        imageGeneration.ImageBytes!, imageGeneration.ContentType ?? "image/jpeg", $"visual-assets/{tenantId}", cancellationToken);
-                    visualAsset.FileUrl = upload.Url;
-                    visualAsset.PublicId = upload.PublicId;
-                    visualAsset.WidthPx = upload.WidthPx;
-                    visualAsset.HeightPx = upload.HeightPx;
-                    visualAsset.FileSizeBytes = upload.FileSizeBytes;
-                    visualAsset.MimeType = upload.MimeType;
-                    visualAsset.StorageProvider = "Cloudinary";
-                    visualAsset.UploadedAt = imageNow;
-                }
-                else
-                {
-                    visualAsset.FileUrl = $"data:{imageGeneration.ContentType};base64,{Convert.ToBase64String(imageGeneration.ImageBytes!)}";
-                }
-
-                dbContext.VisualAssets.Add(visualAsset);
-
-                imagesGenerated++;
-            }
-        }
+        var newItemIds = newItems.Select(i => i.Id).ToHashSet();
+        var imagesGenerated = await dbContext.VisualAssets
+            .CountAsync(v => v.ContentItemId != null && newItemIds.Contains(v.ContentItemId.Value)
+                && v.SourceType == VisualAssetSourceType.AiGenerated, cancellationToken);
 
         NotificationPublisher.Notify(
-            dbContext,
-            userId,
-            brand.Id,
-            NotificationType.Info,
-            NotificationCategory.ReviewNeeded,
+            dbContext, userId, campaign.BrandProfileId, NotificationType.Info, NotificationCategory.ReviewNeeded,
             "Campaign drafts ready for review",
-            $"{createdItems.Count} new draft post(s) for \"{campaign.Name}\" are ready for your review.",
-            campaign.Id,
-            "marketing_campaign");
+            $"{newItems.Count} new draft post(s) for \"{campaign.Name}\" are ready for your review.",
+            campaign.Id, "marketing_campaign");
 
         await dbContext.SaveChangesAsync(cancellationToken);
 
+        // AiCreditsPolicy's monthly image quota (and the mid-batch "skip for credits" it used to
+        // cause) is retired in favour of coins as the single meter for this path — see C23. Every
+        // ContentItem still never ends up with no image at all: ContentImageExecutor exhausting its
+        // retries attaches the /text-post.png placeholder, same as before.
         return Result<GenerateCampaignContentResponse>.Success(
-            new GenerateCampaignContentResponse(campaign.Id, createdItems.Count, imagesGenerated, imagesSkippedForCredits));
-    }
-
-    private record GeneratedPostDraft(
-        SocialPlatform Platform, ContentType ContentType, string Content, List<string> Hashtags, string? Cta,
-        DateTime SuggestedPostAt, string? ImagePrompt);
-
-    private static List<GeneratedPostDraft> ParseGeneratedPosts(string rawJson, List<SocialPlatform> allowedPlatforms, DateTime baseDate)
-    {
-        var drafts = new List<GeneratedPostDraft>();
-
-        // Same wrapper problem as the strategy/diagnosis handlers — a model that fences its JSON
-        // would otherwise fail every post in the batch and surface as "Could not parse the
-        // AI-generated campaign posts", after the text call had already been made.
-        var payload = AiJsonResponseParser.ExtractJsonPayload(rawJson);
-        if (payload is null)
-        {
-            return drafts;
-        }
-
-        JsonDocument document;
-        try
-        {
-            document = JsonDocument.Parse(payload);
-        }
-        catch (JsonException)
-        {
-            return drafts;
-        }
-
-        using (document)
-        {
-            if (!document.RootElement.TryGetProperty("posts", out var postsElement) || postsElement.ValueKind != JsonValueKind.Array)
-            {
-                return drafts;
-            }
-
-            foreach (var post in postsElement.EnumerateArray())
-            {
-                try
-                {
-                    if (!post.TryGetProperty("platform", out var platformProp) ||
-                        !Enum.TryParse<SocialPlatform>(platformProp.GetString(), true, out var platform) ||
-                        !allowedPlatforms.Contains(platform))
-                    {
-                        continue;
-                    }
-
-                    if (!post.TryGetProperty("content", out var contentProp) || string.IsNullOrWhiteSpace(contentProp.GetString()))
-                    {
-                        continue;
-                    }
-
-                    var contentType = ContentType.Post;
-                    if (post.TryGetProperty("contentType", out var contentTypeProp))
-                    {
-                        Enum.TryParse(contentTypeProp.GetString(), true, out contentType);
-                    }
-
-                    var dayOffset = 0;
-                    if (post.TryGetProperty("dayOffset", out var dayOffsetProp) && dayOffsetProp.TryGetInt32(out var parsedDayOffset))
-                    {
-                        dayOffset = Math.Clamp(parsedDayOffset, 0, 90);
-                    }
-
-                    var hour = 12;
-                    if (post.TryGetProperty("hour", out var hourProp) && hourProp.TryGetInt32(out var parsedHour))
-                    {
-                        hour = Math.Clamp(parsedHour, 0, 23);
-                    }
-
-                    var hashtags = new List<string>();
-                    if (post.TryGetProperty("hashtags", out var hashtagsProp) && hashtagsProp.ValueKind == JsonValueKind.Array)
-                    {
-                        hashtags = hashtagsProp.EnumerateArray()
-                            .Select(h => h.GetString())
-                            .Where(h => !string.IsNullOrWhiteSpace(h))
-                            .Select(h => h!)
-                            .ToList();
-                    }
-
-                    string? cta = null;
-                    if (post.TryGetProperty("cta", out var ctaProp) && ctaProp.ValueKind == JsonValueKind.String)
-                    {
-                        cta = ctaProp.GetString();
-                    }
-
-                    // Optional: an older/uncooperative model response without it still yields a
-                    // usable post, it just falls back to the post copy for the image (see the
-                    // image loop above).
-                    string? imagePrompt = null;
-                    if (post.TryGetProperty("imagePrompt", out var imagePromptProp) && imagePromptProp.ValueKind == JsonValueKind.String)
-                    {
-                        var value = imagePromptProp.GetString();
-                        imagePrompt = string.IsNullOrWhiteSpace(value) ? null : value;
-                    }
-
-                    drafts.Add(new GeneratedPostDraft(
-                        platform, contentType, contentProp.GetString()!, hashtags, cta,
-                        baseDate.AddDays(dayOffset).AddHours(hour), imagePrompt));
-                }
-                catch (JsonException)
-                {
-                    // Skip malformed individual entries rather than discarding the whole batch.
-                }
-            }
-        }
-
-        return drafts;
+            new GenerateCampaignContentResponse(campaign.Id, newItems.Count, imagesGenerated));
     }
 }

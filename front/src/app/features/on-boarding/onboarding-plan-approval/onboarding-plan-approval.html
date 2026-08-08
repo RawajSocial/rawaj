@@ -62,6 +62,14 @@
     </div>
   }
 
+  <!-- ── Parked short of coins — the worker keeps retrying on its own poll cycle and this clears
+       itself the moment a top-up lands, so there is nothing to click here. ── -->
+  @if (awaitingCoins()) {
+    <div class="pipeline-note">
+      <p><i class="fa-solid fa-coins"></i> رصيدك من الكوينات غير كافٍ لإكمال توليد الاستراتيجية. أضف رصيدًا وستُكمل تلقائيًا.</p>
+    </div>
+  }
+
   <!-- ── STRATEGY GENERATION FAILED ── The pipeline ran but produced no usable strategy. Without
        this the page was a dead end: approving is impossible (the backend rejects a campaign with
        no AiPlanJson), nothing offered a way to try again, and the only clue was an error note. -->

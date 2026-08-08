@@ -78,13 +78,6 @@ public class GenerateVisualAssetCommandHandler(
 
         var generationMode = campaign is not null ? GenerationMode.Campaign : brand is not null ? GenerationMode.Brand : GenerationMode.Standalone;
 
-        var creditsUsage = await AiCreditsPolicy.GetUsageAsync(dbContext, tenantId, cancellationToken);
-        if (!creditsUsage.HasCreditsRemaining)
-        {
-            return Result<GenerateVisualAssetResponse>.Failure(
-                $"Your subscription plan allows {creditsUsage.MaxCreditsMonthly} AI credits per month. Upgrade for more.");
-        }
-
         var tenant = await dbContext.Tenants.FirstAsync(t => t.Id == tenantId, cancellationToken);
 
         // New-tenant free trial (pricing sheet section 3.2): the first 5 image generations are free.
@@ -113,6 +106,7 @@ public class GenerateVisualAssetCommandHandler(
         var job = new AiJob
         {
             Id = Guid.NewGuid(),
+            TenantId = tenantId,
             BrandProfileId = brand?.Id,
             TriggeredBy = userId,
             JobType = AiJobType.ImageGeneration,

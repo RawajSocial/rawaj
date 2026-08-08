@@ -2,7 +2,6 @@ import { Component, inject, input, output, signal } from '@angular/core';
 // signal kept for activeRoute
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../../core/auth/auth.service';
-import { TenantService } from '../../../core/tenant/tenant.service';
 import { NotificationService } from '../../../services/notification.service';
 
 type NavItem = {
@@ -29,7 +28,6 @@ type NavSection = {
 })
 export class Sidebar {
   private readonly authService = inject(AuthService);
-  private readonly tenantService = inject(TenantService);
   private readonly notificationService = inject(NotificationService);
   private readonly router = inject(Router);
 
@@ -100,7 +98,9 @@ export class Sidebar {
   }
 
   private finishLogout(): void {
-    this.tenantService.clear();
+    // Tenant/brand state is cleared by AuthService.clearSession() itself (called from
+    // authService.logout() above) - notifications aren't, since NotificationService can't be
+    // injected there without a circular dependency (see clearSession()'s comment).
     this.notificationService.clear();
     this.mobileClose.emit();
     this.router.navigate(['/login']);

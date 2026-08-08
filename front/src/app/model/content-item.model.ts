@@ -43,7 +43,6 @@ export interface GenerateCampaignContentResponse {
   campaignId: string;
   generatedCount: number;
   imagesGenerated: number;
-  imagesSkippedForCredits: number;
 }
 
 /** POST /api/v1/content-items/generate request body — GenerateContentItemCommand.

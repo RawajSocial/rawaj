@@ -60,6 +60,11 @@ export interface Campaign {
   /** Set once the AI strategy is approved — decides whether the card offers "review the
    *  strategy" or "review the content" as its next step. */
   planApprovedAt?: string | null;
+  /** Set once the onboarding wizard's answer-collection steps (1-7) are finished and the user
+   *  moves into strategy review — distinct from `planApprovedAt`. A Draft campaign with this unset
+   *  was abandoned mid-wizard (no brief data yet) and must route back into `/on-boarding`, not into
+   *  the strategy review page which expects a completed brief. */
+  onboardingCompletedAt?: string | null;
   /** How many content items the campaign already has, so the list can tell a campaign with
    *  generated posts apart from one that still needs generating. */
   contentItemCount: number;
@@ -110,6 +115,8 @@ export interface CampaignSummary {
   /** Set once the AI strategy is approved — drives which step the list links the user to. */
   planApprovedAt?: string | null;
   contentItemCount: number;
+  /** See `Campaign.onboardingCompletedAt`. */
+  onboardingCompletedAt?: string | null;
 }
 
 /** POST /api/v1/campaigns — Rawaj.Application.Features.Campaigns.CreateCampaign.CreateCampaignResponse */
@@ -144,6 +151,12 @@ export interface GetCampaignResponse {
   planApprovedAt?: string | null;
   createdAt: string;
   updatedAt: string;
+  /** The AI pipeline run currently (or most recently) associated with this campaign — set once a
+   *  run starts, never cleared. Lets a page discover and resume watching an in-progress run (e.g.
+   *  content generation) instead of only knowing about one it started itself in this page load. */
+  currentPipelineRunId?: string | null;
+  /** See `Campaign.onboardingCompletedAt`. */
+  onboardingCompletedAt?: string | null;
 }
 
 /** POST /api/v1/campaigns request body. */
@@ -172,35 +185,13 @@ export interface UpdateCampaignInput {
   budgetCurrency?: string;
   /** The onboarding wizard's raw collected-answers JSON blob, autosaved as the user progresses. */
   briefJson?: string;
-}
-
-/** POST /api/v1/campaigns/{id}/research-competitors — ResearchCampaignCompetitorsResponse.
- *  Succeeded reflects whether Tavily actually returned usable data — the endpoint itself never
- *  fails the flow, so a false here means "show an unavailable note", not an error. */
-export interface ResearchCampaignCompetitorsResponse {
-  campaignId: string;
-  competitorResearchJson: string;
-  succeeded: boolean;
-  note?: string | null;
-  researchedAt: string;
-}
-
-/** POST /api/v1/campaigns/{id}/diagnose-business — GenerateBusinessDiagnosisResponse */
-export interface GenerateBusinessDiagnosisResponse {
-  campaignId: string;
-  diagnosisJson: string;
-  diagnosedAt: string;
+  /** Sent exactly once, when the wizard advances from step 7 into strategy review — stamps
+   *  `Campaign.onboardingCompletedAt` server-side. See that field's doc comment. */
+  markOnboardingCompleted?: boolean;
 }
 
 /** POST /api/v1/campaigns/{id}/refine-plan — RefineCampaignPlanResponse */
 export interface RefineCampaignPlanResponse {
-  campaignId: string;
-  aiPlanJson: string;
-  aiGeneratedAt: string;
-}
-
-/** POST /api/v1/campaigns/{id}/generate-plan — GenerateMarketingPlanResponse */
-export interface GenerateMarketingPlanResponse {
   campaignId: string;
   aiPlanJson: string;
   aiGeneratedAt: string;
@@ -212,6 +203,29 @@ export interface GenerateMarketingPlanResponse {
 export interface UnarchiveCampaignResponse {
   campaignId: string;
   status: BackendCampaignStatus;
+}
+
+/** GET /api/v1/campaigns/{id}/delete-summary — CampaignDeleteSummaryResponse. Powers the delete
+ *  confirmation modal's breakdown, fetched before the user commits. No coin figure — coin-ledger
+ *  entries aren't attributed back to a campaign anywhere today, so any total shown would be a guess
+ *  dressed up as a fact (see the backend response's own doc comment). */
+export interface CampaignDeleteSummary {
+  campaignId: string;
+  name: string;
+  contentItemCount: number;
+  imageCount: number;
+  pendingScheduledCount: number;
+  publishedScheduledCount: number;
+}
+
+/** DELETE /api/v1/campaigns/{id} — DeleteCampaignResponse. Published posts are always left live on
+ *  their platform (deliberate — see docs); only pending ones are actually cancelled there. */
+export interface DeleteCampaignResult {
+  campaignId: string;
+  contentItemsDeleted: number;
+  imagesDeleted: number;
+  scheduledPostsCancelled: number;
+  publishedPostsLeftLive: number;
 }
 
 /** POST /api/v1/campaigns/{id}/approve-plan — ApproveCampaignPlanResponse */

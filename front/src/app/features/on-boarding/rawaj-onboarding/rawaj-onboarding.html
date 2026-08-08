@@ -1,7 +1,14 @@
 <main class="onboarding-page" dir="rtl">
   <div class="onboarding-layout">
-    <app-onboarding-sidebar [currentStep]="currentStep()" class="d-lg-block d-none" />
+    <app-onboarding-sidebar [currentStep]="currentStep()" (exit)="confirmExit()" class="d-lg-block d-none" />
     <section class="onboarding-main">
+      <!-- Sidebar (with its own exit control) is hidden below 992px — this is the only exit
+           affordance mobile users get, so it can't be dropped just because the desktop one exists. -->
+      <button type="button" class="onboarding-exit-btn-mobile d-lg-none" (click)="confirmExit()">
+        <i class="fa-solid fa-arrow-right-from-bracket"></i>
+        <span>الخروج والمتابعة لاحقًا</span>
+      </button>
+
       @if (currentStep() === 1 && brandProfiles().length > 1) {
         <div class="onboarding-brand-picker" dir="rtl">
           <p class="onboarding-brand-picker__label">هذه الحملة ستُنشأ لأي علامة تجارية؟</p>

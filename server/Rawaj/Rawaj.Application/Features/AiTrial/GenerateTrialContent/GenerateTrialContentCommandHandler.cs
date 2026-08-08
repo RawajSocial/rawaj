@@ -10,6 +10,7 @@ namespace Rawaj.Application.Features.AiTrial.GenerateTrialContent;
 public class GenerateTrialContentCommandHandler(
     IApplicationDbContext dbContext,
     ICurrentUserService currentUserService,
+    ICurrentTenantContext currentTenantContext,
     IAiTextGenerationService textGenerationService)
     : IRequestHandler<GenerateTrialContentCommand, Result<GenerateTrialContentResponse>>
 {
@@ -36,6 +37,11 @@ public class GenerateTrialContentCommandHandler(
         var job = new AiJob
         {
             Id = Guid.NewGuid(),
+            // The trial endpoints are authenticated but not tenant-scoped — a caller trying the
+            // product out may not have picked a tenant yet — so this is genuinely unknown sometimes.
+            // Recording it when it is known is still a strict improvement: these rows were entirely
+            // unattributable before, which is why AiCreditsPolicy's usage count never saw them.
+            TenantId = currentTenantContext.TenantId ?? Guid.Empty,
             BrandProfileId = null,
             TriggeredBy = userId.Value,
             JobType = AiJobType.ContentGeneration,

@@ -31,6 +31,10 @@ export class CampaignCard {
    *  card offers whichever applies to this campaign's current status. */
   readonly archive  = output<string>();
   readonly restore  = output<string>();
+  /** Permanent, cascades to content/images/scheduled posts — a stronger action than archive, so it
+   *  is offered regardless of the campaign's current status (including already-archived ones) and
+   *  gated at Admin rather than Editor. */
+  readonly deleteCampaign = output<string>();
   /** "Continue where you left off" — routes to the strategy review or the content review
    *  depending on how far the campaign has actually got. */
   readonly openNextStep = output<string>();
@@ -51,25 +55,31 @@ export class CampaignCard {
    *  metrics aren't shown on the card: nothing in the campaigns list API carries them, and it
    *  used to render a hardcoded 0 for CTR/clicks/reach on every campaign. Real per-campaign
    *  performance lives on the detail page, which reads it from AnalyticsService. */
-  protected get stage(): 'needs-strategy' | 'needs-content' | 'has-content' {
+  /** `needs-onboarding` is a campaign abandoned mid-wizard (steps 1-7, no brief data collected
+   *  yet) — distinct from `needs-strategy`, which has a finished brief just waiting on strategy
+   *  review. Routing both the same way used to send an empty brief into the strategy pipeline. */
+  protected get stage(): 'needs-onboarding' | 'needs-strategy' | 'needs-content' | 'has-content' {
     const c = this.campaign();
+    if (!c.onboardingCompletedAt) return 'needs-onboarding';
     if (!c.planApprovedAt) return 'needs-strategy';
     return c.contentItemCount > 0 ? 'has-content' : 'needs-content';
   }
 
   protected get nextStepLabel(): string {
     switch (this.stage) {
-      case 'needs-strategy': return 'مراجعة الاستراتيجية';
-      case 'needs-content':  return 'توليد المحتوى';
-      default:               return 'مراجعة المحتوى';
+      case 'needs-onboarding': return 'أكمل إعداد الحملة';
+      case 'needs-strategy':   return 'مراجعة الاستراتيجية';
+      case 'needs-content':    return 'توليد المحتوى';
+      default:                 return 'مراجعة المحتوى';
     }
   }
 
   protected get nextStepIcon(): string {
     switch (this.stage) {
-      case 'needs-strategy': return 'fa-solid fa-lightbulb';
-      case 'needs-content':  return 'fa-solid fa-wand-magic-sparkles';
-      default:               return 'fa-regular fa-images';
+      case 'needs-onboarding': return 'fa-solid fa-pen-to-square';
+      case 'needs-strategy':   return 'fa-solid fa-lightbulb';
+      case 'needs-content':    return 'fa-solid fa-wand-magic-sparkles';
+      default:                 return 'fa-regular fa-images';
     }
   }
 
@@ -84,6 +94,8 @@ export class CampaignCard {
   protected get objectiveLabel(): string {
     return campaignObjectiveLabel(this.campaign().objective);
   }
+
+  protected readonly deleteDeniedReason = 'حذف الحملات متاح لمديري الحساب فقط.';
 
   /** The campaign's own dates, formatted — the raw ISO strings used to be printed straight into
    *  the footer, and a campaign with no dates rendered a bare "—" separator with nothing on

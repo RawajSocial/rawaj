@@ -17,6 +17,7 @@ import { BrandContextService } from '../../../services/brand-context.service';
 import { TenantService } from '../../../core/tenant/tenant.service';
 import { ErrorModalService } from '../../../services/error-modal.service';
 import { CampaignService } from '../../../services/campaign.service';
+import { OnboardingEntryService } from '../../../services/onboarding-entry.service';
 
 /** Best-effort mapping from the backend `ContentType` enum to the media library's GenType —
  *  mirrors `my-media-page.ts`'s helper of the same name/purpose. */
@@ -250,6 +251,7 @@ export class MarketingPlanPage {
   private readonly tenantService = inject(TenantService);
   private readonly errorModalService = inject(ErrorModalService);
   private readonly campaignService = inject(CampaignService);
+  private readonly onboardingEntryService = inject(OnboardingEntryService);
 
   readonly stages = STAGES;
   readonly brandProfileCount = this.tenantService.brandProfileCount;
@@ -378,7 +380,7 @@ export class MarketingPlanPage {
   // ── Nav ──
   goToOnboarding(): void {
     if (!this.requireBrandProfile()) return;
-    void this.router.navigate(['/on-boarding'], { queryParams: { fresh: 1 } });
+    void this.onboardingEntryService.startOrResumeOnboarding();
   }
 
   backToPlans(): void { this.phase.set('plans'); }
