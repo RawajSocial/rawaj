@@ -97,8 +97,11 @@ public static class ContentPromptBuilder
             $"A business called \"{brand.Name}\" is midway through an onboarding wizard for a social media marketing platform.",
             "Here is the JSON of everything they've entered so far in the wizard (campaign type, brand details, target audience, positioning, budget, etc.):",
             onboardingContextJson,
-            "Based specifically on what this business entered, write between 3 and 8 short follow-up questions in Arabic (choose however many are actually needed to fill the gaps - don't pad the count) " +
-            "that would help a marketing strategist understand their business better and fill in gaps the answers above didn't cover. Each question needs 3 short quick-reply suggested answers in Arabic, relevant to what THIS business described - not generic questions.",
+            PromptFragments.ArabicOnlyInstruction,
+            "Based specifically on what this business entered, write between 3 and 8 short follow-up questions " +
+            "(choose however many are actually needed to fill the gaps - don't pad the count) " +
+            "that would help a marketing strategist understand their business better and fill in gaps the answers above didn't cover. Each question needs 3 short quick-reply suggested answers, relevant to what THIS business described - not generic questions.",
+            PromptFragments.ArabicOnlyInstruction,
             "Respond with ONLY a valid JSON array (no markdown fences, no commentary) with this exact shape: " +
             "[{\"question\":\"...\",\"suggestions\":[\"...\",\"...\",\"...\"]}]",
         };

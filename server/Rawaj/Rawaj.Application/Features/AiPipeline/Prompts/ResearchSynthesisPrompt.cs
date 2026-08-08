@@ -41,8 +41,11 @@ public static class ResearchSynthesisPrompt
 
         lines.Add(UntrustedTextSanitizer.Wrap("Web page excerpts", excerpts));
 
+        lines.Add(PromptFragments.ArabicOnlyInstruction);
+        lines.Add("Exception: sources[].title must be copied from the source page as-is, in its original language.");
+
         lines.Add(
-            "From that material, write in Arabic: the trends actually visible in this market, the demand signals you " +
+            "From that material, write: the trends actually visible in this market, the demand signals you " +
             "can support with what you read, any seasonality that matters for marketing timing, and per-platform " +
             "benchmarks or norms where the sources mention them.");
 
@@ -86,8 +89,11 @@ public static class ResearchSynthesisPrompt
 
         lines.Add(UntrustedTextSanitizer.Wrap("Web page excerpts", excerpts));
 
+        lines.Add(PromptFragments.ArabicOnlyInstruction);
+        lines.Add("Exception: sources[].title must be copied from the source page as-is, in its original language.");
+
         lines.Add(
-            "From that material, write in Arabic: the competitors you can actually identify with a one-line note on " +
+            "From that material, write: the competitors you can actually identify with a one-line note on " +
             "each, how they position themselves relative to one another, the content patterns they appear to follow, " +
             "and the gaps none of them are covering — the gaps are the most useful part, so be specific.");
 

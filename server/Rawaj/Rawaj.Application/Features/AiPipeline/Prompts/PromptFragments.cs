@@ -34,6 +34,28 @@ public static class PromptFragments
         "ending with }, with no markdown fences, no explanation and no text before or after it.";
 
     /// <summary>
+    /// The Arabic-language rule itself. Earlier prompts stated this as a single soft mid-sentence
+    /// clause ("write ... in Arabic"), which a model can drift away from once enough non-Arabic text
+    /// (source excerpts, brand fields typed in English, a long English-language instruction block)
+    /// sits nearby in the same prompt. This is deliberately a standalone, negatively-constrained
+    /// sentence so it can be dropped in verbatim near the top of a prompt (before the model reads the
+    /// task) and again near the JSON-shape closer, rather than relying on one mention to survive the
+    /// whole prompt.
+    /// </summary>
+    public const string ArabicOnlyInstruction =
+        "Write your entire response in Modern Standard Arabic. Do not use English, Chinese, or any other " +
+        "language or script anywhere in your output — including in labels, names, or examples you introduce yourself.";
+
+    /// <summary>
+    /// Added to a retry after the previous attempt's output failed <c>ArabicContentPolicy</c>'s
+    /// check — same single-retry-then-fail shape as <see cref="RepairInstruction"/>, but for a
+    /// response that parsed fine yet came back in the wrong language.
+    /// </summary>
+    public const string LanguageRepairInstruction =
+        "Your previous response used a language other than Arabic. Rewrite it entirely in Modern Standard " +
+        "Arabic only, with no English, Chinese, or any other language or script anywhere in it.";
+
+    /// <summary>
     /// The brand identity block. Every line is conditional: an unset field is omitted rather than
     /// sent as an empty label, which would read to the model as "this brand has no industry".
     /// </summary>

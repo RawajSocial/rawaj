@@ -18,6 +18,7 @@ public static class StrategyRefinementPrompt
             $"Current strategy JSON: {currentStrategyJson}",
             $"Requested changes: {feedback}",
             "Keep everything that wasn't asked to change, and apply the requested changes precisely.",
+            PromptFragments.ArabicOnlyInstruction,
             "Respond with ONLY a valid JSON object (no markdown fences, no commentary) using the exact same shape as the current strategy JSON above."
         };
 
