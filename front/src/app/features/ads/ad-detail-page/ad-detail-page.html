@@ -21,7 +21,7 @@
         }
         <div class="media-platform-badges">
           @for (p of a.platforms; track p) {
-            <span class="media-platform-badge" [class.media-platform-badge--snapchat]="p === 'snapchat'" [style.color]="platformMeta[p].color" [title]="platformMeta[p].label">
+            <span class="media-platform-badge" [style.color]="platformMeta[p].color" [title]="platformMeta[p].label">
               <i class="{{ platformMeta[p].icon }}"></i>
             </span>
           }

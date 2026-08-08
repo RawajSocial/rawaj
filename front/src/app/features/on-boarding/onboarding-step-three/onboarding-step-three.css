@@ -258,12 +258,6 @@
 /* ── platform chips (step 3) ── */
 .chip.platform-instagram i { color: #e1306c; }
 .chip.platform-facebook i  { color: #1877f2; }
-.chip.platform-tiktok i    { color: #111827; }
-.chip.platform-youtube i   { color: #ef4444; }
-.chip.platform-snapchat i  { color: #b59800; }
-.chip.platform-twitter i   { color: #111827; }
-.chip.platform-linkedin i  { color: #0077b5; }
-.chip.platform-whatsapp i  { color: #25d366; }
 
 /* ── yes/no chips ── */
 .chip.chip-yes i { color: #22c55e; }
@@ -275,9 +269,6 @@
 .chip.price-premium.active i, .chip.price-luxury.active i,
 .chip.store-online.active i, .chip.store-physical.active i, .chip.store-both.active i,
 .chip.platform-instagram.active i, .chip.platform-facebook.active i,
-.chip.platform-tiktok.active i, .chip.platform-youtube.active i,
-.chip.platform-snapchat.active i, .chip.platform-twitter.active i,
-.chip.platform-linkedin.active i, .chip.platform-whatsapp.active i,
 .chip.chip-yes.active i, .chip.chip-no.active i {
   color: var(--color-text-inverse);
 }

@@ -61,12 +61,6 @@ export class OnboardingStepThree {
   protected readonly platformOptions = [
     { value: 'instagram', label: 'Instagram',   icon: 'fa-brands fa-instagram',  className: 'platform-instagram' },
     { value: 'facebook',  label: 'Facebook',    icon: 'fa-brands fa-facebook',   className: 'platform-facebook' },
-    { value: 'tiktok',    label: 'TikTok',      icon: 'fa-brands fa-tiktok',     className: 'platform-tiktok' },
-    { value: 'youtube',   label: 'YouTube',     icon: 'fa-brands fa-youtube',    className: 'platform-youtube' },
-    { value: 'snapchat',  label: 'Snapchat',    icon: 'fa-brands fa-snapchat',   className: 'platform-snapchat' },
-    { value: 'twitter',   label: 'X / Twitter', icon: 'fa-brands fa-x-twitter',  className: 'platform-twitter' },
-    { value: 'linkedin',  label: 'LinkedIn',    icon: 'fa-brands fa-linkedin',   className: 'platform-linkedin' },
-    { value: 'whatsapp',  label: 'WhatsApp',    icon: 'fa-brands fa-whatsapp',   className: 'platform-whatsapp' },
   ];
 
   protected readonly selectedTone = computed(() => this.data()?.brandTone ?? []);

@@ -93,11 +93,7 @@
 
 /* per-platform icon colors */
 .platform-rank-btn:not(.ranked) .fa-instagram { color: #e1306c; }
-.platform-rank-btn:not(.ranked) .fa-tiktok    { color: #111827; }
-.platform-rank-btn:not(.ranked) .fa-snapchat  { color: #b59800; }
 .platform-rank-btn:not(.ranked) .fa-facebook  { color: #1877f2; }
-.platform-rank-btn:not(.ranked) .fa-youtube   { color: #ef4444; }
-.platform-rank-btn:not(.ranked) .fa-x-twitter { color: #111827; }
 
 .platform-rank-btn.ranked .plat-icon { color: var(--color-secondary); }
 

@@ -64,8 +64,6 @@
     @for (t of filterTabs(); track t.key) {
       <button type="button" class="platform-chip d-inline-flex align-items-center gap-2 py-2 px-3"
               [class.active]="platformFilter() === t.key"
-              [class.platform-chip--tiktok]="t.key === 'tiktok'"
-              [class.platform-chip--snapchat]="t.key === 'snapchat'"
               [style.--chip-color]="t.color"
               (click)="setFilter(t.key)">
         <i class="{{ t.icon }}"></i>

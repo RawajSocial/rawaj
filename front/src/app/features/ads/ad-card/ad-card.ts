@@ -10,26 +10,15 @@ const POST_TYPE_LABELS: Record<string, string> = {
 const PLATFORM_ICONS: Record<string, string> = {
   instagram: 'fa-brands fa-instagram',
   facebook:  'fa-brands fa-facebook-f',
-  tiktok:    'fa-brands fa-tiktok',
-  youtube:   'fa-brands fa-youtube',
-  x:         'fa-brands fa-x-twitter',
-  snapchat:  'fa-brands fa-snapchat',
-  linkedin:  'fa-brands fa-linkedin-in',
 };
 
 const PLATFORM_COLORS: Record<string, string> = {
   instagram: 'var(--color-instagram)',
   facebook:  'var(--color-facebook)',
-  tiktok:    'var(--color-tiktok)',
-  youtube:   'var(--color-youtube)',
-  x:         'var(--color-x)',
-  snapchat:  'var(--color-snapchat)',
-  linkedin:  'var(--color-linkedin)',
 };
 
 const PLATFORM_LABELS: Record<string, string> = {
-  instagram: 'إنستغرام', facebook: 'فيسبوك', tiktok: 'تيك توك',
-  youtube: 'يوتيوب', x: 'إكس', snapchat: 'سناب شات', linkedin: 'لينكد إن',
+  instagram: 'إنستغرام', facebook: 'فيسبوك',
 };
 
 @Component({

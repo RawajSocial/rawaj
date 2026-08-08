@@ -21,12 +21,6 @@ import { AiPipelineStageKind, AiPipelineStageStatus, GetRunStatusResponse } from
 const PLATFORM_META: Record<string, { icon: string; color: string; label: string }> = {
   instagram: { icon: 'fa-brands fa-instagram',  color: 'var(--color-instagram)', label: 'Instagram'   },
   facebook:  { icon: 'fa-brands fa-facebook-f', color: 'var(--color-facebook)',  label: 'Facebook'    },
-  tiktok:    { icon: 'fa-brands fa-tiktok',     color: 'var(--color-tiktok)',    label: 'TikTok'      },
-  snapchat:  { icon: 'fa-brands fa-snapchat',   color: 'var(--color-snapchat)',  label: 'Snapchat'    },
-  twitter:   { icon: 'fa-brands fa-x-twitter',  color: 'var(--color-x)',         label: 'X / Twitter' },
-  youtube:   { icon: 'fa-brands fa-youtube',    color: 'var(--color-youtube)',   label: 'YouTube'     },
-  linkedin:  { icon: 'fa-brands fa-linkedin',   color: 'var(--color-linkedin)',  label: 'LinkedIn'    },
-  whatsapp:  { icon: 'fa-brands fa-whatsapp',   color: 'var(--color-whatsapp)',  label: 'WhatsApp'    },
 };
 
 const CAMPAIGN_TYPE_LABELS: Partial<Record<string, string>> = {

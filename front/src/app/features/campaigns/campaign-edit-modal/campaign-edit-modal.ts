@@ -14,8 +14,8 @@ import {
 import { BackendSocialPlatform } from '../../../model/content-item.model';
 
 /** The frontend platform slug → the backend `SocialPlatform` enum name the API expects. The
- *  inverse of BACKEND_TO_CAMPAIGN_PLATFORM, and the reason Snapchat isn't offered here: the enum
- *  has no member for it, so a campaign could never actually be saved targeting it. */
+ *  inverse of BACKEND_TO_CAMPAIGN_PLATFORM — only Facebook and Instagram exist there, so those
+ *  are the only platforms a campaign can ever be saved targeting. */
 const CAMPAIGN_TO_BACKEND_PLATFORM: Record<string, BackendSocialPlatform> = Object.fromEntries(
   Object.entries(BACKEND_TO_CAMPAIGN_PLATFORM).map(([backend, front]) => [front, backend as BackendSocialPlatform]),
 );

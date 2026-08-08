@@ -1,7 +1,7 @@
 import { BackendSocialPlatform } from './content-item.model';
 
 export type CampaignStatus   = 'active' | 'paused' | 'completed' | 'draft' | 'archived';
-export type CampaignPlatform = 'instagram' | 'facebook' | 'tiktok' | 'youtube' | 'x' | 'snapchat' | 'linkedin';
+export type CampaignPlatform = 'instagram' | 'facebook';
 export type CampaignObjective = 'awareness' | 'traffic' | 'engagement' | 'leads' | 'sales';
 
 /** Single source of truth for how a campaign renders, shared by the list card, the detail page,
@@ -16,11 +16,6 @@ export interface CampaignPlatformMeta {
 export const CAMPAIGN_PLATFORM_META: Record<CampaignPlatform, CampaignPlatformMeta> = {
   instagram: { icon: 'fa-brands fa-instagram',   color: 'var(--color-instagram)', label: 'إنستغرام' },
   facebook:  { icon: 'fa-brands fa-facebook-f',  color: 'var(--color-facebook)',  label: 'فيسبوك' },
-  tiktok:    { icon: 'fa-brands fa-tiktok',      color: 'var(--color-tiktok)',    label: 'تيك توك' },
-  youtube:   { icon: 'fa-brands fa-youtube',     color: 'var(--color-youtube)',   label: 'يوتيوب' },
-  x:         { icon: 'fa-brands fa-x-twitter',   color: 'var(--color-x)',         label: 'إكس' },
-  snapchat:  { icon: 'fa-brands fa-snapchat',    color: 'var(--color-snapchat)',  label: 'سناب شات' },
-  linkedin:  { icon: 'fa-brands fa-linkedin-in', color: 'var(--color-linkedin)',  label: 'لينكد إن' },
 };
 
 export const CAMPAIGN_STATUS_LABELS: Record<CampaignStatus, string> = {
@@ -85,17 +80,13 @@ export const BACKEND_TO_CAMPAIGN_STATUS: Record<BackendCampaignStatus, CampaignS
   Archived: 'archived',
 };
 
-/** Backend `SocialPlatform` enum names → the frontend's lowercase `CampaignPlatform`. The enum has
- *  no Snapchat member, so a campaign can never target it — anything unmapped is dropped by callers
- *  rather than guessed at. Lives here because CampaignService, ScheduledPostService, AdService and
- *  the campaign detail page all need the exact same mapping. */
+/** Backend `SocialPlatform` enum names → the frontend's lowercase `CampaignPlatform`. Facebook and
+ *  Instagram are the only platforms the backend enum models, so anything unmapped is dropped by
+ *  callers rather than guessed at. Lives here because CampaignService, ScheduledPostService,
+ *  AdService and the campaign detail page all need the exact same mapping. */
 export const BACKEND_TO_CAMPAIGN_PLATFORM: Record<string, CampaignPlatform> = {
   Instagram: 'instagram',
   Facebook: 'facebook',
-  Tiktok: 'tiktok',
-  Youtube: 'youtube',
-  Twitter: 'x',
-  Linkedin: 'linkedin',
 };
 
 /** GET /api/v1/campaigns — Rawaj.Application.Features.Campaigns.GetCampaigns.CampaignSummary */

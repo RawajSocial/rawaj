@@ -13,10 +13,6 @@ import { CampaignService } from './campaign.service';
 const PLATFORM_MAP: Record<BackendSocialPlatform, CampaignPlatform> = {
   Instagram: 'instagram',
   Facebook: 'facebook',
-  Tiktok: 'tiktok',
-  Youtube: 'youtube',
-  Twitter: 'x',
-  Linkedin: 'linkedin',
 };
 
 const STATUS_MAP: Record<ScheduledPostSummary['status'], AdStatus> = {

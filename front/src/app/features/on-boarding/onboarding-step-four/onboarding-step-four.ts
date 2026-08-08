@@ -70,13 +70,7 @@ export class OnboardingStepFour {
 
   protected readonly platformOptions = [
     { value: 'instagram', label: 'Instagram',   icon: 'fa-brands fa-instagram',  className: 'aud-instagram' },
-    { value: 'tiktok',    label: 'TikTok',      icon: 'fa-brands fa-tiktok',     className: 'aud-tiktok' },
-    { value: 'snapchat',  label: 'Snapchat',    icon: 'fa-brands fa-snapchat',   className: 'aud-snapchat' },
     { value: 'facebook',  label: 'Facebook',    icon: 'fa-brands fa-facebook',   className: 'aud-facebook' },
-    { value: 'youtube',   label: 'YouTube',     icon: 'fa-brands fa-youtube',    className: 'aud-youtube' },
-    { value: 'twitter',   label: 'X / Twitter', icon: 'fa-brands fa-x-twitter',  className: 'aud-twitter' },
-    { value: 'linkedin',  label: 'LinkedIn',    icon: 'fa-brands fa-linkedin',   className: 'aud-linkedin' },
-    { value: 'whatsapp',  label: 'WhatsApp',    icon: 'fa-brands fa-whatsapp',   className: 'aud-whatsapp' },
   ];
 
   protected readonly selectedAgeRanges  = computed(() => this.data()?.ageRanges    ?? []);

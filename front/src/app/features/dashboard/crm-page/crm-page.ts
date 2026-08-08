@@ -15,21 +15,12 @@ import { KpiData, MetaWidget, PlatformKey, PlatformStat, TopPostView, compactNum
 
 const PLATFORM_CFG: Record<Exclude<PlatformKey, 'all'>, { label: string; icon: string; color: string }> = {
   instagram: { label: 'إنستغرام', icon: 'fa-brands fa-instagram',  color: 'var(--color-instagram)' },
-  tiktok:    { label: 'تيك توك',  icon: 'fa-brands fa-tiktok',      color: 'var(--color-tiktok)' },
   facebook:  { label: 'فيسبوك',   icon: 'fa-brands fa-facebook-f', color: 'var(--color-facebook)' },
-  youtube:   { label: 'يوتيوب',   icon: 'fa-brands fa-youtube',     color: 'var(--color-youtube)' },
-  x:         { label: 'إكس',      icon: 'fa-brands fa-x-twitter',   color: 'var(--color-x)' },
-  linkedin:  { label: 'لينكدإن',  icon: 'fa-brands fa-linkedin-in', color: 'var(--color-linkedin)' },
-  snapchat:  { label: 'سناب شات', icon: 'fa-brands fa-snapchat',    color: 'var(--color-snapchat)' },
 };
 
 const BACKEND_PLATFORM_TO_KEY: Record<BackendSocialPlatform, Exclude<PlatformKey, 'all'>> = {
   Instagram: 'instagram',
   Facebook: 'facebook',
-  Tiktok: 'tiktok',
-  Youtube: 'youtube',
-  Twitter: 'x',
-  Linkedin: 'linkedin',
 };
 
 @Component({

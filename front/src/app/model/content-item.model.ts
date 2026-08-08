@@ -1,5 +1,5 @@
 /** Mirrors the backend's `SocialPlatform` enum (serialized as a PascalCase string). */
-export type BackendSocialPlatform = 'Instagram' | 'Linkedin' | 'Twitter' | 'Facebook' | 'Tiktok' | 'Youtube';
+export type BackendSocialPlatform = 'Instagram' | 'Facebook';
 
 /** GET /api/v1/content-items — Rawaj.Application.Features.Content.GetContentItems.ContentItemSummary */
 export interface ContentItemSummary {

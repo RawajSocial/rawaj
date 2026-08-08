@@ -1,4 +1,4 @@
-export type SocialPlatform = 'Instagram' | 'Linkedin' | 'Twitter' | 'Facebook';
+export type SocialPlatform = 'Instagram' | 'Facebook';
 
 export interface SocialAccountSummary {
   socialAccountId: string;

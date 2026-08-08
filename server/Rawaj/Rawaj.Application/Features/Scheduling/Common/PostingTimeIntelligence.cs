@@ -16,10 +16,6 @@ public static class PostingTimeIntelligence
     {
         [SocialPlatform.Instagram] = (DayOfWeek.Wednesday, 11),
         [SocialPlatform.Facebook] = (DayOfWeek.Wednesday, 13),
-        [SocialPlatform.Tiktok] = (DayOfWeek.Tuesday, 19),
-        [SocialPlatform.Youtube] = (DayOfWeek.Saturday, 15),
-        [SocialPlatform.Twitter] = (DayOfWeek.Tuesday, 9),
-        [SocialPlatform.Linkedin] = (DayOfWeek.Thursday, 10),
     };
 
     public static async Task<List<PostingTimeSuggestion>> GetSuggestionsAsync(

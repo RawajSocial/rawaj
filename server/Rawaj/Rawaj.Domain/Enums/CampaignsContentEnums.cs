@@ -22,11 +22,7 @@ public enum ContentType
 public enum SocialPlatform
 {
     Instagram,
-    Linkedin,
-    Twitter,
-    Facebook,
-    Tiktok,
-    Youtube
+    Facebook
 }
 
 public enum ContentStatus

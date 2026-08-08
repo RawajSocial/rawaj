@@ -58,8 +58,8 @@
 
     <div class="rw-field">
       <label id="camp-edit-platforms-label">المنصات المستهدفة</label>
-      <!-- Snapchat is deliberately absent: the backend's SocialPlatform enum has no member for
-           it, so a campaign targeting it could never be saved (see the component). -->
+      <!-- Only Facebook and Instagram are offered: the backend's SocialPlatform enum has no
+           other members, so a campaign targeting anything else could never be saved. -->
       <div class="camp-edit-platforms" role="group" aria-labelledby="camp-edit-platforms-label">
         @for (p of platformOptions; track p) {
           <button type="button" class="camp-edit-platform"

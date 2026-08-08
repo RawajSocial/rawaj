@@ -51,11 +51,7 @@ export class OnboardingStepFive {
 
   protected readonly rankablePlatforms = [
     { value: 'instagram', label: 'Instagram',   icon: 'fa-brands fa-instagram' },
-    { value: 'tiktok',    label: 'TikTok',      icon: 'fa-brands fa-tiktok' },
-    { value: 'snapchat',  label: 'Snapchat',    icon: 'fa-brands fa-snapchat' },
     { value: 'facebook',  label: 'Facebook',    icon: 'fa-brands fa-facebook' },
-    { value: 'youtube',   label: 'YouTube',     icon: 'fa-brands fa-youtube' },
-    { value: 'twitter',   label: 'X / Twitter', icon: 'fa-brands fa-x-twitter' },
   ];
 
   protected budgetMenuOpen = false;

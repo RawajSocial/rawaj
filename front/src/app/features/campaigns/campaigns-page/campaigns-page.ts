@@ -96,12 +96,6 @@ export class CampaignsPage {
     { value: 'all',       label: 'جميع المنصات' },
     { value: 'instagram', label: 'إنستغرام' },
     { value: 'facebook',  label: 'فيسبوك' },
-    { value: 'tiktok',    label: 'تيك توك' },
-    { value: 'youtube',   label: 'يوتيوب' },
-    // No Snapchat option: the backend's SocialPlatform enum doesn't model it, so a campaign can
-    // never target it and the filter could only ever return zero results.
-    { value: 'linkedin',  label: 'لينكد إن' },
-    { value: 'x',         label: 'إكس (تويتر)' },
   ];
 
   protected readonly filtered = computed(() => {

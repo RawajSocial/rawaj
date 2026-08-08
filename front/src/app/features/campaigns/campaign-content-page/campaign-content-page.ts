@@ -26,7 +26,7 @@ const CONTENT_TYPE_LABELS: Record<ContentItemSummary['contentType'], string> = {
 };
 
 const PLATFORM_LABELS: Record<ContentItemSummary['platform'], string> = {
-  Instagram: 'إنستغرام', Facebook: 'فيسبوك', Tiktok: 'تيك توك', Twitter: 'إكس', Youtube: 'يوتيوب', Linkedin: 'لينكدإن',
+  Instagram: 'إنستغرام', Facebook: 'فيسبوك',
 };
 
 const STATUS_LABELS: Record<ContentItemSummary['status'], string> = {
