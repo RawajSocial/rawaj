@@ -1,4 +1,6 @@
-import { ApplicationConfig, inject, provideAppInitializer, provideBrowserGlobalErrorListeners } from '@angular/core';
+import {
+  ApplicationConfig, inject, provideAppInitializer, provideBrowserGlobalErrorListeners, provideZonelessChangeDetection,
+} from '@angular/core';
 import { provideRouter, Router } from '@angular/router';
 import { HttpErrorResponse, provideHttpClient, withInterceptors } from '@angular/common/http';
 import { catchError, firstValueFrom, of } from 'rxjs';
@@ -13,6 +15,15 @@ import { FeatureFlagsService } from './services/feature-flags.service';
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
+    // This app has no zone.js (not a dependency, no polyfill entry) and never called this — meaning
+    // there was no automatic change-detection scheduler at all. A signal write from outside a native
+    // Angular event handler (an HTTP response callback, a setTimeout, a SignalR push) updated state
+    // correctly but nothing ever told Angular to actually re-render for it; the view only caught up
+    // on the next click anywhere on the page, because DOM event handling is what triggers a CD pass
+    // regardless of zoneless config. That's the exact "loading screen stuck until you click" pattern
+    // — this was never brand-profile-specific, just most visible on a full-page loader with no
+    // incidental follow-up click to paper over the gap.
+    provideZonelessChangeDetection(),
     provideRouter(routes),
     provideHttpClient(withInterceptors([authInterceptor, tenantInterceptor])),
     provideAppInitializer(() => {
