@@ -114,12 +114,18 @@ export class CampaignPostDetailPage {
     return comparePostToCampaignAverage(this.latestSnapshot()?.engagementRate ?? null, campaign.averageEngagementRate);
   });
   /** Views/UniqueViewers/EngagementRate/Clicks require extended platform permissions that may not
-   *  be granted yet; Likes/Comments/Shares (and their Engagements sum) are core metrics Meta always
-   *  returns for a published post, so only the former are gated behind an availability flag. */
+   *  be granted yet, so they're gated behind an availability flag. Likes/Comments/Shares are core
+   *  metrics Meta always returns for a *successful* fetch, but the single Graph API call that
+   *  fetches all three together can still fail on its own (expired token, transient error) while
+   *  the separate Insights call succeeds — gating these too means that failure renders as "—"
+   *  instead of an indistinguishable, misleading 0. */
   protected readonly viewsAvailable = computed(() => metricAvailable(this.snapshots(), 'views'));
   protected readonly uniqueViewersAvailable = computed(() => metricAvailable(this.snapshots(), 'uniqueViewers'));
   protected readonly engagementRateAvailable = computed(() => metricAvailable(this.snapshots(), 'engagementRate'));
   protected readonly clicksAvailable = computed(() => metricAvailable(this.snapshots(), 'clicks'));
+  protected readonly likesAvailable = computed(() => metricAvailable(this.snapshots(), 'likes'));
+  protected readonly commentsAvailable = computed(() => metricAvailable(this.snapshots(), 'comments'));
+  protected readonly sharesAvailable = computed(() => metricAvailable(this.snapshots(), 'shares'));
 
   constructor() {
     effect(() => {

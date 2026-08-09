@@ -11,7 +11,7 @@ namespace Rawaj.Infrastructure.SocialPublishing;
 
 /// <summary>
 /// Reads metrics for a published Facebook Page post from two independent Graph API calls: engagement
-/// counts (likes/comments/shares) via field expansion, which only needs the same page token used to
+/// counts (reactions/comments/shares) via field expansion, which only needs the same page token used to
 /// publish, and Views/Unique Viewers via the /insights edge, which needs the read_insights permission
 /// (Advanced Access review). The two calls are independent so a failure on one (e.g. read_insights not
 /// yet granted for this account) never discards a successful result from the other.
@@ -62,8 +62,12 @@ public class MetaAnalyticsProvider(
     {
         try
         {
+            // "reactions" (not "likes") is used so every reaction type (Love/Haha/Wow/Sad/Angry/
+            // Care) is counted, matching what Facebook's own Post Insights UI reports as
+            // "Reactions" - the "likes" edge only counts the literal Like reaction and silently
+            // undercounts (often to 0) any post whose reactions are a different type.
             var url = $"https://graph.facebook.com/{_settings.ApiVersion}/{postId}" +
-                       "?fields=likes.summary(true).limit(0),comments.summary(true).limit(0),shares" +
+                       "?fields=reactions.summary(total_count).limit(0),comments.summary(true).limit(0),shares" +
                        $"&access_token={Uri.EscapeDataString(accessToken)}";
 
             using var response = await client.GetAsync(url, cancellationToken);
@@ -78,7 +82,7 @@ public class MetaAnalyticsProvider(
 
             var payload = JsonSerializer.Deserialize<MetaPostFieldsResponse>(body);
             return new EngagementFetchResult(
-                payload?.Likes?.Summary?.TotalCount,
+                payload?.Reactions?.Summary?.TotalCount,
                 payload?.Comments?.Summary?.TotalCount,
                 payload?.Shares?.Count,
                 null);
@@ -179,7 +183,7 @@ public class MetaAnalyticsProvider(
     private sealed record InsightsFetchResult(long? Views, long? UniqueViewers, string? Error);
 
     private record MetaPostFieldsResponse(
-        [property: JsonPropertyName("likes")] MetaSummaryField? Likes,
+        [property: JsonPropertyName("reactions")] MetaSummaryField? Reactions,
         [property: JsonPropertyName("comments")] MetaSummaryField? Comments,
         [property: JsonPropertyName("shares")] MetaSharesField? Shares);
 

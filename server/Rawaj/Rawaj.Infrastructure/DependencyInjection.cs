@@ -83,6 +83,17 @@ public static class DependencyInjection
                 sp.GetRequiredService<IHttpClientFactory>(),
                 sp.GetRequiredService<IOptions<MetaOAuthSettings>>(),
                 sp.GetRequiredService<ILogger<MetaOAuthProvider>>()));
+
+            services.AddScoped<ISocialFollowerCountProvider>(sp => new MetaFollowerCountProvider(
+                SocialPlatform.Facebook,
+                sp.GetRequiredService<IHttpClientFactory>(),
+                sp.GetRequiredService<IOptions<MetaOAuthSettings>>(),
+                sp.GetRequiredService<ILogger<MetaFollowerCountProvider>>()));
+            services.AddScoped<ISocialFollowerCountProvider>(sp => new MetaFollowerCountProvider(
+                SocialPlatform.Instagram,
+                sp.GetRequiredService<IHttpClientFactory>(),
+                sp.GetRequiredService<IOptions<MetaOAuthSettings>>(),
+                sp.GetRequiredService<ILogger<MetaFollowerCountProvider>>()));
         }
 
         // Facebook and Instagram are the only supported platforms - no other provider is

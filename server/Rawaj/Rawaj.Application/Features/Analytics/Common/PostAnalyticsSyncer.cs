@@ -78,7 +78,8 @@ public static class PostAnalyticsSyncer
             Likes = metrics.Likes,
             Comments = metrics.Comments,
             Shares = metrics.Shares,
-            EngagementRate = engagementRate
+            EngagementRate = engagementRate,
+            SyncError = metrics.ErrorMessage
         };
 
         dbContext.PostAnalytics.Add(analytics);

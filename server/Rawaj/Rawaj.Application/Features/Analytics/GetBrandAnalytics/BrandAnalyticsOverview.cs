@@ -20,7 +20,7 @@ public record BrandAnalyticsOverview(
     bool UniqueViewersAvailable,
     bool EngagementRateAvailable);
 
-public record PlatformBreakdownItem(SocialPlatform Platform, long UniqueViewers, long Views);
+public record PlatformBreakdownItem(SocialPlatform Platform, long UniqueViewers, long Views, long FollowerCount);
 
 public record TopPostItem(
     Guid ScheduledPostId,

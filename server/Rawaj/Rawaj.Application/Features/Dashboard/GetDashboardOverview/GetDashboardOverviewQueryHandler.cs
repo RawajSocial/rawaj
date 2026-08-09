@@ -1,4 +1,5 @@
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using Rawaj.Application.Common.Interfaces;
 using Rawaj.Application.Common.Models;
 using Rawaj.Application.Features.Analytics.Common;
@@ -23,9 +24,24 @@ public class GetDashboardOverviewQueryHandler(IApplicationDbContext dbContext)
                 && (request.CampaignId == null || a.ScheduledPost.CampaignId == request.CampaignId)),
             cancellationToken);
 
+        // Follower counts live on SocialAccount, not on any post snapshot, and aren't scoped by
+        // campaign (an account isn't tied to one campaign) - unioned with the post-derived
+        // platforms below so a connected account with no synced posts yet still shows up.
+        var followerCountsByPlatform = await dbContext.SocialAccounts
+            .Where(a => a.BrandProfileId == request.BrandProfileId && a.IsActive)
+            .GroupBy(a => a.Platform)
+            .Select(g => new { Platform = g.Key, FollowerCount = g.Sum(a => a.FollowerCount ?? 0) })
+            .ToDictionaryAsync(x => x.Platform, x => (long)x.FollowerCount, cancellationToken);
+
         var platformBreakdown = latestPerPost
-            .GroupBy(p => p.Platform)
-            .Select(g => new PlatformBreakdownItem(g.Key, g.Sum(p => p.UniqueViewers ?? 0), g.Sum(p => p.Views ?? 0)))
+            .Select(p => p.Platform)
+            .Distinct()
+            .Union(followerCountsByPlatform.Keys)
+            .Select(platform => new PlatformBreakdownItem(
+                platform,
+                latestPerPost.Where(p => p.Platform == platform).Sum(p => p.UniqueViewers ?? 0),
+                latestPerPost.Where(p => p.Platform == platform).Sum(p => p.Views ?? 0),
+                followerCountsByPlatform.GetValueOrDefault(platform)))
             .OrderByDescending(p => p.UniqueViewers)
             .ToList();
 

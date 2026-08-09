@@ -44,6 +44,11 @@ public class AnalyticsSyncHostedService(
     /// work, not required here.</summary>
     private const int MaxConcurrentSyncs = 3;
 
+    /// <summary>Follower counts change slowly, so they're refreshed on a much longer cadence than
+    /// post analytics (<see cref="SyncWindow"/>) - no point spending a Meta API call every 15
+    /// minutes on a number that moves a handful of times a day.</summary>
+    private static readonly TimeSpan FollowerCountSyncWindow = TimeSpan.FromHours(24);
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         while (!stoppingToken.IsCancellationRequested)
@@ -55,6 +60,15 @@ public class AnalyticsSyncHostedService(
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 logger.LogError(ex, "Analytics sync worker tick failed.");
+            }
+
+            try
+            {
+                await SyncDueFollowerCountsAsync(stoppingToken);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                logger.LogError(ex, "Follower count sync worker tick failed.");
             }
 
             try
@@ -125,6 +139,67 @@ public class AnalyticsSyncHostedService(
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             logger.LogError(ex, "Analytics sync threw an exception for scheduled post {ScheduledPostId}.", scheduledPostId);
+        }
+        finally
+        {
+            concurrencyLimiter.Release();
+        }
+    }
+
+    private async Task SyncDueFollowerCountsAsync(CancellationToken cancellationToken)
+    {
+        List<Guid> dueAccountIds;
+
+        using (var scope = scopeFactory.CreateScope())
+        {
+            var dbContext = scope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
+            var cutoff = DateTime.UtcNow - FollowerCountSyncWindow;
+
+            dueAccountIds = await FollowerCountSyncer.GetDueAccountIdsAsync(dbContext, cutoff, cancellationToken);
+        }
+
+        if (dueAccountIds.Count == 0)
+        {
+            return;
+        }
+
+        using var concurrencyLimiter = new SemaphoreSlim(MaxConcurrentSyncs);
+
+        await Task.WhenAll(dueAccountIds.Select(id => SyncOneFollowerCountAsync(id, concurrencyLimiter, cancellationToken)));
+    }
+
+    private async Task SyncOneFollowerCountAsync(Guid socialAccountId, SemaphoreSlim concurrencyLimiter, CancellationToken cancellationToken)
+    {
+        await concurrencyLimiter.WaitAsync(cancellationToken);
+
+        try
+        {
+            using var scope = scopeFactory.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
+            var tokenEncryptor = scope.ServiceProvider.GetRequiredService<ITokenEncryptor>();
+            var followerCountProviders = scope.ServiceProvider.GetRequiredService<IEnumerable<ISocialFollowerCountProvider>>();
+
+            var socialAccount = await dbContext.SocialAccounts.FirstOrDefaultAsync(a => a.Id == socialAccountId, cancellationToken);
+            if (socialAccount is null)
+            {
+                return;
+            }
+
+            var outcome = await FollowerCountSyncer.SyncOneAsync(
+                dbContext, tokenEncryptor, followerCountProviders, socialAccount, cancellationToken);
+
+            if (!outcome.Succeeded)
+            {
+                logger.LogWarning(
+                    "Follower count sync failed for social account {SocialAccountId}: {Error}", socialAccountId, outcome.ErrorMessage);
+                return;
+            }
+
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogError(ex, "Follower count sync threw an exception for social account {SocialAccountId}.", socialAccountId);
         }
         finally
         {

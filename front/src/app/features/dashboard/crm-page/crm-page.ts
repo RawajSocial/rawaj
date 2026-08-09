@@ -64,9 +64,10 @@ export class CrmPage {
 
   protected readonly platformFilter = signal<PlatformKey>('all');
 
-  /** Per-platform stats derived from the overview's platform breakdown. Followers/posts/change
-   *  aren't returned by the aggregate endpoint (no per-platform follower count or historical
-   *  comparison exists yet) so those default to 0 until a richer analytics projection exists. */
+  /** Per-platform stats derived from the overview's platform breakdown. `followerCount` is a
+   *  synced snapshot from the platform (see FollowerCountSyncer/AnalyticsSyncHostedService on the
+   *  backend, refreshed roughly every 24h) rather than a live read, so it can lag briefly right
+   *  after connecting a new account. Historical comparison ("change") still doesn't exist yet. */
   protected readonly platforms = computed<PlatformStat[]>(() => {
     const overview = this.dashboardService.overview();
     if (!overview) return [];
@@ -78,7 +79,7 @@ export class CrmPage {
         label: cfg.label,
         icon: cfg.icon,
         color: cfg.color,
-        followers: 0,
+        followers: p.followerCount,
         uniqueViewers: p.uniqueViewers,
         engagementRate: overview.averageEngagementRate ?? 0,
         posts: this.dashboardService.recentContent().filter(c => BACKEND_PLATFORM_TO_KEY[c.platform] === key).length,

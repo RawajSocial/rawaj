@@ -8,7 +8,7 @@ namespace Rawaj.Application.Tests.Infrastructure.SocialPublishing;
 public class MetaAnalyticsProviderTests
 {
     private const string EngagementBody =
-        """{"likes":{"summary":{"total_count":10}},"comments":{"summary":{"total_count":3}},"shares":{"count":2}}""";
+        """{"reactions":{"summary":{"total_count":10}},"comments":{"summary":{"total_count":3}},"shares":{"count":2}}""";
 
     private const string InsightsBody =
         """{"data":[{"name":"post_media_view","period":"lifetime","values":[{"value":500}]},{"name":"post_total_media_view_unique","period":"lifetime","values":[{"value":420}]}]}""";

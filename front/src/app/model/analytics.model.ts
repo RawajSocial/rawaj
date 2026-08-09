@@ -63,7 +63,7 @@ export interface CampaignAnalyticsSummary {
  *  an unsupported metric is summed as 0 server-side and would otherwise look like real data. */
 export function metricAvailable(
   posts: PostAnalyticsSnapshot[],
-  key: 'views' | 'uniqueViewers' | 'engagementRate' | 'saves' | 'clicks',
+  key: 'views' | 'uniqueViewers' | 'engagementRate' | 'saves' | 'clicks' | 'likes' | 'comments' | 'shares',
 ): boolean {
   return posts.some(p => p[key] !== null && p[key] !== undefined);
 }

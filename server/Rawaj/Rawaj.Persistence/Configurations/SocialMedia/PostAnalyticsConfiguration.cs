@@ -15,6 +15,7 @@ public class PostAnalyticsConfiguration : IEntityTypeConfiguration<PostAnalytics
         builder.Property(p => p.Platform).HasConversion<string>().HasMaxLength(20).IsRequired();
         builder.Property(p => p.EngagementRate).HasColumnType("decimal(5,4)");
         builder.Property(p => p.RawData).HasColumnType("nvarchar(max)");
+        builder.Property(p => p.SyncError).HasColumnType("nvarchar(max)");
 
         builder.HasOne(p => p.ScheduledPost)
             .WithMany(s => s.Analytics)

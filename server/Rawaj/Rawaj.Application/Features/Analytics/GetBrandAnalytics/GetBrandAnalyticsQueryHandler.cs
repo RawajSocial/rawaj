@@ -28,9 +28,24 @@ public class GetBrandAnalyticsQueryHandler(IApplicationDbContext dbContext, ICur
             dbContext.PostAnalytics.Where(a => a.ScheduledPost.ContentItem.BrandProfileId == request.BrandProfileId),
             cancellationToken);
 
+        // Follower counts live on SocialAccount, not on any post snapshot - a brand can have a
+        // connected account with a real follower count but zero synced posts yet, so this is
+        // unioned with the post-derived platforms below rather than just joined onto them.
+        var followerCountsByPlatform = await dbContext.SocialAccounts
+            .Where(a => a.BrandProfileId == request.BrandProfileId && a.IsActive)
+            .GroupBy(a => a.Platform)
+            .Select(g => new { Platform = g.Key, FollowerCount = g.Sum(a => a.FollowerCount ?? 0) })
+            .ToDictionaryAsync(x => x.Platform, x => (long)x.FollowerCount, cancellationToken);
+
         var platformBreakdown = latestPerPost
-            .GroupBy(p => p.Platform)
-            .Select(g => new PlatformBreakdownItem(g.Key, g.Sum(p => p.UniqueViewers ?? 0), g.Sum(p => p.Views ?? 0)))
+            .Select(p => p.Platform)
+            .Distinct()
+            .Union(followerCountsByPlatform.Keys)
+            .Select(platform => new PlatformBreakdownItem(
+                platform,
+                latestPerPost.Where(p => p.Platform == platform).Sum(p => p.UniqueViewers ?? 0),
+                latestPerPost.Where(p => p.Platform == platform).Sum(p => p.Views ?? 0),
+                followerCountsByPlatform.GetValueOrDefault(platform)))
             .OrderByDescending(p => p.UniqueViewers)
             .ToList();
 

@@ -19,8 +19,8 @@ const OVERVIEW: DashboardOverviewResponse = {
   // mangle this into a coarse single-decimal value; consuming it directly must not.
   averageEngagementRate: 0.0653,
   platformBreakdown: [
-    { platform: 'Instagram', uniqueViewers: 300, views: 600 },
-    { platform: 'Facebook', uniqueViewers: 200, views: 400 },
+    { platform: 'Instagram', uniqueViewers: 300, views: 600, followerCount: 1200 },
+    { platform: 'Facebook', uniqueViewers: 200, views: 400, followerCount: 800 },
   ],
   topPosts: [],
   bottomPosts: [],

@@ -5,6 +5,7 @@ export interface PlatformBreakdownItem {
   platform: BackendSocialPlatform;
   uniqueViewers: number;
   views: number;
+  followerCount: number;
 }
 
 /** Rawaj.Application.Features.Analytics shared type, reused by DashboardOverviewResponse. */

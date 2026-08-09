@@ -142,16 +142,16 @@
               <span class="insight-num">{{ uniqueViewersAvailable() ? snap.uniqueViewers : '—' }}</span>
               <span class="insight-lbl" appTooltip="يتطلب صلاحية إحصاءات موسّعة من المنصة لم تُفعّل بعد">المشاهدون الفريدون</span>
             </div>
-            <div class="insight-stat">
-              <span class="insight-num">{{ snap.likes ?? 0 }}</span>
+            <div class="insight-stat" [class.unavailable]="!likesAvailable()">
+              <span class="insight-num">{{ likesAvailable() ? snap.likes : '—' }}</span>
               <span class="insight-lbl">إعجابات</span>
             </div>
-            <div class="insight-stat">
-              <span class="insight-num">{{ snap.comments ?? 0 }}</span>
+            <div class="insight-stat" [class.unavailable]="!commentsAvailable()">
+              <span class="insight-num">{{ commentsAvailable() ? snap.comments : '—' }}</span>
               <span class="insight-lbl">تعليقات</span>
             </div>
-            <div class="insight-stat">
-              <span class="insight-num">{{ snap.shares ?? 0 }}</span>
+            <div class="insight-stat" [class.unavailable]="!sharesAvailable()">
+              <span class="insight-num">{{ sharesAvailable() ? snap.shares : '—' }}</span>
               <span class="insight-lbl">مشاركات</span>
             </div>
             <div class="insight-stat">
