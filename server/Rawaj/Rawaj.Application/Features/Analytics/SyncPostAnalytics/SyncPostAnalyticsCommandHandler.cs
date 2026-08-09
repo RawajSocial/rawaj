@@ -54,9 +54,6 @@ public class SyncPostAnalyticsCommandHandler(
             return Result<PostAnalyticsSnapshot>.Failure(metrics.ErrorMessage ?? "Failed to fetch analytics.");
         }
 
-        // PostMetricsResult now carries Views/UniqueViewers (the confirmed new names), but the
-        // PostAnalytics entity/column names aren't renamed until Phase 2 — this mapping is
-        // deliberately temporary, see Phase 1's Risks note in the implementation plan.
         var engagementRate = metrics.Views is > 0
             ? Math.Round((decimal)((metrics.Likes ?? 0) + (metrics.Comments ?? 0) + (metrics.Shares ?? 0)) / metrics.Views.Value, 4)
             : (decimal?)null;
@@ -67,8 +64,8 @@ public class SyncPostAnalyticsCommandHandler(
             ScheduledPostId = scheduledPost.Id,
             Platform = socialAccount.Platform,
             RecordedAt = DateTime.UtcNow,
-            Impressions = metrics.Views,
-            Reach = metrics.UniqueViewers,
+            Views = metrics.Views,
+            UniqueViewers = metrics.UniqueViewers,
             Likes = metrics.Likes,
             Comments = metrics.Comments,
             Shares = metrics.Shares,
@@ -83,8 +80,8 @@ public class SyncPostAnalyticsCommandHandler(
             analytics.ScheduledPostId,
             analytics.Platform,
             analytics.RecordedAt,
-            analytics.Impressions,
-            analytics.Reach,
+            analytics.Views,
+            analytics.UniqueViewers,
             analytics.Likes,
             analytics.Comments,
             analytics.Shares,

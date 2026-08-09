@@ -103,8 +103,6 @@ public class SyncPostAnalyticsCommandHandlerTests
     [Fact]
     public async Task Handle_WhenBothCallsSucceed_WritesViewsAndUniqueViewersOntoLegacyColumns()
     {
-        // PostAnalytics/PostAnalyticsSnapshot keep the old Impressions/Reach property names until
-        // Phase 2 ships the rename - this deliberately temporary mapping is what's under test here.
         var (dbContext, tenantId, scheduledPostId) = await SeedAsync();
         var provider = FakeProvider(PostMetricsResult.Success(
             views: 500, uniqueViewers: 420, likes: 10, comments: 3, shares: 2, insightsAvailable: true));
@@ -113,13 +111,13 @@ public class SyncPostAnalyticsCommandHandlerTests
         var result = await handler.Handle(new SyncPostAnalyticsCommand(scheduledPostId), CancellationToken.None);
 
         Assert.True(result.Succeeded, result.ErrorMessage);
-        Assert.Equal(500, result.Data!.Impressions);
-        Assert.Equal(420, result.Data!.Reach);
+        Assert.Equal(500, result.Data!.Views);
+        Assert.Equal(420, result.Data!.UniqueViewers);
         Assert.Equal(10, result.Data!.Likes);
         Assert.Single(dbContext.PostAnalytics);
         var stored = dbContext.PostAnalytics.Single();
-        Assert.Equal(500, stored.Impressions);
-        Assert.Equal(420, stored.Reach);
+        Assert.Equal(500, stored.Views);
+        Assert.Equal(420, stored.UniqueViewers);
     }
 
     [Fact]
@@ -134,8 +132,8 @@ public class SyncPostAnalyticsCommandHandlerTests
         var result = await handler.Handle(new SyncPostAnalyticsCommand(scheduledPostId), CancellationToken.None);
 
         Assert.True(result.Succeeded, result.ErrorMessage);
-        Assert.Null(result.Data!.Impressions);
-        Assert.Null(result.Data!.Reach);
+        Assert.Null(result.Data!.Views);
+        Assert.Null(result.Data!.UniqueViewers);
         Assert.Equal(10, result.Data!.Likes);
         Assert.Single(dbContext.PostAnalytics);
     }

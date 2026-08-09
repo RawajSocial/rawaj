@@ -8,8 +8,8 @@ public class PostAnalytics : BaseEntity
     public Guid ScheduledPostId { get; set; }
     public SocialPlatform Platform { get; set; }
     public DateTime RecordedAt { get; set; }
-    public long? Impressions { get; set; }
-    public long? Reach { get; set; }
+    public long? Views { get; set; }
+    public long? UniqueViewers { get; set; }
     public int? Likes { get; set; }
     public int? Comments { get; set; }
     public int? Shares { get; set; }

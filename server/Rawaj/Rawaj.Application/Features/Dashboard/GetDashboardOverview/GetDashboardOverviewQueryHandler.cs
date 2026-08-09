@@ -25,12 +25,12 @@ public class GetDashboardOverviewQueryHandler(IApplicationDbContext dbContext)
 
         var platformBreakdown = latestPerPost
             .GroupBy(p => p.Platform)
-            .Select(g => new PlatformBreakdownItem(g.Key, g.Sum(p => p.Reach ?? 0), g.Sum(p => p.Impressions ?? 0)))
-            .OrderByDescending(p => p.Reach)
+            .Select(g => new PlatformBreakdownItem(g.Key, g.Sum(p => p.UniqueViewers ?? 0), g.Sum(p => p.Views ?? 0)))
+            .OrderByDescending(p => p.UniqueViewers)
             .ToList();
 
         var topPosts = latestPerPost
-            .OrderByDescending(p => p.Reach ?? 0)
+            .OrderByDescending(p => p.UniqueViewers ?? 0)
             .Take(5)
             .Select(p => new TopPostItem(
                 p.ScheduledPostId,
@@ -39,7 +39,7 @@ public class GetDashboardOverviewQueryHandler(IApplicationDbContext dbContext)
                 p.Platform,
                 p.Title,
                 p.Content,
-                p.Reach ?? 0,
+                p.UniqueViewers ?? 0,
                 p.Likes ?? 0,
                 p.EngagementRate))
             .ToList();
@@ -48,8 +48,8 @@ public class GetDashboardOverviewQueryHandler(IApplicationDbContext dbContext)
             request.BrandProfileId,
             request.CampaignId,
             latestPerPost.Count,
-            latestPerPost.Sum(p => p.Impressions ?? 0),
-            latestPerPost.Sum(p => p.Reach ?? 0),
+            latestPerPost.Sum(p => p.Views ?? 0),
+            latestPerPost.Sum(p => p.UniqueViewers ?? 0),
             latestPerPost.Sum(p => p.Likes ?? 0),
             latestPerPost.Sum(p => p.Comments ?? 0),
             latestPerPost.Sum(p => p.Shares ?? 0),

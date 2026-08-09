@@ -27,8 +27,8 @@ public class GetDashboardChartsQueryHandler(IApplicationDbContext dbContext)
             .Select(a => new
             {
                 a.RecordedAt,
-                a.Reach,
-                a.Impressions,
+                a.UniqueViewers,
+                a.Views,
                 a.Likes,
                 a.Comments,
                 a.Shares,
@@ -42,8 +42,8 @@ public class GetDashboardChartsQueryHandler(IApplicationDbContext dbContext)
                 g => g.Key,
                 g => new DashboardChartPoint(
                     g.Key,
-                    g.Sum(a => a.Reach ?? 0),
-                    g.Sum(a => a.Impressions ?? 0),
+                    g.Sum(a => a.UniqueViewers ?? 0),
+                    g.Sum(a => a.Views ?? 0),
                     g.Sum(a => a.Likes ?? 0),
                     g.Sum(a => a.Comments ?? 0),
                     g.Sum(a => a.Shares ?? 0),

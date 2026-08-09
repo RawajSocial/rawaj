@@ -5,8 +5,8 @@ namespace Rawaj.Application.Features.Analytics.GetBrandAnalytics;
 public record BrandAnalyticsOverview(
     Guid BrandProfileId,
     int PostsTracked,
-    long TotalImpressions,
-    long TotalReach,
+    long TotalViews,
+    long TotalUniqueViewers,
     int TotalLikes,
     int TotalComments,
     int TotalShares,
@@ -14,7 +14,7 @@ public record BrandAnalyticsOverview(
     List<PlatformBreakdownItem> PlatformBreakdown,
     List<TopPostItem> TopPosts);
 
-public record PlatformBreakdownItem(SocialPlatform Platform, long Reach, long Impressions);
+public record PlatformBreakdownItem(SocialPlatform Platform, long UniqueViewers, long Views);
 
 public record TopPostItem(
     Guid ScheduledPostId,
@@ -23,6 +23,6 @@ public record TopPostItem(
     SocialPlatform Platform,
     string? Title,
     string Content,
-    long Reach,
+    long UniqueViewers,
     int Likes,
     decimal? EngagementRate);
