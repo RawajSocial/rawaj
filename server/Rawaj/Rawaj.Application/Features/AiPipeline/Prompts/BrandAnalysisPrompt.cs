@@ -1,3 +1,4 @@
+using Rawaj.Application.Common.Services;
 using Rawaj.Domain.Entities.Tenants;
 
 namespace Rawaj.Application.Features.AiPipeline.Prompts;
@@ -13,25 +14,46 @@ namespace Rawaj.Application.Features.AiPipeline.Prompts;
 ///
 /// <para>The narrative fields are Arabic because they surface in the strategy review the user reads;
 /// the instructions stay English, which is the language the model follows best.</para>
+///
+/// <para><b>Prompt injection containment.</b> Every field this prompt reads (brand profile fields,
+/// onboarding brief JSON) was typed by the tenant, not by us — and this stage's output is explicitly
+/// treated as "established" by every later stage without being re-sanitized (see
+/// <c>CampaignAnalysisPrompt</c>, <c>StrategyPrompt</c>), so an injected instruction that survives here
+/// would propagate uncontained into every future generation for this brand. All of it is wrapped via
+/// <see cref="UntrustedTextSanitizer"/> — same delimited "this is DATA" pattern the research prompts
+/// use for scraped web text — plus a standalone guard sentence at the very top of the prompt.</para>
 /// </summary>
 public static class BrandAnalysisPrompt
 {
+    /// <summary>Cap for the onboarding brief block. Generous enough for a full multi-answer brief
+    /// (unlike a single research excerpt, this is one tenant-authored JSON blob, not many competing
+    /// spans), still a hard bound on what an oversized field could spend of the token budget.</summary>
+    private const int BriefMaxLength = 3_000;
+
     public static string Build(TenantBrandProfile brand, string? briefJson)
     {
         var lines = new List<string>
         {
+            PromptFragments.InjectionGuardInstruction,
             $"You are a brand strategist producing a durable profile of the brand \"{brand.Name}\". " +
             "This profile will be reused across every future marketing campaign for this brand, so describe what is " +
             "true of the brand itself rather than of any one campaign."
         };
 
-        PromptFragments.AddBrandIdentity(lines, brand);
+        AddWrappedBrandIdentity(lines, brand);
 
         if (!string.IsNullOrWhiteSpace(briefJson))
         {
-            lines.Add(
-                "Here is the JSON of what the business entered during onboarding, including their answers to AI " +
-                "follow-up questions. Use it for anything the brand fields above do not cover: " + briefJson);
+            var wrappedBrief = UntrustedTextSanitizer.Wrap(
+                "Onboarding brief JSON, typed by the business", [PiiRedactor.Redact(briefJson)], BriefMaxLength);
+
+            if (wrappedBrief.Length > 0)
+            {
+                lines.Add(
+                    "Here is the JSON of what the business entered during onboarding, including their answers to AI " +
+                    "follow-up questions. Use it for anything the brand fields above do not cover.");
+                lines.Add(wrappedBrief);
+            }
         }
 
         lines.Add(
@@ -57,5 +79,65 @@ public static class BrandAnalysisPrompt
             "\"businessMaturity\":\"...\",\"marketingReadiness\":\"...\",\"missingInformation\":[\"...\"]}"));
 
         return string.Join(" ", lines);
+    }
+
+    /// <summary>
+    /// Same fields as <see cref="PromptFragments.AddBrandIdentity"/>, wrapped as untrusted
+    /// tenant-authored data instead of pasted as plain sentences — see the class remarks for why this
+    /// stage specifically needs it. Kept local to this prompt rather than folded into the shared
+    /// fragment: the other prompts that still call <c>AddBrandIdentity</c> directly (as a fallback when
+    /// no brand analysis exists yet) haven't been reviewed for this treatment yet.
+    /// </summary>
+    private static void AddWrappedBrandIdentity(List<string> lines, TenantBrandProfile brand)
+    {
+        var spans = new List<string>();
+
+        if (!string.IsNullOrWhiteSpace(brand.Description))
+        {
+            spans.Add($"Brand description: {PiiRedactor.Redact(brand.Description)}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(brand.BrandInfo?.Tagline))
+        {
+            spans.Add($"Brand tagline: {PiiRedactor.Redact(brand.BrandInfo.Tagline)}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(brand.BrandInfo?.Industry))
+        {
+            spans.Add($"Industry: {PiiRedactor.Redact(brand.BrandInfo.Industry)}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(brand.BrandInfo?.TargetAudience))
+        {
+            spans.Add($"Target audience: {PiiRedactor.Redact(brand.BrandInfo.TargetAudience)}");
+        }
+
+        if (brand.BrandInfo?.Keywords is { Count: > 0 })
+        {
+            spans.Add($"Relevant keywords: {string.Join(", ", brand.BrandInfo.Keywords.Select(PiiRedactor.Redact))}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(brand.BrandInfo?.UniqueValue))
+        {
+            spans.Add($"Unique value proposition: {PiiRedactor.Redact(brand.BrandInfo.UniqueValue)}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(brand.BrandInfo?.PricePositioning))
+        {
+            spans.Add($"Price positioning: {PiiRedactor.Redact(brand.BrandInfo.PricePositioning)}");
+        }
+
+        var wrapped = UntrustedTextSanitizer.Wrap("Brand-provided fields, typed by the business", spans);
+        if (wrapped.Length > 0)
+        {
+            lines.Add(wrapped);
+        }
+
+        // Tones are chosen from a fixed picker (a closed BrandVoice enum set), not free text — no
+        // injection surface, so this line stays outside the wrapped block, same as before.
+        if (brand.BrandInfo?.Tones is { Count: > 0 })
+        {
+            lines.Add($"Brand voice/tone: {string.Join(", ", brand.BrandInfo.Tones)}.");
+        }
     }
 }
