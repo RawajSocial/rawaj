@@ -6,8 +6,8 @@ export interface PostAnalyticsSnapshot {
   scheduledPostId: string;
   platform: BackendSocialPlatform;
   recordedAt: string;
-  impressions: number | null;
-  reach: number | null;
+  views: number | null;
+  uniqueViewers: number | null;
   likes: number | null;
   comments: number | null;
   shares: number | null;
@@ -41,7 +41,17 @@ export interface CampaignAnalyticsSummary {
  *  an unsupported metric is summed as 0 server-side and would otherwise look like real data. */
 export function metricAvailable(
   posts: PostAnalyticsSnapshot[],
-  key: 'impressions' | 'reach' | 'engagementRate' | 'saves' | 'clicks',
+  key: 'views' | 'uniqueViewers' | 'engagementRate' | 'saves' | 'clicks',
 ): boolean {
   return posts.some(p => p[key] !== null && p[key] !== undefined);
+}
+
+/** `PostAnalyticsSnapshot.engagementRate` (and the campaign/brand/dashboard equivalents) are
+ *  fractions straight from the backend's `decimal(5,4)` column (e.g. 0.1 for a 10% rate) — never
+ *  pre-multiplied into a percentage. Callers must scale before appending "%"; use this instead of
+ *  `rate + '%'`, which would render "0.1%" for what is actually a 10% rate. Rounded to one decimal
+ *  place. */
+export function formatEngagementRate(rate: number | null | undefined): string {
+  if (rate === null || rate === undefined) return '—';
+  return `${Math.round(rate * 1000) / 10}%`;
 }

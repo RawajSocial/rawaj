@@ -140,7 +140,7 @@
 }
 
 .insights-card {
-  max-width: 720px;
+  max-width: 960px;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -207,6 +207,71 @@
   margin: 0;
   font-size: var(--font-size-sm);
   color: var(--color-text-muted);
+}
+
+.insights-loading {
+  padding: 1.5rem;
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.insights-error {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--color-danger-light, #fef2f2);
+}
+
+.insights-error p {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-danger);
+}
+
+.insights-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--color-border);
+}
+
+.insights-timeline h3 {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-dark);
+}
+
+.timeline-table-wrap {
+  overflow-x: auto;
+}
+
+.timeline-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-xs);
+  white-space: nowrap;
+}
+
+.timeline-table th,
+.timeline-table td {
+  padding: 8px 10px;
+  text-align: center;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.timeline-table th {
+  color: var(--color-text-muted);
+  font-weight: var(--font-semibold);
+}
+
+.timeline-table td {
+  color: var(--color-dark);
 }
 
 /* ── Loading (matches campaign-detail-page's .detail-loading) ── */

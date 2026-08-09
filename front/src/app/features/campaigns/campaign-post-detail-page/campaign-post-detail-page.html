@@ -100,11 +100,11 @@
         }
       </div>
 
-      <!-- ── Post insights — real snapshots from AnalyticsService; unsupported/unavailable metrics
-           are labeled, never shown as a fabricated zero. ── -->
+      <!-- ── Post Analytics Dashboard — real snapshots from AnalyticsService; unsupported/unavailable
+           metrics are labeled, never shown as a fabricated zero. ── -->
       <div class="rw-card insights-card">
         <div class="insights-head">
-          <h2>إحصاءات المنشور</h2>
+          <h2>لوحة تحليلات المنشور</h2>
           @if (p.status === 'published') {
             <button type="button" class="rw-btn rw-btn--outline"
               [class.is-perm-disabled]="!perms.canEdit()"
@@ -125,8 +125,23 @@
           <p class="insights-note">{{ analyticsUnsupportedNote() }}</p>
         }
 
-        @if (latestSnapshot(); as snap) {
+        @if (analyticsLoading()) {
+          <div class="insights-loading"><i class="fa-solid fa-circle-notch fa-spin"></i> جاري تحميل الإحصاءات...</div>
+        } @else if (analyticsError()) {
+          <div class="insights-error">
+            <p>{{ analyticsError() }}</p>
+            <button type="button" class="rw-btn rw-btn--outline" (click)="retryAnalytics()">إعادة المحاولة</button>
+          </div>
+        } @else if (latestSnapshot(); as snap) {
           <div class="insights-grid">
+            <div class="insight-stat" [class.unavailable]="!viewsAvailable()">
+              <span class="insight-num">{{ viewsAvailable() ? snap.views : '—' }}</span>
+              <span class="insight-lbl" appTooltip="يتطلب صلاحية إحصاءات موسّعة من المنصة لم تُفعّل بعد">المشاهدات</span>
+            </div>
+            <div class="insight-stat" [class.unavailable]="!uniqueViewersAvailable()">
+              <span class="insight-num">{{ uniqueViewersAvailable() ? snap.uniqueViewers : '—' }}</span>
+              <span class="insight-lbl" appTooltip="يتطلب صلاحية إحصاءات موسّعة من المنصة لم تُفعّل بعد">المشاهدون الفريدون</span>
+            </div>
             <div class="insight-stat">
               <span class="insight-num">{{ snap.likes ?? 0 }}</span>
               <span class="insight-lbl">إعجابات</span>
@@ -139,9 +154,13 @@
               <span class="insight-num">{{ snap.shares ?? 0 }}</span>
               <span class="insight-lbl">مشاركات</span>
             </div>
-            <div class="insight-stat" [class.unavailable]="!reachAvailable()">
-              <span class="insight-num">{{ reachAvailable() ? snap.reach : '—' }}</span>
-              <span class="insight-lbl" appTooltip="يتطلب صلاحية إحصاءات موسّعة من المنصة لم تُفعّل بعد">مدى الوصول</span>
+            <div class="insight-stat">
+              <span class="insight-num">{{ engagementsOf(snap) }}</span>
+              <span class="insight-lbl">تفاعلات</span>
+            </div>
+            <div class="insight-stat" [class.unavailable]="!engagementRateAvailable()">
+              <span class="insight-num">{{ engagementRateAvailable() ? formatEngagementRate(snap.engagementRate) : '—' }}</span>
+              <span class="insight-lbl">معدّل التفاعل</span>
             </div>
             <div class="insight-stat" [class.unavailable]="!clicksAvailable()">
               <span class="insight-num">{{ clicksAvailable() ? snap.clicks : '—' }}</span>
@@ -149,6 +168,40 @@
             </div>
           </div>
           <p class="insights-updated">آخر تحديث: {{ formatShortDateTime(snap.recordedAt) }}</p>
+
+          @if (snapshots().length > 1) {
+            <div class="insights-timeline">
+              <h3>الأداء عبر الزمن</h3>
+              <div class="timeline-table-wrap">
+                <table class="timeline-table">
+                  <thead>
+                    <tr>
+                      <th>التاريخ</th>
+                      <th>المشاهدات</th>
+                      <th>المشاهدون الفريدون</th>
+                      <th>إعجابات</th>
+                      <th>تعليقات</th>
+                      <th>مشاركات</th>
+                      <th>معدّل التفاعل</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (row of snapshots(); track row.id) {
+                      <tr>
+                        <td>{{ formatShortDateTime(row.recordedAt) }}</td>
+                        <td>{{ viewsAvailable() ? (row.views ?? '—') : '—' }}</td>
+                        <td>{{ uniqueViewersAvailable() ? (row.uniqueViewers ?? '—') : '—' }}</td>
+                        <td>{{ row.likes ?? 0 }}</td>
+                        <td>{{ row.comments ?? 0 }}</td>
+                        <td>{{ row.shares ?? 0 }}</td>
+                        <td>{{ engagementRateAvailable() ? formatEngagementRate(row.engagementRate) : '—' }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          }
         } @else if (p.status === 'published') {
           <p class="insights-empty">لا توجد بيانات إحصائية بعد — اضغط "مزامنة الآن" لجلبها.</p>
         } @else {

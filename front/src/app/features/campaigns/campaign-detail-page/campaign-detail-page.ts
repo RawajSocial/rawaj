@@ -188,11 +188,11 @@ export class CampaignDetailPage {
   }
 
   protected reachAvailable(): boolean {
-    return this.analytics()?.reachAvailable ?? metricAvailable(this.analytics()?.posts ?? [], 'reach');
+    return this.analytics()?.reachAvailable ?? metricAvailable(this.analytics()?.posts ?? [], 'uniqueViewers');
   }
 
   protected impressionsAvailable(): boolean {
-    return this.analytics()?.impressionsAvailable ?? metricAvailable(this.analytics()?.posts ?? [], 'impressions');
+    return this.analytics()?.impressionsAvailable ?? metricAvailable(this.analytics()?.posts ?? [], 'views');
   }
 
   protected engagementRateAvailable(): boolean {

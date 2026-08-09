@@ -31,8 +31,8 @@ export interface ScheduledPostSummary {
   status: 'Pending' | 'Published' | 'Failed' | 'Cancelled';
   publishedAt?: string | null;
   errorMessage?: string | null;
-  impressions?: number | null;
-  reach?: number | null;
+  views?: number | null;
+  uniqueViewers?: number | null;
   likes?: number | null;
   comments?: number | null;
   shares?: number | null;

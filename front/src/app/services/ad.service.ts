@@ -39,7 +39,7 @@ export class AdService {
 
   private toAd(s: ScheduledPostSummary): Ad {
     const campaign = s.campaignId ? this.campaignService.getById(s.campaignId)() : undefined;
-    const impressions = s.impressions ?? 0;
+    const impressions = s.views ?? 0;
     const clicks = s.clicks ?? 0;
     const name = s.content.trim().substring(0, 40) + (s.content.trim().length > 40 ? '…' : '');
     return {

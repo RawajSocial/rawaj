@@ -48,7 +48,7 @@ export class ScheduledPostService {
       imageUrl: s.imageUrl ?? undefined,
       scheduledAt: s.scheduledAt,
       status: STATUS_MAP[s.status] ?? 'scheduled',
-      estimatedReach: s.reach ?? undefined,
+      estimatedReach: s.uniqueViewers ?? undefined,
     };
   }
 

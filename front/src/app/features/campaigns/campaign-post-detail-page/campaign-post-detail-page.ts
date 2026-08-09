@@ -10,7 +10,7 @@ import { PermissionService } from '../../../core/tenant/permission.service';
 import { TooltipDirective } from '../../../shared/directives/tooltip.directive';
 import { CAMPAIGN_PLATFORM_META, GetCampaignResponse } from '../../../model/campaign.model';
 import { PostStatus } from '../../../model/scheduled-post.model';
-import { PostAnalyticsSnapshot, metricAvailable } from '../../../model/analytics.model';
+import { PostAnalyticsSnapshot, metricAvailable, formatEngagementRate } from '../../../model/analytics.model';
 import { SeoService } from '../../../services/seo.service';
 import { ErrorModalService } from '../../../services/error-modal.service';
 import { ConfirmDialogService } from '../../../services/confirm-dialog.service';
@@ -64,6 +64,12 @@ export class CampaignPostDetailPage {
 
   protected readonly snapshots = signal<PostAnalyticsSnapshot[]>([]);
   protected readonly analyticsUnsupportedNote = signal<string | null>(null);
+  /** Distinguishes "still fetching analytics" (spinner) from "fetch finished with zero snapshots"
+   *  (empty state) — without this the empty-state copy flashed for a moment on every load. */
+  protected readonly analyticsLoading = signal(true);
+  /** A genuine failure (network/5xx) fetching analytics — kept separate from "no snapshots yet",
+   *  which is a normal 200 with an empty list, not an error. */
+  protected readonly analyticsError = signal<string | null>(null);
   protected readonly syncing = signal(false);
   protected readonly publishing = signal(false);
 
@@ -73,7 +79,12 @@ export class CampaignPostDetailPage {
   protected readonly rescheduling = signal(false);
 
   protected readonly latestSnapshot = computed(() => this.snapshots()[0] ?? null);
-  protected readonly reachAvailable = computed(() => metricAvailable(this.snapshots(), 'reach'));
+  /** Views/UniqueViewers/EngagementRate/Clicks require extended platform permissions that may not
+   *  be granted yet; Likes/Comments/Shares (and their Engagements sum) are core metrics Meta always
+   *  returns for a published post, so only the former are gated behind an availability flag. */
+  protected readonly viewsAvailable = computed(() => metricAvailable(this.snapshots(), 'views'));
+  protected readonly uniqueViewersAvailable = computed(() => metricAvailable(this.snapshots(), 'uniqueViewers'));
+  protected readonly engagementRateAvailable = computed(() => metricAvailable(this.snapshots(), 'engagementRate'));
   protected readonly clicksAvailable = computed(() => metricAvailable(this.snapshots(), 'clicks'));
 
   constructor() {
@@ -105,7 +116,9 @@ export class CampaignPostDetailPage {
       const postId = this.postId();
       this.snapshots.set([]);
       this.analyticsUnsupportedNote.set(null);
+      this.analyticsError.set(null);
       if (postId) this.loadAnalytics(postId);
+      else this.analyticsLoading.set(false);
     });
   }
 
@@ -142,11 +155,33 @@ export class CampaignPostDetailPage {
   }
 
   private loadAnalytics(postId: string): void {
+    this.analyticsLoading.set(true);
+    this.analyticsError.set(null);
     this.analyticsService.getPost(postId).subscribe({
-      next: res => { if (res.data) this.snapshots.set(res.data); },
-      error: () => { /* no analytics yet is a normal state, not an error to surface */ },
+      next: res => {
+        this.analyticsLoading.set(false);
+        // Success with an empty list is the normal "no snapshots synced yet" state, not an error.
+        if (res.data) this.snapshots.set(res.data);
+      },
+      error: err => {
+        this.analyticsLoading.set(false);
+        this.analyticsError.set(extractApiErrorMessage(err, 'تعذّر تحميل إحصاءات المنشور.'));
+      },
     });
   }
+
+  /** Engagements = Likes + Comments + Shares, per the approved KPI definitions — never a metric the
+   *  backend returns directly, always summed from the raw counts already on the snapshot. */
+  protected engagementsOf(snap: PostAnalyticsSnapshot): number {
+    return (snap.likes ?? 0) + (snap.comments ?? 0) + (snap.shares ?? 0);
+  }
+
+  protected retryAnalytics(): void {
+    const postId = this.postId();
+    if (postId) this.loadAnalytics(postId);
+  }
+
+  protected readonly formatEngagementRate = formatEngagementRate;
 
   protected formatDateTime(iso: string): string {
     return new Date(iso).toLocaleDateString('ar-SA', {
