@@ -32,16 +32,24 @@ public static class PostAnalyticsAggregation
         DateTime ScheduledAt);
 
     /// <summary>
-    /// Materializes every snapshot matching <paramref name="analyticsQuery"/> and reduces it to the
-    /// most recently recorded snapshot per ScheduledPost. "Latest per group" isn't portably
-    /// translatable to a single SQL query against this table, so the reduction happens in-memory
-    /// after ordering by RecordedAt server-side.
+    /// Reduces every snapshot matching <paramref name="analyticsQuery"/> to the most recently
+    /// recorded snapshot per ScheduledPost, entirely server-side via a correlated <c>MAX(RecordedAt)</c>
+    /// subquery per post (verified via <c>ToQueryString()</c> against SQL Server - the generated SQL
+    /// is a plain correlated subquery, not a window function; a <c>GroupBy(...).Select(g =&gt;
+    /// g.OrderByDescending(...).First())</c> shape does translate to <c>ROW_NUMBER()</c> on SQL Server,
+    /// but the EF Core InMemory provider used by this project's test suite cannot translate that shape
+    /// at all, so this deliberately uses the one formulation both providers execute server-side). Both
+    /// this subquery and the window-function alternative are equally served by the Phase 2
+    /// <c>(ScheduledPostId, RecordedAt DESC)</c> index. No snapshot history is materialized into
+    /// application memory - only one row per post ever leaves the database, regardless of how many
+    /// historical snapshots exist.
     /// </summary>
     public static async Task<List<LatestPostSnapshot>> GetLatestPerPostAsync(
-        IQueryable<PostAnalytics> analyticsQuery, CancellationToken cancellationToken)
-    {
-        var snapshots = await analyticsQuery
-            .OrderByDescending(a => a.RecordedAt)
+        IQueryable<PostAnalytics> analyticsQuery, CancellationToken cancellationToken) =>
+        await analyticsQuery
+            .Where(a => a.RecordedAt == analyticsQuery
+                .Where(a2 => a2.ScheduledPostId == a.ScheduledPostId)
+                .Max(a2 => a2.RecordedAt))
             .Select(a => new LatestPostSnapshot(
                 a.Id,
                 a.ScheduledPostId,
@@ -61,12 +69,6 @@ public static class PostAnalyticsAggregation
                 a.ScheduledPost.ContentItem.Content,
                 a.ScheduledPost.ScheduledAt))
             .ToListAsync(cancellationToken);
-
-        return snapshots
-            .GroupBy(a => a.ScheduledPostId)
-            .Select(g => g.First())
-            .ToList();
-    }
 
     /// <summary>
     /// Campaign/Brand/Dashboard-level Engagement Rate: <c>SUM(Engagements) / SUM(Views)</c> across

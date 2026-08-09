@@ -40,16 +40,27 @@ public class GetDashboardChartsQueryHandler(IApplicationDbContext dbContext)
             .GroupBy(a => DateOnly.FromDateTime(a.RecordedAt.Date))
             .ToDictionary(
                 g => g.Key,
-                g => new DashboardChartPoint(
-                    g.Key,
-                    g.Sum(a => a.UniqueViewers ?? 0),
-                    g.Sum(a => a.Views ?? 0),
-                    g.Sum(a => a.Likes ?? 0),
-                    g.Sum(a => a.Comments ?? 0),
-                    g.Sum(a => a.Shares ?? 0),
-                    g.Any(a => a.EngagementRate.HasValue)
-                        ? Math.Round(g.Where(a => a.EngagementRate.HasValue).Average(a => a.EngagementRate!.Value), 4)
-                        : null));
+                g =>
+                {
+                    // Weighted SUM(Engagements)/SUM(Views) for the day - the same fix Phase 4 applied
+                    // to Campaign/Brand/Dashboard rollups, applied here to the per-day bucket. Averaging
+                    // each snapshot's own EngagementRate (the prior behavior) let a handful of
+                    // high-rate, low-view snapshots skew the day's figure the same way an unweighted
+                    // per-post average did at the rollup level.
+                    var dayViews = g.Sum(a => a.Views ?? 0);
+                    var dayEngagementRate = dayViews > 0
+                        ? Math.Round((decimal)g.Sum(a => (a.Likes ?? 0) + (a.Comments ?? 0) + (a.Shares ?? 0)) / dayViews, 4)
+                        : (decimal?)null;
+
+                    return new DashboardChartPoint(
+                        g.Key,
+                        g.Sum(a => a.UniqueViewers ?? 0),
+                        dayViews,
+                        g.Sum(a => a.Likes ?? 0),
+                        g.Sum(a => a.Comments ?? 0),
+                        g.Sum(a => a.Shares ?? 0),
+                        dayEngagementRate);
+                });
 
         var points = Enumerable.Range(0, days)
             .Select(offset => DateOnly.FromDateTime(since.AddDays(offset)))
