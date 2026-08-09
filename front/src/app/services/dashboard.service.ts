@@ -56,6 +56,15 @@ export class DashboardService {
     return forkJoin([overview$, charts$, recentContent$, activity$]);
   }
 
+  /** Stateless single-widget fetch — like AnalyticsService's calls — for pages that only need the
+   *  charts data (e.g. CampaignDetailPage's historical performance chart) without pulling in the
+   *  other three dashboard widgets or touching the shared `charts` signal `refresh()` populates. */
+  getCharts(brandProfileId: string, campaignId: string | 'all', days = 30): Observable<ApiResponse<DashboardChartsResponse>> {
+    const campaignParam = campaignId !== 'all' ? `&campaignId=${encodeURIComponent(campaignId)}` : '';
+    const bp = encodeURIComponent(brandProfileId);
+    return this.http.get<ApiResponse<DashboardChartsResponse>>(`${this.baseUrl}/charts?brandProfileId=${bp}${campaignParam}&days=${days}`);
+  }
+
   clear(): void {
     this._overview.set(null);
     this._charts.set(null);

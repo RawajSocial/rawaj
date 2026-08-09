@@ -6,22 +6,25 @@ import { CampaignService } from '../../../services/campaign.service';
 import { BrandProfileService } from '../../../services/brand-profile.service';
 import { ScheduledPostService } from '../../../services/scheduled-post.service';
 import { AnalyticsService } from '../../../services/analytics.service';
+import { DashboardService } from '../../../services/dashboard.service';
 import {
   BACKEND_TO_CAMPAIGN_PLATFORM, BACKEND_TO_CAMPAIGN_STATUS, CAMPAIGN_PLATFORM_META,
   CAMPAIGN_STATUS_LABELS, CampaignPlatform, CampaignPlatformMeta, GetCampaignResponse,
   campaignObjectiveLabel,
 } from '../../../model/campaign.model';
 import { BackendSocialPlatform } from '../../../model/content-item.model';
-import { CampaignAnalyticsSummary, metricAvailable } from '../../../model/analytics.model';
+import { CampaignAnalyticsSummary, metricAvailable, formatEngagementRate } from '../../../model/analytics.model';
+import { DashboardChartPoint } from '../../../model/dashboard.model';
 import { SeoService } from '../../../services/seo.service';
 import { extractApiErrorMessage } from '../../../core/auth/api-error.util';
 import { formatCampaignBudget, formatCampaignDateRange } from '../campaign-format.util';
 import { CampaignEditModal } from '../campaign-edit-modal/campaign-edit-modal';
 import { PermissionService } from '../../../core/tenant/permission.service';
+import { BalanceChart } from '../../dashboard/balance-chart/balance-chart';
 
 @Component({
   selector: 'app-campaign-detail-page',
-  imports: [PageHeader, RouterLink, CampaignEditModal],
+  imports: [PageHeader, RouterLink, CampaignEditModal, BalanceChart],
   templateUrl: './campaign-detail-page.html',
   styleUrls: ['../../dashboard/dashboard-shared.css', './campaign-detail-page.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -32,8 +35,10 @@ export class CampaignDetailPage {
   private readonly brandProfileService = inject(BrandProfileService);
   private readonly scheduledPostService = inject(ScheduledPostService);
   private readonly analyticsService = inject(AnalyticsService);
+  private readonly dashboardService = inject(DashboardService);
   private readonly seo = inject(SeoService);
   protected readonly perms = inject(PermissionService);
+  protected readonly formatEngagementRate = formatEngagementRate;
 
   /** `PUT /campaigns/{id}` existed and was fully wired, but nothing outside the onboarding
    *  wizard's autosave ever called it — so a campaign's name, dates, budget, objective and
@@ -106,21 +111,18 @@ export class CampaignDetailPage {
   protected readonly analyticsLoading = signal(true);
   protected readonly analyticsError = signal<string | null>(null);
 
-  protected readonly topPosts = computed(() => {
-    const posts = this.analytics()?.posts ?? [];
-    return [...posts]
-      .sort((a, b) => (b.likes ?? 0) + (b.comments ?? 0) + (b.shares ?? 0) - ((a.likes ?? 0) + (a.comments ?? 0) + (a.shares ?? 0)))
-      .slice(0, 5);
-  });
+  /** Backend-ranked (by UniqueViewers) Top/Bottom Posts — previously this page re-sorted
+   *  `analytics.posts` by Likes+Comments+Shares itself, duplicating ranking logic the backend
+   *  already computes (and disagreeing with it: the API's TopPosts/BottomPosts are ranked by
+   *  UniqueViewers, per analytics-spec.md §7). Reusing the API's lists directly instead. */
+  protected readonly topPosts = computed(() => this.analytics()?.topPosts ?? []);
+  protected readonly bottomPosts = computed(() => this.analytics()?.bottomPosts ?? []);
 
-  /** "Overall performance" — there's no separate backend-computed score (nor should there be one
-   *  fabricated); this is an honest rollup of the real, already-available engagement totals so the
-   *  campaign has one at-a-glance number instead of just four separate tiles. */
-  protected readonly totalEngagement = computed(() => {
-    const a = this.analytics();
-    if (!a) return 0;
-    return a.totalLikes + a.totalComments + a.totalShares + (this.clicksAvailable() ? a.totalClicks : 0);
-  });
+  // ── Historical/chart data — reuses the existing GetDashboardCharts contract + BalanceChart
+  // component (already used by the CRM dashboard page) scoped to this campaign, rather than
+  // building a bespoke chart or a new backend endpoint. ──
+  protected readonly chartPoints = signal<DashboardChartPoint[]>([]);
+  protected readonly chartDays = signal(30);
 
   constructor() {
     effect(() => {
@@ -166,6 +168,25 @@ export class CampaignDetailPage {
       const id = this.campaignId();
       if (brandProfileId) this.scheduledPostService.refresh(brandProfileId, id).subscribe();
     });
+
+    // Chart needs brandProfileId (only known once `detail` resolves) — re-requested whenever the
+    // campaign changes or the user picks a different day range via the chart's own range chips.
+    effect(() => {
+      const brandProfileId = this.detail()?.brandProfileId;
+      const id = this.campaignId();
+      const days = this.chartDays();
+      if (!brandProfileId || !id) return;
+      this.dashboardService.getCharts(brandProfileId, id, days).subscribe({
+        next: res => { if (res.data) this.chartPoints.set(res.data.points); },
+        error: () => { /* the chart card just stays empty; not worth a blocking page-level error */ },
+      });
+    });
+  }
+
+  /** BalanceChart's range chips (1M/6M/1Y/ALL) re-request the chart with a different day-window,
+   *  mirroring CrmPage's `onChartDaysChange`. */
+  protected onChartDaysChange(days: number): void {
+    this.chartDays.set(days);
   }
 
   private loadAnalytics(campaignId: string): void {
@@ -187,12 +208,12 @@ export class CampaignDetailPage {
     });
   }
 
-  protected reachAvailable(): boolean {
-    return this.analytics()?.reachAvailable ?? metricAvailable(this.analytics()?.posts ?? [], 'uniqueViewers');
+  protected uniqueViewersAvailable(): boolean {
+    return this.analytics()?.uniqueViewersAvailable ?? metricAvailable(this.analytics()?.posts ?? [], 'uniqueViewers');
   }
 
-  protected impressionsAvailable(): boolean {
-    return this.analytics()?.impressionsAvailable ?? metricAvailable(this.analytics()?.posts ?? [], 'views');
+  protected viewsAvailable(): boolean {
+    return this.analytics()?.viewsAvailable ?? metricAvailable(this.analytics()?.posts ?? [], 'views');
   }
 
   protected engagementRateAvailable(): boolean {

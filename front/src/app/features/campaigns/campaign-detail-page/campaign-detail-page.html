@@ -111,8 +111,8 @@
       } @else {
         <div class="kpi-row">
           <div class="stat-tile stat-tile--highlight">
-            <span class="stat-num">{{ compact(totalEngagement()) }}</span>
-            <span class="stat-lbl">الأداء العام (إجمالي التفاعل)</span>
+            <span class="stat-num">{{ compact(a.totalEngagements) }}</span>
+            <span class="stat-lbl">إجمالي التفاعلات</span>
           </div>
           <div class="stat-tile">
             <span class="stat-num">{{ compact(a.postsTracked) }}</span>
@@ -133,16 +133,16 @@
         </div>
 
         <div class="kpi-row unavailable-row">
-          <div class="stat-tile" [class.unavailable]="!impressionsAvailable()">
-            <span class="stat-num">{{ impressionsAvailable() ? compact(a.totalImpressions) : '—' }}</span>
+          <div class="stat-tile" [class.unavailable]="!viewsAvailable()">
+            <span class="stat-num">{{ viewsAvailable() ? compact(a.totalViews) : '—' }}</span>
             <span class="stat-lbl" title="يتطلب صلاحية إحصاءات موسّعة من المنصة لم تُفعّل بعد">المشاهدات</span>
           </div>
-          <div class="stat-tile" [class.unavailable]="!reachAvailable()">
-            <span class="stat-num">{{ reachAvailable() ? compact(a.totalReach) : '—' }}</span>
-            <span class="stat-lbl" title="يتطلب صلاحية إحصاءات موسّعة من المنصة لم تُفعّل بعد">مدى الوصول</span>
+          <div class="stat-tile" [class.unavailable]="!uniqueViewersAvailable()">
+            <span class="stat-num">{{ uniqueViewersAvailable() ? compact(a.totalUniqueViewers) : '—' }}</span>
+            <span class="stat-lbl" title="يتطلب صلاحية إحصاءات موسّعة من المنصة لم تُفعّل بعد">المشاهدون الفريدون</span>
           </div>
           <div class="stat-tile" [class.unavailable]="!engagementRateAvailable()">
-            <span class="stat-num">{{ engagementRateAvailable() ? (a.averageEngagementRate ?? 0) + '%' : '—' }}</span>
+            <span class="stat-num">{{ engagementRateAvailable() ? formatEngagementRate(a.averageEngagementRate) : '—' }}</span>
             <span class="stat-lbl" title="يتطلب صلاحية إحصاءات موسّعة من المنصة لم تُفعّل بعد">معدل التفاعل</span>
           </div>
           <div class="stat-tile" [class.unavailable]="!clicksAvailable()">
@@ -153,14 +153,28 @@
       }
     }
 
-    <!-- Top + upcoming posts. Deliberately outside the analytics block above: a post that is
-         scheduled but not yet published has no analytics snapshot, so gating this row on
-         postsTracked made posts vanish from the page the moment the user scheduled them. -->
-    <div class="detail-row">
+    <!-- Historical/timeline chart — reuses BalanceChart + the existing GetDashboardCharts
+         contract, scoped to this campaign via campaignId. -->
+    @if (analytics(); as a) {
+      @if (a.postsTracked > 0) {
+        <div class="rw-card">
+          <div class="rw-card__header">
+            <h2 class="rw-card__title">الأداء عبر الزمن</h2>
+            <p class="rw-card__hint">المشاهدون الفريدون والمشاهدات يوميًا</p>
+          </div>
+          <app-balance-chart [points]="chartPoints()" (daysChange)="onChartDaysChange($event)" />
+        </div>
+      }
+    }
+
+    <!-- Top/Bottom + upcoming posts. Top/Bottom deliberately outside the analytics block above: a
+         post that is scheduled but not yet published has no analytics snapshot, so gating this row
+         on postsTracked made posts vanish from the page the moment the user scheduled them. -->
+    <div class="detail-row detail-row--split">
       <div class="rw-card performance-card">
         <div class="rw-card__header">
-          <h2 class="rw-card__title">أفضل المنشورات تفاعلاً</h2>
-          <p class="rw-card__hint">حسب الإعجابات والتعليقات والمشاركات</p>
+          <h2 class="rw-card__title">أفضل المنشورات أداءً</h2>
+          <p class="rw-card__hint">حسب عدد المشاهدين الفريدين</p>
         </div>
         @if (topPosts().length === 0) {
           <p class="no-posts">لا توجد بيانات إحصائية بعد.</p>
@@ -169,8 +183,12 @@
             @for (post of topPosts(); track post.scheduledPostId) {
               <a class="post-row" [routerLink]="['/dashboard/campaigns', campaignId(), 'posts', post.scheduledPostId]">
                 <div class="post-body">
-                  <p class="post-content">{{ (post.likes ?? 0) + (post.comments ?? 0) + (post.shares ?? 0) }} تفاعل</p>
-                  <span class="post-date"><i class="fa-regular fa-clock"></i> {{ formatDateTime(post.recordedAt) }}</span>
+                  <p class="post-content">{{ post.title ?? post.content }}</p>
+                  <span class="post-date">
+                    <i class="fa-regular fa-eye"></i>
+                    {{ uniqueViewersAvailable() ? compact(post.uniqueViewers) + ' مشاهد فريد' : 'غير متاح' }}
+                    @if (engagementRateAvailable()) { · {{ formatEngagementRate(post.engagementRate) }} تفاعل }
+                  </span>
                 </div>
                 <i class="fa-solid fa-chevron-left post-arrow"></i>
               </a>
@@ -179,6 +197,34 @@
         }
       </div>
 
+      <div class="rw-card performance-card">
+        <div class="rw-card__header">
+          <h2 class="rw-card__title">أقل المنشورات أداءً</h2>
+          <p class="rw-card__hint">حسب عدد المشاهدين الفريدين</p>
+        </div>
+        @if (bottomPosts().length === 0) {
+          <p class="no-posts">لا توجد بيانات إحصائية بعد.</p>
+        } @else {
+          <div class="posts-list">
+            @for (post of bottomPosts(); track post.scheduledPostId) {
+              <a class="post-row" [routerLink]="['/dashboard/campaigns', campaignId(), 'posts', post.scheduledPostId]">
+                <div class="post-body">
+                  <p class="post-content">{{ post.title ?? post.content }}</p>
+                  <span class="post-date">
+                    <i class="fa-regular fa-eye"></i>
+                    {{ uniqueViewersAvailable() ? compact(post.uniqueViewers) + ' مشاهد فريد' : 'غير متاح' }}
+                    @if (engagementRateAvailable()) { · {{ formatEngagementRate(post.engagementRate) }} تفاعل }
+                  </span>
+                </div>
+                <i class="fa-solid fa-chevron-left post-arrow"></i>
+              </a>
+            }
+          </div>
+        }
+      </div>
+    </div>
+
+    <div class="detail-row">
       <div class="rw-card posts-card">
         <div class="rw-card__header">
           <h2 class="rw-card__title">المنشورات القادمة</h2>

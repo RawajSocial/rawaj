@@ -26,17 +26,17 @@ export class BalanceChart {
   readonly H = 250;
   readonly PAD = 20;
 
-  private readonly reachSeries = computed(() => this.points().map(p => p.reach));
-  private readonly impressionsSeries = computed(() => this.points().map(p => p.impressions));
+  private readonly uniqueViewersSeries = computed(() => this.points().map(p => p.uniqueViewers));
+  private readonly viewsSeries = computed(() => this.points().map(p => p.views));
 
   private readonly maxValue = computed(() => {
-    const all = [...this.reachSeries(), ...this.impressionsSeries()];
+    const all = [...this.uniqueViewersSeries(), ...this.viewsSeries()];
     return all.length ? Math.max(...all, 1) : 1;
   });
 
-  revenuePath = computed(() => this.buildPath(this.reachSeries()));
-  revenueAreaPath = computed(() => this.buildAreaPath(this.reachSeries()));
-  expensePath = computed(() => this.buildPath(this.impressionsSeries()));
+  revenuePath = computed(() => this.buildPath(this.uniqueViewersSeries()));
+  revenueAreaPath = computed(() => this.buildAreaPath(this.uniqueViewersSeries()));
+  expensePath = computed(() => this.buildPath(this.viewsSeries()));
 
   xLabels = computed(() => {
     const pts = this.points();
@@ -47,8 +47,8 @@ export class BalanceChart {
     }));
   });
 
-  totalRevenue = computed(() => compactNumber(this.reachSeries().reduce((a, v) => a + v, 0)));
-  totalExpenses = computed(() => compactNumber(this.impressionsSeries().reduce((a, v) => a + v, 0)));
+  totalRevenue = computed(() => compactNumber(this.uniqueViewersSeries().reduce((a, v) => a + v, 0)));
+  totalExpenses = computed(() => compactNumber(this.viewsSeries().reduce((a, v) => a + v, 0)));
 
   private scaleY(value: number): number {
     const max = this.maxValue();

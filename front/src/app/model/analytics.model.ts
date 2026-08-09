@@ -16,22 +16,44 @@ export interface PostAnalyticsSnapshot {
   engagementRate: number | null;
 }
 
+/** Analytics/GetBrandAnalytics/BrandAnalyticsOverview.cs's `TopPostItem` — shared by
+ *  CampaignAnalyticsSummary/BrandAnalyticsOverview/DashboardOverviewResponse's Top/Bottom Posts
+ *  lists. Distinct from (and not to be confused with) `dashboard.model.ts`'s older, differently
+ *  shaped same-named type used by the CRM page's own top-posts card. */
+export interface TopPostItem {
+  scheduledPostId: string;
+  contentItemId: string;
+  campaignId?: string | null;
+  platform: BackendSocialPlatform;
+  title?: string | null;
+  content: string;
+  views: number;
+  uniqueViewers: number;
+  likes: number;
+  engagementRate: number | null;
+}
+
 /** GET /api/v1/analytics/campaigns/{id} — CampaignAnalyticsSummary. */
 export interface CampaignAnalyticsSummary {
   campaignId: string;
   postsTracked: number;
   /** Summed with `?? 0` server-side — check the matching *Available flag before trusting this,
    *  never treat it as "0 = no data" on its own. */
-  totalImpressions: number;
-  totalReach: number;
+  totalViews: number;
+  totalUniqueViewers: number;
   totalLikes: number;
   totalComments: number;
   totalShares: number;
   totalClicks: number;
+  /** Likes + Comments + Shares summed across the campaign's latest-per-post snapshots — computed
+   *  once on the backend (GetCampaignAnalyticsQueryHandler), never re-derived here. */
+  totalEngagements: number;
   averageEngagementRate: number | null;
   posts: PostAnalyticsSnapshot[];
-  impressionsAvailable: boolean;
-  reachAvailable: boolean;
+  topPosts: TopPostItem[];
+  bottomPosts: TopPostItem[];
+  viewsAvailable: boolean;
+  uniqueViewersAvailable: boolean;
   engagementRateAvailable: boolean;
   clicksAvailable: boolean;
 }

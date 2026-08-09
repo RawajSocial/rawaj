@@ -38,8 +38,8 @@ export interface DashboardOverviewResponse {
 /** GET /api/v1/dashboard/charts */
 export interface DashboardChartPoint {
   date: string;
-  reach: number;
-  impressions: number;
+  uniqueViewers: number;
+  views: number;
   likes: number;
   comments: number;
   shares: number;
