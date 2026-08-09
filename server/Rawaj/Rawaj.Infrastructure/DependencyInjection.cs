@@ -105,6 +105,7 @@ public static class DependencyInjection
         services.AddHostedService<CampaignCleanupHostedService>();
         services.AddHostedService<AiPipelineWorkerHostedService>();
         services.AddHostedService<AiPipelineReaperHostedService>();
+        services.AddHostedService<AnalyticsSyncHostedService>();
 
         return services;
     }
