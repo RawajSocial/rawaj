@@ -169,6 +169,64 @@
           </div>
           <p class="insights-updated">آخر تحديث: {{ formatShortDateTime(snap.recordedAt) }}</p>
 
+          <!-- ── Growth / Change over time (Phase 11) — delta vs. the previous sync, computed
+               entirely from the history already fetched above; no new API call. ── -->
+          @if (growth(); as g) {
+            <div class="insights-growth">
+              <h3>النمو منذ آخر مزامنة</h3>
+              <div class="growth-grid">
+                @if (uniqueViewersAvailable() && g.uniqueViewers.delta !== null) {
+                  <div class="growth-stat" [class.growth-up]="g.uniqueViewers.delta! > 0" [class.growth-down]="g.uniqueViewers.delta! < 0">
+                    <span class="growth-lbl">المشاهدون الفريدون</span>
+                    <span class="growth-val">{{ g.uniqueViewers.delta! >= 0 ? '+' : '' }}{{ g.uniqueViewers.delta }}</span>
+                  </div>
+                }
+                @if (g.likes.delta !== null) {
+                  <div class="growth-stat" [class.growth-up]="g.likes.delta! > 0" [class.growth-down]="g.likes.delta! < 0">
+                    <span class="growth-lbl">إعجابات</span>
+                    <span class="growth-val">{{ g.likes.delta! >= 0 ? '+' : '' }}{{ g.likes.delta }}</span>
+                  </div>
+                }
+                @if (g.comments.delta !== null) {
+                  <div class="growth-stat" [class.growth-up]="g.comments.delta! > 0" [class.growth-down]="g.comments.delta! < 0">
+                    <span class="growth-lbl">تعليقات</span>
+                    <span class="growth-val">{{ g.comments.delta! >= 0 ? '+' : '' }}{{ g.comments.delta }}</span>
+                  </div>
+                }
+                @if (g.shares.delta !== null) {
+                  <div class="growth-stat" [class.growth-up]="g.shares.delta! > 0" [class.growth-down]="g.shares.delta! < 0">
+                    <span class="growth-lbl">مشاركات</span>
+                    <span class="growth-val">{{ g.shares.delta! >= 0 ? '+' : '' }}{{ g.shares.delta }}</span>
+                  </div>
+                }
+                @if (engagementRateAvailable() && g.engagementRate.delta !== null) {
+                  <div class="growth-stat" [class.growth-up]="g.engagementRate.delta! > 0" [class.growth-down]="g.engagementRate.delta! < 0">
+                    <span class="growth-lbl">معدّل التفاعل</span>
+                    <span class="growth-val">{{ g.engagementRate.delta! >= 0 ? '+' : '' }}{{ formatEngagementRate(g.engagementRate.delta) }}</span>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+
+          <!-- ── Post vs. Campaign Average (Phase 11) — compares this post's own Engagement Rate
+               against the campaign's backend-computed weighted rate; neither value is re-derived
+               here. ── -->
+          @if (engagementRateAvailable() && postVsCampaignAverage(); as cmp) {
+            @if (cmp.postRate !== null && cmp.campaignRate !== null) {
+              <div class="insights-comparison">
+                <h3>مقارنة بمتوسط الحملة</h3>
+                <p class="comparison-text">
+                  معدّل تفاعل هذا المنشور <strong>{{ formatEngagementRate(cmp.postRate) }}</strong>
+                  مقابل متوسط الحملة <strong>{{ formatEngagementRate(cmp.campaignRate) }}</strong>
+                  <span [class.growth-up]="cmp.deltaPoints! > 0" [class.growth-down]="cmp.deltaPoints! < 0">
+                    ({{ cmp.deltaPoints! >= 0 ? '+' : '' }}{{ cmp.deltaPoints }} نقطة)
+                  </span>
+                </p>
+              </div>
+            }
+          }
+
           @if (snapshots().length > 1) {
             <div class="insights-timeline">
               <h3>الأداء عبر الزمن</h3>

@@ -11,6 +11,7 @@ import { TenantService } from '../../../core/tenant/tenant.service';
 import { BrandContextService } from '../../../services/brand-context.service';
 import { DashboardService } from '../../../services/dashboard.service';
 import { BackendSocialPlatform } from '../../../model/content-item.model';
+import { formatEngagementRate } from '../../../model/analytics.model';
 import { KpiData, MetaWidget, PlatformKey, PlatformStat, TopPostView, compactNumber } from './crm-page.model';
 
 const PLATFORM_CFG: Record<Exclude<PlatformKey, 'all'>, { label: string; icon: string; color: string }> = {
@@ -91,25 +92,30 @@ export class CrmPage {
     ...this.platforms().map(p => ({ key: p.key as PlatformKey, label: p.label, icon: p.icon, color: p.color })),
   ]);
 
-  /** Aggregate or single-platform stats depending on the active filter. */
+  /** Aggregate or single-platform stats depending on the active filter. Phase 11: the "all
+   *  platforms" branch used to re-derive its own uniqueViewers-weighted engagement rate from the
+   *  per-platform list — duplicating a formula the backend already computes correctly
+   *  (`PostAnalyticsAggregation.WeightedEngagementRate`, SUM(Engagements)/SUM(Views) across every
+   *  post) and, worse, rounding it to a coarse single decimal along the way. It now consumes
+   *  `overview.averageEngagementRate` directly instead of recomputing it. */
   private readonly activeStats = computed(() => {
     const f = this.platformFilter();
     const list = this.platforms();
     if (f !== 'all') return list.find(p => p.key === f);
+    const overview = this.dashboardService.overview();
     const sum = list.reduce(
       (acc, p) => ({
         followers: acc.followers + p.followers,
         uniqueViewers: acc.uniqueViewers + p.uniqueViewers,
         posts: acc.posts + p.posts,
-        engWeighted: acc.engWeighted + p.engagementRate * p.uniqueViewers,
       }),
-      { followers: 0, uniqueViewers: 0, posts: 0, engWeighted: 0 },
+      { followers: 0, uniqueViewers: 0, posts: 0 },
     );
     return {
       followers: sum.followers,
       uniqueViewers: sum.uniqueViewers,
       posts: sum.posts,
-      engagementRate: sum.uniqueViewers > 0 ? +(sum.engWeighted / sum.uniqueViewers).toFixed(1) : 0,
+      engagementRate: overview?.averageEngagementRate ?? 0,
       change: 0,
     };
   });
@@ -120,7 +126,7 @@ export class CrmPage {
     return [
       { title: 'إجمالي المتابعين', value: compactNumber(s?.followers ?? 0), icon: 'fa-users',       iconBg: 'rgb(94 0 255 / 12%)',  iconColor: '#5e00ff', change: s?.change ?? 0, accentColor: '#5e00ff' },
       { title: 'المشاهدون الفريدون شهريًا', value: compactNumber(s?.uniqueViewers ?? overview?.totalUniqueViewers ?? 0), icon: 'fa-bullseye', iconBg: 'rgba(37,99,235,0.12)', iconColor: '#0050ff', change: 0, accentColor: '#0050ff' },
-      { title: 'معدل التفاعل',       value: (overview?.averageEngagementRate ?? 0) + '%', icon: 'fa-heart',       iconBg: 'rgb(255 0 126 / 12%)', iconColor: '#ff007e', change: 0, accentColor: '#EC4899' },
+      { title: 'معدل التفاعل',       value: formatEngagementRate(overview?.averageEngagementRate), icon: 'fa-heart',       iconBg: 'rgb(255 0 126 / 12%)', iconColor: '#ff007e', change: 0, accentColor: '#EC4899' },
       { title: 'المنشورات المنشورة', value: String(overview?.postsTracked ?? 0),           icon: 'fa-paper-plane', iconBg: 'rgb(0 255 94 / 12%)',  iconColor: '#00f85c', change: 0, accentColor: '#00f85c' },
     ];
   });

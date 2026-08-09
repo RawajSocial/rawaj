@@ -68,6 +68,47 @@ export function metricAvailable(
   return posts.some(p => p[key] !== null && p[key] !== undefined);
 }
 
+/** Phase 11 — Growth/Change-over-time (spec §3 P2): delta between a post's two most recent
+ *  `PostAnalytics` snapshots for a single metric. Computed at read time from history the
+ *  Post Dashboard already fetches (`GetPostAnalytics` returns full history, newest first) — no
+ *  new backend endpoint or storage, per the spec's explicit "reads history directly" note. */
+export interface MetricGrowth {
+  delta: number | null;
+  /** Percentage change relative to the prior value; null when the prior value is null/undefined
+   *  or 0 (division by zero has no meaningful percentage). */
+  percentChange: number | null;
+}
+
+export function computeMetricGrowth(current: number | null | undefined, prior: number | null | undefined): MetricGrowth {
+  if (current === null || current === undefined || prior === null || prior === undefined) {
+    return { delta: null, percentChange: null };
+  }
+  const delta = current - prior;
+  return { delta, percentChange: prior !== 0 ? Math.round((delta / prior) * 1000) / 10 : null };
+}
+
+/** Phase 11 — Post vs. Campaign Average (spec §3 P1): a single post's Engagement Rate compared to
+ *  its campaign's weighted Engagement Rate. A comparison only — both rates are already computed
+ *  by the backend (`PostAnalyticsSnapshot.engagementRate` and
+ *  `CampaignAnalyticsSummary.averageEngagementRate`), so this never re-derives either value. */
+export interface PostVsCampaignAverage {
+  postRate: number | null;
+  campaignRate: number | null;
+  /** Percentage-point difference (postRate - campaignRate), scaled the same way
+   *  `formatEngagementRate` scales a single rate — e.g. 0.12 vs 0.08 -> 4.0 points. */
+  deltaPoints: number | null;
+}
+
+export function comparePostToCampaignAverage(
+  postRate: number | null | undefined,
+  campaignRate: number | null | undefined,
+): PostVsCampaignAverage {
+  if (postRate === null || postRate === undefined || campaignRate === null || campaignRate === undefined) {
+    return { postRate: postRate ?? null, campaignRate: campaignRate ?? null, deltaPoints: null };
+  }
+  return { postRate, campaignRate, deltaPoints: Math.round((postRate - campaignRate) * 1000) / 10 };
+}
+
 /** `PostAnalyticsSnapshot.engagementRate` (and the campaign/brand/dashboard equivalents) are
  *  fractions straight from the backend's `decimal(5,4)` column (e.g. 0.1 for a 10% rate) — never
  *  pre-multiplied into a percentage. Callers must scale before appending "%"; use this instead of

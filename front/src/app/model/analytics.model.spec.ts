@@ -1,4 +1,7 @@
-import { formatEngagementRate, metricAvailable, PostAnalyticsSnapshot } from './analytics.model';
+import {
+  formatEngagementRate, metricAvailable, PostAnalyticsSnapshot,
+  computeMetricGrowth, comparePostToCampaignAverage,
+} from './analytics.model';
 
 function snapshot(overrides: Partial<PostAnalyticsSnapshot>): PostAnalyticsSnapshot {
   return {
@@ -59,5 +62,44 @@ describe('formatEngagementRate', () => {
   it('returns an em dash for null/undefined instead of "null%"', () => {
     expect(formatEngagementRate(null)).toBe('—');
     expect(formatEngagementRate(undefined)).toBe('—');
+  });
+});
+
+describe('computeMetricGrowth', () => {
+  it('computes a positive delta and percent change between two snapshots', () => {
+    expect(computeMetricGrowth(150, 100)).toEqual({ delta: 50, percentChange: 50 });
+  });
+
+  it('computes a negative delta when the metric decreased', () => {
+    expect(computeMetricGrowth(80, 100)).toEqual({ delta: -20, percentChange: -20 });
+  });
+
+  it('returns a null percentChange when the prior value is 0 (division by zero has no meaning)', () => {
+    expect(computeMetricGrowth(10, 0)).toEqual({ delta: 10, percentChange: null });
+  });
+
+  it('returns null delta/percentChange when either value is missing (unavailable metric)', () => {
+    expect(computeMetricGrowth(null, 100)).toEqual({ delta: null, percentChange: null });
+    expect(computeMetricGrowth(100, null)).toEqual({ delta: null, percentChange: null });
+    expect(computeMetricGrowth(undefined, undefined)).toEqual({ delta: null, percentChange: null });
+  });
+
+  it('rounds percentChange to one decimal place', () => {
+    expect(computeMetricGrowth(110, 90)).toEqual({ delta: 20, percentChange: 22.2 });
+  });
+});
+
+describe('comparePostToCampaignAverage', () => {
+  it('computes a positive percentage-point delta when the post outperforms the campaign average', () => {
+    expect(comparePostToCampaignAverage(0.12, 0.08)).toEqual({ postRate: 0.12, campaignRate: 0.08, deltaPoints: 4 });
+  });
+
+  it('computes a negative percentage-point delta when the post underperforms the campaign average', () => {
+    expect(comparePostToCampaignAverage(0.05, 0.08)).toEqual({ postRate: 0.05, campaignRate: 0.08, deltaPoints: -3 });
+  });
+
+  it('returns a null deltaPoints when either rate is unavailable, without discarding whichever rate is known', () => {
+    expect(comparePostToCampaignAverage(null, 0.08)).toEqual({ postRate: null, campaignRate: 0.08, deltaPoints: null });
+    expect(comparePostToCampaignAverage(0.08, undefined)).toEqual({ postRate: 0.08, campaignRate: null, deltaPoints: null });
   });
 });
