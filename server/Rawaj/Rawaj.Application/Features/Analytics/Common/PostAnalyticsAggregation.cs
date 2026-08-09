@@ -68,9 +68,23 @@ public static class PostAnalyticsAggregation
             .ToList();
     }
 
-    public static decimal? AverageEngagementRate(IReadOnlyCollection<LatestPostSnapshot> posts)
+    /// <summary>
+    /// Campaign/Brand/Dashboard-level Engagement Rate: <c>SUM(Engagements) / SUM(Views)</c> across
+    /// every post in the group - never an average of each post's own <see cref="LatestPostSnapshot.EngagementRate"/>.
+    /// Averaging per-post rates was the exact bug this replaces (KPI audit, analytics-spec.md §3): it
+    /// lets a handful of high-rate, low-view posts skew the group figure far more than the actual
+    /// engagement volume justifies. Null (not zero) when no post in the group has any recorded Views,
+    /// keeping "unavailable" distinguishable from a genuine zero.
+    /// </summary>
+    public static decimal? WeightedEngagementRate(IReadOnlyCollection<LatestPostSnapshot> posts)
     {
-        var rates = posts.Where(p => p.EngagementRate.HasValue).Select(p => p.EngagementRate!.Value).ToList();
-        return rates.Count > 0 ? Math.Round(rates.Average(), 4) : null;
+        var totalViews = posts.Sum(p => p.Views ?? 0);
+        if (totalViews <= 0)
+        {
+            return null;
+        }
+
+        var totalEngagements = posts.Sum(p => (p.Likes ?? 0) + (p.Comments ?? 0) + (p.Shares ?? 0));
+        return Math.Round((decimal)totalEngagements / totalViews, 4);
     }
 }

@@ -55,6 +55,8 @@ public class GetCampaignAnalyticsQueryHandler(IApplicationDbContext dbContext, I
         var postsTracked = await dbContext.ScheduledPosts
             .CountAsync(s => s.CampaignId == request.CampaignId && s.Status == ScheduledPostStatus.Published, cancellationToken);
 
+        var engagementRate = PostAnalyticsAggregation.WeightedEngagementRate(latestPerPost);
+
         var summary = new CampaignAnalyticsSummary(
             request.CampaignId,
             postsTracked,
@@ -64,11 +66,11 @@ public class GetCampaignAnalyticsQueryHandler(IApplicationDbContext dbContext, I
             latestPerPost.Sum(p => p.Comments ?? 0),
             latestPerPost.Sum(p => p.Shares ?? 0),
             latestPerPost.Sum(p => p.Clicks ?? 0),
-            PostAnalyticsAggregation.AverageEngagementRate(latestPerPost),
+            engagementRate,
             posts,
             latestPerPost.Any(p => p.Views.HasValue),
             latestPerPost.Any(p => p.UniqueViewers.HasValue),
-            latestPerPost.Any(p => p.EngagementRate.HasValue),
+            engagementRate.HasValue,
             latestPerPost.Any(p => p.Clicks.HasValue));
 
         return Result<CampaignAnalyticsSummary>.Success(summary);

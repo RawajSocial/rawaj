@@ -53,7 +53,7 @@ public class GetDashboardOverviewQueryHandler(IApplicationDbContext dbContext)
             latestPerPost.Sum(p => p.Likes ?? 0),
             latestPerPost.Sum(p => p.Comments ?? 0),
             latestPerPost.Sum(p => p.Shares ?? 0),
-            PostAnalyticsAggregation.AverageEngagementRate(latestPerPost),
+            PostAnalyticsAggregation.WeightedEngagementRate(latestPerPost),
             platformBreakdown,
             topPosts);
 
