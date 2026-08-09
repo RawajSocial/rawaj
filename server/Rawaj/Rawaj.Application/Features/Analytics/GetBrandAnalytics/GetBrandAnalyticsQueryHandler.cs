@@ -44,10 +44,29 @@ public class GetBrandAnalyticsQueryHandler(IApplicationDbContext dbContext, ICur
                 p.Platform,
                 p.Title,
                 p.Content,
+                p.Views ?? 0,
                 p.UniqueViewers ?? 0,
                 p.Likes ?? 0,
                 p.EngagementRate))
             .ToList();
+
+        var bottomPosts = latestPerPost
+            .OrderBy(p => p.UniqueViewers ?? 0)
+            .Take(5)
+            .Select(p => new TopPostItem(
+                p.ScheduledPostId,
+                p.ContentItemId,
+                p.CampaignId,
+                p.Platform,
+                p.Title,
+                p.Content,
+                p.Views ?? 0,
+                p.UniqueViewers ?? 0,
+                p.Likes ?? 0,
+                p.EngagementRate))
+            .ToList();
+
+        var engagementRate = PostAnalyticsAggregation.WeightedEngagementRate(latestPerPost);
 
         var overview = new BrandAnalyticsOverview(
             request.BrandProfileId,
@@ -57,9 +76,13 @@ public class GetBrandAnalyticsQueryHandler(IApplicationDbContext dbContext, ICur
             latestPerPost.Sum(p => p.Likes ?? 0),
             latestPerPost.Sum(p => p.Comments ?? 0),
             latestPerPost.Sum(p => p.Shares ?? 0),
-            PostAnalyticsAggregation.WeightedEngagementRate(latestPerPost),
+            engagementRate,
             platformBreakdown,
-            topPosts);
+            topPosts,
+            bottomPosts,
+            latestPerPost.Any(p => p.Views.HasValue),
+            latestPerPost.Any(p => p.UniqueViewers.HasValue),
+            engagementRate.HasValue);
 
         return Result<BrandAnalyticsOverview>.Success(overview);
     }

@@ -191,4 +191,59 @@ public class GetCampaignAnalyticsQueryHandlerTests
         Assert.True(result.Succeeded, result.ErrorMessage);
         Assert.Equal(0.1m, result.Data!.AverageEngagementRate);
     }
+
+    [Fact]
+    public async Task Handle_TotalEngagements_SumsLikesCommentsSharesAcrossPosts()
+    {
+        // analytics-spec.md §7 Campaign Dashboard: "Total Engagements" - Likes + Comments + Shares
+        // summed across the campaign's latest-per-post snapshots.
+        var (dbContext, tenantId, campaignId) = await SeedCampaignWithPostsAsync(
+            (Views: 100, UniqueViewers: 80, Likes: 5, Comments: 2, Shares: 1),
+            (Views: 200, UniqueViewers: 150, Likes: 3, Comments: 0, Shares: 4));
+        var handler = BuildHandler(dbContext, tenantId);
+
+        var result = await handler.Handle(new GetCampaignAnalyticsQuery(campaignId), CancellationToken.None);
+
+        Assert.True(result.Succeeded, result.ErrorMessage);
+        Assert.Equal(15, result.Data!.TotalEngagements);
+    }
+
+    [Fact]
+    public async Task Handle_TopAndBottomPosts_RankByUniqueViewers_HighestFirst_LowestFirst()
+    {
+        var (dbContext, tenantId, campaignId) = await SeedCampaignWithPostsAsync(
+            (Views: 10, UniqueViewers: 5, Likes: 1, Comments: 0, Shares: 0),
+            (Views: 300, UniqueViewers: 250, Likes: 10, Comments: 2, Shares: 1),
+            (Views: 100, UniqueViewers: 90, Likes: 3, Comments: 1, Shares: 0));
+        var handler = BuildHandler(dbContext, tenantId);
+
+        var result = await handler.Handle(new GetCampaignAnalyticsQuery(campaignId), CancellationToken.None);
+
+        Assert.True(result.Succeeded, result.ErrorMessage);
+        Assert.Equal(3, result.Data!.TopPosts.Count);
+        Assert.Equal(250, result.Data!.TopPosts[0].UniqueViewers);
+        Assert.Equal(300, result.Data!.TopPosts[0].Views);
+        Assert.Equal(5, result.Data!.TopPosts[^1].UniqueViewers);
+
+        Assert.Equal(3, result.Data!.BottomPosts.Count);
+        Assert.Equal(5, result.Data!.BottomPosts[0].UniqueViewers);
+        Assert.Equal(10, result.Data!.BottomPosts[0].Views);
+        Assert.Equal(250, result.Data!.BottomPosts[^1].UniqueViewers);
+    }
+
+    [Fact]
+    public async Task Handle_TopPosts_IsCappedAtFive()
+    {
+        var posts = Enumerable.Range(0, 8)
+            .Select(i => ((long?)(i * 10), (long?)(i * 10), (int?)1, (int?)0, (int?)0))
+            .ToArray();
+        var (dbContext, tenantId, campaignId) = await SeedCampaignWithPostsAsync(posts);
+        var handler = BuildHandler(dbContext, tenantId);
+
+        var result = await handler.Handle(new GetCampaignAnalyticsQuery(campaignId), CancellationToken.None);
+
+        Assert.True(result.Succeeded, result.ErrorMessage);
+        Assert.Equal(5, result.Data!.TopPosts.Count);
+        Assert.Equal(5, result.Data!.BottomPosts.Count);
+    }
 }

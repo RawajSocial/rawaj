@@ -13,4 +13,8 @@ public record DashboardOverviewResponse(
     int TotalShares,
     decimal? AverageEngagementRate,
     List<PlatformBreakdownItem> PlatformBreakdown,
-    List<TopPostItem> TopPosts);
+    List<TopPostItem> TopPosts,
+    List<TopPostItem> BottomPosts,
+    bool ViewsAvailable,
+    bool UniqueViewersAvailable,
+    bool EngagementRateAvailable);

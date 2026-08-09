@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Rawaj.Application.Common.Interfaces;
 using Rawaj.Application.Common.Models;
 using Rawaj.Application.Features.Analytics.Common;
+using Rawaj.Application.Features.Analytics.GetBrandAnalytics;
 using Rawaj.Domain.Enums;
 
 namespace Rawaj.Application.Features.Analytics.GetCampaignAnalytics;
@@ -56,6 +57,39 @@ public class GetCampaignAnalyticsQueryHandler(IApplicationDbContext dbContext, I
             .CountAsync(s => s.CampaignId == request.CampaignId && s.Status == ScheduledPostStatus.Published, cancellationToken);
 
         var engagementRate = PostAnalyticsAggregation.WeightedEngagementRate(latestPerPost);
+        var totalEngagements = latestPerPost.Sum(p => (p.Likes ?? 0) + (p.Comments ?? 0) + (p.Shares ?? 0));
+
+        var topPosts = latestPerPost
+            .OrderByDescending(p => p.UniqueViewers ?? 0)
+            .Take(5)
+            .Select(p => new TopPostItem(
+                p.ScheduledPostId,
+                p.ContentItemId,
+                p.CampaignId,
+                p.Platform,
+                p.Title,
+                p.Content,
+                p.Views ?? 0,
+                p.UniqueViewers ?? 0,
+                p.Likes ?? 0,
+                p.EngagementRate))
+            .ToList();
+
+        var bottomPosts = latestPerPost
+            .OrderBy(p => p.UniqueViewers ?? 0)
+            .Take(5)
+            .Select(p => new TopPostItem(
+                p.ScheduledPostId,
+                p.ContentItemId,
+                p.CampaignId,
+                p.Platform,
+                p.Title,
+                p.Content,
+                p.Views ?? 0,
+                p.UniqueViewers ?? 0,
+                p.Likes ?? 0,
+                p.EngagementRate))
+            .ToList();
 
         var summary = new CampaignAnalyticsSummary(
             request.CampaignId,
@@ -66,8 +100,11 @@ public class GetCampaignAnalyticsQueryHandler(IApplicationDbContext dbContext, I
             latestPerPost.Sum(p => p.Comments ?? 0),
             latestPerPost.Sum(p => p.Shares ?? 0),
             latestPerPost.Sum(p => p.Clicks ?? 0),
+            totalEngagements,
             engagementRate,
             posts,
+            topPosts,
+            bottomPosts,
             latestPerPost.Any(p => p.Views.HasValue),
             latestPerPost.Any(p => p.UniqueViewers.HasValue),
             engagementRate.HasValue,
