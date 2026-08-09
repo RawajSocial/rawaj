@@ -8,7 +8,7 @@ namespace Rawaj.Application.Features.Brands.CreateBrandProfile;
 public record CreateBrandProfileCommand(
     string Name,
     string? Description,
-    BrandVoice? BrandVoice,
+    List<BrandVoice>? Tones,
     string? Tagline,
     string? Industry,
     string? TargetAudience,
@@ -17,7 +17,18 @@ public record CreateBrandProfileCommand(
     string? WebsiteUrl,
     List<string>? SupportedLanguages,
     List<string>? Keywords,
-    string? Location) : IRequest<Result<CreateBrandProfileResponse>>, IRequireTenantRole
+    string? Location,
+    string? Instagram,
+    string? BusinessAge,
+    DateTime? BusinessEstablishDate,
+    string? Stage,
+    string? UniqueValue,
+    string? PricePositioning,
+    string? StorePresence,
+    List<string>? ExistingPlatforms,
+    string? AdmiredBrand1,
+    string? AdmiredBrand2,
+    string? AdmiredBrand3) : IRequest<Result<CreateBrandProfileResponse>>, IRequireTenantRole
 {
     public TenantMemberRole MinimumRole => TenantMemberRole.Admin;
 }

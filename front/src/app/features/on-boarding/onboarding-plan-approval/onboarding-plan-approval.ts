@@ -6,6 +6,7 @@ import { AiPipelineService } from '../../../services/ai-pipeline.service';
 import { CoinPricingService } from '../../../services/coin-pricing.service';
 import { ErrorModalService } from '../../../services/error-modal.service';
 import { CelebrationModalService } from '../../../services/celebration-modal.service';
+import { BrandProfileService } from '../../../services/brand-profile.service';
 import { extractApiErrorMessage } from '../../../core/auth/api-error.util';
 import { CoinCostHint } from '../../../shared/components/coin-cost-hint/coin-cost-hint';
 import { PermissionService } from '../../../core/tenant/permission.service';
@@ -15,6 +16,7 @@ import {
   BusinessDiagnosis, CampaignStrategy, CompetitorResearch,
 } from '../../../model/campaign.model';
 import { AiPipelineStageKind, AiPipelineStageStatus, GetRunStatusResponse } from '../../../model/ai-pipeline.model';
+import { BRAND_VOICE_LABELS } from '../../../model/brand-profile.model';
 
 // ──── Platform metadata — used for recommendedPlatforms, audiencePlatforms and existingPlatforms,
 // all of which reference the same slug set the onboarding wizard collects. ──
@@ -55,6 +57,11 @@ const PRICE_POSITIONING_LABELS: Partial<Record<string, string>> = { budget: 'ا�
 export class OnboardingPlanApproval implements OnInit, OnDestroy {
   readonly data       = input<ApprovalOnboardingData | null>(null);
   readonly campaignId = input<string | null>(null);
+  /** The brand profile this campaign belongs to — "Business Understanding" and "Brand Voice"
+   *  below used to read brandName/tagline/colors/etc. straight off onboardingData, but that
+   *  brand-level data now lives on the brand profile itself (see the removed onboarding step 3 /
+   *  "Brand Overview"), so this component reads it from there instead. */
+  readonly brandProfileId = input<string | null>(null);
   /** Label for the "back" action — the onboarding wizard goes back a step ("تعديل البيانات"),
    *  while a standalone review of an already-created campaign just goes back ("رجوع"). */
   readonly backLabel  = input('تعديل البيانات');
@@ -72,7 +79,13 @@ export class OnboardingPlanApproval implements OnInit, OnDestroy {
   private readonly coinPricingService = inject(CoinPricingService);
   private readonly errorModalService = inject(ErrorModalService);
   private readonly celebrationModalService = inject(CelebrationModalService);
+  private readonly brandProfileService = inject(BrandProfileService);
   protected readonly perms = inject(PermissionService);
+
+  protected readonly brandProfile = computed(() => {
+    const id = this.brandProfileId();
+    return id ? this.brandProfileService.getById(id)() : undefined;
+  });
 
   // ── Real AI pipeline state (research → diagnosis → strategy), now server-side: a run started
   // through AiPipelineService advances on its own (worker-driven), and this component only polls
@@ -146,8 +159,8 @@ export class OnboardingPlanApproval implements OnInit, OnDestroy {
   // data has actually finished loading (see pipelineFinished/*Done above for the loading state). ──
   protected readonly hasBusinessUnderstanding = computed(() => {
     const d = this.diagnosis();
-    const raw = this.data();
-    return !!(d?.businessSummary || d?.swot || d?.businessMaturity || d?.growthStage || raw?.sector || raw?.productDesc || raw?.uniqueValue);
+    const bp = this.brandProfile();
+    return !!(d?.businessSummary || d?.swot || d?.businessMaturity || d?.growthStage || bp?.industry || bp?.description || bp?.uniqueValue);
   });
 
   protected readonly hasObjectiveData = computed(() => {
@@ -163,9 +176,8 @@ export class OnboardingPlanApproval implements OnInit, OnDestroy {
   });
 
   protected readonly hasBrandVoiceData = computed(() => {
-    const d = this.data();
-    return !!(d?.brandWord1 || d?.brandWord2 || d?.brandWord3 || d?.brandTone?.length
-      || d?.tagline || d?.brandColors?.length || d?.languages?.length);
+    const bp = this.brandProfile();
+    return !!(bp?.tones?.length || bp?.tagline || bp?.colors?.length || bp?.supportedLanguages?.length);
   });
 
   protected readonly hasMarketingApproach = computed(() => {
@@ -197,6 +209,7 @@ export class OnboardingPlanApproval implements OnInit, OnDestroy {
   protected readonly positioningLabels = POSITIONING_LABELS;
   protected readonly languageLabels = LANGUAGE_LABELS;
   protected readonly pricePositioningLabels = PRICE_POSITIONING_LABELS;
+  protected readonly brandVoiceLabels = BRAND_VOICE_LABELS;
 
   constructor() {
     this.coinPricingService.ensureLoaded();
@@ -534,13 +547,6 @@ export class OnboardingPlanApproval implements OnInit, OnDestroy {
  *  already don't share a type today and the campaign-strategy-page resume path builds this same
  *  shape by parsing the campaign's persisted `briefJson` instead of holding wizard state. */
 export type ApprovalOnboardingData = {
-  brandName?: string;
-  sector?: string;
-  productDesc?: string;
-  uniqueValue?: string;
-  businessAge?: string;
-  stage?: string;
-  pricePositioning?: string;
   campaignType?: string;
   campaignDuration?: string;
   campaignGoal?: string;
@@ -561,11 +567,4 @@ export type ApprovalOnboardingData = {
   successMetrics?: string[];
   monthlyBudget?: string;
   platformRanking?: string[];
-  brandWord1?: string;
-  brandWord2?: string;
-  brandWord3?: string;
-  brandTone?: string[];
-  tagline?: string;
-  brandColors?: string[];
-  languages?: string[];
 };

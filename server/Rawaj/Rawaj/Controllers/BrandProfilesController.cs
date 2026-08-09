@@ -66,7 +66,7 @@ public class BrandProfilesController(ISender sender) : ControllerBase
     public record UpdateBrandProfileRequest(
         string? Name,
         string? Description,
-        BrandVoice? BrandVoice,
+        List<BrandVoice>? Tones,
         string? Tagline,
         string? Industry,
         string? TargetAudience,
@@ -74,7 +74,19 @@ public class BrandProfilesController(ISender sender) : ControllerBase
         string? LogoUrl,
         string? WebsiteUrl,
         List<string>? SupportedLanguages,
-        List<string>? Keywords);
+        List<string>? Keywords,
+        string? Location,
+        string? Instagram,
+        string? BusinessAge,
+        DateTime? BusinessEstablishDate,
+        string? Stage,
+        string? UniqueValue,
+        string? PricePositioning,
+        string? StorePresence,
+        List<string>? ExistingPlatforms,
+        string? AdmiredBrand1,
+        string? AdmiredBrand2,
+        string? AdmiredBrand3);
 
     [HttpPut("{brandProfileId:guid}")]
     public async Task<IActionResult> Update(Guid brandProfileId, UpdateBrandProfileRequest request, CancellationToken cancellationToken)
@@ -83,7 +95,7 @@ public class BrandProfilesController(ISender sender) : ControllerBase
             brandProfileId,
             request.Name,
             request.Description,
-            request.BrandVoice,
+            request.Tones,
             request.Tagline,
             request.Industry,
             request.TargetAudience,
@@ -91,7 +103,19 @@ public class BrandProfilesController(ISender sender) : ControllerBase
             request.LogoUrl,
             request.WebsiteUrl,
             request.SupportedLanguages,
-            request.Keywords);
+            request.Keywords,
+            request.Location,
+            request.Instagram,
+            request.BusinessAge,
+            request.BusinessEstablishDate,
+            request.Stage,
+            request.UniqueValue,
+            request.PricePositioning,
+            request.StorePresence,
+            request.ExistingPlatforms,
+            request.AdmiredBrand1,
+            request.AdmiredBrand2,
+            request.AdmiredBrand3);
 
         var result = await sender.Send(command, cancellationToken);
 

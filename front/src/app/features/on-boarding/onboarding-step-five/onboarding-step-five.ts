@@ -107,10 +107,6 @@ type OnboardingData = {
   positioningVs?: string;
   campaignOutcome?: string;
   successMetrics?: string[];
-  brandAdmire1?: string;
-  brandAdmire2?: string;
-  brandAdmire3?: string;
   monthlyBudget?: string;
-  tagline?: string;
   platformRanking?: string[];
 };

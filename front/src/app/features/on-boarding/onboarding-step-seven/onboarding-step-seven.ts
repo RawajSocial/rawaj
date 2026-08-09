@@ -18,6 +18,10 @@ export class OnboardingStepSeven implements OnInit {
   readonly totalSteps = input(7);
   readonly data = input<OnboardingData | null>(null);
   readonly brandProfileId = input<string | null>(null);
+  /** The selected brand profile's own name, for the personalized greeting — sourced from the
+   *  brand profile itself rather than onboardingData, since "brand name" moved there entirely
+   *  (see the removed onboarding step 3 / "Brand Overview"). */
+  readonly brandName = input<string | undefined>(undefined);
   /** True while the parent is creating the campaign after `finish` fires — keeps the button
    *  showing a busy state instead of letting the user double-submit. */
   readonly submitting = input(false);
@@ -39,9 +43,9 @@ export class OnboardingStepSeven implements OnInit {
   protected readonly done            = computed(() => this.questions().length > 0 && this.currentIndex() >= this.questions().length);
   protected readonly totalQuestions  = computed(() => this.questions().length);
 
-  // Personalized greeting using brand name from step 3
+  // Personalized greeting using the selected brand profile's own name
   protected readonly greeting = computed(() => {
-    const name = this.data()?.brandName;
+    const name = this.brandName();
     return name
       ? `مرحباً بـ${name}! لدي بعض الأسئلة المخصصة التي ستساعدنا في بناء استراتيجيتك بدقة.`
       : 'أنا هنا لأسألك بعض الأسئلة المخصصة لمساعدتك في بناء استراتيجيتك.';
@@ -127,8 +131,6 @@ type Answer   = { question: string; answer: string };
 
 type OnboardingData = {
   // From previous steps — used for personalization
-  brandName?: string;
-  sector?: string;
   positioningVs?: string;
   campaignOutcome?: string;
   successMetrics?: string[];

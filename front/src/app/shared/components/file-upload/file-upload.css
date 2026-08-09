@@ -141,6 +141,30 @@
   font-size: var(--font-size-xs);
 }
 
+/* ── Fill variant: dropzone/preview expand to fill their container ── */
+.file-upload--fill {
+  display: flex;
+  width: 100%;
+}
+
+.file-upload--fill .file-upload-preview,
+.file-upload--fill .file-upload-dropzone {
+  width: 100%;
+  min-height: 220px;
+}
+
+.file-upload--fill .file-upload-dropzone {
+  flex-direction: column;
+  justify-content: center;
+  gap: 12px;
+  font-size: var(--font-size-md);
+  border-width: 2px;
+}
+
+.file-upload--fill .file-upload-dropzone i {
+  font-size: 2rem;
+}
+
 .file-upload--dragging .file-upload-dropzone,
 .file-upload--dragging .file-upload-preview {
   border-color: var(--color-primary);

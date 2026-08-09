@@ -23,7 +23,7 @@ public class GetBrandProfileQueryHandler(IApplicationDbContext dbContext, ICurre
             brand.Id,
             brand.Name,
             brand.Description,
-            brand.BrandVoice,
+            brand.BrandInfo?.Tones ?? [],
             brand.Status,
             brand.BrandInfo?.IsDefault ?? false,
             brand.BrandInfo?.Tagline,
@@ -33,6 +33,18 @@ public class GetBrandProfileQueryHandler(IApplicationDbContext dbContext, ICurre
             brand.BrandInfo?.LogoUrl,
             brand.BrandInfo?.WebsiteUrl,
             brand.BrandInfo?.SupportedLanguages ?? [],
-            brand.BrandInfo?.Keywords ?? []));
+            brand.BrandInfo?.Keywords ?? [],
+            brand.BrandInfo?.Location,
+            brand.BrandInfo?.Instagram,
+            brand.BrandInfo?.BusinessAge,
+            brand.BrandInfo?.BusinessEstablishDate,
+            brand.BrandInfo?.Stage,
+            brand.BrandInfo?.UniqueValue,
+            brand.BrandInfo?.PricePositioning,
+            brand.BrandInfo?.StorePresence,
+            brand.BrandInfo?.ExistingPlatforms ?? [],
+            brand.BrandInfo?.AdmiredBrand1,
+            brand.BrandInfo?.AdmiredBrand2,
+            brand.BrandInfo?.AdmiredBrand3));
     }
 }

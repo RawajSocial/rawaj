@@ -86,9 +86,19 @@ public static class PromptFragments
             lines.Add($"Relevant keywords: {string.Join(", ", brand.BrandInfo.Keywords)}.");
         }
 
-        if (brand.BrandVoice.HasValue)
+        if (brand.BrandInfo?.Tones is { Count: > 0 })
         {
-            lines.Add($"Brand voice: {brand.BrandVoice}.");
+            lines.Add($"Brand voice/tone: {string.Join(", ", brand.BrandInfo.Tones)}.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(brand.BrandInfo?.UniqueValue))
+        {
+            lines.Add($"Unique value proposition: {brand.BrandInfo.UniqueValue}.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(brand.BrandInfo?.PricePositioning))
+        {
+            lines.Add($"Price positioning: {brand.BrandInfo.PricePositioning}.");
         }
     }
 

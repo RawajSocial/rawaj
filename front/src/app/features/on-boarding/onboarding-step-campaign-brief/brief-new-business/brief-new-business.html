@@ -4,34 +4,11 @@
     <span>تفاصيل إطلاق النشاط</span>
   </div>
   <div class="form-grid">
-    <div class="form-row">
-      <label>تاريخ تأسيس النشاط</label>
-      <input type="date" class="form-control"
-        [value]="data()?.businessEstablishDate || ''"
-        (input)="emit({ businessEstablishDate: $any($event.target).value })" />
-    </div>
-    <div class="form-row">
+    <div class="form-row full">
       <label>التاريخ المتوقع للإطلاق</label>
       <input type="date" class="form-control"
         [value]="data()?.businessLaunchDate || ''"
         (input)="emit({ businessLaunchDate: $any($event.target).value })" />
-    </div>
-    <div class="form-row full">
-      <label>هل الهوية البصرية جاهزة؟ <span>(شعار، ألوان، خطوط)</span></label>
-      <div class="chips">
-        <button type="button" class="chip" [class.active]="data()?.brandIdentityReady === 'yes'"
-          (click)="emit({ brandIdentityReady: 'yes' })">
-          <i class="fa-solid fa-check"></i> نعم، جاهزة
-        </button>
-        <button type="button" class="chip" [class.active]="data()?.brandIdentityReady === 'partial'"
-          (click)="emit({ brandIdentityReady: 'partial' })">
-          <i class="fa-solid fa-circle-half-stroke"></i> جزئيًا
-        </button>
-        <button type="button" class="chip" [class.active]="data()?.brandIdentityReady === 'no'"
-          (click)="emit({ brandIdentityReady: 'no' })">
-          <i class="fa-solid fa-xmark"></i> لا، أحتاج مساعدة
-        </button>
-      </div>
     </div>
   </div>
 </div>

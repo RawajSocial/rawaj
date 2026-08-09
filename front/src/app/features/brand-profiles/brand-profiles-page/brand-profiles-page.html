@@ -35,8 +35,8 @@
             @if (profile.isDefault) {
               <span class="rw-pill rw-pill--info">افتراضي</span>
             }
-            @if (profile.brandVoice) {
-              <span class="rw-pill bp-card__voice-tag">{{ voiceLabels[profile.brandVoice] }}</span>
+            @if (profile.tones.length > 0) {
+              <span class="rw-pill bp-card__voice-tag">{{ voiceLabels[profile.tones[0]] }}</span>
             }
           </div>
 

@@ -73,34 +73,6 @@
     <div class="section-title"><i class="fa-solid fa-wallet"></i> المرجعية والميزانية</div>
     <div class="form-grid">
 
-      <div class="form-row full">
-        <label>علامات تجارية تُعجبك (محلياً أو عالمياً) <span>(اختياري)</span></label>
-        <div class="admire-row">
-          <div class="input-with-icon">
-            <span class="input-icon"><i class="fa-solid fa-building"></i></span>
-            <input type="text" class="form-control" placeholder="مثال: Nike"
-              [value]="data()?.brandAdmire1 || ''"
-              (input)="emit({ brandAdmire1: $any($event.target).value })" />
-          </div>
-          <div class="input-with-icon">
-            <span class="input-icon"><i class="fa-solid fa-building"></i></span>
-            <input type="text" class="form-control" placeholder="مثال: Sephora"
-              [value]="data()?.brandAdmire2 || ''"
-              (input)="emit({ brandAdmire2: $any($event.target).value })" />
-          </div>
-          <div class="input-with-icon">
-            <span class="input-icon"><i class="fa-solid fa-building"></i></span>
-            <input type="text" class="form-control" placeholder="مثال: Jarir"
-              [value]="data()?.brandAdmire3 || ''"
-              (input)="emit({ brandAdmire3: $any($event.target).value })" />
-          </div>
-        </div>
-        <span class="field-hint">
-          <i class="fa-solid fa-circle-info"></i>
-          تُستخدم للرجوع إليها في الأسلوب التصميمي والإلهام البصري
-        </span>
-      </div>
-
       <div class="form-row">
         <label>الميزانية التسويقية الشهرية</label>
         <div class="dropdown" [class.open]="budgetMenuOpen" (click)="$event.stopPropagation()">
@@ -116,16 +88,6 @@
                 (click)="selectBudget(option)">{{ option }}</button>
             }
           </div>
-        </div>
-      </div>
-
-      <div class="form-row">
-        <label>شعار أو سلوجان العلامة <span>(اختياري)</span></label>
-        <div class="input-with-icon">
-          <span class="input-icon"><i class="fa-solid fa-quote-right"></i></span>
-          <input type="text" class="form-control" placeholder='مثال: "فقط افعلها"'
-            [value]="data()?.tagline || ''"
-            (input)="emit({ tagline: $any($event.target).value })" />
         </div>
       </div>
 

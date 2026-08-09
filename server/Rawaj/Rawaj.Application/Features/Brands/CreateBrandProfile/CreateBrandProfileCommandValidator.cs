@@ -8,7 +8,9 @@ public class CreateBrandProfileCommandValidator : AbstractValidator<CreateBrandP
     public CreateBrandProfileCommandValidator()
     {
         RuleFor(x => x.Name).NotEmpty().MaximumLength(200);
-        RuleFor(x => x.BrandVoice).IsInEnum().When(x => x.BrandVoice.HasValue);
+        RuleForEach(x => x.Tones).IsInEnum();
+        RuleFor(x => x.Tones).Must(t => t == null || t.Count <= 5)
+            .WithMessage("You can select at most 5 tone words.");
         RuleFor(x => x.WebsiteUrl).Must(UrlNormalizer.IsValidUrl).When(x => !string.IsNullOrWhiteSpace(x.WebsiteUrl))
             .WithMessage("Website URL must be a valid URL.");
         RuleFor(x => x.LogoUrl).Must(BeAValidLogoUrl).When(x => !string.IsNullOrWhiteSpace(x.LogoUrl))
