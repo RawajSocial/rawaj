@@ -8,10 +8,11 @@ using Rawaj.Domain.Enums;
 namespace Rawaj.Application.Features.Analytics.SyncPostAnalytics;
 
 /// <summary>
-/// Fetches current engagement counts from the platform for an already-published post and records
-/// a new snapshot row. Impressions/reach require the read_insights permission (Advanced Access
-/// review), so they stay null until that's granted - engagement counts (likes/comments/shares)
-/// only need the same page token already used to publish.
+/// Fetches current metrics from the platform for an already-published post and records a new
+/// snapshot row. Views/Unique Viewers require the read_insights permission (Advanced Access
+/// review) and stay null for accounts that haven't (re)connected with that scope granted -
+/// engagement counts (likes/comments/shares) only need the same page token already used to
+/// publish, and are unaffected by that.
 /// </summary>
 public class SyncPostAnalyticsCommandHandler(
     IApplicationDbContext dbContext,
@@ -53,8 +54,11 @@ public class SyncPostAnalyticsCommandHandler(
             return Result<PostAnalyticsSnapshot>.Failure(metrics.ErrorMessage ?? "Failed to fetch analytics.");
         }
 
-        var engagementRate = metrics.Impressions is > 0
-            ? Math.Round((decimal)((metrics.Likes ?? 0) + (metrics.Comments ?? 0) + (metrics.Shares ?? 0)) / metrics.Impressions.Value, 4)
+        // PostMetricsResult now carries Views/UniqueViewers (the confirmed new names), but the
+        // PostAnalytics entity/column names aren't renamed until Phase 2 — this mapping is
+        // deliberately temporary, see Phase 1's Risks note in the implementation plan.
+        var engagementRate = metrics.Views is > 0
+            ? Math.Round((decimal)((metrics.Likes ?? 0) + (metrics.Comments ?? 0) + (metrics.Shares ?? 0)) / metrics.Views.Value, 4)
             : (decimal?)null;
 
         var analytics = new PostAnalytics
@@ -63,8 +67,8 @@ public class SyncPostAnalyticsCommandHandler(
             ScheduledPostId = scheduledPost.Id,
             Platform = socialAccount.Platform,
             RecordedAt = DateTime.UtcNow,
-            Impressions = metrics.Impressions,
-            Reach = metrics.Reach,
+            Impressions = metrics.Views,
+            Reach = metrics.UniqueViewers,
             Likes = metrics.Likes,
             Comments = metrics.Comments,
             Shares = metrics.Shares,
