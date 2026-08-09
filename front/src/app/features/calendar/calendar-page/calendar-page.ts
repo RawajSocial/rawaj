@@ -183,7 +183,7 @@ export class CalendarPage {
       if (!map.has(key)) {
         map.set(key, {
           date: pd,
-          dateLabel: pd.toLocaleDateString('ar-SA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }),
+          dateLabel: pd.toLocaleDateString('ar-EG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }),
           posts: [],
         });
       }
@@ -198,14 +198,14 @@ export class CalendarPage {
     const d    = this.currentDate();
     const mode = this.viewMode();
     if (mode === 'month') {
-      return d.toLocaleDateString('ar-SA', { month: 'long', year: 'numeric' });
+      return d.toLocaleDateString('ar-EG', { month: 'long', year: 'numeric' });
     }
     if (mode === 'day') {
-      return d.toLocaleDateString('ar-SA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+      return d.toLocaleDateString('ar-EG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
     }
     const days = this.weekDays();
-    const sf = days[0].toLocaleDateString('ar-SA', { day: 'numeric', month: 'short' });
-    const ef = days[6].toLocaleDateString('ar-SA', { day: 'numeric', month: 'short', year: 'numeric' });
+    const sf = days[0].toLocaleDateString('ar-EG', { day: 'numeric', month: 'short' });
+    const ef = days[6].toLocaleDateString('ar-EG', { day: 'numeric', month: 'short', year: 'numeric' });
     return `${sf} – ${ef}`;
   });
 
@@ -266,11 +266,11 @@ export class CalendarPage {
 
   readonly selectedDayLabel = computed<string>(() => {
     const day = this.selectedDay();
-    return day ? day.toLocaleDateString('ar-SA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : '';
+    return day ? day.toLocaleDateString('ar-EG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : '';
   });
 
   formatTime(iso: string): string {
-    return new Date(iso).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit', hour12: true });
+    return new Date(iso).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', hour12: true });
   }
 
   goToDay(date: Date): void {

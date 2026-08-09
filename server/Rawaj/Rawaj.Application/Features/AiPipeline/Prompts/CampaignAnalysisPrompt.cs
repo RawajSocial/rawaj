@@ -25,9 +25,9 @@ public static class CampaignAnalysisPrompt
 {
     /// <summary>Cap for the brand-analysis JSON block — larger than a single free-text field since
     /// it's one whole synthesized artifact (summary, SWOT, guardrails, etc.), not competing spans.</summary>
-    private const int BrandAnalysisMaxLength = 4_000;
+    private const int BrandAnalysisMaxLength = 2_000;
 
-    private const int BriefMaxLength = 3_000;
+    private const int BriefMaxLength = 1_500;
 
     public static string Build(
         TenantBrandProfile brand, MarketingCampaign campaign, string? briefJson, string? brandAnalysisJson)

@@ -200,6 +200,6 @@ export class MpPlanDetail {
   formatNum(n: number): string {
     if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'م';
     if (n >= 1_000)     return (n / 1_000).toFixed(1) + 'ك';
-    return Math.round(n).toLocaleString('ar-SA');
+    return Math.round(n).toLocaleString('ar-EG');
   }
 }

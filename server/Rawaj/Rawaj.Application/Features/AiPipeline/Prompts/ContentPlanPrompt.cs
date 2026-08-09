@@ -27,12 +27,18 @@ namespace Rawaj.Application.Features.AiPipeline.Prompts;
 /// </summary>
 public static class ContentPlanPrompt
 {
-    private const int StrategyMaxLength = 3_000;
-    private const int BriefMaxLength = 3_000;
-    private const int CompetitorInsightsMaxLength = 3_000;
+    private const int StrategyMaxLength = 1_200;
+    private const int BriefMaxLength = 1_200;
 
-    /// <param name="strategyJson">The approved strategy. Its <c>campaignBlueprint</c> (pillars, key
-    /// themes, posting cadence, content mix) is what the posts must actually follow.</param>
+    private static readonly string[] StrategyFieldsNeeded = ["campaignBlueprint", "brandStrategy", "marketingStrategy"];
+
+    /// <param name="strategyJson">The approved strategy. Trimmed to <see cref="StrategyFieldsNeeded"/>
+    /// before it reaches the model: <c>campaignBlueprint</c> (pillars, key themes, posting cadence,
+    /// content mix) is what the posts must actually follow, and <c>brandStrategy</c>/
+    /// <c>marketingStrategy</c> keep the voice consistent. The rest of the strategy object
+    /// (<c>executiveSummary</c>, <c>businessAndMarketAnalysis</c>, <c>aiRecommendations</c>) is
+    /// grounding the strategy stages already absorbed when they built this JSON — resending it here
+    /// was pure token cost with nothing this stage acts on.</param>
     /// <param name="briefJson">The raw onboarding answers plus the AI follow-up questions. Supplies
     /// audience and tone specifics the strategy summarises but doesn't repeat verbatim. The business
     /// diagnosis is deliberately <i>not</i> passed as well: the strategy was already built on top of
@@ -40,7 +46,6 @@ public static class ContentPlanPrompt
     public static string Build(
         TenantBrandProfile brand,
         MarketingCampaign campaign,
-        List<string> competitorInsights,
         string postingTimeSummary,
         int postCount,
         List<SocialPlatform> platforms,
@@ -75,8 +80,9 @@ public static class ContentPlanPrompt
 
         if (!string.IsNullOrWhiteSpace(strategyJson))
         {
+            var trimmedStrategy = JsonFieldSelector.KeepFields(strategyJson, StrategyFieldsNeeded);
             var wrappedStrategy = UntrustedTextSanitizer.Wrap(
-                "Approved strategy JSON", [PiiRedactor.Redact(strategyJson)], StrategyMaxLength);
+                "Approved strategy JSON", [PiiRedactor.Redact(trimmedStrategy)], StrategyMaxLength);
 
             if (wrappedStrategy.Length > 0)
             {
@@ -103,17 +109,10 @@ public static class ContentPlanPrompt
             }
         }
 
-        if (competitorInsights.Count > 0)
-        {
-            var wrappedInsights = UntrustedTextSanitizer.Wrap(
-                "Competitor intelligence excerpts", competitorInsights, CompetitorInsightsMaxLength);
-
-            if (wrappedInsights.Length > 0)
-            {
-                lines.Add("Known competitor intelligence:");
-                lines.Add(wrappedInsights);
-            }
-        }
+        // Competitor intelligence is deliberately not resent here: by the time a strategy is approved,
+        // StrategyPrompt.BuildBlueprint has already absorbed the relevant competitor positioning into
+        // campaignBlueprint (which strategyJson above carries trimmed) — a separate raw-excerpts block
+        // was redundant grounding at real token cost, not new information for this stage to act on.
 
         if (!string.IsNullOrWhiteSpace(postingTimeSummary))
         {

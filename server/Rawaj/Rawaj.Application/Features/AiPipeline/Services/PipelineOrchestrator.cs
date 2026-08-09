@@ -174,7 +174,11 @@ public class PipelineOrchestrator(
 
             run.Status = newStatus;
             run.UpdatedAt = DateTime.UtcNow;
-            PipelineRunPublisher.Queue(dbContext, run, updatedStages);
+            // `run` was just reloaded above, so this builds on top of any Version increments the
+            // isolated per-stage scopes just dispatched (via Task.WhenAll) already made to this same
+            // row — see AiPipelineRun.Version remarks for why a plain increment isn't enough there.
+            run.Version++;
+            PipelineRunPublisher.Queue(dbContext, run, updatedStages, run.Version, run.TotalCoinsSpent);
             await dbContext.SaveChangesAsync(cancellationToken);
 
             // Anything other than Running means the run cannot make further progress on its own right
@@ -387,9 +391,49 @@ public class PipelineOrchestrator(
         // the batch, not each one as it's ready. This context only ever tracked this one stage
         // before now, so the query below reads every sibling fresh off the store, including ones
         // other isolated scopes have already completed concurrently.
+        //
+        // That last part is also exactly why this snapshot can be stale relative to another one of
+        // these isolated scopes' own push: two ContentImage stages completing close together (the
+        // provider concurrency limiter tends to cluster completions) can each query siblings and reach
+        // the outbox/SignalR pipeline in an order that doesn't match which snapshot is actually more
+        // complete. A plain in-memory `run.Version++` isn't safe here — this scope never loaded `run`
+        // with a lock and two concurrent scopes doing a read-then-increment on their own copies would
+        // lose an update — so this goes through an atomic UPDATE instead, and the version is then read
+        // back for the payload the frontend uses to discard whichever push turns out to be the stale one.
+        int freshVersion;
+        int freshTotalCoinsSpent;
+        try
+        {
+            await dbContext.AiPipelineRuns
+                .Where(r => r.Id == run.Id)
+                .ExecuteUpdateAsync(r => r.SetProperty(x => x.Version, x => x.Version + 1), cancellationToken);
+
+            // AsNoTracking: a tracked query here would return this context's own (stale) cached copy
+            // of `run` via EF's identity resolution instead of the fresh row the ExecuteUpdateAsync
+            // calls above and in AiPipelineCoinPolicy.TryChargeAsync just wrote — the same reason
+            // freshVersion couldn't just be `run.Version + 1`.
+            var snapshot = await dbContext.AiPipelineRuns.AsNoTracking()
+                .Where(r => r.Id == run.Id)
+                .Select(r => new { r.Version, r.TotalCoinsSpent })
+                .FirstAsync(cancellationToken);
+            freshVersion = snapshot.Version;
+            freshTotalCoinsSpent = snapshot.TotalCoinsSpent;
+        }
+        catch (InvalidOperationException)
+        {
+            // EF Core's InMemory provider (test suite only — see the stage-claim ExecuteUpdateAsync
+            // above for the same caveat) doesn't translate ExecuteUpdate. Increment the tracked entity
+            // directly instead, which is equivalent there since InMemory never runs more than one
+            // writer at a time — the atomicity this exists for isn't something a test could exercise
+            // through it anyway.
+            run.Version++;
+            freshVersion = run.Version;
+            freshTotalCoinsSpent = run.TotalCoinsSpent;
+        }
+
         var currentStages = await dbContext.AiPipelineStages
             .Where(s => s.RunId == run.Id).ToListAsync(cancellationToken);
-        PipelineRunPublisher.Queue(dbContext, run, currentStages);
+        PipelineRunPublisher.Queue(dbContext, run, currentStages, freshVersion, freshTotalCoinsSpent);
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 

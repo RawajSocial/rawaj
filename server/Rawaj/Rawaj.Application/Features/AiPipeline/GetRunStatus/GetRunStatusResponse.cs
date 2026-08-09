@@ -11,10 +11,14 @@ public record StageStatusSummary(
     AiPipelineStageKind Kind, AiPipelineStageStatus Status, int Attempts, int MaxAttempts, string? LastError,
     Guid? TargetRefId);
 
+/// <param name="Version">Monotonic counter — see <c>AiPipelineRun.Version</c> remarks. Lets the
+/// client discard a poll response that turns out to be stale relative to a SignalR push it already
+/// applied (or vice versa), rather than trusting whichever one happens to arrive last.</param>
 public record GetRunStatusResponse(
     Guid RunId,
     AiPipelineRunStatus Status,
     PipelineProgress Progress,
     int TotalCoinsSpent,
     string? LastError,
-    IReadOnlyList<StageStatusSummary> Stages);
+    IReadOnlyList<StageStatusSummary> Stages,
+    int Version);

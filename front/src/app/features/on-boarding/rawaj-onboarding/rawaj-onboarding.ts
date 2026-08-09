@@ -171,7 +171,13 @@ export class RawajOnboarding {
           if (campaign && campaign.status === 'Draft' && !campaign.planApprovedAt) {
             this.campaignId.set(existingDraftId);
             this.onboardingData.set(this.parseBriefJson(campaign.briefJson));
-            this.currentStep.set(this.loadSavedStep());
+            // Same check resumeSpecificDraft makes: a plain same-tab refresh has no other way to
+            // tell "finished the wizard, now waiting on plan-approval" apart from "still on some
+            // step 1-6" — loadSavedStep() only ever returns a value in [1, totalSteps], since step 7
+            // (plan-approval) is deliberately never persisted there, so without this a refresh while
+            // the strategy is generating fell back to whatever step was last saved (step 6, the chat)
+            // instead of staying on the waiting screen.
+            this.currentStep.set(campaign.onboardingCompletedAt ? this.totalSteps + 1 : this.loadSavedStep());
             this.draftReady.set(true);
             this.stripEntryQueryParams();
           } else {
@@ -415,7 +421,7 @@ export class RawajOnboarding {
       startDate,
       endDate,
       budgetAmount,
-      budgetCurrency: budgetAmount ? 'SAR' : undefined,
+      budgetCurrency: budgetAmount ? 'EGP' : undefined,
       briefJson: JSON.stringify(data),
     };
   }

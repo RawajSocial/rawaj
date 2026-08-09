@@ -12,10 +12,17 @@ namespace Rawaj.Application.Features.AiPipeline.Prompts;
 /// <para><b>Prompt injection containment.</b> <c>feedback</c> is free text the tenant just typed into a
 /// box for this exact request — the most directly tenant-authored input in the whole pipeline. Guard
 /// sentence, PII redaction, and wrapping, same as the rest.</para>
+///
+/// <para><b>Grounding.</b> Also carries <see cref="MarketingCampaign.BriefJson"/> (the onboarding
+/// answers) and <see cref="PromptFragments.RawajCapabilitiesInstruction"/>, same as
+/// <c>ContentPlanPrompt</c> and <c>StrategyPrompt</c> — without them a refine pass only sees the
+/// already-summarised strategy JSON and re-asks for answers the business already gave, or invents
+/// capabilities (e.g. video) the platform doesn't have, since nothing here tells it otherwise.</para>
 /// </summary>
 public static class StrategyRefinementPrompt
 {
-    private const int StrategyMaxLength = 4_000;
+    private const int StrategyMaxLength = 2_000;
+    private const int BriefMaxLength = 1_500;
 
     public static string Build(TenantBrandProfile brand, MarketingCampaign campaign, string currentStrategyJson, string feedback)
     {
@@ -32,6 +39,21 @@ public static class StrategyRefinementPrompt
         {
             lines.Add(wrappedStrategy);
         }
+
+        if (!string.IsNullOrWhiteSpace(campaign.BriefJson))
+        {
+            var wrappedBrief = UntrustedTextSanitizer.Wrap(
+                "Onboarding brief JSON, typed by the business", [PiiRedactor.Redact(campaign.BriefJson)], BriefMaxLength);
+
+            if (wrappedBrief.Length > 0)
+            {
+                lines.Add(
+                    "The business's own onboarding answers — already known, do not ask for this again:");
+                lines.Add(wrappedBrief);
+            }
+        }
+
+        lines.Add(PromptFragments.RawajCapabilitiesInstruction);
 
         var wrappedFeedback = UntrustedTextSanitizer.Wrap(
             "Requested changes, typed by the business", [PiiRedactor.Redact(feedback)]);

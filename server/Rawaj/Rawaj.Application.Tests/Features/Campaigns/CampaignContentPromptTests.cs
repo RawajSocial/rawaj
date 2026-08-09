@@ -40,7 +40,7 @@ public class CampaignContentPromptTests
 
     private static string Build(MarketingCampaign campaign) =>
         ContentPromptBuilder.BuildCampaignContentPlanPrompt(
-            Brand(), campaign, competitorInsights: [], postingTimeSummary: "",
+            Brand(), campaign, postingTimeSummary: "",
             postCount: 3, platforms: [SocialPlatform.Instagram], language: Language.Ar,
             strategyJson: campaign.AiPlanJson, briefJson: campaign.BriefJson);
 

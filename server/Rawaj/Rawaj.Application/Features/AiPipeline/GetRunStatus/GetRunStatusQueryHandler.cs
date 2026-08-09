@@ -38,6 +38,6 @@ public class GetRunStatusQueryHandler(IApplicationDbContext dbContext, ICurrentT
             .ToList();
 
         return Result<GetRunStatusResponse>.Success(
-            new GetRunStatusResponse(run.Id, run.Status, progress, run.TotalCoinsSpent, run.LastError, stageSummaries));
+            new GetRunStatusResponse(run.Id, run.Status, progress, run.TotalCoinsSpent, run.LastError, stageSummaries, run.Version));
     }
 }

@@ -42,7 +42,7 @@ export class BalanceChart {
     const pts = this.points();
     if (pts.length < 2) return [];
     return pts.map((p, i) => ({
-      label: new Date(p.date).toLocaleDateString('ar-SA', { day: 'numeric', month: 'short' }),
+      label: new Date(p.date).toLocaleDateString('ar-EG', { day: 'numeric', month: 'short' }),
       x: this.PAD + (i / (pts.length - 1)) * (this.W - this.PAD * 2),
     }));
   });

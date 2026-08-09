@@ -5,6 +5,18 @@
 }
 .cc-error { color: var(--color-danger); }
 
+.cc-generating-placeholder {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .6rem;
+  padding: 3rem 1rem;
+  color: var(--color-text-secondary);
+  font-size: 1.1rem;
+}
+.cc-generating-placeholder i { font-size: 1.6rem; }
+
 .cc-banner {
   display: flex;
   align-items: center;

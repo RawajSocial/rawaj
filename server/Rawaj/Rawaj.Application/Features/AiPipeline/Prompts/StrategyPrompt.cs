@@ -33,13 +33,13 @@ public static class StrategyPrompt
 {
     /// <summary>Cap for a trimmed campaign-analysis block — smaller than the research caps since
     /// trimming already cut it to 3-6 short fields rather than a whole artifact.</summary>
-    private const int AnalysisMaxLength = 2_500;
+    private const int AnalysisMaxLength = 1_500;
 
     /// <summary>Cap for a research artifact block (market or competitor), trimmed or not.</summary>
-    private const int ResearchMaxLength = 3_000;
+    private const int ResearchMaxLength = 1_500;
 
     /// <summary>Cap for the campaign blueprint, pasted whole into Roadmap.</summary>
-    private const int BlueprintMaxLength = 3_000;
+    private const int BlueprintMaxLength = 1_500;
 
     public static string BuildPositioning(
         TenantBrandProfile brand,

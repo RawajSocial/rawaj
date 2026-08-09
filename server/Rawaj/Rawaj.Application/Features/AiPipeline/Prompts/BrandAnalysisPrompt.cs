@@ -29,7 +29,7 @@ public static class BrandAnalysisPrompt
     /// <summary>Cap for the onboarding brief block. Generous enough for a full multi-answer brief
     /// (unlike a single research excerpt, this is one tenant-authored JSON blob, not many competing
     /// spans), still a hard bound on what an oversized field could spend of the token budget.</summary>
-    private const int BriefMaxLength = 3_000;
+    private const int BriefMaxLength = 1_500;
 
     public static string Build(TenantBrandProfile brand, string? briefJson)
     {
