@@ -19,9 +19,10 @@ namespace Rawaj.Application.Features.AiPipeline.Prompts;
 /// onboarding brief JSON) was typed by the tenant, not by us — and this stage's output is explicitly
 /// treated as "established" by every later stage without being re-sanitized (see
 /// <c>CampaignAnalysisPrompt</c>, <c>StrategyPrompt</c>), so an injected instruction that survives here
-/// would propagate uncontained into every future generation for this brand. All of it is wrapped via
-/// <see cref="UntrustedTextSanitizer"/> — same delimited "this is DATA" pattern the research prompts
-/// use for scraped web text — plus a standalone guard sentence at the very top of the prompt.</para>
+/// would propagate uncontained into every future generation for this brand. Brand fields go through
+/// <see cref="PromptFragments.AddWrappedBrandIdentity"/> (PII redaction, then the same delimited
+/// "this is DATA" pattern the research prompts use for scraped web text), plus a standalone guard
+/// sentence at the very top of the prompt.</para>
 /// </summary>
 public static class BrandAnalysisPrompt
 {
@@ -40,7 +41,7 @@ public static class BrandAnalysisPrompt
             "true of the brand itself rather than of any one campaign."
         };
 
-        AddWrappedBrandIdentity(lines, brand);
+        PromptFragments.AddWrappedBrandIdentity(lines, brand);
 
         if (!string.IsNullOrWhiteSpace(briefJson))
         {
@@ -79,65 +80,5 @@ public static class BrandAnalysisPrompt
             "\"businessMaturity\":\"...\",\"marketingReadiness\":\"...\",\"missingInformation\":[\"...\"]}"));
 
         return string.Join(" ", lines);
-    }
-
-    /// <summary>
-    /// Same fields as <see cref="PromptFragments.AddBrandIdentity"/>, wrapped as untrusted
-    /// tenant-authored data instead of pasted as plain sentences — see the class remarks for why this
-    /// stage specifically needs it. Kept local to this prompt rather than folded into the shared
-    /// fragment: the other prompts that still call <c>AddBrandIdentity</c> directly (as a fallback when
-    /// no brand analysis exists yet) haven't been reviewed for this treatment yet.
-    /// </summary>
-    private static void AddWrappedBrandIdentity(List<string> lines, TenantBrandProfile brand)
-    {
-        var spans = new List<string>();
-
-        if (!string.IsNullOrWhiteSpace(brand.Description))
-        {
-            spans.Add($"Brand description: {PiiRedactor.Redact(brand.Description)}");
-        }
-
-        if (!string.IsNullOrWhiteSpace(brand.BrandInfo?.Tagline))
-        {
-            spans.Add($"Brand tagline: {PiiRedactor.Redact(brand.BrandInfo.Tagline)}");
-        }
-
-        if (!string.IsNullOrWhiteSpace(brand.BrandInfo?.Industry))
-        {
-            spans.Add($"Industry: {PiiRedactor.Redact(brand.BrandInfo.Industry)}");
-        }
-
-        if (!string.IsNullOrWhiteSpace(brand.BrandInfo?.TargetAudience))
-        {
-            spans.Add($"Target audience: {PiiRedactor.Redact(brand.BrandInfo.TargetAudience)}");
-        }
-
-        if (brand.BrandInfo?.Keywords is { Count: > 0 })
-        {
-            spans.Add($"Relevant keywords: {string.Join(", ", brand.BrandInfo.Keywords.Select(PiiRedactor.Redact))}");
-        }
-
-        if (!string.IsNullOrWhiteSpace(brand.BrandInfo?.UniqueValue))
-        {
-            spans.Add($"Unique value proposition: {PiiRedactor.Redact(brand.BrandInfo.UniqueValue)}");
-        }
-
-        if (!string.IsNullOrWhiteSpace(brand.BrandInfo?.PricePositioning))
-        {
-            spans.Add($"Price positioning: {PiiRedactor.Redact(brand.BrandInfo.PricePositioning)}");
-        }
-
-        var wrapped = UntrustedTextSanitizer.Wrap("Brand-provided fields, typed by the business", spans);
-        if (wrapped.Length > 0)
-        {
-            lines.Add(wrapped);
-        }
-
-        // Tones are chosen from a fixed picker (a closed BrandVoice enum set), not free text — no
-        // injection surface, so this line stays outside the wrapped block, same as before.
-        if (brand.BrandInfo?.Tones is { Count: > 0 })
-        {
-            lines.Add($"Brand voice/tone: {string.Join(", ", brand.BrandInfo.Tones)}.");
-        }
     }
 }

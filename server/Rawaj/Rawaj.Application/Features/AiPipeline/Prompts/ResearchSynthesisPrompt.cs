@@ -10,7 +10,14 @@ namespace Rawaj.Application.Features.AiPipeline.Prompts;
 /// Search result bodies are written by whoever owns the page, and the eventual output of this chain
 /// is published to a customer's real social accounts — so the excerpts go in wrapped by
 /// <see cref="UntrustedTextSanitizer"/>, and everything downstream reads this stage's synthesised
-/// artifact rather than the raw text.</para>
+/// artifact rather than the raw text. Now also opens with <see cref="PromptFragments.InjectionGuardInstruction"/>,
+/// same standalone defense-in-depth sentence as the other stages.</para>
+///
+/// <para><b>Deliberately not PII-redacted.</b> Unlike the tenant-typed fields in
+/// <c>BrandAnalysisPrompt</c>/<c>CampaignAnalysisPrompt</c>, this text is scraped from third-party
+/// business web pages — a business's published contact info is expected, on-topic research output,
+/// not personal data we're responsible for protecting. Redacting it here would just remove useful
+/// signal for no real privacy gain.</para>
 /// </summary>
 public static class ResearchSynthesisPrompt
 {
@@ -19,6 +26,7 @@ public static class ResearchSynthesisPrompt
     {
         var lines = new List<string>
         {
+            PromptFragments.InjectionGuardInstruction,
             $"You are a market analyst studying the market that the brand \"{brand.Name}\" operates in."
         };
 
@@ -67,6 +75,7 @@ public static class ResearchSynthesisPrompt
     {
         var lines = new List<string>
         {
+            PromptFragments.InjectionGuardInstruction,
             $"You are a competitive analyst identifying and assessing the businesses competing with \"{brand.Name}\"."
         };
 

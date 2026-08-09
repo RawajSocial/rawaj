@@ -52,8 +52,9 @@ public static class CampaignAnalysisPrompt
         else
         {
             // Only reachable if brand analysis was somehow unavailable; without it the model would
-            // otherwise have no idea who the campaign is for.
-            PromptFragments.AddBrandIdentity(lines, brand);
+            // otherwise have no idea who the campaign is for. Wrapped, same as the primary path above —
+            // these are the tenant's own raw fields, not yet contained by an upstream analysis stage.
+            PromptFragments.AddWrappedBrandIdentity(lines, brand);
         }
 
         if (!string.IsNullOrWhiteSpace(campaign.Objective))

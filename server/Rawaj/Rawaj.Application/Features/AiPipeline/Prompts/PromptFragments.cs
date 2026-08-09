@@ -118,6 +118,67 @@ public static class PromptFragments
     }
 
     /// <summary>
+    /// Same fields as <see cref="AddBrandIdentity"/>, wrapped as untrusted tenant-authored data (PII
+    /// redacted, then delimited via <see cref="UntrustedTextSanitizer"/>) instead of pasted as plain
+    /// sentences. Promoted here from a BrandAnalysisPrompt-local method once ContentPlanPrompt needed
+    /// the identical treatment — every call site that reads raw brand identity fields should use this,
+    /// not <see cref="AddBrandIdentity"/>, since those fields were typed by the tenant and this stage's
+    /// (or a later stage's) output often becomes "established" context other prompts trust outright.
+    /// </summary>
+    public static void AddWrappedBrandIdentity(List<string> lines, TenantBrandProfile brand)
+    {
+        var spans = new List<string>();
+
+        if (!string.IsNullOrWhiteSpace(brand.Description))
+        {
+            spans.Add($"Brand description: {PiiRedactor.Redact(brand.Description)}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(brand.BrandInfo?.Tagline))
+        {
+            spans.Add($"Brand tagline: {PiiRedactor.Redact(brand.BrandInfo.Tagline)}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(brand.BrandInfo?.Industry))
+        {
+            spans.Add($"Industry: {PiiRedactor.Redact(brand.BrandInfo.Industry)}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(brand.BrandInfo?.TargetAudience))
+        {
+            spans.Add($"Target audience: {PiiRedactor.Redact(brand.BrandInfo.TargetAudience)}");
+        }
+
+        if (brand.BrandInfo?.Keywords is { Count: > 0 })
+        {
+            spans.Add($"Relevant keywords: {string.Join(", ", brand.BrandInfo.Keywords.Select(PiiRedactor.Redact))}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(brand.BrandInfo?.UniqueValue))
+        {
+            spans.Add($"Unique value proposition: {PiiRedactor.Redact(brand.BrandInfo.UniqueValue)}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(brand.BrandInfo?.PricePositioning))
+        {
+            spans.Add($"Price positioning: {PiiRedactor.Redact(brand.BrandInfo.PricePositioning)}");
+        }
+
+        var wrapped = UntrustedTextSanitizer.Wrap("Brand-provided fields, typed by the business", spans);
+        if (wrapped.Length > 0)
+        {
+            lines.Add(wrapped);
+        }
+
+        // Tones are chosen from a fixed picker (a closed BrandVoice enum set), not free text — no
+        // injection surface, so this line stays outside the wrapped block.
+        if (brand.BrandInfo?.Tones is { Count: > 0 })
+        {
+            lines.Add($"Brand voice/tone: {string.Join(", ", brand.BrandInfo.Tones)}.");
+        }
+    }
+
+    /// <summary>
     /// The "give me only JSON" closer. Structured output is requested, not enforced — Groq's JSON
     /// mode is wired in separately (and even then a parser fallback remains), because a fenced
     /// response stored as a strategy has already produced a blank page for a user who paid 12,000

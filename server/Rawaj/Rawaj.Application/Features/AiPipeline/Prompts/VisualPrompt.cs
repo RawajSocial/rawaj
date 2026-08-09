@@ -1,3 +1,4 @@
+using Rawaj.Application.Common.Services;
 using Rawaj.Application.Features.Content.Common;
 using Rawaj.Domain.Entities.Campaigns;
 using Rawaj.Domain.Entities.Tenants;
@@ -8,6 +9,14 @@ namespace Rawaj.Application.Features.AiPipeline.Prompts;
 /// <summary>
 /// Image prompts — used by the <c>ContentImage</c> stage and, unchanged, by the standalone
 /// visual-asset generator.
+///
+/// <para><b>Not treated like the text-LLM prompts.</b> This goes to a diffusion image model, not an
+/// instruction-following text model — there's no JSON output for an injected instruction to hijack,
+/// and no downstream stage that reads this call's output as "established" context. The standalone
+/// guard sentence / <see cref="UntrustedTextSanitizer"/> wrapping used everywhere else in the pipeline
+/// is built around that instruction-vs-data distinction, which doesn't map cleanly onto a diffusion
+/// prompt, so it's skipped here. <c>userPrompt</c> is still PII-redacted, since a manually-typed image
+/// prompt could contain a stray email or phone number same as any other free-text field.</para>
 /// </summary>
 public static class VisualPrompt
 {
@@ -25,7 +34,7 @@ public static class VisualPrompt
         string userPrompt,
         ContentTemplateStyle templateStyle = ContentTemplateStyle.Auto)
     {
-        var lines = new List<string> { userPrompt, $"Style fits a {visualType} for the brand \"{brand.Name}\"." };
+        var lines = new List<string> { PiiRedactor.Redact(userPrompt), $"Style fits a {visualType} for the brand \"{brand.Name}\"." };
 
         if (!string.IsNullOrWhiteSpace(brand.BrandInfo?.Industry))
         {
@@ -58,7 +67,7 @@ public static class VisualPrompt
     public static string BuildStandalone(
         string visualType, string userPrompt, ContentTemplateStyle templateStyle = ContentTemplateStyle.Auto)
     {
-        var lines = new List<string> { userPrompt, $"Style fits a {visualType}." };
+        var lines = new List<string> { PiiRedactor.Redact(userPrompt), $"Style fits a {visualType}." };
         lines.Add(ContentTemplateCatalog.ImageStyleHint(templateStyle));
         lines.Add(PromptFragments.NoRenderedTextInstruction);
         return string.Join(" ", lines);
