@@ -3,8 +3,8 @@ import { BackendSocialPlatform } from './content-item.model';
 /** Rawaj.Application.Features.Analytics shared type, reused by DashboardOverviewResponse. */
 export interface PlatformBreakdownItem {
   platform: BackendSocialPlatform;
-  reach: number;
-  impressions: number;
+  uniqueViewers: number;
+  views: number;
 }
 
 /** Rawaj.Application.Features.Analytics shared type, reused by DashboardOverviewResponse. */
@@ -15,7 +15,7 @@ export interface TopPostItem {
   platform: BackendSocialPlatform;
   title?: string | null;
   content: string;
-  reach: number;
+  uniqueViewers: number;
   likes: number;
   engagementRate?: number | null;
 }
@@ -25,14 +25,20 @@ export interface DashboardOverviewResponse {
   brandProfileId: string;
   campaignId?: string | null;
   postsTracked: number;
-  totalImpressions: number;
-  totalReach: number;
+  totalViews: number;
+  totalUniqueViewers: number;
   totalLikes: number;
   totalComments: number;
   totalShares: number;
   averageEngagementRate?: number | null;
   platformBreakdown: PlatformBreakdownItem[];
   topPosts: TopPostItem[];
+  /** Backend record (Phase 6) also carries these — the frontend interface never picked them up
+   *  until Phase 9. Not yet consumed by any component; added here for contract completeness. */
+  bottomPosts: TopPostItem[];
+  viewsAvailable: boolean;
+  uniqueViewersAvailable: boolean;
+  engagementRateAvailable: boolean;
 }
 
 /** GET /api/v1/dashboard/charts */

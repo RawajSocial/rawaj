@@ -78,7 +78,7 @@ export class CrmPage {
         icon: cfg.icon,
         color: cfg.color,
         followers: 0,
-        reach: p.reach,
+        uniqueViewers: p.uniqueViewers,
         engagementRate: overview.averageEngagementRate ?? 0,
         posts: this.dashboardService.recentContent().filter(c => BACKEND_PLATFORM_TO_KEY[c.platform] === key).length,
         change: 0,
@@ -99,17 +99,17 @@ export class CrmPage {
     const sum = list.reduce(
       (acc, p) => ({
         followers: acc.followers + p.followers,
-        reach: acc.reach + p.reach,
+        uniqueViewers: acc.uniqueViewers + p.uniqueViewers,
         posts: acc.posts + p.posts,
-        engWeighted: acc.engWeighted + p.engagementRate * p.reach,
+        engWeighted: acc.engWeighted + p.engagementRate * p.uniqueViewers,
       }),
-      { followers: 0, reach: 0, posts: 0, engWeighted: 0 },
+      { followers: 0, uniqueViewers: 0, posts: 0, engWeighted: 0 },
     );
     return {
       followers: sum.followers,
-      reach: sum.reach,
+      uniqueViewers: sum.uniqueViewers,
       posts: sum.posts,
-      engagementRate: sum.reach > 0 ? +(sum.engWeighted / sum.reach).toFixed(1) : 0,
+      engagementRate: sum.uniqueViewers > 0 ? +(sum.engWeighted / sum.uniqueViewers).toFixed(1) : 0,
       change: 0,
     };
   });
@@ -119,7 +119,7 @@ export class CrmPage {
     const s = this.activeStats();
     return [
       { title: 'إجمالي المتابعين', value: compactNumber(s?.followers ?? 0), icon: 'fa-users',       iconBg: 'rgb(94 0 255 / 12%)',  iconColor: '#5e00ff', change: s?.change ?? 0, accentColor: '#5e00ff' },
-      { title: 'مدى الوصول الشهري', value: compactNumber(s?.reach ?? overview?.totalReach ?? 0), icon: 'fa-bullseye', iconBg: 'rgba(37,99,235,0.12)', iconColor: '#0050ff', change: 0, accentColor: '#0050ff' },
+      { title: 'المشاهدون الفريدون شهريًا', value: compactNumber(s?.uniqueViewers ?? overview?.totalUniqueViewers ?? 0), icon: 'fa-bullseye', iconBg: 'rgba(37,99,235,0.12)', iconColor: '#0050ff', change: 0, accentColor: '#0050ff' },
       { title: 'معدل التفاعل',       value: (overview?.averageEngagementRate ?? 0) + '%', icon: 'fa-heart',       iconBg: 'rgb(255 0 126 / 12%)', iconColor: '#ff007e', change: 0, accentColor: '#EC4899' },
       { title: 'المنشورات المنشورة', value: String(overview?.postsTracked ?? 0),           icon: 'fa-paper-plane', iconBg: 'rgb(0 255 94 / 12%)',  iconColor: '#00f85c', change: 0, accentColor: '#00f85c' },
     ];
@@ -135,7 +135,7 @@ export class CrmPage {
         label: 'نظرة عامة على الأداء',
         icon: 'fa-solid fa-chart-line',
         metrics: [
-          { label: 'الظهور (Impressions)', value: compactNumber(overview.totalImpressions) },
+          { label: 'المشاهدات (Views)', value: compactNumber(overview.totalViews) },
           { label: 'الإعجابات', value: compactNumber(overview.totalLikes) },
           { label: 'التعليقات', value: compactNumber(overview.totalComments) },
           { label: 'المشاركات', value: compactNumber(overview.totalShares) },
@@ -155,8 +155,8 @@ export class CrmPage {
         campaignId: post.campaignId,
         platform: key,
         content: post.title ?? post.content,
-        reach: post.reach,
-        engagement: Math.round((post.reach * (post.engagementRate ?? 0)) / 100) || post.likes,
+        uniqueViewers: post.uniqueViewers,
+        engagement: Math.round((post.uniqueViewers * (post.engagementRate ?? 0)) / 100) || post.likes,
         icon: cfg.icon,
         color: cfg.color,
       };

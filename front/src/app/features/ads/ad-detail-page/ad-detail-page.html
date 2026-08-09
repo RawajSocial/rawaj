@@ -71,7 +71,7 @@
 
     <!-- KPIs -->
     <div class="kpi-row">
-      <app-kpi-card title="الظهور" [value]="formatNumber(a.impressions)" icon="fa-eye" iconBg="rgba(37,99,235,.12)" iconColor="#2563EB" [change]="12.4" accentColor="#2563EB" />
+      <app-kpi-card title="المشاهدات" [value]="formatNumber(a.views)" icon="fa-eye" iconBg="rgba(37,99,235,.12)" iconColor="#2563EB" [change]="12.4" accentColor="#2563EB" />
       <app-kpi-card title="النقرات" [value]="formatNumber(a.clicks)" icon="fa-arrow-pointer" iconBg="rgba(124,58,237,.12)" iconColor="#7C3AED" [change]="6.8" accentColor="#7C3AED" />
       <app-kpi-card title="معدل النقر" [value]="a.ctr + '%'" icon="fa-chart-line" iconBg="rgba(236,72,153,.12)" iconColor="#EC4899" [change]="1.5" accentColor="#EC4899" />
       <app-kpi-card title="تكلفة النقرة" [value]="'$' + a.cpc" icon="fa-sack-dollar" iconBg="rgba(22,163,74,.12)" iconColor="#16A34A" [change]="-1.2" accentColor="#16A34A" />

@@ -11,11 +11,11 @@ import { PlatformStat, compactNumber } from '../crm-page.model';
 export class PlatformPerformanceCard {
   readonly platforms = input.required<PlatformStat[]>();
 
-  private readonly totalReach = computed(() => this.platforms().reduce((a, p) => a + p.reach, 0));
+  private readonly totalUniqueViewers = computed(() => this.platforms().reduce((a, p) => a + p.uniqueViewers, 0));
 
-  protected reachShare(p: PlatformStat): number {
-    const total = this.totalReach();
-    return total > 0 ? Math.round((p.reach / total) * 100) : 0;
+  protected uniqueViewersShare(p: PlatformStat): number {
+    const total = this.totalUniqueViewers();
+    return total > 0 ? Math.round((p.uniqueViewers / total) * 100) : 0;
   }
 
   protected readonly compact = compactNumber;

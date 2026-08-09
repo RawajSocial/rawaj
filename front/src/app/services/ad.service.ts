@@ -39,7 +39,7 @@ export class AdService {
 
   private toAd(s: ScheduledPostSummary): Ad {
     const campaign = s.campaignId ? this.campaignService.getById(s.campaignId)() : undefined;
-    const impressions = s.views ?? 0;
+    const views = s.views ?? 0;
     const clicks = s.clicks ?? 0;
     const name = s.content.trim().substring(0, 40) + (s.content.trim().length > 40 ? '…' : '');
     return {
@@ -50,9 +50,9 @@ export class AdService {
       platforms: [PLATFORM_MAP[s.platform] ?? 'instagram'],
       status: STATUS_MAP[s.status] ?? 'pending',
       format: s.imageUrl ? 'image' : 'text',
-      impressions,
+      views,
       clicks,
-      ctr: impressions > 0 ? +((clicks / impressions) * 100).toFixed(2) : 0,
+      ctr: views > 0 ? +((clicks / views) * 100).toFixed(2) : 0,
       // No real ad-spend tracking exists yet (no dedicated Ad/spend entity) — stays 0 until one does.
       spend: 0,
       cpc: 0,

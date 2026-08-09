@@ -1,7 +1,7 @@
 <div class="insight-card d-flex flex-column h-100">
   <div class="insight-head">
     <h3 class="insight-title">أداء المنصات</h3>
-    <span class="insight-sub">حسب مدى الوصول</span>
+    <span class="insight-sub">حسب المشاهدين الفريدين</span>
   </div>
   <div class="platform-list d-flex flex-column gap-3">
     @for (p of platforms(); track p.key) {
@@ -13,10 +13,10 @@
         <div class="platform-info flex-grow-1">
           <div class="platform-info-top d-flex align-items-center justify-content-between">
             <span class="platform-name">{{ p.label }}</span>
-            <span class="platform-reach">{{ compact(p.reach) }}</span>
+            <span class="platform-unique-viewers">{{ compact(p.uniqueViewers) }}</span>
           </div>
           <div class="platform-bar-track overflow-hidden rounded-pill">
-            <div class="platform-bar-fill h-100 rounded-pill" [style.width.%]="reachShare(p)" [style.background]="p.color"></div>
+            <div class="platform-bar-fill h-100 rounded-pill" [style.width.%]="uniqueViewersShare(p)" [style.background]="p.color"></div>
           </div>
         </div>
         <span class="platform-change d-inline-flex align-items-center justify-content-end flex-shrink-0"
