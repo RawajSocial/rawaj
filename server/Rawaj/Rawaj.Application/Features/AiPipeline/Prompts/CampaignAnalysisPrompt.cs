@@ -1,3 +1,4 @@
+using Rawaj.Application.Common.Services;
 using Rawaj.Domain.Entities.Campaigns;
 using Rawaj.Domain.Entities.Tenants;
 
@@ -12,23 +13,41 @@ namespace Rawaj.Application.Features.AiPipeline.Prompts;
 /// the brand name, its industry field and its keywords, so research quality is a function of how
 /// carefully someone filled in a form. Letting the model that has just read the whole brief choose
 /// what to look up is the point of having an analysis stage at all.</para>
+///
+/// <para><b>Prompt injection containment.</b> Same treatment as <c>BrandAnalysisPrompt</c>: a
+/// standalone guard sentence, every tenant-authored free-text field (campaign objective, onboarding
+/// brief) wrapped via <see cref="UntrustedTextSanitizer"/> and PII-redacted first. <c>brandAnalysisJson</c>
+/// is wrapped too even though its own inputs were already contained upstream — that stage's LLM call
+/// could still launder an injected instruction into its output text, so this is defense-in-depth on
+/// top of, not instead of, containing it at the source.</para>
 /// </summary>
 public static class CampaignAnalysisPrompt
 {
+    /// <summary>Cap for the brand-analysis JSON block — larger than a single free-text field since
+    /// it's one whole synthesized artifact (summary, SWOT, guardrails, etc.), not competing spans.</summary>
+    private const int BrandAnalysisMaxLength = 4_000;
+
+    private const int BriefMaxLength = 3_000;
+
     public static string Build(
         TenantBrandProfile brand, MarketingCampaign campaign, string? briefJson, string? brandAnalysisJson)
     {
-        var lines = new List<string>
-        {
+        var lines = new List<string> { PromptFragments.InjectionGuardInstruction };
+
+        lines.Add(
             $"You are a marketing strategist analysing the campaign \"{campaign.Name}\" for the brand \"{brand.Name}\" " +
-            "before any strategy is written for it."
-        };
+            "before any strategy is written for it.");
 
         if (!string.IsNullOrWhiteSpace(brandAnalysisJson))
         {
-            lines.Add(
-                "A durable analysis of this brand already exists — treat it as established and do not restate it: " +
-                brandAnalysisJson);
+            var wrappedAnalysis = UntrustedTextSanitizer.Wrap(
+                "Durable brand analysis, already produced", [brandAnalysisJson], BrandAnalysisMaxLength);
+
+            if (wrappedAnalysis.Length > 0)
+            {
+                lines.Add("A durable analysis of this brand already exists — treat it as established and do not restate it.");
+                lines.Add(wrappedAnalysis);
+            }
         }
         else
         {
@@ -39,7 +58,13 @@ public static class CampaignAnalysisPrompt
 
         if (!string.IsNullOrWhiteSpace(campaign.Objective))
         {
-            lines.Add($"Campaign objective as the user stated it: {campaign.Objective}.");
+            var wrappedObjective = UntrustedTextSanitizer.Wrap(
+                "Campaign objective, typed by the business", [PiiRedactor.Redact(campaign.Objective)]);
+
+            if (wrappedObjective.Length > 0)
+            {
+                lines.Add(wrappedObjective);
+            }
         }
 
         if (campaign.TargetPlatforms.Count > 0)
@@ -59,8 +84,14 @@ public static class CampaignAnalysisPrompt
 
         if (!string.IsNullOrWhiteSpace(briefJson))
         {
-            lines.Add(
-                "The business's own onboarding answers, including their replies to AI follow-up questions: " + briefJson);
+            var wrappedBrief = UntrustedTextSanitizer.Wrap(
+                "Onboarding brief JSON, typed by the business", [PiiRedactor.Redact(briefJson)], BriefMaxLength);
+
+            if (wrappedBrief.Length > 0)
+            {
+                lines.Add("The business's own onboarding answers, including their replies to AI follow-up questions:");
+                lines.Add(wrappedBrief);
+            }
         }
 
         lines.Add(
