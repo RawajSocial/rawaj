@@ -112,28 +112,62 @@ export class CampaignContentPage {
    *  once a top-up lands, so there is nothing to click here (same as the strategy page's note). */
   protected readonly awaitingCoins = computed(() => this.aiPipelineService.run()?.status === 'AwaitingCoins');
 
-  /** How many posts are actually ready to render as real cards — has its image, whether generated
-   *  or the exhausted-retries placeholder every post ends up with eventually, same `!!imageUrl`
-   *  gate `approvedItems` below already uses. A post whose text exists but whose image hasn't
-   *  landed yet stays a skeleton rather than a text-only card, so this page keeps the two visual
-   *  states it already had instead of inventing a third. */
-  protected readonly readyItems = computed(() => this.items().filter(i => !!i.imageUrl));
-
-  /** Real per-image progress from the polled run (`AiPipelineProgressPolicy`, server-computed) —
-   *  zero before ContentPlan's fan-out exists, i.e. before individual post identities even exist. */
-  private readonly imagesTotal = computed(() => this.aiPipelineService.run()?.progress.imagesTotal ?? 0);
-  private readonly imagesCompleted = computed(() => this.aiPipelineService.run()?.progress.imagesCompleted ?? 0);
-
-  /** Only the posts still missing, not the whole requested batch — this used to be `postCount()`'s
-   *  CURRENT field value (wrong after a reload, or if that field changed) and never shrank as
-   *  individual posts finished, so every slot stayed a skeleton until the entire batch completed
-   *  and the page was reloaded. Falls back to the requested count before the fan-out exists, since
-   *  real post identities aren't known yet at that point. */
-  protected readonly generationSkeletonCards = computed(() => {
-    const total = this.imagesTotal() || this.postCount();
-    const remaining = Math.max(0, total - this.readyItems().length);
-    return Array.from({ length: remaining }, (_, i) => i);
+  /** ContentItem ids that belong to the run currently tracked here — read off its `ContentImage`
+   *  stages' `targetRefId`, the one place that link exists (ContentItem itself carries no batch/run
+   *  id). A campaign can be generated more than once, so `items()` mixes this run's posts with
+   *  whatever earlier batches already produced — this set is what tells them apart. Empty before
+   *  the content plan has fanned out yet, since those stages don't exist until then. */
+  private readonly currentBatchItemIds = computed(() => {
+    const run = this.aiPipelineService.run();
+    if (!run) return new Set<string>();
+    return new Set(
+      run.stages.filter(s => s.kind === 'ContentImage' && s.targetRefId).map(s => s.targetRefId!),
+    );
   });
+
+  /** This run's own posts, in their planned running order (`suggestedPostAt` — the day/hour the
+   *  content plan gave each one — not creation time: the whole batch is inserted in one instant, so
+   *  every post in it shares the same `createdAt` and can't be ordered by that). This is what lets a
+   *  specific post replace a specific skeleton slot instead of skeletons just shrinking from one
+   *  end: slot N is always "the Nth post in this run's plan", whether it's still a skeleton or
+   *  already has its image. Ties (same suggestedPostAt, or neither set) fall back to id order only
+   *  to keep the sort stable across recomputes — not a claim that this order is meaningful. */
+  protected readonly batchItems = computed(() => {
+    const ids = this.currentBatchItemIds();
+    return this.items()
+      .filter(i => ids.has(i.contentItemId))
+      .sort((a, b) => {
+        const at = a.suggestedPostAt ? new Date(a.suggestedPostAt).getTime() : Number.POSITIVE_INFINITY;
+        const bt = b.suggestedPostAt ? new Date(b.suggestedPostAt).getTime() : Number.POSITIVE_INFINITY;
+        return at !== bt ? at - bt : a.contentItemId.localeCompare(b.contentItemId);
+      });
+  });
+
+  /** Everything from an earlier batch — rendered as plain ready cards, unaffected by whatever the
+   *  current run is doing (never shown as a skeleton, even while generating() is true). */
+  protected readonly historyItems = computed(() => {
+    const ids = this.currentBatchItemIds();
+    return this.items().filter(i => !ids.has(i.contentItemId));
+  });
+
+  /** Generic placeholder count for the brief window between clicking "generate" and the content
+   *  plan actually fanning out into this run's own posts — before that, none of them have an
+   *  identity yet, so there's nothing to assign a slot to. Only ever shown then; once `batchItems`
+   *  is non-empty, each post owns a fixed slot instead. */
+  protected readonly pregenerationSkeletonCards = computed(() =>
+    Array.from({ length: this.postCount() }, (_, i) => i));
+
+  /** One list to render: this run's own posts (in their planned slot order) first, then everything
+   *  from earlier batches after — "skeletons on top" of already-generated history, not mixed in. */
+  protected readonly displayItems = computed(() => [...this.batchItems(), ...this.historyItems()]);
+
+  /** True only for a post that's both part of the run currently tracked here AND still missing its
+   *  image — the one case that renders as a skeleton instead of the real card. A history item
+   *  without an image (the standalone "generated with no image" case, unrelated to any run) always
+   *  renders as the real card, which already has its own "missing image, retry" state built in. */
+  protected isBatchPending(item: ContentItemSummary): boolean {
+    return !item.imageUrl && this.currentBatchItemIds().has(item.contentItemId);
+  }
 
   protected readonly socialAccounts = signal<SocialAccountSummary[]>([]);
 
@@ -389,10 +423,13 @@ export class CampaignContentPage {
       language: 'Ar',
       includeImages: true,
     }).subscribe({
-      next: () => {
+      // Fire-and-track: the request resolves as soon as the batch is *runnable*, not once it's
+      // done — nothing to refresh yet. Watching the run (poll + SignalR push) is what surfaces
+      // progress and, via the imagesCompleted effect above, each post's card as its image lands.
+      next: res => {
         this.requestInFlight.set(false);
         this.coinPricingService.refreshAfterSpend();
-        this.contentItemService.refresh(campaign.brandProfileId, this.campaignId()).subscribe();
+        if (res.data) this.aiPipelineService.startPolling(res.data.runId);
       },
       error: err => {
         this.requestInFlight.set(false);

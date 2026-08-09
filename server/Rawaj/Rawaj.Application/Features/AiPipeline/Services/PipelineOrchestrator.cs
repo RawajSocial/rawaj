@@ -254,6 +254,20 @@ public class PipelineOrchestrator(
             stage.CoinsCharged = 0;
         }
 
+        // A run that already finished a previous batch sits at Completed — a terminal status the
+        // background worker (AiPipelineWorkerHostedService) explicitly refuses to touch, regardless
+        // of what any individual stage's own status is. Resetting the stage above without this would
+        // leave that freshly-Pending ContentPlan row permanently stuck: candidate-selected by the
+        // worker's loose stage-status query every 2 seconds, then rejected every time by its run.Status
+        // gate. AdvanceAsync itself never checks run.Status before dispatching — only a caller sitting
+        // in front of it (the worker) does — which is exactly why this went unnoticed until content
+        // generation stopped calling AdvanceAsync directly and started depending on the worker alone.
+        if (run.Status is AiPipelineRunStatus.Completed or AiPipelineRunStatus.Failed or AiPipelineRunStatus.Cancelled)
+        {
+            run.Status = AiPipelineRunStatus.Running;
+            run.UpdatedAt = DateTime.UtcNow;
+        }
+
         await dbContext.SaveChangesAsync(cancellationToken);
         return stage;
     }
@@ -363,6 +377,19 @@ public class PipelineOrchestrator(
             SettleFailure(run, brand, campaign, stage, result);
         }
 
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        // Pushed from right here, not just once for the whole dispatch wave in AdvanceAsync: with N
+        // ContentImage stages fanned out and dispatched together, each one's own Cloudflare call
+        // finishes on its own schedule, sometimes seconds apart, and this is the only point that
+        // knows the moment any single one of them actually lands. Waiting for AdvanceAsync's
+        // end-of-wave push instead would mean every post appears at once — after the *slowest* of
+        // the batch, not each one as it's ready. This context only ever tracked this one stage
+        // before now, so the query below reads every sibling fresh off the store, including ones
+        // other isolated scopes have already completed concurrently.
+        var currentStages = await dbContext.AiPipelineStages
+            .Where(s => s.RunId == run.Id).ToListAsync(cancellationToken);
+        PipelineRunPublisher.Queue(dbContext, run, currentStages);
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 

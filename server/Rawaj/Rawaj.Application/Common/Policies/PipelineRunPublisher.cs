@@ -7,7 +7,8 @@ using Rawaj.Domain.Enums;
 namespace Rawaj.Application.Common.Policies;
 
 public record PipelineStageStatusPayload(
-    AiPipelineStageKind Kind, AiPipelineStageStatus Status, int Attempts, int MaxAttempts, string? LastError);
+    AiPipelineStageKind Kind, AiPipelineStageStatus Status, int Attempts, int MaxAttempts, string? LastError,
+    Guid? TargetRefId);
 
 /// <summary>The outbox payload shape for a "PipelineRunUpdated" delivery - shaped to match
 /// GetRunStatusResponse field-for-field so the frontend can apply a pushed update the same way it
@@ -36,7 +37,7 @@ public static class PipelineRunPublisher
     {
         var progress = AiPipelineProgressPolicy.Calculate(stages, run.Status);
         var stagePayloads = stages
-            .Select(s => new PipelineStageStatusPayload(s.Kind, s.Status, s.Attempts, s.MaxAttempts, s.LastError))
+            .Select(s => new PipelineStageStatusPayload(s.Kind, s.Status, s.Attempts, s.MaxAttempts, s.LastError, s.TargetRefId))
             .ToList();
 
         var payload = new PipelineRunUpdatedPayload(

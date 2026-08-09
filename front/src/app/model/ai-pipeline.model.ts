@@ -51,6 +51,10 @@ export interface StageStatusSummary {
   attempts: number;
   maxAttempts: number;
   lastError?: string | null;
+  /** For a fanned-out stage (today, only `ContentImage`), the ContentItem id it's producing. Null
+   *  for every other stage kind. Lets the client tell this run's batch of posts apart from ones the
+   *  campaign already had from an earlier generation — ContentItem itself carries no batch id. */
+  targetRefId?: string | null;
 }
 
 /** GET /api/v1/ai-pipeline/runs/{runId} — GetRunStatusResponse. The poll target. */

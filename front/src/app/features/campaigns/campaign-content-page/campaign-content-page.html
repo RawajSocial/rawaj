@@ -143,8 +143,29 @@
     }
 
     <section class="cc-items">
-      @for (item of readyItems(); track item.contentItemId) {
-        <div class="cc-item-card" [class.cc-item-card--no-image]="!item.imageUrl">
+      @if (generating() && batchItems().length === 0) {
+        @for (n of pregenerationSkeletonCards(); track n) {
+          <div class="cc-skeleton-card">
+            <span class="cc-sk cc-sk-tag"></span>
+            <span class="cc-sk cc-sk-image"></span>
+            <span class="cc-sk cc-sk-line cc-sk-line--90"></span>
+            <span class="cc-sk cc-sk-line cc-sk-line--70"></span>
+            <span class="cc-sk cc-sk-actions"></span>
+          </div>
+        }
+      }
+
+      @for (item of displayItems(); track item.contentItemId) {
+        @if (isBatchPending(item)) {
+          <div class="cc-skeleton-card">
+            <span class="cc-sk cc-sk-tag"></span>
+            <span class="cc-sk cc-sk-image"></span>
+            <span class="cc-sk cc-sk-line cc-sk-line--90"></span>
+            <span class="cc-sk cc-sk-line cc-sk-line--70"></span>
+            <span class="cc-sk cc-sk-actions"></span>
+          </div>
+        } @else {
+          <div class="cc-item-card" [class.cc-item-card--no-image]="!item.imageUrl">
           <div class="cc-item-head">
             @if (isSchedulable(item) && perms.canEdit()) {
               <input type="checkbox" class="cc-item-select" [checked]="isSelected(item)" (change)="toggleSelectItem(item)" aria-label="تحديد للجدولة" />
@@ -280,19 +301,11 @@
               }
             </div>
           }
-        </div>
-      }
-
-      @if (generating()) {
-        @for (n of generationSkeletonCards(); track n) {
-          <div class="cc-skeleton-card">
-            <span class="cc-sk cc-sk-tag"></span>
-            <span class="cc-sk cc-sk-image"></span>
-            <span class="cc-sk cc-sk-line cc-sk-line--90"></span>
-            <span class="cc-sk cc-sk-line cc-sk-line--70"></span>
           </div>
         }
-      } @else if (readyItems().length === 0) {
+      }
+
+      @if (!generating() && items().length === 0) {
         <div class="cc-state">لا يوجد محتوى بعد — اضغط "توليد المحتوى" للبدء.</div>
       }
     </section>
