@@ -1,3 +1,4 @@
+using Rawaj.Application.Common.Services;
 using Rawaj.Domain.Entities.Tenants;
 
 namespace Rawaj.Application.Features.AiPipeline.Prompts;
@@ -13,25 +14,47 @@ namespace Rawaj.Application.Features.AiPipeline.Prompts;
 ///
 /// <para>The narrative fields are Arabic because they surface in the strategy review the user reads;
 /// the instructions stay English, which is the language the model follows best.</para>
+///
+/// <para><b>Prompt injection containment.</b> Every field this prompt reads (brand profile fields,
+/// onboarding brief JSON) was typed by the tenant, not by us — and this stage's output is explicitly
+/// treated as "established" by every later stage without being re-sanitized (see
+/// <c>CampaignAnalysisPrompt</c>, <c>StrategyPrompt</c>), so an injected instruction that survives here
+/// would propagate uncontained into every future generation for this brand. Brand fields go through
+/// <see cref="PromptFragments.AddWrappedBrandIdentity"/> (PII redaction, then the same delimited
+/// "this is DATA" pattern the research prompts use for scraped web text), plus a standalone guard
+/// sentence at the very top of the prompt.</para>
 /// </summary>
 public static class BrandAnalysisPrompt
 {
+    /// <summary>Cap for the onboarding brief block. Generous enough for a full multi-answer brief
+    /// (unlike a single research excerpt, this is one tenant-authored JSON blob, not many competing
+    /// spans), still a hard bound on what an oversized field could spend of the token budget.</summary>
+    private const int BriefMaxLength = 1_500;
+
     public static string Build(TenantBrandProfile brand, string? briefJson)
     {
         var lines = new List<string>
         {
+            PromptFragments.InjectionGuardInstruction,
             $"You are a brand strategist producing a durable profile of the brand \"{brand.Name}\". " +
             "This profile will be reused across every future marketing campaign for this brand, so describe what is " +
             "true of the brand itself rather than of any one campaign."
         };
 
-        PromptFragments.AddBrandIdentity(lines, brand);
+        PromptFragments.AddWrappedBrandIdentity(lines, brand);
 
         if (!string.IsNullOrWhiteSpace(briefJson))
         {
-            lines.Add(
-                "Here is the JSON of what the business entered during onboarding, including their answers to AI " +
-                "follow-up questions. Use it for anything the brand fields above do not cover: " + briefJson);
+            var wrappedBrief = UntrustedTextSanitizer.Wrap(
+                "Onboarding brief JSON, typed by the business", [PiiRedactor.Redact(briefJson)], BriefMaxLength);
+
+            if (wrappedBrief.Length > 0)
+            {
+                lines.Add(
+                    "Here is the JSON of what the business entered during onboarding, including their answers to AI " +
+                    "follow-up questions. Use it for anything the brand fields above do not cover.");
+                lines.Add(wrappedBrief);
+            }
         }
 
         lines.Add(

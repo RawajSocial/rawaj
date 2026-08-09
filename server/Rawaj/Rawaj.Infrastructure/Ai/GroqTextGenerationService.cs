@@ -18,6 +18,12 @@ public class GroqTextGenerationService(
 {
     private readonly GroqSettings _settings = settings.Value;
 
+    // static, not instance: this service is registered Scoped (DependencyInjection.cs), so a new
+    // instance exists per isolated pipeline-stage scope — an instance field would reset to the same
+    // starting key on every single call and never actually rotate. Interlocked.Increment is what
+    // makes this safe across the genuinely concurrent calls several stages dispatched together make.
+    private static int _nextKeyIndex = -1;
+
     public async Task<AiTextGenerationResult> GenerateTextAsync(
         string prompt, CancellationToken cancellationToken, AiTextGenerationOptions? options = null)
     {
@@ -72,8 +78,16 @@ public class GroqTextGenerationService(
 
         int ElapsedMs() => (int)Stopwatch.GetElapsedTime(startedAt).TotalMilliseconds;
 
-        foreach (var apiKey in apiKeys)
+        // Round-robin the starting key rather than always beginning at apiKeys[0]: each key belongs
+        // to a separate Groq organization with its own independent TPM budget, so spreading normal
+        // (non-failure) traffic across all of them lets concurrent stage calls avoid piling onto the
+        // one budget key #1 would otherwise take alone. A failure still falls back through the rest
+        // of the list in order, wrapping around — this only changes which key is tried *first*.
+        var startIndex = (int)((uint)Interlocked.Increment(ref _nextKeyIndex) % apiKeys.Count);
+
+        foreach (var offset in Enumerable.Range(0, apiKeys.Count))
         {
+            var apiKey = apiKeys[(startIndex + offset) % apiKeys.Count];
             var client = httpClientFactory.CreateClient("Groq");
             client.BaseAddress = new Uri(_settings.BaseUrl.TrimEnd('/') + "/");
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
@@ -97,11 +111,12 @@ public class GroqTextGenerationService(
 
                     lastError = message;
 
-                    // Only a quota/auth rejection is worth retrying on another key - that failure
-                    // belongs to the key (or its organization), so a key from a different Groq
-                    // account can still succeed. Anything else (a malformed prompt, a provider
-                    // outage) would fail identically on every key, so it's surfaced immediately
-                    // rather than burning the whole list on a doomed request.
+                    // Worth retrying on another key: Groq's TPM limit is enforced per-organization
+                    // (its own error message names the org), so a key from a different Groq
+                    // organization than the one that just got rate-limited can genuinely still
+                    // succeed — this deployment's configured keys are a deliberate mix of several
+                    // orgs specifically so this rotation has real headroom to fall back on, not just
+                    // more requests to the same exhausted budget.
                     if (IsKeyRejection(response.StatusCode))
                     {
                         logger.LogWarning(

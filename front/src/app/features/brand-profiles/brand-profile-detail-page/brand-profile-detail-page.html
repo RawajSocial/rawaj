@@ -94,18 +94,35 @@
           </div>
         </div>
 
+        <div class="form-row">
+          <div class="rw-field">
+            <label for="bp-location">الموقع الجغرافي</label>
+            <input id="bp-location" type="text" formControlName="location" [readOnly]="!canEdit()">
+          </div>
+          <div class="rw-field">
+            <label for="bp-instagram">حساب إنستغرام</label>
+            <input id="bp-instagram" type="text" formControlName="instagram" [readOnly]="!canEdit()" placeholder="brand.name@">
+          </div>
+        </div>
+
         <div class="rw-field">
           <label for="bp-description">نبذة</label>
           <textarea id="bp-description" formControlName="description" rows="3" [readOnly]="!canEdit()"></textarea>
         </div>
 
         <div class="rw-field">
-          <label for="bp-voice">أسلوب العلامة</label>
-          @if (canEdit()) {
-            <app-select-dropdown id="bp-voice" formControlName="brandVoice" [options]="voiceOptions" />
-          } @else {
-            <input type="text" [value]="d.brandVoice ? voiceLabels[d.brandVoice] : '—'" readonly>
-          }
+          <label>
+            نبرة العلامة <span class="field-optional">(اختر حتى 5)</span>
+            <span class="tone-count" [class.at-limit]="selectedTones().length >= 5">{{ selectedTones().length }} / 5</span>
+          </label>
+          <div class="chips">
+            @for (opt of toneOptions; track opt.value) {
+              <button type="button" class="chip" [disabled]="!canEdit() || (selectedTones().length >= 5 && !selectedTones().includes(opt.value))"
+                [class.active]="selectedTones().includes(opt.value)" (click)="toggleTone(opt.value)">
+                {{ opt.label }}
+              </button>
+            }
+          </div>
         </div>
 
         <div class="form-row">
@@ -122,6 +139,81 @@
         <div class="rw-field">
           <label for="bp-keywords">كلمات مفتاحية <span class="field-optional">(مفصولة بفواصل)</span></label>
           <input id="bp-keywords" type="text" formControlName="keywords" [readOnly]="!canEdit()">
+        </div>
+
+        <div class="form-row">
+          <div class="rw-field">
+            <label for="bp-business-age">كم مضى على النشاط؟</label>
+            <select id="bp-business-age" formControlName="businessAge">
+              <option value="">اختر المدة</option>
+              @for (opt of businessAgeOptions; track opt) {
+                <option [value]="opt">{{ opt }}</option>
+              }
+            </select>
+          </div>
+          <div class="rw-field">
+            <label for="bp-establish-date">تاريخ تأسيس النشاط</label>
+            <input id="bp-establish-date" type="date" formControlName="businessEstablishDate" [readOnly]="!canEdit()">
+          </div>
+        </div>
+
+        <div class="rw-field">
+          <label>مرحلة النشاط الحالية</label>
+          <div class="chips">
+            @for (opt of stageOptions; track opt.value) {
+              <button type="button" class="chip" [disabled]="!canEdit()" [class.active]="selectedStage() === opt.value" (click)="selectStage(opt.value)">
+                <i [class]="opt.icon"></i> {{ opt.label }}
+              </button>
+            }
+          </div>
+        </div>
+
+        <div class="rw-field">
+          <label for="bp-unique-value">ما الذي يميزك عن المنافسين؟</label>
+          <textarea id="bp-unique-value" formControlName="uniqueValue" rows="3" [readOnly]="!canEdit()"
+            placeholder="مثال: جودة عالية، تصميم حصري، توصيل سريع..."></textarea>
+        </div>
+
+        <div class="rw-field">
+          <label>مستوى التسعير</label>
+          <div class="chips">
+            @for (opt of priceOptions; track opt.value) {
+              <button type="button" class="chip" [disabled]="!canEdit()" [class.active]="selectedPricePositioning() === opt.value" (click)="selectPricePositioning(opt.value)">
+                <i [class]="opt.icon"></i> {{ opt.label }}
+              </button>
+            }
+          </div>
+        </div>
+
+        <div class="rw-field">
+          <label>أين تبيع؟</label>
+          <div class="chips">
+            @for (opt of storeOptions; track opt.value) {
+              <button type="button" class="chip" [disabled]="!canEdit()" [class.active]="selectedStorePresence() === opt.value" (click)="selectStorePresence(opt.value)">
+                <i [class]="opt.icon"></i> {{ opt.label }}
+              </button>
+            }
+          </div>
+        </div>
+
+        <div class="rw-field">
+          <label>محتوى موجود على هذه المنصات <span class="field-optional">(اختر كل ما ينطبق)</span></label>
+          <div class="chips">
+            @for (p of platformOptions; track p.value) {
+              <button type="button" class="chip" [disabled]="!canEdit()" [class.active]="selectedPlatforms().includes(p.value)" (click)="togglePlatform(p.value)">
+                <i [class]="p.icon"></i> {{ p.label }}
+              </button>
+            }
+          </div>
+        </div>
+
+        <div class="rw-field">
+          <label>برندات تُلهمك أو منافسون تتابعهم <span class="field-optional">(اختياري)</span></label>
+          <div class="form-row form-row--3">
+            <input type="text" formControlName="admiredBrand1" [readOnly]="!canEdit()" placeholder="مثال: نايك">
+            <input type="text" formControlName="admiredBrand2" [readOnly]="!canEdit()" placeholder="مثال: أبل">
+            <input type="text" formControlName="admiredBrand3" [readOnly]="!canEdit()" placeholder="مثال: ستاربكس">
+          </div>
         </div>
 
         @if (canEdit()) {

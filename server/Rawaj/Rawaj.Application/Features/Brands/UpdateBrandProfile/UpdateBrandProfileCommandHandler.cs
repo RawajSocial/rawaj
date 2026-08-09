@@ -31,13 +31,9 @@ public class UpdateBrandProfileCommandHandler(IApplicationDbContext dbContext, I
             brandProfile.Description = request.Description;
         }
 
-        if (request.BrandVoice.HasValue)
-        {
-            brandProfile.BrandVoice = request.BrandVoice;
-        }
-
         brandProfile.BrandInfo ??= new BrandInfo();
 
+        if (request.Tones is not null) brandProfile.BrandInfo.Tones = request.Tones;
         if (request.Tagline is not null) brandProfile.BrandInfo.Tagline = request.Tagline;
         if (request.Industry is not null) brandProfile.BrandInfo.Industry = request.Industry;
         if (request.TargetAudience is not null) brandProfile.BrandInfo.TargetAudience = request.TargetAudience;
@@ -46,6 +42,18 @@ public class UpdateBrandProfileCommandHandler(IApplicationDbContext dbContext, I
         if (request.WebsiteUrl is not null) brandProfile.BrandInfo.WebsiteUrl = UrlNormalizer.EnsureScheme(request.WebsiteUrl);
         if (request.SupportedLanguages is not null) brandProfile.BrandInfo.SupportedLanguages = request.SupportedLanguages;
         if (request.Keywords is not null) brandProfile.BrandInfo.Keywords = request.Keywords;
+        if (request.Location is not null) brandProfile.BrandInfo.Location = request.Location;
+        if (request.Instagram is not null) brandProfile.BrandInfo.Instagram = request.Instagram;
+        if (request.BusinessAge is not null) brandProfile.BrandInfo.BusinessAge = request.BusinessAge;
+        if (request.BusinessEstablishDate.HasValue) brandProfile.BrandInfo.BusinessEstablishDate = request.BusinessEstablishDate;
+        if (request.Stage is not null) brandProfile.BrandInfo.Stage = request.Stage;
+        if (request.UniqueValue is not null) brandProfile.BrandInfo.UniqueValue = request.UniqueValue;
+        if (request.PricePositioning is not null) brandProfile.BrandInfo.PricePositioning = request.PricePositioning;
+        if (request.StorePresence is not null) brandProfile.BrandInfo.StorePresence = request.StorePresence;
+        if (request.ExistingPlatforms is not null) brandProfile.BrandInfo.ExistingPlatforms = request.ExistingPlatforms;
+        if (request.AdmiredBrand1 is not null) brandProfile.BrandInfo.AdmiredBrand1 = request.AdmiredBrand1;
+        if (request.AdmiredBrand2 is not null) brandProfile.BrandInfo.AdmiredBrand2 = request.AdmiredBrand2;
+        if (request.AdmiredBrand3 is not null) brandProfile.BrandInfo.AdmiredBrand3 = request.AdmiredBrand3;
 
         brandProfile.UpdatedAt = DateTime.UtcNow;
 
@@ -56,7 +64,7 @@ public class UpdateBrandProfileCommandHandler(IApplicationDbContext dbContext, I
                 brandProfile.Id,
                 brandProfile.Name,
                 brandProfile.Description,
-                brandProfile.BrandVoice,
+                brandProfile.BrandInfo.Tones,
                 brandProfile.Status,
                 brandProfile.BrandInfo.IsDefault));
     }

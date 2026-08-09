@@ -35,6 +35,6 @@ export class MediaCard {
   }
 
   formatDate(iso: string): string {
-    return new Date(iso).toLocaleDateString('ar-SA', { year: 'numeric', month: 'short', day: 'numeric' });
+    return new Date(iso).toLocaleDateString('ar-EG', { year: 'numeric', month: 'short', day: 'numeric' });
   }
 }

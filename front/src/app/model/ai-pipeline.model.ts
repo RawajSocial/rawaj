@@ -57,7 +57,15 @@ export interface StageStatusSummary {
   targetRefId?: string | null;
 }
 
-/** GET /api/v1/ai-pipeline/runs/{runId} — GetRunStatusResponse. The poll target. */
+/** GET /api/v1/ai-pipeline/runs/{runId} — GetRunStatusResponse. The poll target.
+ *
+ *  `version`: a monotonic counter bumped on the backend every time a status snapshot is queued for
+ *  push (see PipelineRunPublisher). Each ContentImage stage in a fanned-out batch completes in its own
+ *  isolated DB scope and independently re-queries every sibling before pushing, so two pushes — one
+ *  from a poll, one from SignalR, or two SignalR pushes themselves — can arrive out of order relative
+ *  to which one actually reflects more progress. AiPipelineService compares this field and discards
+ *  any incoming update whose version is lower than one it already has for the same run, rather than
+ *  trusting delivery order. */
 export interface GetRunStatusResponse {
   runId: string;
   status: AiPipelineRunStatus;
@@ -65,6 +73,7 @@ export interface GetRunStatusResponse {
   totalCoinsSpent: number;
   lastError?: string | null;
   stages: StageStatusSummary[];
+  version: number;
 }
 
 /** GET /api/v1/ai-pipeline/campaigns/{campaignId}/artifacts/{kind} — GetArtifactResponse. Returns

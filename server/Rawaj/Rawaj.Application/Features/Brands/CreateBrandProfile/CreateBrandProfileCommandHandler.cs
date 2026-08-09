@@ -40,7 +40,6 @@ public class CreateBrandProfileCommandHandler(IApplicationDbContext dbContext, I
             TenantId = tenantId,
             Name = request.Name,
             Description = request.Description,
-            BrandVoice = request.BrandVoice,
             Status = BrandProfileStatus.Active,
             BrandInfo = new BrandInfo
             {
@@ -53,7 +52,19 @@ public class CreateBrandProfileCommandHandler(IApplicationDbContext dbContext, I
                 SupportedLanguages = request.SupportedLanguages ?? [],
                 Keywords = request.Keywords ?? [],
                 Location = request.Location,
-                IsDefault = existingBrandCount == 0
+                IsDefault = existingBrandCount == 0,
+                Tones = request.Tones ?? [],
+                Instagram = request.Instagram,
+                BusinessAge = request.BusinessAge,
+                BusinessEstablishDate = request.BusinessEstablishDate,
+                Stage = request.Stage,
+                UniqueValue = request.UniqueValue,
+                PricePositioning = request.PricePositioning,
+                StorePresence = request.StorePresence,
+                ExistingPlatforms = request.ExistingPlatforms ?? [],
+                AdmiredBrand1 = request.AdmiredBrand1,
+                AdmiredBrand2 = request.AdmiredBrand2,
+                AdmiredBrand3 = request.AdmiredBrand3
             },
             CreatedAt = now,
             UpdatedAt = now

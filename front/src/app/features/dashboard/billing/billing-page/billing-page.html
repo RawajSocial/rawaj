@@ -122,7 +122,7 @@
         <div class="usage-row">
           <div class="usage-row-head">
             <span class="usage-label">رصيد الكوينز</span>
-            <span class="usage-value">{{ coinBalance().toLocaleString('ar-SA') }} كوين</span>
+            <span class="usage-value">{{ coinBalance().toLocaleString('ar-EG') }} كوين</span>
           </div>
         </div>
       </div>
@@ -163,9 +163,9 @@
       @for (pkg of pricing()?.coinPackages ?? []; track pkg.coinPackageId) {
         <div class="package-card">
           <span class="package-name">{{ pkg.name }}</span>
-          <span class="package-coins">{{ pkg.coins.toLocaleString('ar-SA') }}</span>
+          <span class="package-coins">{{ pkg.coins.toLocaleString('ar-EG') }}</span>
           @if (pkg.bonusCoins > 0) {
-            <span class="package-bonus">+ {{ pkg.bonusCoins.toLocaleString('ar-SA') }} مكافأة</span>
+            <span class="package-bonus">+ {{ pkg.bonusCoins.toLocaleString('ar-EG') }} مكافأة</span>
           }
           <span class="package-price">${{ pkg.priceUsd }}</span>
           <button type="button" class="rw-btn rw-btn--primary" (click)="buyPackage(pkg.coinPackageId, pkg.name, pkg.priceUsd)">

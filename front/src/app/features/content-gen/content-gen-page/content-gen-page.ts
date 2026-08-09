@@ -214,7 +214,7 @@ export class ContentGenPage {
     }
 
     const cost = isImageType ? pricing.discountedCosts.visualGeneration : pricing.discountedCosts.contentGeneration;
-    return `سيتم خصم ${cost.toLocaleString('ar-SA')} كوين من رصيدك عند التوليد`;
+    return `سيتم خصم ${cost.toLocaleString('ar-EG')} كوين من رصيدك عند التوليد`;
   });
 
   constructor(readonly media: MediaService) {
@@ -519,5 +519,5 @@ export class ContentGenPage {
     return { 'static-ad': 'linear-gradient(135deg,#fce4ec,#fce4ec66)', 'video': 'linear-gradient(135deg,#fff3e0,#fff3e066)', 'text': 'linear-gradient(135deg,#ede9fe,#ede9fe66)' }[type];
   }
 
-  formatDateTime(iso: string): string { return new Date(iso).toLocaleString('ar-SA', { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }); }
+  formatDateTime(iso: string): string { return new Date(iso).toLocaleString('ar-EG', { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }); }
 }

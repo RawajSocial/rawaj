@@ -53,7 +53,7 @@
       <div class="mp-stat">
         <div class="mp-stat-ico" style="background:rgba(124,58,237,.1);color:#7C3AED"><i class="fa-solid fa-sack-dollar"></i></div>
         <div class="mp-stat-val">{{ formatNum(plan().budgetFrom) }}–{{ formatNum(plan().budgetTo) }}</div>
-        <div class="mp-stat-lbl">الميزانية الشهرية (ريال)</div>
+        <div class="mp-stat-lbl">الميزانية الشهرية (جنيه)</div>
       </div>
     </div>
     <div class="col-6 col-md-3">
@@ -242,7 +242,7 @@
             </div>
             <div class="mp-ov-row">
               <span class="mp-ov-k">الميزانية</span>
-              <span class="mp-ov-v fw-bold">{{ formatNum(plan().budgetFrom) }} – {{ formatNum(plan().budgetTo) }} ريال/شهر</span>
+              <span class="mp-ov-v fw-bold">{{ formatNum(plan().budgetFrom) }} – {{ formatNum(plan().budgetTo) }} جنيه/شهر</span>
             </div>
           </div>
         } @else {
@@ -253,12 +253,12 @@
                      [value]="editBrand()" (input)="editBrand.set($any($event.target).value)">
             </div>
             <div class="mb-2">
-              <label class="mp-edit-lbl">الميزانية من (ريال)</label>
+              <label class="mp-edit-lbl">الميزانية من (جنيه)</label>
               <input type="number" class="form-control form-control-sm"
                      [value]="editBudgetFrom()" (input)="editBudgetFrom.set(+$any($event.target).value)">
             </div>
             <div class="mb-3">
-              <label class="mp-edit-lbl">الميزانية إلى (ريال)</label>
+              <label class="mp-edit-lbl">الميزانية إلى (جنيه)</label>
               <input type="number" class="form-control form-control-sm"
                      [value]="editBudgetTo()" (input)="editBudgetTo.set(+$any($event.target).value)">
             </div>

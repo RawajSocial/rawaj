@@ -29,6 +29,6 @@ export class MpPlansList {
   }
 
   formatDate(ts: number): string {
-    return new Date(ts).toLocaleDateString('ar-SA', { year: 'numeric', month: 'long', day: 'numeric' });
+    return new Date(ts).toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' });
   }
 }

@@ -3,7 +3,6 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { OnboardingSidebar } from '../onboarding-sidebar/onboarding-sidebar';
 import { OnboardingStepOne } from '../onboarding-step-one/onboarding-step-one';
 import { OnboardingStepCampaignBrief } from '../onboarding-step-campaign-brief/onboarding-step-campaign-brief';
-import { OnboardingStepThree } from '../onboarding-step-three/onboarding-step-three';
 import { SeoService } from '../../../services/seo.service';
 import { OnboardingStepFour } from '../onboarding-step-four/onboarding-step-four';
 import { OnboardingStepFive } from '../onboarding-step-five/onboarding-step-five';
@@ -33,7 +32,6 @@ const AUTOSAVE_DEBOUNCE_MS = 1000;
     OnboardingSidebar,
     OnboardingStepOne,
     OnboardingStepCampaignBrief,
-    OnboardingStepThree,
     OnboardingStepFour,
     OnboardingStepFive,
     OnboardingStepSix,
@@ -45,7 +43,7 @@ const AUTOSAVE_DEBOUNCE_MS = 1000;
   styleUrl: './rawaj-onboarding.css',
 })
 export class RawajOnboarding {
-  protected readonly totalSteps = 7;
+  protected readonly totalSteps = 6;
   protected readonly currentStep: WritableSignal<number>;
   protected readonly onboardingData = signal<OnboardingData>({});
   /** Pure UI position — not business data, safe to keep client-side. */
@@ -173,7 +171,13 @@ export class RawajOnboarding {
           if (campaign && campaign.status === 'Draft' && !campaign.planApprovedAt) {
             this.campaignId.set(existingDraftId);
             this.onboardingData.set(this.parseBriefJson(campaign.briefJson));
-            this.currentStep.set(this.loadSavedStep());
+            // Same check resumeSpecificDraft makes: a plain same-tab refresh has no other way to
+            // tell "finished the wizard, now waiting on plan-approval" apart from "still on some
+            // step 1-6" — loadSavedStep() only ever returns a value in [1, totalSteps], since step 7
+            // (plan-approval) is deliberately never persisted there, so without this a refresh while
+            // the strategy is generating fell back to whatever step was last saved (step 6, the chat)
+            // instead of staying on the waiting screen.
+            this.currentStep.set(campaign.onboardingCompletedAt ? this.totalSteps + 1 : this.loadSavedStep());
             this.draftReady.set(true);
             this.stripEntryQueryParams();
           } else {
@@ -401,8 +405,9 @@ export class RawajOnboarding {
   }
 
   private resolveCampaignFields(data: OnboardingData) {
+    const brandName = this.selectedBrandProfile()?.name;
     const name = (data.campaignName?.trim())
-      || (data.brandName ? `حملة ${data.brandName}` : 'حملة جديدة');
+      || (brandName ? `حملة ${brandName}` : 'حملة جديدة');
     const objective = data.campaignGoal ?? data.campaignOutcome;
     const targetPlatforms = this.resolvePlatforms(data);
     const startDate = data.campaignStartDate || undefined;
@@ -416,7 +421,7 @@ export class RawajOnboarding {
       startDate,
       endDate,
       budgetAmount,
-      budgetCurrency: budgetAmount ? 'SAR' : undefined,
+      budgetCurrency: budgetAmount ? 'EGP' : undefined,
       briefJson: JSON.stringify(data),
     };
   }
@@ -469,8 +474,6 @@ type OnboardingData = {
   campaignStartDate?: string;
   campaignDuration?: string;
   // Step 1 — New Business Launch
-  businessEstablishDate?: string;
-  brandIdentityReady?: string;
   businessLaunchDate?: string;
   // Step 1 — New Product Launch
   productName?: string;
@@ -490,35 +493,11 @@ type OnboardingData = {
   leadAction?: string;
   hasLandingPage?: string;
   landingPageUrl?: string;
-  brandStatusForLeads?: string;
   contentFeeling?: string;
   // Step 1 — Brand Awareness
   mainMessage?: string;
   // Step 1 — Other
   campaignDescription?: string;
-  // Step 3 — Brand Overview
-  brandName?: string;
-  tagline?: string;
-  instagram?: string;
-  website?: string;
-  sector?: string;
-  location?: string;
-  businessAge?: string;
-  stage?: string;
-  brandWord1?: string;
-  brandWord2?: string;
-  brandWord3?: string;
-  brandTone?: string[];
-  hasGuidelines?: string;
-  guidelinesFile?: string;
-  brandColors?: string[];
-  logoFile?: string;
-  languages?: string[];
-  productDesc?: string;
-  uniqueValue?: string;
-  pricePositioning?: string;
-  storePresence?: string;
-  existingPlatforms?: string[];
   // Step 4 — Target Audience
   gender?: 'female' | 'male' | 'all';
   customerType?: string;
@@ -536,9 +515,6 @@ type OnboardingData = {
   positioningVs?: string;
   campaignOutcome?: string;
   successMetrics?: string[];
-  brandAdmire1?: string;
-  brandAdmire2?: string;
-  brandAdmire3?: string;
   monthlyBudget?: string;
   platformRanking?: string[];
   goals?: string[];

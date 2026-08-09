@@ -4,15 +4,15 @@ import { map, Observable, of, switchMap, tap } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { ApiResponse } from '../model/auth.model';
 import {
-  BrandProfile, BrandProfileDetail, BrandProfileSummary, CreateBrandProfileResponse, UpdateBrandProfileRequest,
-  UpdateBrandProfileResponse,
+  BrandProfile, BrandProfileDetail, BrandProfileIdentity, BrandProfileSummary, CreateBrandProfileResponse,
+  UpdateBrandProfileRequest, UpdateBrandProfileResponse,
 } from '../model/brand-profile.model';
 import { resolveMediaUrl } from '../core/auth/media-url.util';
 
-export interface CreateBrandProfileInput {
+export interface CreateBrandProfileInput extends Partial<BrandProfileIdentity> {
   name: string;
   description?: string;
-  brandVoice?: BrandProfile['brandVoice'];
+  tones?: BrandProfile['tones'];
   tagline?: string;
   industry?: string;
   targetAudience?: string;
@@ -29,7 +29,7 @@ function toBrandProfile(summary: BrandProfileSummary): BrandProfile {
     id: summary.brandProfileId,
     name: summary.name,
     description: summary.description,
-    brandVoice: summary.brandVoice,
+    tones: summary.tones,
     status: summary.status,
     isDefault: summary.isDefault,
     tagline: summary.tagline,
@@ -38,6 +38,7 @@ function toBrandProfile(summary: BrandProfileSummary): BrandProfile {
     logoUrl: resolveMediaUrl(summary.logoUrl),
     supportedLanguages: [],
     keywords: [],
+    existingPlatforms: [],
   };
 }
 

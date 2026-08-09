@@ -1,3 +1,4 @@
+using Rawaj.Application.Common.Services;
 using Rawaj.Application.Features.Content.Common;
 using Rawaj.Domain.Entities.Campaigns;
 using Rawaj.Domain.Entities.Tenants;
@@ -13,11 +14,31 @@ namespace Rawaj.Application.Features.AiPipeline.Prompts;
 /// generation is gated on the approval, so generating posts that ignore it would make the whole
 /// approval step decorative. <c>CampaignContentPromptTests</c> locks this in, because nothing fails
 /// loudly when it regresses — the output just quietly stops following the plan.</para>
+///
+/// <para><b>Prompt injection containment.</b> This call runs on every content batch — not a rare
+/// fallback like the other prompts' <c>AddBrandIdentity</c> branch — so it's the highest-traffic path
+/// that was still sending raw tenant/upstream text unwrapped. Same treatment as the rest of the
+/// pipeline now: a standalone guard sentence, brand identity via
+/// <see cref="PromptFragments.AddWrappedBrandIdentity"/>, and the campaign objective/strategy/brief all
+/// PII-redacted and wrapped via <see cref="UntrustedTextSanitizer"/>. Competitor insights are wrapped
+/// too but deliberately not PII-redacted — they're raw excerpts from third-party web pages (see
+/// <c>CompetitorResearchExecutor</c>'s <c>RagDocument</c> rows), the same "expected, on-topic, not our
+/// tenant's data" category as <c>ResearchSynthesisPrompt</c>'s excerpts.</para>
 /// </summary>
 public static class ContentPlanPrompt
 {
-    /// <param name="strategyJson">The approved strategy. Its <c>campaignBlueprint</c> (pillars, key
-    /// themes, posting cadence, content mix) is what the posts must actually follow.</param>
+    private const int StrategyMaxLength = 1_200;
+    private const int BriefMaxLength = 1_200;
+
+    private static readonly string[] StrategyFieldsNeeded = ["campaignBlueprint", "brandStrategy", "marketingStrategy"];
+
+    /// <param name="strategyJson">The approved strategy. Trimmed to <see cref="StrategyFieldsNeeded"/>
+    /// before it reaches the model: <c>campaignBlueprint</c> (pillars, key themes, posting cadence,
+    /// content mix) is what the posts must actually follow, and <c>brandStrategy</c>/
+    /// <c>marketingStrategy</c> keep the voice consistent. The rest of the strategy object
+    /// (<c>executiveSummary</c>, <c>businessAndMarketAnalysis</c>, <c>aiRecommendations</c>) is
+    /// grounding the strategy stages already absorbed when they built this JSON — resending it here
+    /// was pure token cost with nothing this stage acts on.</param>
     /// <param name="briefJson">The raw onboarding answers plus the AI follow-up questions. Supplies
     /// audience and tone specifics the strategy summarises but doesn't repeat verbatim. The business
     /// diagnosis is deliberately <i>not</i> passed as well: the strategy was already built on top of
@@ -25,7 +46,6 @@ public static class ContentPlanPrompt
     public static string Build(
         TenantBrandProfile brand,
         MarketingCampaign campaign,
-        List<string> competitorInsights,
         string postingTimeSummary,
         int postCount,
         List<SocialPlatform> platforms,
@@ -34,17 +54,23 @@ public static class ContentPlanPrompt
         string? briefJson = null,
         ContentTemplateStyle templateStyle = ContentTemplateStyle.Auto)
     {
-        var lines = new List<string>
-        {
-            $"Create {postCount} distinct social media posts for the campaign \"{campaign.Name}\" for the brand \"{brand.Name}\", " +
-            $"written in {language}, distributed across these platforms: {string.Join(", ", platforms)}."
-        };
+        var lines = new List<string> { PromptFragments.InjectionGuardInstruction };
 
-        PromptFragments.AddBrandIdentity(lines, brand);
+        lines.Add(
+            $"Create {postCount} distinct social media posts for the campaign \"{campaign.Name}\" for the brand \"{brand.Name}\", " +
+            $"written in {language}, distributed across these platforms: {string.Join(", ", platforms)}.");
+
+        PromptFragments.AddWrappedBrandIdentity(lines, brand);
 
         if (!string.IsNullOrWhiteSpace(campaign.Objective))
         {
-            lines.Add($"Campaign objective: {campaign.Objective}.");
+            var wrappedObjective = UntrustedTextSanitizer.Wrap(
+                "Campaign objective, typed by the business", [PiiRedactor.Redact(campaign.Objective)]);
+
+            if (wrappedObjective.Length > 0)
+            {
+                lines.Add(wrappedObjective);
+            }
         }
 
         if (campaign.StartDate.HasValue && campaign.EndDate.HasValue)
@@ -54,25 +80,39 @@ public static class ContentPlanPrompt
 
         if (!string.IsNullOrWhiteSpace(strategyJson))
         {
-            lines.Add(
-                "This campaign already has a marketing strategy that the business owner reviewed and approved. " +
-                "These posts are the execution of that strategy, so follow it: draw the themes from its " +
-                "campaignBlueprint.pillars and keyThemes, respect its contentMix when choosing each post's " +
-                "contentType, and keep the voice consistent with its brandStrategy and marketingStrategy. " +
-                "Approved strategy JSON: " + strategyJson);
+            var trimmedStrategy = JsonFieldSelector.KeepFields(strategyJson, StrategyFieldsNeeded);
+            var wrappedStrategy = UntrustedTextSanitizer.Wrap(
+                "Approved strategy JSON", [PiiRedactor.Redact(trimmedStrategy)], StrategyMaxLength);
+
+            if (wrappedStrategy.Length > 0)
+            {
+                lines.Add(
+                    "This campaign already has a marketing strategy that the business owner reviewed and approved. " +
+                    "These posts are the execution of that strategy, so follow it: draw the themes from its " +
+                    "campaignBlueprint.pillars and keyThemes, respect its contentMix when choosing each post's " +
+                    "contentType, and keep the voice consistent with its brandStrategy and marketingStrategy.");
+                lines.Add(wrappedStrategy);
+            }
         }
 
         if (!string.IsNullOrWhiteSpace(briefJson))
         {
-            lines.Add(
-                "The business's own onboarding answers, including their replies to AI follow-up questions — use " +
-                "these for audience and tone specifics: " + briefJson);
+            var wrappedBrief = UntrustedTextSanitizer.Wrap(
+                "Onboarding brief JSON, typed by the business", [PiiRedactor.Redact(briefJson)], BriefMaxLength);
+
+            if (wrappedBrief.Length > 0)
+            {
+                lines.Add(
+                    "The business's own onboarding answers, including their replies to AI follow-up questions — use " +
+                    "these for audience and tone specifics:");
+                lines.Add(wrappedBrief);
+            }
         }
 
-        if (competitorInsights.Count > 0)
-        {
-            lines.Add("Known competitor intelligence: " + string.Join(" | ", competitorInsights));
-        }
+        // Competitor intelligence is deliberately not resent here: by the time a strategy is approved,
+        // StrategyPrompt.BuildBlueprint has already absorbed the relevant competitor positioning into
+        // campaignBlueprint (which strategyJson above carries trimmed) — a separate raw-excerpts block
+        // was redundant grounding at real token cost, not new information for this stage to act on.
 
         if (!string.IsNullOrWhiteSpace(postingTimeSummary))
         {

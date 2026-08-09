@@ -5,7 +5,6 @@ type OnboardingData = {
   leadAction?: string;
   hasLandingPage?: string;
   landingPageUrl?: string;
-  brandStatusForLeads?: string;
   contentFeeling?: string;
 };
 

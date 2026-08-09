@@ -147,7 +147,7 @@ export class BillingPage {
             this.coinPricingService.refresh().subscribe();
             this.loadHistory();
             const grantNote = res.data.coinsGranted > 0
-              ? `\nحصلت أيضًا على ${res.data.coinsGranted.toLocaleString('ar-SA')} كوين!`
+              ? `\nحصلت أيضًا على ${res.data.coinsGranted.toLocaleString('ar-EG')} كوين!`
               : '';
             this.celebrationModalService.show(`تم الاشتراك في باقة ${plan.name} بنجاح!${grantNote}`, 'مبروك!');
           } else {
@@ -208,7 +208,7 @@ export class BillingPage {
     }
     const price = amount * (this.pricing()?.customCoinPricePerCoin ?? 0.01);
     const confirmed = await this.fakePaymentModalService.confirm({
-      title: `شراء ${amount.toLocaleString('ar-SA')} كوين`,
+      title: `شراء ${amount.toLocaleString('ar-EG')} كوين`,
       priceLabel: `$${price.toFixed(2)}`,
       confirmLabel: 'تأكيد الشراء',
     });
@@ -227,7 +227,7 @@ export class BillingPage {
     if (res.status === 'success' && res.data) {
       this.tenantService.refresh().subscribe();
       this.loadHistory();
-      this.celebrationModalService.show(`تمت إضافة ${res.data.coinsGranted.toLocaleString('ar-SA')} كوين إلى رصيدك!`, 'مبروك!');
+      this.celebrationModalService.show(`تمت إضافة ${res.data.coinsGranted.toLocaleString('ar-EG')} كوين إلى رصيدك!`, 'مبروك!');
     } else {
       this.errorModalService.show(res.message ?? 'تعذّر إتمام عملية الشراء.');
     }

@@ -16,10 +16,15 @@ public enum TenantType
 public enum BrandVoice
 {
     Professional,
-    Playful,
-    Bold,
     Friendly,
-    Luxurious
+    Bold,
+    Playful,
+    Elegant,
+    Inspiring,
+    Educational,
+    Innovative,
+    Motivating,
+    WittyFunny
 }
 
 public enum BrandProfileStatus

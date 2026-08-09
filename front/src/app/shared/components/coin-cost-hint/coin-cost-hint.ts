@@ -35,9 +35,9 @@ export class CoinCostHint {
     }
 
     const total = this.cost() * this.multiplier();
-    const amount = total.toLocaleString('ar-SA');
+    const amount = total.toLocaleString('ar-EG');
     const prefix = this.multiplier() > 1
-      ? `حتى ${amount} كوين (${this.cost().toLocaleString('ar-SA')} × ${this.multiplier()})`
+      ? `حتى ${amount} كوين (${this.cost().toLocaleString('ar-EG')} × ${this.multiplier()})`
       : `${amount} كوين`;
 
     return this.conditional()

@@ -17,7 +17,7 @@
         (input)="emit({ productCategory: $any($event.target).value })" />
     </div>
     <div class="form-row">
-      <label>نقطة السعر <span>(ريال)</span></label>
+      <label>نقطة السعر <span>(جنيه)</span></label>
       <input type="text" class="form-control" placeholder="مثال: 199"
         [value]="data()?.productPricePoint || ''"
         (input)="emit({ productPricePoint: $any($event.target).value })" />

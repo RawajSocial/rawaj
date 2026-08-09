@@ -52,6 +52,19 @@ public class AiPipelineRun : BaseEntity, IConcurrencyAware
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 
+    /// <summary>Monotonic counter, atomically incremented (via <c>ExecuteUpdateAsync</c>, never a
+    /// tracked-entity read-then-save) every time a status snapshot is queued for push — see
+    /// <see cref="PipelineRunPublisher"/>. Each `ContentImage` stage in a fanned-out batch completes in
+    /// its own isolated DB scope and independently re-queries every sibling before pushing, so two
+    /// pushes can be delivered out of order relative to which one actually reflects more progress
+    /// (SignalR/outbox delivery order isn't guaranteed to match "how complete was this snapshot").
+    /// Distinct from <see cref="RowVersion"/>: that's an opaque EF concurrency token for write-conflict
+    /// detection, not something a client is meant to parse and compare, and (more importantly) it isn't
+    /// bumped by the per-stage-completion push path at all, since that path doesn't otherwise write to
+    /// this row. The client compares this field and discards any incoming update whose Version is lower
+    /// than one it already has for the same run.</summary>
+    public int Version { get; set; }
+
     /// <summary>Content-generation parameters, fixed for the run at <c>StartAsync</c> — the graph and
     /// <c>StageContext</c> carry no other run-level configuration, so <c>ContentPlanExecutor</c> and
     /// <c>ContentImageExecutor</c> read these directly off <see cref="StageContext.Run"/> rather than

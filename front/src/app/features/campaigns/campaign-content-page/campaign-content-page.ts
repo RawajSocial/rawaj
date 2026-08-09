@@ -112,18 +112,29 @@ export class CampaignContentPage {
    *  once a top-up lands, so there is nothing to click here (same as the strategy page's note). */
   protected readonly awaitingCoins = computed(() => this.aiPipelineService.run()?.status === 'AwaitingCoins');
 
+  /** Sticky accumulator behind `currentBatchItemIds` below — see that computed's remarks for why a
+   *  fresh-every-time derivation off `run()` isn't safe. Reset only when the watched run itself
+   *  changes (a new "generate content" click, or loading a different campaign), never by an
+   *  individual update simply omitting an id it showed before. */
+  private readonly accumulatedBatchItemIds = signal<Set<string>>(new Set());
+  private lastWatchedRunId: string | null = null;
+
   /** ContentItem ids that belong to the run currently tracked here — read off its `ContentImage`
    *  stages' `targetRefId`, the one place that link exists (ContentItem itself carries no batch/run
    *  id). A campaign can be generated more than once, so `items()` mixes this run's posts with
    *  whatever earlier batches already produced — this set is what tells them apart. Empty before
-   *  the content plan has fanned out yet, since those stages don't exist until then. */
-  private readonly currentBatchItemIds = computed(() => {
-    const run = this.aiPipelineService.run();
-    if (!run) return new Set<string>();
-    return new Set(
-      run.stages.filter(s => s.kind === 'ContentImage' && s.targetRefId).map(s => s.targetRefId!),
-    );
-  });
+   *  the content plan has fanned out yet, since those stages don't exist until then.
+   *
+   *  Deliberately accumulate-only rather than a plain derivation off the latest `run()` snapshot: each
+   *  `ContentImage` stage completes in its own isolated backend DB scope and independently re-queries
+   *  every sibling before pushing its own update (see PipelineOrchestrator), so a `targetRefId` that
+   *  was already visible in an earlier snapshot can be transiently missing from a later one even
+   *  though nothing about that post actually changed. `AiPipelineService`'s version check (see
+   *  `GetRunStatusResponse.version`) rejects updates that are stale *relative to a newer one already
+   *  applied*, but doesn't help when the momentarily-incomplete snapshot itself IS the newest one seen
+   *  so far — only "never remove an id once seen for this run" closes that gap. A `targetRefId`, once
+   *  observed, is a stable identity link with no legitimate reason to disappear. */
+  private readonly currentBatchItemIds = computed(() => this.accumulatedBatchItemIds());
 
   /** This run's own posts, in their planned running order (`suggestedPostAt` — the day/hour the
    *  content plan gave each one — not creation time: the whole batch is inserted in one instant, so
@@ -149,13 +160,6 @@ export class CampaignContentPage {
     const ids = this.currentBatchItemIds();
     return this.items().filter(i => !ids.has(i.contentItemId));
   });
-
-  /** Generic placeholder count for the brief window between clicking "generate" and the content
-   *  plan actually fanning out into this run's own posts — before that, none of them have an
-   *  identity yet, so there's nothing to assign a slot to. Only ever shown then; once `batchItems`
-   *  is non-empty, each post owns a fixed slot instead. */
-  protected readonly pregenerationSkeletonCards = computed(() =>
-    Array.from({ length: this.postCount() }, (_, i) => i));
 
   /** One list to render: this run's own posts (in their planned slot order) first, then everything
    *  from earlier batches after — "skeletons on top" of already-generated history, not mixed in. */
@@ -328,6 +332,39 @@ export class CampaignContentPage {
       if (campaign) this.contentItemService.refresh(campaign.brandProfileId, this.campaignId()).subscribe();
     });
 
+    // Feeds accumulatedBatchItemIds — see currentBatchItemIds' remarks for why this only ever adds
+    // ids within one run rather than being a plain derivation off the latest snapshot.
+    effect(() => {
+      const run = this.aiPipelineService.run();
+
+      if (run?.runId !== this.lastWatchedRunId) {
+        this.lastWatchedRunId = run?.runId ?? null;
+        this.accumulatedBatchItemIds.set(new Set());
+      }
+
+      if (!run) return;
+      const newIds = run.stages.filter(s => s.kind === 'ContentImage' && s.targetRefId).map(s => s.targetRefId!);
+      if (newIds.length === 0) return;
+
+      this.accumulatedBatchItemIds.update(current => {
+        let changed = false;
+        const next = new Set(current);
+        for (const id of newIds) {
+          if (!next.has(id)) { next.add(id); changed = true; }
+        }
+        return changed ? next : current;
+      });
+    });
+
+    // Closes the gap described in generateContent(): once the run is actually observed (poll or
+    // SignalR, whichever lands first), requestInFlight can safely drop — contentBatchInFlight() takes
+    // over generating() from here based on the run's own Pending/Running stages.
+    effect(() => {
+      if (this.aiPipelineService.run() && this.requestInFlight()) {
+        this.requestInFlight.set(false);
+      }
+    });
+
     this.destroyRef.onDestroy(() => this.aiPipelineService.clear());
   }
 
@@ -379,6 +416,8 @@ export class CampaignContentPage {
     this.busyItemId.set(null);
     this.retryingImageId.set(null);
     this.lastRefreshedImageCount = -1;
+    this.accumulatedBatchItemIds.set(new Set());
+    this.lastWatchedRunId = null;
   }
 
   /** Fires content generation automatically once, right after the onboarding wizard's approval
@@ -426,10 +465,20 @@ export class CampaignContentPage {
       // Fire-and-track: the request resolves as soon as the batch is *runnable*, not once it's
       // done — nothing to refresh yet. Watching the run (poll + SignalR push) is what surfaces
       // progress and, via the imagesCompleted effect above, each post's card as its image lands.
+      //
+      // requestInFlight deliberately stays true here rather than being cleared immediately: startPolling's
+      // first fetch is itself async, and clearing it now would leave a real gap — generating() would
+      // read false and items() would still be empty, hitting the "no posts yet" empty state for a
+      // moment before the first status arrives. The effect below clears it once aiPipelineService.run()
+      // actually reflects something, which for a freshly-started run should always be true almost
+      // immediately, keeping generating() continuously true with no false-negative window.
       next: res => {
-        this.requestInFlight.set(false);
         this.coinPricingService.refreshAfterSpend();
-        if (res.data) this.aiPipelineService.startPolling(res.data.runId);
+        if (res.data) {
+          this.aiPipelineService.startPolling(res.data.runId);
+        } else {
+          this.requestInFlight.set(false);
+        }
       },
       error: err => {
         this.requestInFlight.set(false);
@@ -704,7 +753,7 @@ export class CampaignContentPage {
     const shortfall = parseInsufficientCoins(err);
     if (shortfall) {
       this.errorModalService.show(
-        `تحتاج ${shortfall.required.toLocaleString('ar-SA')} كوين لإتمام هذا الإجراء، ورصيدك الحالي ${shortfall.balance.toLocaleString('ar-SA')} كوين.`,
+        `تحتاج ${shortfall.required.toLocaleString('ar-EG')} كوين لإتمام هذا الإجراء، ورصيدك الحالي ${shortfall.balance.toLocaleString('ar-EG')} كوين.`,
         { variant: 'warning', actionLabel: 'شحن الرصيد', actionLink: ['/dashboard/billing'] },
       );
       return;

@@ -11,7 +11,6 @@ public class TenantBrandProfile : BaseEntity, IConcurrencyAware
     public Guid TenantId { get; set; }
     public string Name { get; set; } = null!;
     public string? Description { get; set; }
-    public BrandVoice? BrandVoice { get; set; }
     public BrandProfileStatus Status { get; set; }
     public BrandInfo? BrandInfo { get; set; }
 

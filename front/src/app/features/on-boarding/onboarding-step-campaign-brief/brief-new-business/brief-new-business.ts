@@ -2,9 +2,7 @@ import { Component, input, output } from '@angular/core';
 import { GsapRevealDirective } from '../../../../shared/directives/gsap-reveal.directive';
 
 type OnboardingData = {
-  businessEstablishDate?: string;
   businessLaunchDate?: string;
-  brandIdentityReady?: string;
 };
 
 @Component({

@@ -1,3 +1,4 @@
+using Rawaj.Application.Common.Services;
 using Rawaj.Application.Features.AiPipeline.Prompts;
 using Rawaj.Domain.Entities.Campaigns;
 using Rawaj.Domain.Entities.Tenants;
@@ -90,21 +91,77 @@ public static class ContentPromptBuilder
         return string.Join(" ", lines);
     }
 
+    private const int OnboardingContextMaxLength = 2_000;
+
+    /// <summary>
+    /// The wizard's step-7 follow-up questions and their quick-reply suggestions.
+    ///
+    /// <para><b>Prompt injection containment.</b> <c>onboardingContextJson</c> is the most directly
+    /// tenant-authored input in the app — open free-text answers from every earlier wizard step,
+    /// concatenated into one JSON blob — yet this prompt lived outside <c>Features/AiPipeline/Prompts/</c>
+    /// and was missed by the earlier injection-governance pass. Same treatment as the rest now: guard
+    /// sentence, PII redaction, wrapping.</para>
+    ///
+    /// <para><b>Grounding.</b> Also carries <see cref="PromptFragments.RawajCapabilitiesInstruction"/>
+    /// plus an explicit content-type constraint: without it, suggested answers can offer things like
+    /// "video ads" that this platform cannot produce (it generates image posts/stories, not video).
+    /// The "don't repeat" instruction below is stated as a hard constraint rather than the previous
+    /// soft "fill the gaps" phrasing, which the model wasn't reliably honoring.</para>
+    /// </summary>
     public static string BuildOnboardingQuestionsPrompt(TenantBrandProfile brand, string onboardingContextJson)
     {
         var lines = new List<string>
         {
+            PromptFragments.InjectionGuardInstruction,
             $"A business called \"{brand.Name}\" is midway through an onboarding wizard for a social media marketing platform.",
-            "Here is the JSON of everything they've entered so far in the wizard (campaign type, brand details, target audience, positioning, budget, etc.):",
-            onboardingContextJson,
-            PromptFragments.ArabicOnlyInstruction,
+        };
+
+        // Stated plainly, in the opening sentence, same treatment as brand.Name just above (short,
+        // low injection-surface tenant field, unwrapped by existing precedent) — not just left to the
+        // wrapped bullet list AddWrappedBrandIdentity adds below. The wizard itself never asks for a
+        // city/country at all (a business only ever types that on its brand profile, not in this
+        // flow), and a location buried as one bullet among seven others turned out not to be a strong
+        // enough signal to override the model's own training bias: even with Location present in the
+        // wrapped block, it kept assuming Saudi Arabia for a Cairo, Egypt business. Putting it up
+        // front, stated as fact rather than data-to-extract, is the stronger version of the same fix.
+        if (!string.IsNullOrWhiteSpace(brand.BrandInfo?.Location))
+        {
+            lines.Add(
+                $"This business is located in {PiiRedactor.Redact(brand.BrandInfo.Location)}. Every question and " +
+                "suggested answer must be consistent with operating in that specific location — do not assume any " +
+                "other country or city (including Saudi Arabia) unless the business's own answers below say otherwise.");
+        }
+
+        PromptFragments.AddWrappedBrandIdentity(lines, brand);
+
+        var wrappedContext = UntrustedTextSanitizer.Wrap(
+            "Everything they've entered so far in the wizard (campaign type, brand details, target audience, " +
+            "positioning, budget, etc.), as JSON",
+            [PiiRedactor.Redact(onboardingContextJson)],
+            OnboardingContextMaxLength);
+
+        if (wrappedContext.Length > 0)
+        {
+            lines.Add(wrappedContext);
+        }
+
+        lines.Add(PromptFragments.RawajCapabilitiesInstruction);
+        lines.Add(
+            "This platform produces image-based content only (posts, stories, static ad creatives) — it does not " +
+            "produce or edit video. Never suggest video, reels footage, or video ads as a quick-reply answer.");
+        lines.Add(PromptFragments.ArabicOnlyInstruction);
+        lines.Add(
             "Based specifically on what this business entered, write between 3 and 8 short follow-up questions " +
             "(choose however many are actually needed to fill the gaps - don't pad the count) " +
-            "that would help a marketing strategist understand their business better and fill in gaps the answers above didn't cover. Each question needs 3 short quick-reply suggested answers, relevant to what THIS business described - not generic questions.",
-            PromptFragments.ArabicOnlyInstruction,
+            "that would help a marketing strategist understand their business better. Do NOT ask about anything " +
+            "already answered in the JSON above (e.g. if a target gender, budget, or platform was already given, " +
+            "do not ask for it again) - only ask about genuine gaps. Each question needs 3 short quick-reply " +
+            "suggested answers, relevant to what THIS business described - not generic questions, and never " +
+            "suggesting a capability this platform doesn't have.");
+        lines.Add(PromptFragments.ArabicOnlyInstruction);
+        lines.Add(
             "Respond with ONLY a valid JSON array (no markdown fences, no commentary) with this exact shape: " +
-            "[{\"question\":\"...\",\"suggestions\":[\"...\",\"...\",\"...\"]}]",
-        };
+            "[{\"question\":\"...\",\"suggestions\":[\"...\",\"...\",\"...\"]}]");
 
         return string.Join(" ", lines);
     }
@@ -130,7 +187,6 @@ public static class ContentPromptBuilder
     public static string BuildCampaignContentPlanPrompt(
         TenantBrandProfile brand,
         MarketingCampaign campaign,
-        List<string> competitorInsights,
         string postingTimeSummary,
         int postCount,
         List<SocialPlatform> platforms,
@@ -139,7 +195,7 @@ public static class ContentPromptBuilder
         string? briefJson = null,
         ContentTemplateStyle templateStyle = ContentTemplateStyle.Auto) =>
         ContentPlanPrompt.Build(
-            brand, campaign, competitorInsights, postingTimeSummary, postCount, platforms, language,
+            brand, campaign, postingTimeSummary, postCount, platforms, language,
             strategyJson, briefJson, templateStyle);
 
     /// <param name="userPrompt">

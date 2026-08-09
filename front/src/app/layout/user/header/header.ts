@@ -48,7 +48,7 @@ export class Header {
 
   protected readonly memberships = this.tenantService.memberships;
   protected readonly activeTenantId = this.tenantService.activeTenantId;
-  protected readonly creditBalanceLabel = computed(() => this.tenantService.coinBalance().toLocaleString('ar-SA'));
+  protected readonly creditBalanceLabel = computed(() => this.tenantService.coinBalance().toLocaleString('ar-EG'));
 
   protected readonly selectedBrandLabel = computed(() =>
     this.brandContextService.selectedBrandProfile()?.name ?? 'اختر علامة تجارية',

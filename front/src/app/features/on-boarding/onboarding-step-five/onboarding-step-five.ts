@@ -40,12 +40,12 @@ export class OnboardingStepFive {
   ];
 
   protected readonly budgetOptions = [
-    'أقل من 500 ريال',
-    '500 – 2,000 ريال',
-    '2,000 – 5,000 ريال',
-    '5,000 – 15,000 ريال',
-    '15,000 – 30,000 ريال',
-    'أكثر من 30,000 ريال',
+    'أقل من 500 جنيه',
+    '500 – 2,000 جنيه',
+    '2,000 – 5,000 جنيه',
+    '5,000 – 15,000 جنيه',
+    '15,000 – 30,000 جنيه',
+    'أكثر من 30,000 جنيه',
     'لا ميزانية محددة بعد',
   ];
 
@@ -107,10 +107,6 @@ type OnboardingData = {
   positioningVs?: string;
   campaignOutcome?: string;
   successMetrics?: string[];
-  brandAdmire1?: string;
-  brandAdmire2?: string;
-  brandAdmire3?: string;
   monthlyBudget?: string;
-  tagline?: string;
   platformRanking?: string[];
 };

@@ -66,13 +66,7 @@
           </div>
           <div class="cc-generating-copy">
             <h2>رواج AI يولّد منشوراتك...</h2>
-            <p>
-              @if (postCount() > 10) {
-                توليد {{ postCount() }} منشورًا بصورهم قد يستغرق بضع دقائق — لا داعي للقلق، لن تفقد أي تقدم إن بقيت على هذه الصفحة.
-              } @else {
-                جاري صياغة {{ postCount() }} منشورات وتوليد صورها.
-              }
-            </p>
+            <p>قد يستغرق توليد منشوراتك وصورها بضع دقائق — لا داعي للقلق، لن تفقد أي تقدم إن بقيت على هذه الصفحة.</p>
           </div>
         </div>
 
@@ -144,15 +138,13 @@
 
     <section class="cc-items">
       @if (generating() && batchItems().length === 0) {
-        @for (n of pregenerationSkeletonCards(); track n) {
-          <div class="cc-skeleton-card">
-            <span class="cc-sk cc-sk-tag"></span>
-            <span class="cc-sk cc-sk-image"></span>
-            <span class="cc-sk cc-sk-line cc-sk-line--90"></span>
-            <span class="cc-sk cc-sk-line cc-sk-line--70"></span>
-            <span class="cc-sk cc-sk-actions"></span>
-          </div>
-        }
+        <!-- Real post count isn't known yet at this point (the content plan hasn't fanned out into
+             this run's own posts) — a generic loading state instead of a guessed number of skeletons,
+             since the backend can still legitimately produce a different count than requested. -->
+        <div class="cc-generating-placeholder">
+          <i class="fa-solid fa-circle-notch fa-spin"></i>
+          <p>جارٍ تجهيز منشوراتك...</p>
+        </div>
       }
 
       @for (item of displayItems(); track item.contentItemId) {

@@ -19,6 +19,7 @@
     <app-onboarding-plan-approval
       [campaignId]="campaignId()"
       [data]="briefData()"
+      [brandProfileId]="campaign()?.brandProfileId ?? null"
       [autoGenerate]="false"
       backLabel="رجوع"
       (approve)="onApprove()"

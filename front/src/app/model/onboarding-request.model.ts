@@ -191,9 +191,9 @@ export interface Strategy {
   brandsAdmired?: [string?, string?, string?];
   /** Monthly budget range as a string, e.g. "5000-10000" */
   monthlyBudget?: string;
-  /** Parsed budget min (SAR) — derived from monthlyBudget or set directly */
+  /** Parsed budget min (EGP) — derived from monthlyBudget or set directly */
   budgetFrom?: number;
-  /** Parsed budget max (SAR) */
+  /** Parsed budget max (EGP) */
   budgetTo?: number;
   /** Ordered platform slugs, e.g. ["instagram", "facebook"] */
   platformRanking?: string[];

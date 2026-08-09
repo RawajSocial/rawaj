@@ -85,7 +85,7 @@ export class CampaignCalendarPage {
   });
 
   protected readonly headerTitle = computed(() =>
-    this.currentDate().toLocaleDateString('ar-SA', { month: 'long', year: 'numeric' }),
+    this.currentDate().toLocaleDateString('ar-EG', { month: 'long', year: 'numeric' }),
   );
 
   constructor() {

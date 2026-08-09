@@ -65,11 +65,25 @@ public abstract class ResearchStageExecutor(
         string? searchAnswer = null;
         string? lastError = null;
 
-        foreach (var query in queries)
-        {
-            var startedAt = DateTime.UtcNow;
-            var search = await searchService.SearchAsync(query, cancellationToken);
+        // Fired concurrently rather than one at a time: these queries are independent of each other,
+        // and AiProviderConcurrencyLimiter already allows up to 4 simultaneous Tavily calls (matching
+        // the query cap below), so a sequential await loop here was pure added latency for no benefit.
+        // Task.WhenAll preserves the input order in its result array, so job recording and the
+        // searchAnswer/items assembly below stay deterministic by query order, not by which call
+        // happens to land first over the network.
+        var searchTasks = queries
+            .Select(async query =>
+            {
+                var startedAt = DateTime.UtcNow;
+                var search = await searchService.SearchAsync(query, cancellationToken);
+                return (query, search, startedAt);
+            })
+            .ToList();
 
+        var searchResults = await Task.WhenAll(searchTasks);
+
+        foreach (var (query, search, startedAt) in searchResults)
+        {
             var job = AiJobRecorder.RecordSearch(
                 dbContext, context, query, search.Succeeded, search.ErrorMessage, startedAt);
             jobIds.Add(job.Id);
