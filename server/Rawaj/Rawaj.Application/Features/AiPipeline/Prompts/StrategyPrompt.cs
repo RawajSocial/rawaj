@@ -178,6 +178,8 @@ public static class StrategyPrompt
             }
         }
 
+        lines.Add(PromptFragments.RawajCapabilitiesInstruction);
+
         lines.Add(
             "Define the campaign's content pillars, its key recurring themes, a posting cadence per platform, a " +
             "content type mix, and which platforms it should actually run on given the target platforms and budget " +
@@ -256,11 +258,16 @@ public static class StrategyPrompt
             }
         }
 
+        lines.Add(PromptFragments.RawajCapabilitiesInstruction);
+
         lines.Add(
-            "Write, in Arabic: how content production should actually proceed, a phased execution roadmap across the " +
-            "campaign's duration, and a short list of AI-specific recommendations (what to automate, what to watch). " +
-            "Then write a one-paragraph executive summary of the whole strategy — objective, positioning and plan — " +
-            "suitable as the first thing its owner reads before approving it.");
+            "Write, in Arabic: how content production should actually proceed given what's already automated above, " +
+            "a phased execution roadmap across the campaign's duration, and a short list of AI-specific " +
+            "recommendations — genuinely new automation or AI-assisted opportunities beyond what this platform " +
+            "already handles (e.g. paid-ad automation rules if this campaign runs ads, sentiment monitoring, " +
+            "A/B-testing suggestions), not a restatement of content generation or publishing this platform already " +
+            "does. Then write a one-paragraph executive summary of the whole strategy — objective, positioning and " +
+            "plan — suitable as the first thing its owner reads before approving it.");
 
         lines.Add(PromptFragments.JsonObjectOnly(
             "{\"executiveSummary\":\"...\",\"contentProductionPlan\":\"...\",\"executionRoadmap\":\"...\"," +
