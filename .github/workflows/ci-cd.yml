@@ -1,0 +1,291 @@
+name: CI/CD - Dev
+
+on:
+  push:
+    branches:
+      - dev
+  pull_request:
+    branches:
+      - dev
+
+jobs:
+  backend:
+    name: Backend - Build and Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore
+        working-directory: server/Rawaj
+        run: dotnet restore
+
+      - name: Build
+        working-directory: server/Rawaj
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Test
+        working-directory: server/Rawaj
+        run: dotnet test --configuration Release --no-build --verbosity normal
+
+      - name: Publish
+        working-directory: server/Rawaj
+        run: >
+          dotnet publish Rawaj/Rawaj.csproj
+          --configuration Release
+          --no-restore
+          --output ${{ github.workspace }}/publish/backend
+
+      - name: Upload backend artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rawaj-backend
+          path: publish/backend
+          retention-days: 7
+
+  frontend:
+    name: Frontend - Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: front/package-lock.json
+
+      - name: Check Node and npm versions
+        run: |
+          node --version
+          npm --version
+
+      - name: Install dependencies
+        working-directory: front
+        run: npm ci
+
+      - name: Build Angular
+        working-directory: front
+        run: npm run build
+
+      - name: Upload frontend artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rawaj-frontend
+          path: front/dist/rawaj-front/browser
+          retention-days: 7
+
+  deploy:
+    name: Deploy to Dev VM
+    runs-on: ubuntu-latest
+    needs:
+      - backend
+      - frontend
+    if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+    concurrency:
+      group: rawaj-dev-deploy
+      cancel-in-progress: false
+
+    env:
+      STAGE_DIR: /tmp/rawaj-deploy-${{ github.run_id }}-${{ github.run_attempt }}
+
+    steps:
+      - name: Download backend artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: rawaj-backend
+          path: artifacts/backend
+
+      - name: Download frontend artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: rawaj-frontend
+          path: artifacts/frontend
+
+      - name: Prepare staging directory on VM
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ vars.DEPLOY_HOST }}
+          username: ${{ vars.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          passphrase: ${{ secrets.DEPLOY_SSH_PASSPHRASE }}
+          envs: STAGE_DIR
+          script: |
+            set -euo pipefail
+            mkdir -p "${STAGE_DIR}/backend" "${STAGE_DIR}/frontend"
+
+      - name: Copy backend artifact to VM
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ vars.DEPLOY_HOST }}
+          username: ${{ vars.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          passphrase: ${{ secrets.DEPLOY_SSH_PASSPHRASE }}
+          source: "artifacts/backend/**/*"
+          target: "${{ env.STAGE_DIR }}/backend"
+          strip_components: 2
+          overwrite: true
+
+      - name: Copy frontend artifact to VM
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ vars.DEPLOY_HOST }}
+          username: ${{ vars.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          passphrase: ${{ secrets.DEPLOY_SSH_PASSPHRASE }}
+          source: "artifacts/frontend/**/*"
+          target: "${{ env.STAGE_DIR }}/frontend"
+          strip_components: 2
+          overwrite: true
+
+      - name: Verify staged artifacts on VM
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ vars.DEPLOY_HOST }}
+          username: ${{ vars.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          passphrase: ${{ secrets.DEPLOY_SSH_PASSPHRASE }}
+          envs: STAGE_DIR
+          script: |
+            set -euo pipefail
+
+            test -d "${STAGE_DIR}/backend"
+            test -d "${STAGE_DIR}/frontend"
+
+            echo "Backend staging:"
+            find "${STAGE_DIR}/backend" -maxdepth 1 -type f -printf '%f\n' | sort
+
+            echo "Frontend staging:"
+            find "${STAGE_DIR}/frontend" -maxdepth 1 -type f -printf '%f\n' | sort
+
+            test -f "${STAGE_DIR}/backend/Rawaj.dll"
+            test -f "${STAGE_DIR}/frontend/index.html"
+
+      - name: Deploy on VM and verify
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ vars.DEPLOY_HOST }}
+          username: ${{ vars.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          passphrase: ${{ secrets.DEPLOY_SSH_PASSPHRASE }}
+          envs: STAGE_DIR
+          script: |
+            set -euo pipefail
+
+            TS="$(date +%Y%m%d%H%M%S)"
+            BACKUP_DIR="/opt/backups"
+            sudo mkdir -p "${BACKUP_DIR}"
+
+            fail() {
+              echo "ERROR: $1" >&2
+              exit 1
+            }
+
+            rollback() {
+              echo "Verification failed - rolling back to previous release..."
+              if [ -d "${BACKUP_DIR}/rawaj-${TS}" ]; then
+                sudo rm -rf /opt/rawaj
+                sudo cp -a "${BACKUP_DIR}/rawaj-${TS}" /opt/rawaj
+              fi
+              if [ -d "${BACKUP_DIR}/rawaj-front-${TS}" ]; then
+                sudo rm -rf /opt/rawaj-front
+                sudo cp -a "${BACKUP_DIR}/rawaj-front-${TS}" /opt/rawaj-front
+              fi
+              sudo systemctl restart rawaj.service || true
+              sudo systemctl restart rawaj-front.service || true
+              sudo rm -rf "${STAGE_DIR}"
+              fail "Deployment rolled back; see log above for the failing check."
+            }
+
+            [ -d "${STAGE_DIR}/backend" ] || fail "Backend staging directory missing: ${STAGE_DIR}/backend"
+            [ -d "${STAGE_DIR}/frontend" ] || fail "Frontend staging directory missing: ${STAGE_DIR}/frontend"
+            [ -f "${STAGE_DIR}/backend/Rawaj.dll" ] || fail "Rawaj.dll not found in staged backend artifact"
+
+            # Preserve ASP.NET Core Data Protection keys across releases
+            if [ -d /opt/rawaj/.aspnet ]; then
+              sudo cp -a /opt/rawaj/.aspnet "${STAGE_DIR}/backend/.aspnet"
+            fi
+            sudo chown -R rawaj:rawaj "${STAGE_DIR}/backend" "${STAGE_DIR}/frontend"
+
+            echo "Backing up current backend release..."
+            sudo rm -rf "${BACKUP_DIR}/rawaj-${TS}"
+            sudo cp -a /opt/rawaj "${BACKUP_DIR}/rawaj-${TS}"
+
+            echo "Backing up current frontend release..."
+            sudo rm -rf "${BACKUP_DIR}/rawaj-front-${TS}"
+            sudo cp -a /opt/rawaj-front "${BACKUP_DIR}/rawaj-front-${TS}"
+
+            swap_backend() {
+              sudo rm -rf /opt/rawaj.new &&
+              sudo mv "${STAGE_DIR}/backend" /opt/rawaj.new &&
+              sudo rm -rf /opt/rawaj &&
+              sudo mv /opt/rawaj.new /opt/rawaj &&
+              sudo chown -R rawaj:rawaj /opt/rawaj
+            }
+
+            swap_frontend() {
+              sudo rm -rf /opt/rawaj-front.new &&
+              sudo mv "${STAGE_DIR}/frontend" /opt/rawaj-front.new &&
+              sudo rm -rf /opt/rawaj-front &&
+              sudo mv /opt/rawaj-front.new /opt/rawaj-front &&
+              sudo chown -R rawaj:rawaj /opt/rawaj-front
+            }
+
+            echo "Swapping in new backend release..."
+            if ! swap_backend; then
+              rollback
+            fi
+
+            echo "Swapping in new frontend release..."
+            if ! swap_frontend; then
+              rollback
+            fi
+
+            echo "Restarting services..."
+            if ! sudo systemctl restart rawaj.service; then
+              rollback
+            fi
+
+            if ! sudo systemctl restart rawaj-front.service; then
+              rollback
+            fi
+
+            echo "Waiting for services to settle..."
+            sleep 5
+
+            BACKEND_ACTIVE="$(systemctl is-active rawaj.service || true)"
+            FRONTEND_ACTIVE="$(systemctl is-active rawaj-front.service || true)"
+            echo "rawaj.service is-active: ${BACKEND_ACTIVE}"
+            echo "rawaj-front.service is-active: ${FRONTEND_ACTIVE}"
+
+            if [ "${BACKEND_ACTIVE}" != "active" ] || [ "${FRONTEND_ACTIVE}" != "active" ]; then
+              rollback
+            fi
+
+            BACKEND_PORT_COUNT="$(sudo ss -lntp | grep -c ':5000 ' || true)"
+            FRONTEND_PORT_COUNT="$(sudo ss -lntp | grep -c ':4200 ' || true)"
+            echo "Listeners on :5000 -> ${BACKEND_PORT_COUNT}"
+            echo "Listeners on :4200 -> ${FRONTEND_PORT_COUNT}"
+
+            if [ "${BACKEND_PORT_COUNT}" -eq 0 ] || [ "${FRONTEND_PORT_COUNT}" -eq 0 ]; then
+              rollback
+            fi
+
+            echo "Cleaning up staging directory..."
+            sudo rm -rf "${STAGE_DIR}"
+
+            echo "Trimming old backups (keeping last 3 per app)..."
+            for app in rawaj rawaj-front; do
+              ls -1dt "${BACKUP_DIR}/${app}-"* 2>/dev/null | tail -n +4 | xargs -r sudo rm -rf
+            done
+
+            echo "Deployment successful."
