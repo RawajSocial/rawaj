@@ -17,7 +17,8 @@ import { FeatureFlagsService } from '../../../services/feature-flags.service';
 import { extractApiErrorMessage } from '../../../core/auth/api-error.util';
 import { Breadcrumb } from '../../../shared/components/breadcrumb/breadcrumb';
 import { TooltipDirective } from '../../../shared/directives/tooltip.directive';
-import { nextOccurrence, toDateInputValue, toTimeInputValue } from '../../../shared/utils/posting-time.util';
+import { cairoTodayDayOfWeek, nextCairoOccurrence } from '../../../shared/utils/posting-time.util';
+import { cairoLocalToUtcIso } from '../../../shared/utils/cairo-time.util';
 import { ContentItemSummary } from '../../../model/content-item.model';
 import { SocialAccountSummary } from '../../../model/social-account.model';
 import {
@@ -471,15 +472,15 @@ export class ContentGenPage {
       next: res => {
         const suggestion = res.data?.[0];
         const target = suggestion
-          ? nextOccurrence(suggestion.dayOfWeek, suggestion.hour)
-          : nextOccurrence(new Date().getDay(), 12); // fallback: same weekday, noon, pushed to next safe slot
-        this.scheduleDate.set(toDateInputValue(target));
-        this.scheduleTime.set(toTimeInputValue(target));
+          ? nextCairoOccurrence(suggestion.dayOfWeek, suggestion.hour)
+          : nextCairoOccurrence(cairoTodayDayOfWeek(), 12); // fallback: same weekday, noon, pushed to next safe slot
+        this.scheduleDate.set(target.date);
+        this.scheduleTime.set(target.time);
       },
       error: () => {
-        const fallback = nextOccurrence(new Date().getDay(), 12);
-        this.scheduleDate.set(toDateInputValue(fallback));
-        this.scheduleTime.set(toTimeInputValue(fallback));
+        const fallback = nextCairoOccurrence(cairoTodayDayOfWeek(), 12);
+        this.scheduleDate.set(fallback.date);
+        this.scheduleTime.set(fallback.time);
       },
     });
   }
@@ -497,7 +498,7 @@ export class ContentGenPage {
     this.scheduledPostService.schedule({
       contentItemId: item.id,
       socialAccountId: accountId,
-      scheduledAt: `${this.scheduleDate()}T${this.scheduleTime()}:00`,
+      scheduledAt: cairoLocalToUtcIso(this.scheduleDate(), this.scheduleTime()),
     }).subscribe({
       next: () => {
         this.scheduling.set(false);

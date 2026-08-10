@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Rawaj.Application.Common;
 using Rawaj.Application.Features.Content.Common;
 using Rawaj.Domain.Enums;
 
@@ -21,6 +22,10 @@ public sealed record GeneratedPostDraft(
 /// </summary>
 public static class ContentPlanParser
 {
+    /// <param name="baseDate">A Cairo-local calendar date (time-of-day is ignored) that dayOffset 0
+    /// means — NOT a UTC instant. The model's <c>hour</c> is Cairo-local too (see
+    /// <c>ContentPlanPrompt</c>), so the two combine into a Cairo wall-clock moment that's converted
+    /// to true UTC below before being returned.</param>
     public static List<GeneratedPostDraft> Parse(string rawJson, IReadOnlyList<SocialPlatform> allowedPlatforms, DateTime baseDate)
     {
         var drafts = new List<GeneratedPostDraft>();
@@ -109,9 +114,10 @@ public static class ContentPlanParser
                         imagePrompt = string.IsNullOrWhiteSpace(value) ? null : value;
                     }
 
+                    var cairoLocal = baseDate.AddDays(dayOffset).AddHours(hour);
                     drafts.Add(new GeneratedPostDraft(
                         platform, contentType, contentProp.GetString()!, hashtags, cta,
-                        baseDate.AddDays(dayOffset).AddHours(hour), imagePrompt));
+                        CairoTimeZone.ToUtc(cairoLocal), imagePrompt));
                 }
                 catch (JsonException)
                 {

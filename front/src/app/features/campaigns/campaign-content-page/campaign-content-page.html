@@ -187,6 +187,13 @@
 
           <p class="cc-item-content">{{ item.content }}</p>
 
+          @if (showsSuggestedTime(item)) {
+            <p class="cc-item-suggested-time">
+              <i class="fa-regular fa-clock"></i>
+              الوقت المقترح: {{ formatSuggestedTime(item.suggestedPostAt!) }}
+            </p>
+          }
+
           @if (regeneratingId() === item.contentItemId) {
             <div class="cc-regenerate-box">
               <div class="cc-preset-row">

@@ -121,7 +121,8 @@ public static class ContentPlanPrompt
 
         lines.Add(
             $"For each post choose a dayOffset (integer, 0 = campaign start day, {postCount * 2} = latest allowed) and an hour " +
-            "(0-23) that best matches the posting time guidance above. contentType must be one of: " +
+            "(0-23, in Cairo/Egypt local time — the business's own timezone, not UTC) that best matches the posting " +
+            "time guidance above. contentType must be one of: " +
             "Post, Story, ReelScript, AdCopy, Blog, Caption. platform must be one of the target platforms listed above.");
 
         // The image model is trained on English captions and renders Arabic prompts poorly, and the

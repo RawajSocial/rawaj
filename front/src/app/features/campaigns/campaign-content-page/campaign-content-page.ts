@@ -20,6 +20,7 @@ import { TooltipDirective } from '../../../shared/directives/tooltip.directive';
 import { GetCampaignResponse, ScheduleCampaignPostResult } from '../../../model/campaign.model';
 import { ContentItemSummary } from '../../../model/content-item.model';
 import { SocialAccountSummary } from '../../../model/social-account.model';
+import { cairoLocalToUtcIso, formatCairoDate, formatCairoTime, utcIsoToCairoLocalParts } from '../../../shared/utils/cairo-time.util';
 
 const CONTENT_TYPE_LABELS: Record<ContentItemSummary['contentType'], string> = {
   Post: 'بوست', Story: 'قصة', ReelScript: 'ريل', AdCopy: 'إعلان', Blog: 'مقال', Caption: 'كابشن',
@@ -224,7 +225,7 @@ export class CampaignContentPage {
     const date = this.scheduleDate();
     const time = this.scheduleTime();
     if (!date || !time) return false;
-    const picked = new Date(`${date}T${time}:00`);
+    const picked = new Date(cairoLocalToUtcIso(date, time));
     if (isNaN(picked.getTime())) return false;
     return picked.getTime() < Date.now() + 10 * 60 * 1000;
   });
@@ -262,6 +263,17 @@ export class CampaignContentPage {
 
   protected isSchedulable(item: ContentItemSummary): boolean {
     return item.status === 'Approved' && !!item.imageUrl && !this.activelyScheduledContentItemIds().has(item.contentItemId);
+  }
+
+  /** The AI's suggested time is only meaningful before the post has an actual scheduled time of its
+   *  own — once it's genuinely scheduled, ScheduledPost.scheduledAt (shown elsewhere) is what will
+   *  really happen, not this suggestion. */
+  protected showsSuggestedTime(item: ContentItemSummary): boolean {
+    return !!item.suggestedPostAt && !this.activelyScheduledContentItemIds().has(item.contentItemId);
+  }
+
+  protected formatSuggestedTime(iso: string): string {
+    return `${formatCairoDate(iso, { day: 'numeric', month: 'short' })} · ${formatCairoTime(iso)}`;
   }
 
   protected isSelected(item: ContentItemSummary): boolean {
@@ -620,8 +632,9 @@ export class CampaignContentPage {
     this.schedulingItemId.set(item.contentItemId);
     this.scheduleAccountId.set(defaultAccount?.socialAccountId ?? null);
     const soon = new Date(Date.now() + 60 * 60 * 1000); // an hour from now, a sensible default
-    this.scheduleDate.set(soon.toISOString().slice(0, 10));
-    this.scheduleTime.set(soon.toISOString().slice(11, 16));
+    const { date, time } = utcIsoToCairoLocalParts(soon.toISOString());
+    this.scheduleDate.set(date);
+    this.scheduleTime.set(time);
   }
 
   protected cancelSchedulePost(): void {
@@ -641,7 +654,7 @@ export class CampaignContentPage {
       || this.schedulingItemBusy() || !this.perms.canEdit()) return;
 
     this.schedulingItemBusy.set(true);
-    const scheduledAt = `${this.scheduleDate()}T${this.scheduleTime()}:00`;
+    const scheduledAt = cairoLocalToUtcIso(this.scheduleDate(), this.scheduleTime());
     this.scheduledPostService.schedule({
       contentItemId: item.contentItemId,
       visualAssetId: item.visualAssetId ?? undefined,
@@ -669,8 +682,9 @@ export class CampaignContentPage {
   protected openSelectedSchedulePanel(): void {
     if (this.selectedCount() === 0) return;
     const soon = new Date(Date.now() + 60 * 60 * 1000);
-    this.scheduleDate.set(soon.toISOString().slice(0, 10));
-    this.scheduleTime.set(soon.toISOString().slice(11, 16));
+    const { date, time } = utcIsoToCairoLocalParts(soon.toISOString());
+    this.scheduleDate.set(date);
+    this.scheduleTime.set(time);
     this.selectedSchedulePanelOpen.set(true);
   }
 
@@ -690,7 +704,7 @@ export class CampaignContentPage {
     if (items.length === 0) return;
 
     this.bulkSelectedScheduling.set(true);
-    const scheduledAt = `${this.scheduleDate()}T${this.scheduleTime()}:00`;
+    const scheduledAt = cairoLocalToUtcIso(this.scheduleDate(), this.scheduleTime());
 
     interface Outcome {
       item: ContentItemSummary; succeeded: boolean; error?: string; scheduledPostId?: string; scheduledAtResult?: string;

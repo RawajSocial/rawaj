@@ -143,6 +143,16 @@
   white-space: pre-wrap;
 }
 
+.cc-item-suggested-time {
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+  font-size: .75rem;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+.cc-item-suggested-time i { color: var(--color-secondary); font-size: .7rem; }
+
 .cc-item-actions {
   display: flex;
   gap: .5rem;

@@ -13,7 +13,8 @@ export interface ScheduledPost {
   content: string;
   mediaType?: MediaType;
   imageUrl?: string;
-  scheduledAt: string; // ISO: "2026-06-04T10:30:00"
+  scheduledAt: string; // true UTC instant, ISO with offset: "2026-06-04T08:30:00Z" — always format/edit
+                       // via shared/utils/cairo-time.util.ts, never with the browser's own timezone.
   status: PostStatus;
   hashtags?: string[];
   estimatedReach?: number;
@@ -90,7 +91,7 @@ export interface SchedulePostResponse {
 /** GET /api/v1/scheduled-posts/posting-time-suggestions — PostingTimeSuggestionDto */
 export interface PostingTimeSuggestionDto {
   platform: BackendSocialPlatform;
-  dayOfWeek: number; // 0=Sunday .. 6=Saturday, matches JS Date#getDay()
-  hour: number;
+  dayOfWeek: number; // 0=Sunday .. 6=Saturday, Cairo-local (not the viewing browser's own timezone)
+  hour: number; // Cairo-local (0-23)
   fromHistoricalData: boolean;
 }

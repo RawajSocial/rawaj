@@ -1,17 +1,21 @@
 using Microsoft.EntityFrameworkCore;
+using Rawaj.Application.Common;
 using Rawaj.Application.Common.Interfaces;
 using Rawaj.Domain.Enums;
 
 namespace Rawaj.Application.Features.Scheduling.Common;
 
+/// <summary>DayOfWeek/Hour are both Cairo-local — matches the convention every other posting-time
+/// value in the app follows (see ContentPlanPrompt, CairoTimeZone).</summary>
 public record PostingTimeSuggestion(SocialPlatform Platform, DayOfWeek DayOfWeek, int Hour, bool FromHistoricalData);
 
 public static class PostingTimeIntelligence
 {
     private const int MinPublishedPostsForHistoricalData = 10;
 
-    // General industry-standard "safe default" posting windows per platform, used until a brand
-    // has enough of its own published-post history to trust real engagement data instead.
+    // General industry-standard "safe default" posting windows per platform, in the audience's own
+    // (Cairo) local time — used until a brand has enough of its own published-post history to trust
+    // real engagement data instead.
     private static readonly Dictionary<SocialPlatform, (DayOfWeek Day, int Hour)> PlatformDefaults = new()
     {
         [SocialPlatform.Instagram] = (DayOfWeek.Wednesday, 11),
@@ -39,8 +43,15 @@ public static class PostingTimeIntelligence
 
             if (platformHistory.Count >= MinPublishedPostsForHistoricalData)
             {
+                // PublishedAt is a true UTC instant — group by the Cairo-local day/hour it actually
+                // published at, not UTC's, or "best performing hour" would be silently off by Cairo's
+                // offset from UTC (and potentially the wrong weekday too, near midnight).
                 var best = platformHistory
-                    .GroupBy(h => (h.PublishedAt.DayOfWeek, h.PublishedAt.Hour))
+                    .GroupBy(h =>
+                    {
+                        var cairo = TimeZoneInfo.ConvertTimeFromUtc(h.PublishedAt, CairoTimeZone.Instance);
+                        return (cairo.DayOfWeek, cairo.Hour);
+                    })
                     .Select(g => new
                     {
                         g.Key.DayOfWeek,

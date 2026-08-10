@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Rawaj.Application.Common;
 using Rawaj.Application.Common.Interfaces;
 using Rawaj.Application.Common.Models;
 using Rawaj.Application.Common.Policies;
@@ -104,10 +105,13 @@ public class ContentPlanExecutor(
 
         // A campaign's StartDate can be in the past by the time content is generated (drafted, then
         // approved days later) — falling back to today keeps suggested post times out of the past,
-        // which the scheduling step can no longer recover from.
+        // which the scheduling step can no longer recover from. "Today" here means Cairo's calendar
+        // date, not UTC's — otherwise the ~22:00-00:00 UTC window (already tomorrow in Cairo) would
+        // silently schedule dayOffset 0 a day early.
         var now = DateTime.UtcNow;
+        var todayCairo = TimeZoneInfo.ConvertTimeFromUtc(now, CairoTimeZone.Instance).Date;
         var startDate = campaign.StartDate?.ToDateTime(TimeOnly.MinValue);
-        var baseDate = startDate is { } sd && sd > now.Date ? sd : now.Date;
+        var baseDate = startDate is { } sd && sd > todayCairo ? sd : todayCairo;
         var drafts = ContentPlanParser.Parse(generation.Text!, platforms, baseDate);
 
         if (drafts.Count == 0)
