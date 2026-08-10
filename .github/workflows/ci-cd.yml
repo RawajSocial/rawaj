@@ -181,6 +181,31 @@ jobs:
             test -f "${STAGE_DIR}/backend/Rawaj.dll"
             test -f "${STAGE_DIR}/frontend/index.html"
 
+      - name: Preflight - verify passwordless sudo on VM
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ vars.DEPLOY_HOST }}
+          username: ${{ vars.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          passphrase: ${{ secrets.DEPLOY_SSH_PASSPHRASE }}
+          script: |
+            set -euo pipefail
+
+            echo "User:"
+            whoami
+
+            echo "ID:"
+            id
+
+            echo "Groups:"
+            groups
+
+            echo "Sudo:"
+            sudo -n -l
+
+            echo "Sudo identity:"
+            sudo -n whoami
+
       - name: Deploy on VM and verify
         uses: appleboy/ssh-action@v1.2.2
         with:
@@ -189,7 +214,6 @@ jobs:
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           passphrase: ${{ secrets.DEPLOY_SSH_PASSPHRASE }}
           envs: STAGE_DIR
-          request_pty: true
           script: |
             set -euo pipefail
 
