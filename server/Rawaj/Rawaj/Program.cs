@@ -10,6 +10,7 @@ using Rawaj.Infrastructure.RealTime;
 using Rawaj.Middleware;
 using Rawaj.Persistence;
 using Rawaj.Services;
+using Microsoft.EntityFrameworkCore;
 
 namespace Rawaj
 {
@@ -23,8 +24,7 @@ namespace Rawaj
 
             // Add services to the container.
 
-            builder.Services.AddControllers()
-                .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+            builder.Services.AddControllers().AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
             builder.Services.AddSwaggerService();
 
             var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
@@ -89,10 +89,25 @@ namespace Rawaj
                 options.AddPolicy("PlatformAdmin", policy => policy.RequireClaim("platform_admin", "true"));
             });
 
-            builder.Services.AddHealthChecks()
-                .AddDbContextCheck<AppDbContext>("database");
+            builder.Services.AddHealthChecks().AddDbContextCheck<AppDbContext>("database");
 
             var app = builder.Build();
+
+            try
+            {
+                using var scope = app.Services.CreateScope();
+
+                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+                db.Database.Migrate();
+
+                app.Logger.LogInformation("Database migrations applied successfully.");
+            }
+            catch (Exception ex)
+            {
+                app.Logger.LogCritical(ex, "Database migration failed. Application will not start.");
+                throw;
+            }
 
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
