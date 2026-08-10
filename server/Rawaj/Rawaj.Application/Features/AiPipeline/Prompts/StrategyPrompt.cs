@@ -182,12 +182,16 @@ public static class StrategyPrompt
 
         lines.Add(
             "Define the campaign's content pillars, its key recurring themes, a posting cadence per platform, a " +
-            "content type mix, and which platforms it should actually run on given the target platforms and budget " +
-            "above.");
+            "content mix, and which platforms it should actually run on given the target platforms and budget " +
+            "above. Every post this campaign produces is the same one format — a caption paired with one " +
+            "AI-generated static image, published as a normal feed post (see the platform's real capabilities " +
+            "above: no video, Reels, or Stories). So contentMix is NOT a mix of formats (do not use keys like " +
+            "\"video\", \"reel\", \"story\", or \"image post\") — it's a mix of topics/angles within that one " +
+            "format, e.g. {\"productShowcase\":\"40%\",\"socialProof\":\"30%\",\"promotional\":\"30%\"}.");
 
         lines.Add(PromptFragments.JsonObjectOnly(
             "{\"campaignBlueprint\":{\"pillars\":[\"...\"],\"keyThemes\":[\"...\"]," +
-            "\"postingCadence\":{\"platform\":\"e.g. 3 posts/week\"},\"contentMix\":{\"contentType\":\"percentage or note\"}," +
+            "\"postingCadence\":{\"platform\":\"e.g. 3 posts/week\"},\"contentMix\":{\"topicOrAngle\":\"percentage or note\"}," +
             "\"recommendedPlatforms\":[\"...\"]}}"));
 
         return string.Join(" ", lines);

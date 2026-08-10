@@ -122,8 +122,11 @@ public static class ContentPlanPrompt
         lines.Add(
             $"For each post choose a dayOffset (integer, 0 = campaign start day, {postCount * 2} = latest allowed) and an hour " +
             "(0-23, in Cairo/Egypt local time — the business's own timezone, not UTC) that best matches the posting " +
-            "time guidance above. contentType must be one of: " +
-            "Post, Story, ReelScript, AdCopy, Blog, Caption. platform must be one of the target platforms listed above.");
+            "time guidance above. platform must be one of the target platforms listed above. This platform only " +
+            "produces a single format — a caption paired with one AI-generated static image, published as a normal " +
+            "feed post. It cannot produce video, Reels, or Stories, and has no separate blog or ad-copy publishing " +
+            "path — every post you plan must be that one format, regardless of what the campaignBlueprint's " +
+            "contentMix suggests.");
 
         // The image model is trained on English captions and renders Arabic prompts poorly, and the
         // post copy itself is persuasion, not a description of a picture — so the model that writes
@@ -139,7 +142,7 @@ public static class ContentPlanPrompt
 
         lines.Add(
             PromptFragments.JsonObjectOnly(
-                "{\"posts\":[{\"platform\":\"...\",\"contentType\":\"...\",\"dayOffset\":0,\"hour\":18,\"content\":\"...\"," +
+                "{\"posts\":[{\"platform\":\"...\",\"dayOffset\":0,\"hour\":18,\"content\":\"...\"," +
                 "\"hashtags\":[\"...\"],\"cta\":\"...\",\"imagePrompt\":\"...\"}]}. ") +
             $"Return exactly {postCount} posts in the array.");
 

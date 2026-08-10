@@ -71,11 +71,13 @@ public static class ContentPlanParser
                         continue;
                     }
 
-                    var contentType = ContentType.Post;
-                    if (post.TryGetProperty("contentType", out var contentTypeProp))
-                    {
-                        Enum.TryParse(contentTypeProp.GetString(), true, out contentType);
-                    }
+                    // Every campaign post is this platform's one real format — a caption plus one
+                    // AI-generated static image — regardless of what the model returns here. The
+                    // prompt no longer even asks for a contentType (see ContentPlanPrompt), but a
+                    // stray field from an uncooperative model is ignored rather than trusted, since
+                    // anything other than Post has no matching publish path and its ContentType
+                    // string leaks into the image prompt's style instruction (see VisualPrompt).
+                    const ContentType contentType = ContentType.Post;
 
                     var dayOffset = 0;
                     if (post.TryGetProperty("dayOffset", out var dayOffsetProp) && dayOffsetProp.TryGetInt32(out var parsedDayOffset))
