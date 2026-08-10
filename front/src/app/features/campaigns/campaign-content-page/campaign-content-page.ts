@@ -19,6 +19,7 @@ import { parseInsufficientCoins } from '../../../core/auth/coin-error.util';
 import { CoinCostHint } from '../../../shared/components/coin-cost-hint/coin-cost-hint';
 import { TooltipDirective } from '../../../shared/directives/tooltip.directive';
 import { GetCampaignResponse, ScheduleCampaignPostResult } from '../../../model/campaign.model';
+import { GetRunStatusResponse } from '../../../model/ai-pipeline.model';
 import { ContentItemSummary } from '../../../model/content-item.model';
 import { SocialAccountSummary } from '../../../model/social-account.model';
 import { cairoLocalToUtcIso, formatCairoDate, formatCairoTime, utcIsoToCairoLocalParts } from '../../../shared/utils/cairo-time.util';
@@ -97,17 +98,66 @@ export class CampaignContentPage {
    *  possibly reflect it. */
   private readonly requestInFlight = signal(false);
 
-  /** True while the campaign's pipeline run actually has a `ContentPlan`/`ContentImage` stage
-   *  outstanding (`Pending` or `Running`) — real, server-derived state, not a local guess. This is
-   *  what closes the reload double-spend gap: a reload picks this up from the very first poll tick
-   *  (started in `load()` whenever the campaign has a `currentPipelineRunId`), so a batch already
-   *  running from a previous tab/session disables the button here too, not just in the tab that
-   *  started it. */
+  /** `run().progress.imagesTotal` at the moment the in-flight "توليد المحتوى" request was fired —
+   *  `null` when no request is in flight. A campaign's pipeline run is reused across every "generate
+   *  another batch" click (its `runId` never changes — see currentBatchItemIds' remarks), so a poll
+   *  landing right after this click can be "fresh" (a real, post-click response) while still carrying
+   *  the *previous* batch's totals: the backend only just flipped ContentPlan back to Pending, it
+   *  hasn't actually re-run and fanned out this batch's own ContentImage stages yet. The total only
+   *  becomes trustworthy once it's grown past what it was at click time. */
+  private readonly imagesTotalAtClick = signal<number | null>(null);
+
+  /** `run()`'s exact object reference at click time — `AiPipelineService.applyRunUpdate` always
+   *  assigns a fresh object on every accepted update, so `run() !== runRefAtClick` is a reliable
+   *  "has anything at all arrived since I clicked" check. This is what `imagesTotalAtClick` alone
+   *  can't tell: the run held right at click time is virtually always sitting at a *terminal* status
+   *  already (the previous batch's own finished state — this run is reused, never recreated), so a
+   *  naive "bail out once isTerminal()" check would fire immediately on that same stale object,
+   *  before any request had even reached the server. Checking this first is what lets isTerminal()
+   *  below be trusted only once it's actually describing something new. Plain field, not a signal:
+   *  it only needs to be read inside awaitingFreshBatchStatus, never to trigger it on its own. */
+  private runRefAtClick: GetRunStatusResponse | null = null;
+
+  /** True from the moment "توليد المحتوى" is clicked until a genuinely new run update has arrived
+   *  (see runRefAtClick) AND that update shows either `imagesTotal` grown past imagesTotalAtClick (the
+   *  new batch has actually been planned) or a terminal status (nothing more is coming — a failure
+   *  shouldn't leave this stuck forever). The banner stays up throughout regardless (see
+   *  `generating`/`requestInFlight`), but anything that displays a specific number from `run()` should
+   *  check this first rather than show a total that's about to change. */
+  protected readonly awaitingFreshBatchStatus = computed(() => {
+    const captured = this.imagesTotalAtClick();
+    if (captured === null) return false;
+
+    const run = this.aiPipelineService.run();
+    if (run === this.runRefAtClick) return true; // nothing has arrived yet — definitely still stale
+
+    const total = run?.progress?.imagesTotal ?? 0;
+    return total <= captured && !this.aiPipelineService.isTerminal();
+  });
+
+  /** True while the campaign's pipeline run hasn't reached a terminal status — real, server-derived
+   *  state, not a local guess. This is what closes the reload double-spend gap: a reload picks this up
+   *  from the very first poll tick (started in `load()` whenever the campaign has a
+   *  `currentPipelineRunId`), so a batch already running from a previous tab/session disables the
+   *  button here too, not just in the tab that started it.
+   *
+   *  Deliberately reads `run.status` rather than scanning `run.stages` for a Pending/Running
+   *  ContentPlan/ContentImage entry (an earlier version of this did exactly that): each of a batch's
+   *  ContentImage stages settles in its own isolated backend DB scope and independently re-queries
+   *  every sibling before pushing its own snapshot (see PipelineOrchestrator's own remarks on this),
+   *  so with N images generating concurrently, N of these racy per-stage snapshots land in quick
+   *  succession and can — in an order that doesn't match which one is actually more complete —
+   *  transiently look like nothing is left pending, flickering this false and back on every single
+   *  image. `run.status` itself is untouched by that per-stage race: it's only ever recomputed once,
+   *  authoritatively, after a full dispatch wave finishes (PipelineOrchestrator.AdvanceAsync, after its
+   *  `Task.WhenAll`), so it stays `Running` continuously for the run's entire duration and only
+   *  changes once, for real, at true completion. By the time this page is usable the run has already
+   *  passed its strategy phase (approved and settled), so "not terminal" here always specifically means
+   *  "a content batch is what's in flight". */
   protected readonly contentBatchInFlight = computed(() => {
     const run = this.aiPipelineService.run();
     if (!run) return false;
-    return run.stages.some(s =>
-      (s.kind === 'ContentPlan' || s.kind === 'ContentImage') && (s.status === 'Pending' || s.status === 'Running'));
+    return !this.aiPipelineService.isTerminal();
   });
 
   protected readonly generating = computed(() => this.requestInFlight() || this.contentBatchInFlight());
@@ -116,29 +166,26 @@ export class CampaignContentPage {
    *  once a top-up lands, so there is nothing to click here (same as the strategy page's note). */
   protected readonly awaitingCoins = computed(() => this.aiPipelineService.run()?.status === 'AwaitingCoins');
 
-  /** Sticky accumulator behind `currentBatchItemIds` below — see that computed's remarks for why a
-   *  fresh-every-time derivation off `run()` isn't safe. Reset only when the watched run itself
-   *  changes (a new "generate content" click, or loading a different campaign), never by an
-   *  individual update simply omitting an id it showed before. */
-  private readonly accumulatedBatchItemIds = signal<Set<string>>(new Set());
-  private lastWatchedRunId: string | null = null;
+  /** ContentItem ids that belong to the most recently generated batch — every post in one batch is
+   *  inserted in the same instant (see `batchItems` below), so the batch a post belongs to is exactly
+   *  "shares the newest `createdAt` seen for this campaign." Derived straight off `items()` rather than
+   *  off the pipeline run's `ContentImage` stages: a campaign's `AiPipelineRun` is reused across every
+   *  "generate another batch" click (see `GenerateCampaignContentCommandHandler` — it resets the one
+   *  `ContentPlan` row rather than creating a second run), so `run.stages` keeps every earlier batch's
+   *  `ContentImage` stages forever with nothing marking which ones are from the latest click. Grouping
+   *  by `createdAt` instead sidesteps that entirely — it doesn't matter how many batches share the run,
+   *  only the newest cluster of items is ever "current". */
+  private readonly currentBatchItemIds = computed(() => {
+    const all = this.items();
+    if (all.length === 0) return new Set<string>();
 
-  /** ContentItem ids that belong to the run currently tracked here — read off its `ContentImage`
-   *  stages' `targetRefId`, the one place that link exists (ContentItem itself carries no batch/run
-   *  id). A campaign can be generated more than once, so `items()` mixes this run's posts with
-   *  whatever earlier batches already produced — this set is what tells them apart. Empty before
-   *  the content plan has fanned out yet, since those stages don't exist until then.
-   *
-   *  Deliberately accumulate-only rather than a plain derivation off the latest `run()` snapshot: each
-   *  `ContentImage` stage completes in its own isolated backend DB scope and independently re-queries
-   *  every sibling before pushing its own update (see PipelineOrchestrator), so a `targetRefId` that
-   *  was already visible in an earlier snapshot can be transiently missing from a later one even
-   *  though nothing about that post actually changed. `AiPipelineService`'s version check (see
-   *  `GetRunStatusResponse.version`) rejects updates that are stale *relative to a newer one already
-   *  applied*, but doesn't help when the momentarily-incomplete snapshot itself IS the newest one seen
-   *  so far — only "never remove an id once seen for this run" closes that gap. A `targetRefId`, once
-   *  observed, is a stable identity link with no legitimate reason to disappear. */
-  private readonly currentBatchItemIds = computed(() => this.accumulatedBatchItemIds());
+    let latestCreatedAt = all[0].createdAt;
+    for (const item of all) {
+      if (item.createdAt > latestCreatedAt) latestCreatedAt = item.createdAt;
+    }
+
+    return new Set(all.filter(i => i.createdAt === latestCreatedAt).map(i => i.contentItemId));
+  });
 
   /** This run's own posts, in their planned running order (`suggestedPostAt` — the day/hour the
    *  content plan gave each one — not creation time: the whole batch is inserted in one instant, so
@@ -400,36 +447,14 @@ export class CampaignContentPage {
       if (campaign) this.contentItemService.refresh(campaign.brandProfileId, this.campaignId()).subscribe();
     });
 
-    // Feeds accumulatedBatchItemIds — see currentBatchItemIds' remarks for why this only ever adds
-    // ids within one run rather than being a plain derivation off the latest snapshot.
+    // Closes the gap described in generateContent(): once imagesTotal has genuinely grown past what
+    // it was at click time (or the run's hit a terminal status) — not just any update landing, which
+    // can still carry the previous batch's stale total for a moment — requestInFlight can safely drop
+    // and contentBatchInFlight() takes over generating() from here.
     effect(() => {
-      const run = this.aiPipelineService.run();
-
-      if (run?.runId !== this.lastWatchedRunId) {
-        this.lastWatchedRunId = run?.runId ?? null;
-        this.accumulatedBatchItemIds.set(new Set());
-      }
-
-      if (!run) return;
-      const newIds = run.stages.filter(s => s.kind === 'ContentImage' && s.targetRefId).map(s => s.targetRefId!);
-      if (newIds.length === 0) return;
-
-      this.accumulatedBatchItemIds.update(current => {
-        let changed = false;
-        const next = new Set(current);
-        for (const id of newIds) {
-          if (!next.has(id)) { next.add(id); changed = true; }
-        }
-        return changed ? next : current;
-      });
-    });
-
-    // Closes the gap described in generateContent(): once the run is actually observed (poll or
-    // SignalR, whichever lands first), requestInFlight can safely drop — contentBatchInFlight() takes
-    // over generating() from here based on the run's own Pending/Running stages.
-    effect(() => {
-      if (this.aiPipelineService.run() && this.requestInFlight()) {
+      if (this.requestInFlight() && !this.awaitingFreshBatchStatus()) {
         this.requestInFlight.set(false);
+        this.imagesTotalAtClick.set(null);
       }
     });
 
@@ -484,8 +509,8 @@ export class CampaignContentPage {
     this.busyItemId.set(null);
     this.retryingImageId.set(null);
     this.lastRefreshedImageCount = -1;
-    this.accumulatedBatchItemIds.set(new Set());
-    this.lastWatchedRunId = null;
+    this.requestInFlight.set(false);
+    this.imagesTotalAtClick.set(null);
   }
 
   /** Fires content generation automatically once, right after the onboarding wizard's approval
@@ -523,7 +548,14 @@ export class CampaignContentPage {
       return;
     }
 
+    // Captured now, before anything async — see imagesTotalAtClick/runRefAtClick's remarks for why
+    // this has to happen at the same instant as requestInFlight rather than once the POST resolves:
+    // whatever the service already holds as of right now is necessarily the *previous* batch's (this
+    // campaign's run gets reused, not recreated, on a second-or-later "generate" click).
+    const runAtClick = this.aiPipelineService.run();
     this.requestInFlight.set(true);
+    this.imagesTotalAtClick.set(runAtClick?.progress?.imagesTotal ?? 0);
+    this.runRefAtClick = runAtClick;
 
     this.campaignService.generateContent(this.campaignId(), {
       postCount: this.postCount(),
@@ -537,19 +569,20 @@ export class CampaignContentPage {
       // requestInFlight deliberately stays true here rather than being cleared immediately: startPolling's
       // first fetch is itself async, and clearing it now would leave a real gap — generating() would
       // read false and items() would still be empty, hitting the "no posts yet" empty state for a
-      // moment before the first status arrives. The effect below clears it once aiPipelineService.run()
-      // actually reflects something, which for a freshly-started run should always be true almost
-      // immediately, keeping generating() continuously true with no false-negative window.
+      // moment before the first status arrives. The effect below clears it once imagesTotal actually
+      // grows past imagesTotalAtClick.
       next: res => {
         this.coinPricingService.refreshAfterSpend();
         if (res.data) {
           this.aiPipelineService.startPolling(res.data.runId);
         } else {
           this.requestInFlight.set(false);
+          this.imagesTotalAtClick.set(null);
         }
       },
       error: err => {
         this.requestInFlight.set(false);
+        this.imagesTotalAtClick.set(null);
         this.coinPricingService.refreshAfterSpend();
         this.showSpendError(err, 'تعذّر توليد المحتوى.');
       },

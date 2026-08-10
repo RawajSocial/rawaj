@@ -71,19 +71,31 @@
         </div>
 
         <div class="cc-generating-bar-track">
-          <div class="cc-generating-bar-fill" [style.width.%]="aiPipelineService.run()?.progress?.percent ?? 0"></div>
+          <div class="cc-generating-bar-fill" [style.width.%]="awaitingFreshBatchStatus() ? 0 : (aiPipelineService.run()?.progress?.percent ?? 0)"></div>
         </div>
 
         <div class="cc-generating-stages">
-          <span class="cc-generating-stage active">
-            <i class="fa-solid fa-circle-notch fa-spin"></i>
-            {{ aiPipelineService.run()?.progress?.currentStageLabel ?? 'جارٍ العمل…' }}
-          </span>
-          @if ((aiPipelineService.run()?.progress?.imagesTotal ?? 0) > 0) {
-            <span class="cc-generating-stage">
-              <i class="fa-regular fa-image"></i>
-              {{ aiPipelineService.run()?.progress?.imagesCompleted }} من {{ aiPipelineService.run()?.progress?.imagesTotal }} صورة
+          @if (awaitingFreshBatchStatus()) {
+            <!-- The run this campaign already had (possibly from an earlier, already-finished batch —
+                 its runId gets reused, not recreated, per generate click) can already be sitting in
+                 aiPipelineService before this click. Showing its numbers here would show a stale total
+                 that's about to change (e.g. "20 of 20" before it becomes "20 of 26") — a generic state
+                 until this click's own fresh status actually arrives is preferable to a wrong number. -->
+            <span class="cc-generating-stage active">
+              <i class="fa-solid fa-circle-notch fa-spin"></i>
+              جارٍ تجهيز الدفعة الجديدة…
             </span>
+          } @else {
+            <span class="cc-generating-stage active">
+              <i class="fa-solid fa-circle-notch fa-spin"></i>
+              {{ aiPipelineService.run()?.progress?.currentStageLabel ?? 'جارٍ العمل…' }}
+            </span>
+            @if ((aiPipelineService.run()?.progress?.imagesTotal ?? 0) > 0) {
+              <span class="cc-generating-stage">
+                <i class="fa-regular fa-image"></i>
+                {{ aiPipelineService.run()?.progress?.imagesCompleted }} من {{ aiPipelineService.run()?.progress?.imagesTotal }} صورة
+              </span>
+            }
           }
         </div>
 
