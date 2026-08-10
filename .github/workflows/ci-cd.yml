@@ -193,111 +193,162 @@ jobs:
           script: |
             set -euo pipefail
 
-            TS="$(date +%Y%m%d%H%M%S)"
-            BACKUP_DIR="/opt/backups"
-            sudo mkdir -p "${BACKUP_DIR}"
+            log() {
+              echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEPLOY] $*"
+            }
 
             fail() {
               echo "ERROR: $1" >&2
               exit 1
             }
 
+            # All privileged commands go through sudo -n: if passwordless sudo
+            # isn't available for this session, fail immediately with a clear
+            # message instead of hanging on an unanswerable password prompt.
+            run_sudo() {
+              if ! sudo -n "$@"; then
+                fail "sudo -n failed for: sudo $* (passwordless sudo not available for this SSH session)"
+              fi
+            }
+
+            dump_diagnostics() {
+              log "Dumping recent logs for diagnosis..."
+              sudo -n journalctl -u rawaj.service -n 100 --no-pager || true
+              sudo -n journalctl -u rawaj-front.service -n 100 --no-pager || true
+            }
+
             rollback() {
-              echo "Verification failed - rolling back to previous release..."
+              log "Verification failed - rolling back to previous release..."
               if [ -d "${BACKUP_DIR}/rawaj-${TS}" ]; then
-                sudo rm -rf /opt/rawaj
-                sudo cp -a "${BACKUP_DIR}/rawaj-${TS}" /opt/rawaj
+                sudo -n rm -rf /opt/rawaj
+                sudo -n cp -a "${BACKUP_DIR}/rawaj-${TS}" /opt/rawaj
               fi
               if [ -d "${BACKUP_DIR}/rawaj-front-${TS}" ]; then
-                sudo rm -rf /opt/rawaj-front
-                sudo cp -a "${BACKUP_DIR}/rawaj-front-${TS}" /opt/rawaj-front
+                sudo -n rm -rf /opt/rawaj-front
+                sudo -n cp -a "${BACKUP_DIR}/rawaj-front-${TS}" /opt/rawaj-front
               fi
-              sudo systemctl restart rawaj.service || true
-              sudo systemctl restart rawaj-front.service || true
-              sudo rm -rf "${STAGE_DIR}"
+              sudo -n systemctl restart rawaj.service || true
+              sudo -n systemctl restart rawaj-front.service || true
+              sudo -n rm -rf "${STAGE_DIR}" || true
               fail "Deployment rolled back; see log above for the failing check."
             }
+
+            TS="$(date +%Y%m%d%H%M%S)"
+            BACKUP_DIR="/opt/backups"
+
+            log "Creating backup directory..."
+            run_sudo mkdir -p "${BACKUP_DIR}"
+            log "Backup directory ready."
 
             [ -d "${STAGE_DIR}/backend" ] || fail "Backend staging directory missing: ${STAGE_DIR}/backend"
             [ -d "${STAGE_DIR}/frontend" ] || fail "Frontend staging directory missing: ${STAGE_DIR}/frontend"
             [ -f "${STAGE_DIR}/backend/Rawaj.dll" ] || fail "Rawaj.dll not found in staged backend artifact"
 
-            # Preserve ASP.NET Core Data Protection keys across releases
+            log "Preserving ASP.NET Core Data Protection keys..."
             if [ -d /opt/rawaj/.aspnet ]; then
-              sudo cp -a /opt/rawaj/.aspnet "${STAGE_DIR}/backend/.aspnet"
+              run_sudo cp -a /opt/rawaj/.aspnet "${STAGE_DIR}/backend/.aspnet"
             fi
-            sudo chown -R rawaj:rawaj "${STAGE_DIR}/backend" "${STAGE_DIR}/frontend"
+            log "Data Protection keys preserved."
 
-            echo "Backing up current backend release..."
-            sudo rm -rf "${BACKUP_DIR}/rawaj-${TS}"
-            sudo cp -a /opt/rawaj "${BACKUP_DIR}/rawaj-${TS}"
+            log "Chowning staged files to rawaj:rawaj..."
+            run_sudo chown -R rawaj:rawaj "${STAGE_DIR}/backend" "${STAGE_DIR}/frontend"
+            log "Staged files chowned."
 
-            echo "Backing up current frontend release..."
-            sudo rm -rf "${BACKUP_DIR}/rawaj-front-${TS}"
-            sudo cp -a /opt/rawaj-front "${BACKUP_DIR}/rawaj-front-${TS}"
+            log "Checking current deployment size (informational only)..."
+            sudo -n du -sh /opt/rawaj 2>/dev/null || true
+            sudo -n du -sh /opt/rawaj-front 2>/dev/null || true
+
+            log "Starting backend backup..."
+            run_sudo rm -rf "${BACKUP_DIR}/rawaj-${TS}"
+            run_sudo cp -a /opt/rawaj "${BACKUP_DIR}/rawaj-${TS}"
+            log "Backend backup complete."
+
+            log "Starting frontend backup..."
+            run_sudo rm -rf "${BACKUP_DIR}/rawaj-front-${TS}"
+            run_sudo cp -a /opt/rawaj-front "${BACKUP_DIR}/rawaj-front-${TS}"
+            log "Frontend backup complete."
 
             swap_backend() {
-              sudo rm -rf /opt/rawaj.new &&
-              sudo mv "${STAGE_DIR}/backend" /opt/rawaj.new &&
-              sudo rm -rf /opt/rawaj &&
-              sudo mv /opt/rawaj.new /opt/rawaj &&
-              sudo chown -R rawaj:rawaj /opt/rawaj
+              sudo -n rm -rf /opt/rawaj.new &&
+              sudo -n mv "${STAGE_DIR}/backend" /opt/rawaj.new &&
+              sudo -n rm -rf /opt/rawaj &&
+              sudo -n mv /opt/rawaj.new /opt/rawaj &&
+              sudo -n chown -R rawaj:rawaj /opt/rawaj
             }
 
             swap_frontend() {
-              sudo rm -rf /opt/rawaj-front.new &&
-              sudo mv "${STAGE_DIR}/frontend" /opt/rawaj-front.new &&
-              sudo rm -rf /opt/rawaj-front &&
-              sudo mv /opt/rawaj-front.new /opt/rawaj-front &&
-              sudo chown -R rawaj:rawaj /opt/rawaj-front
+              sudo -n rm -rf /opt/rawaj-front.new &&
+              sudo -n mv "${STAGE_DIR}/frontend" /opt/rawaj-front.new &&
+              sudo -n rm -rf /opt/rawaj-front &&
+              sudo -n mv /opt/rawaj-front.new /opt/rawaj-front &&
+              sudo -n chown -R rawaj:rawaj /opt/rawaj-front
             }
 
-            echo "Swapping in new backend release..."
+            log "Starting backend swap..."
             if ! swap_backend; then
               rollback
             fi
+            log "Backend swap complete."
 
-            echo "Swapping in new frontend release..."
+            log "Starting frontend swap..."
             if ! swap_frontend; then
               rollback
             fi
+            log "Frontend swap complete."
 
-            echo "Restarting services..."
-            if ! sudo systemctl restart rawaj.service; then
+            log "Current service status before restart (informational only)..."
+            sudo -n systemctl status rawaj.service --no-pager || true
+            sudo -n systemctl status rawaj-front.service --no-pager || true
+
+            log "Starting backend restart..."
+            if ! sudo -n systemctl restart rawaj.service; then
+              dump_diagnostics
               rollback
             fi
+            log "Backend restart complete."
 
-            if ! sudo systemctl restart rawaj-front.service; then
+            log "Starting frontend restart..."
+            if ! sudo -n systemctl restart rawaj-front.service; then
+              dump_diagnostics
               rollback
             fi
+            log "Frontend restart complete."
 
-            echo "Waiting for services to settle..."
+            log "Waiting for services to settle..."
             sleep 5
 
+            log "Starting service verification..."
             BACKEND_ACTIVE="$(systemctl is-active rawaj.service || true)"
             FRONTEND_ACTIVE="$(systemctl is-active rawaj-front.service || true)"
-            echo "rawaj.service is-active: ${BACKEND_ACTIVE}"
-            echo "rawaj-front.service is-active: ${FRONTEND_ACTIVE}"
+            log "rawaj.service is-active: ${BACKEND_ACTIVE}"
+            log "rawaj-front.service is-active: ${FRONTEND_ACTIVE}"
 
             if [ "${BACKEND_ACTIVE}" != "active" ] || [ "${FRONTEND_ACTIVE}" != "active" ]; then
+              dump_diagnostics
               rollback
             fi
+            log "Service verification complete."
 
-            BACKEND_PORT_COUNT="$(sudo ss -lntp | grep -c ':5000 ' || true)"
-            FRONTEND_PORT_COUNT="$(sudo ss -lntp | grep -c ':4200 ' || true)"
-            echo "Listeners on :5000 -> ${BACKEND_PORT_COUNT}"
-            echo "Listeners on :4200 -> ${FRONTEND_PORT_COUNT}"
+            log "Starting port verification..."
+            BACKEND_PORT_COUNT="$(sudo -n ss -lntp | grep -c ':5000 ' || true)"
+            FRONTEND_PORT_COUNT="$(sudo -n ss -lntp | grep -c ':4200 ' || true)"
+            log "Listeners on :5000 -> ${BACKEND_PORT_COUNT}"
+            log "Listeners on :4200 -> ${FRONTEND_PORT_COUNT}"
 
             if [ "${BACKEND_PORT_COUNT}" -eq 0 ] || [ "${FRONTEND_PORT_COUNT}" -eq 0 ]; then
+              dump_diagnostics
               rollback
             fi
+            log "Port verification complete."
 
-            echo "Cleaning up staging directory..."
-            sudo rm -rf "${STAGE_DIR}"
+            log "Starting staging cleanup..."
+            sudo -n rm -rf "${STAGE_DIR}" || true
+            log "Staging cleanup complete."
 
-            echo "Trimming old backups (keeping last 3 per app)..."
+            log "Starting backup trimming (keeping last 3 per app)..."
             for app in rawaj rawaj-front; do
-              ls -1dt "${BACKUP_DIR}/${app}-"* 2>/dev/null | tail -n +4 | xargs -r sudo rm -rf
+              ls -1dt "${BACKUP_DIR}/${app}-"* 2>/dev/null | tail -n +4 | xargs -r sudo -n rm -rf || true
             done
+            log "Backup trimming complete."
 
-            echo "Deployment successful."
+            log "Deployment successful."
