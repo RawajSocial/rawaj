@@ -8,6 +8,7 @@ using Rawaj.Application.Features.Scheduling.GetScheduledPosts;
 using Rawaj.Application.Features.Scheduling.PublishScheduledPost;
 using Rawaj.Application.Features.Scheduling.RescheduleScheduledPost;
 using Rawaj.Application.Features.Scheduling.SchedulePost;
+using Rawaj.Application.Features.Scheduling.TakeDownScheduledPost;
 using Rawaj.Common;
 using Rawaj.Domain.Enums;
 
@@ -57,6 +58,16 @@ public class ScheduledPostsController(ISender sender) : ControllerBase
         return result.Succeeded
             ? Ok(ApiResponse<CancelScheduledPostResponse>.Success(result.Data!))
             : BadRequest(ApiResponse<CancelScheduledPostResponse>.Fail(result.ErrorMessage!));
+    }
+
+    [HttpPost("{scheduledPostId:guid}/take-down")]
+    public async Task<IActionResult> TakeDown(Guid scheduledPostId, CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new TakeDownScheduledPostCommand(scheduledPostId), cancellationToken);
+
+        return result.Succeeded
+            ? Ok(ApiResponse<TakeDownScheduledPostResponse>.Success(result.Data!))
+            : BadRequest(ApiResponse<TakeDownScheduledPostResponse>.Fail(result.ErrorMessage!));
     }
 
     [HttpPost("{scheduledPostId:guid}/publish-now")]

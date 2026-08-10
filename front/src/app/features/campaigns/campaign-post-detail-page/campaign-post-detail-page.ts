@@ -25,6 +25,7 @@ const STATUS_META: Record<PostStatus, { label: string; color: string }> = {
   published: { label: 'منشور', color: '#10B981' },
   draft:     { label: 'مسودة', color: '#9CA3AF' },
   failed:    { label: 'فشل',   color: '#EF4444' },
+  'taken-down': { label: 'تم السحب', color: '#EF4444' },
 };
 
 @Component({

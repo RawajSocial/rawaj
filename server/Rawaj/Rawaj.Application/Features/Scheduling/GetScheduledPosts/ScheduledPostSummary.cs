@@ -24,4 +24,7 @@ public record ScheduledPostSummary(
     /// actual content instead of a placeholder name.</summary>
     string Content,
     /// <summary>The specific visual asset attached at scheduling time, if any.</summary>
-    string? ImageUrl);
+    string? ImageUrl,
+    /// <summary>The platform's own id for the live post, set once actually published — lets the
+    /// UI link straight to it (e.g. facebook.com/{PostId}) rather than just showing it happened.</summary>
+    string? PostId);

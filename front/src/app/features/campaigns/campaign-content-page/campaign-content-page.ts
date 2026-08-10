@@ -13,6 +13,7 @@ import { SocialAccountService } from '../../../core/social/social-account.servic
 import { PermissionService } from '../../../core/tenant/permission.service';
 import { SeoService } from '../../../services/seo.service';
 import { ErrorModalService } from '../../../services/error-modal.service';
+import { ConfirmDialogService } from '../../../services/confirm-dialog.service';
 import { extractApiErrorMessage } from '../../../core/auth/api-error.util';
 import { parseInsufficientCoins } from '../../../core/auth/coin-error.util';
 import { CoinCostHint } from '../../../shared/components/coin-cost-hint/coin-cost-hint';
@@ -21,6 +22,7 @@ import { GetCampaignResponse, ScheduleCampaignPostResult } from '../../../model/
 import { ContentItemSummary } from '../../../model/content-item.model';
 import { SocialAccountSummary } from '../../../model/social-account.model';
 import { cairoLocalToUtcIso, formatCairoDate, formatCairoTime, utcIsoToCairoLocalParts } from '../../../shared/utils/cairo-time.util';
+import { facebookPostUrl } from '../../../shared/utils/social-links.util';
 
 const CONTENT_TYPE_LABELS: Record<ContentItemSummary['contentType'], string> = {
   Post: 'بوست', Story: 'قصة', ReelScript: 'ريل', AdCopy: 'إعلان', Blog: 'مقال', Caption: 'كابشن',
@@ -68,6 +70,7 @@ export class CampaignContentPage {
   private readonly socialAccountService = inject(SocialAccountService);
   protected readonly perms = inject(PermissionService);
   private readonly errorModalService = inject(ErrorModalService);
+  private readonly confirmDialogService = inject(ConfirmDialogService);
   private readonly seo = inject(SeoService);
 
   protected readonly contentTypeLabels = CONTENT_TYPE_LABELS;
@@ -215,6 +218,12 @@ export class CampaignContentPage {
   protected readonly scheduleTime = signal('');
   protected readonly schedulingItemBusy = signal(false);
 
+  /** Reschedule panel for an already-scheduled post — a separate mode from the initial-schedule
+   *  panel above (no account picker; it's changing the time on an existing ScheduledPost, not
+   *  creating a new one), reusing the same scheduleDate/scheduleTime fields since only one of the
+   *  two panels is ever open for a given card at a time. */
+  protected readonly reschedulingItemId = signal<string | null>(null);
+
   /** The backend rejects anything less than 10 minutes out (native platform scheduling needs the
    *  lead time) — checked client-side too so a too-soon pick is caught here, with a plain-language
    *  reason, instead of surfacing the backend's generic "Validation failed." with no detail (the
@@ -230,17 +239,23 @@ export class CampaignContentPage {
     return picked.getTime() < Date.now() + 10 * 60 * 1000;
   });
 
-  /** Content items with an active (Pending or Published) scheduled post — the backend deliberately
-   *  leaves ContentItem.Status as Approved after scheduling (dedup happens server-side against
-   *  ScheduledPosts, not content status), so without this "approved" would keep including posts
-   *  that are already scheduled, overstating the coin-cost hint and, once nothing new is left to
-   *  schedule, surfacing a generic-looking error for what's actually a no-op. Failed/cancelled
-   *  posts are NOT active, since the backend allows re-scheduling those. */
-  private readonly activelyScheduledContentItemIds = computed(() => new Set(
+  /** Content items with an active (Pending or Published) scheduled post, keyed to the post itself
+   *  (not just a Set of ids) — the backend deliberately leaves ContentItem.Status as Approved after
+   *  scheduling (dedup happens server-side against ScheduledPosts, not content status), so without
+   *  this "approved" would keep including posts that are already scheduled, overstating the
+   *  coin-cost hint and, once nothing new is left to schedule, surfacing a generic-looking error for
+   *  what's actually a no-op. Failed/cancelled posts are NOT active, since the backend allows
+   *  re-scheduling those. Keeping the actual post (not just the id) lets the card show its real
+   *  scheduled time instead of just hiding the AI's suggestion once one exists. */
+  private readonly activeScheduledPostByContentItemId = computed(() => new Map(
     this.scheduledPostService.byCampaign(this.campaignId())()
       .filter(p => p.status === 'scheduled' || p.status === 'published')
-      .map(p => p.contentItemId),
+      .map(p => [p.contentItemId, p] as const),
   ));
+
+  private readonly activelyScheduledContentItemIds = computed(() =>
+    new Set(this.activeScheduledPostByContentItemId().keys()),
+  );
 
   /** Approved AND has an image — a post is never eligible for scheduling (bulk or per-item)
    *  without one, enforcing "no post should exist without an image" at the gate that actually
@@ -266,10 +281,51 @@ export class CampaignContentPage {
   }
 
   /** The AI's suggested time is only meaningful before the post has an actual scheduled time of its
-   *  own — once it's genuinely scheduled, ScheduledPost.scheduledAt (shown elsewhere) is what will
-   *  really happen, not this suggestion. */
+   *  own — once it's genuinely scheduled, the real ScheduledPost.scheduledAt (below) is what will
+   *  actually happen, not this suggestion. */
   protected showsSuggestedTime(item: ContentItemSummary): boolean {
     return !!item.suggestedPostAt && !this.activelyScheduledContentItemIds().has(item.contentItemId);
+  }
+
+  protected activeScheduledPost(item: ContentItemSummary) {
+    return this.activeScheduledPostByContentItemId().get(item.contentItemId) ?? null;
+  }
+
+  /** Scheduled but not yet actually sent/fired — still cancellable/reschedulable. */
+  protected isPendingSchedule(item: ContentItemSummary): boolean {
+    return this.activeScheduledPost(item)?.status === 'scheduled';
+  }
+
+  /** Genuinely already live on the platform — nothing left to approve, decline, or reschedule from
+   *  here; that would just be pretending to undo something that already happened. */
+  protected isLive(item: ContentItemSummary): boolean {
+    return this.activeScheduledPost(item)?.status === 'published';
+  }
+
+  /** Re-approving an already-approved item (scheduled or not) is a no-op that only invites
+   *  confusion — hide the button once there's nothing left for it to do. */
+  protected showApprove(item: ContentItemSummary): boolean {
+    return item.status !== 'Approved' && item.status !== 'Published';
+  }
+
+  /** Hidden only once the post has actually gone out — there's nothing to decline/cancel by then.
+   *  While still schedulable-but-pending, the SAME button cancels the schedule instead of rejecting
+   *  the content (see declineLabel/onDecline). */
+  protected showDecline(item: ContentItemSummary): boolean {
+    return !this.isLive(item);
+  }
+
+  /** Only Facebook post ids are usable directly as a permalink (facebook.com/{id} redirects
+   *  correctly) — Instagram's publish API returns a numeric media id, not the shortcode a real
+   *  instagram.com/p/ link needs, so there's no link offered there. */
+  protected liveFacebookUrl(item: ContentItemSummary): string | null {
+    const scheduledPost = this.activeScheduledPost(item);
+    if (!scheduledPost || !this.isLive(item) || item.platform !== 'Facebook' || !scheduledPost.postId) return null;
+    return facebookPostUrl(scheduledPost.postId);
+  }
+
+  protected declineLabel(item: ContentItemSummary): string {
+    return this.isPendingSchedule(item) ? 'إلغاء الجدولة' : 'رفض';
   }
 
   protected formatSuggestedTime(iso: string): string {
@@ -503,6 +559,7 @@ export class CampaignContentPage {
   protected review(item: ContentItemSummary, approve: boolean): void {
     if (this.busyItemId() || !this.perms.canEdit()) return;
     if (approve && !item.imageUrl) return; // enforced in the template too — no accepting an imageless post
+
     this.busyItemId.set(item.contentItemId);
     this.contentItemService.review(item.contentItemId, approve).subscribe({
       next: () => {
@@ -513,6 +570,103 @@ export class CampaignContentPage {
       error: err => {
         this.busyItemId.set(null);
         this.errorModalService.show(extractApiErrorMessage(err, 'تعذّر تحديث حالة المنشور.'), { variant: 'error' });
+      },
+    });
+  }
+
+  /** The decline button is a single control whose meaning changes with state: while the post is
+   *  still pending (not yet fired), it only cancels the schedule — the content stays Approved and
+   *  the button then reverts to plain "رفض" for a second, separate click to actually reject it.
+   *  Keeping these as two distinct steps (rather than one bundled action) means declining never
+   *  silently does two different things depending on what state it happened to catch the post in. */
+  protected onDeclineClick(item: ContentItemSummary): void {
+    if (this.isPendingSchedule(item)) {
+      void this.cancelSchedule(item);
+    } else {
+      this.review(item, false);
+    }
+  }
+
+  protected async cancelSchedule(item: ContentItemSummary): Promise<void> {
+    const scheduledPost = this.activeScheduledPost(item);
+    if (!scheduledPost || this.busyItemId() || !this.perms.canEdit()) return;
+
+    const confirmed = await this.confirmDialogService.confirm(
+      'سيتم إلغاء جدولة هذا المنشور (وعلى المنصة نفسها إن كان قد أُرسل إليها بالفعل)، ولن تُسترد الكوينات المستخدمة في الجدولة. هل تريد المتابعة؟',
+      { title: 'إلغاء الجدولة', confirmLabel: 'إلغاء الجدولة', cancelLabel: 'تراجع', variant: 'danger' },
+    );
+    if (!confirmed) return;
+
+    this.busyItemId.set(item.contentItemId);
+    this.scheduledPostService.cancel(scheduledPost.id).subscribe({
+      next: () => {
+        this.scheduledPostService.remove(scheduledPost.id);
+        this.busyItemId.set(null);
+      },
+      error: err => {
+        this.busyItemId.set(null);
+        this.errorModalService.show(extractApiErrorMessage(err, 'تعذّر إلغاء جدولة المنشور.'), { variant: 'error' });
+      },
+    });
+  }
+
+  /** Deletes an already-live post from the platform itself — irreversible, unlike cancelSchedule
+   *  which only revokes a not-yet-fired schedule. Resets the content item back to Draft server-side
+   *  (see TakeDownScheduledPostCommandHandler) so it re-refreshes here as an editable draft. */
+  protected async takeDownPost(item: ContentItemSummary): Promise<void> {
+    const scheduledPost = this.activeScheduledPost(item);
+    if (!scheduledPost || this.busyItemId() || !this.perms.canEdit()) return;
+
+    const confirmed = await this.confirmDialogService.confirm(
+      'سيتم حذف هذا المنشور نهائيًا من المنصة، ولا يمكن التراجع عن هذا الإجراء. سيعود المحتوى مسودة يمكنك تعديلها وجدولتها من جديد.',
+      { title: 'سحب المنشور', confirmLabel: 'سحب المنشور', cancelLabel: 'تراجع', variant: 'danger' },
+    );
+    if (!confirmed) return;
+
+    this.busyItemId.set(item.contentItemId);
+    this.scheduledPostService.takeDown(scheduledPost.id).subscribe({
+      next: () => {
+        this.scheduledPostService.remove(scheduledPost.id);
+        this.busyItemId.set(null);
+        const brandProfileId = this.campaign()?.brandProfileId;
+        if (brandProfileId) this.contentItemService.refresh(brandProfileId, this.campaignId()).subscribe();
+      },
+      error: err => {
+        this.busyItemId.set(null);
+        this.errorModalService.show(extractApiErrorMessage(err, 'تعذّر سحب المنشور.'), { variant: 'error' });
+      },
+    });
+  }
+
+  protected startReschedule(item: ContentItemSummary): void {
+    if (!this.perms.canEdit()) return;
+    const scheduledPost = this.activeScheduledPost(item);
+    if (!scheduledPost) return;
+    const { date, time } = utcIsoToCairoLocalParts(scheduledPost.scheduledAt);
+    this.reschedulingItemId.set(item.contentItemId);
+    this.scheduleDate.set(date);
+    this.scheduleTime.set(time);
+  }
+
+  protected cancelReschedule(): void {
+    this.reschedulingItemId.set(null);
+  }
+
+  protected submitReschedule(item: ContentItemSummary): void {
+    const scheduledPost = this.activeScheduledPost(item);
+    if (!scheduledPost || !this.scheduleDate() || !this.scheduleTime() || this.scheduleTimeTooSoon()
+      || this.schedulingItemBusy() || !this.perms.canEdit()) return;
+
+    this.schedulingItemBusy.set(true);
+    const scheduledAt = cairoLocalToUtcIso(this.scheduleDate(), this.scheduleTime());
+    this.scheduledPostService.reschedule(scheduledPost.id, scheduledAt).subscribe({
+      next: () => {
+        this.schedulingItemBusy.set(false);
+        this.reschedulingItemId.set(null);
+      },
+      error: err => {
+        this.schedulingItemBusy.set(false);
+        this.errorModalService.show(extractApiErrorMessage(err, 'تعذّر إعادة جدولة المنشور.'), { variant: 'error' });
       },
     });
   }

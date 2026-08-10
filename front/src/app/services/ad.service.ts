@@ -20,6 +20,7 @@ const STATUS_MAP: Record<ScheduledPostSummary['status'], AdStatus> = {
   Published: 'completed',
   Failed: 'rejected',
   Cancelled: 'paused',
+  TakenDown: 'rejected',
 };
 
 /**

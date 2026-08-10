@@ -9,7 +9,7 @@ import { BackendSocialPlatform } from '../model/content-item.model';
 import {
   CancelScheduledPostResponse, PostingTimeSuggestionDto, PublishScheduledPostResponse,
   RescheduleScheduledPostResponse, SchedulePostRequest, SchedulePostResponse,
-  ScheduledPost, ScheduledPostSummary,
+  ScheduledPost, ScheduledPostSummary, TakeDownScheduledPostResponse,
 } from '../model/scheduled-post.model';
 import { CampaignService } from './campaign.service';
 
@@ -23,6 +23,7 @@ const STATUS_MAP: Record<ScheduledPostSummary['status'], ScheduledPost['status']
   Published: 'published',
   Failed: 'failed',
   Cancelled: 'draft',
+  TakenDown: 'taken-down',
 };
 
 @Injectable({ providedIn: 'root' })
@@ -49,6 +50,7 @@ export class ScheduledPostService {
       scheduledAt: s.scheduledAt,
       status: STATUS_MAP[s.status] ?? 'scheduled',
       estimatedReach: s.uniqueViewers ?? undefined,
+      postId: s.postId ?? undefined,
     };
   }
 
@@ -103,6 +105,13 @@ export class ScheduledPostService {
    *  list (via `remove`) once this succeeds, rather than assuming it optimistically. */
   cancel(id: string): Observable<ApiResponse<CancelScheduledPostResponse>> {
     return this.http.post<ApiResponse<CancelScheduledPostResponse>>(`${this.baseUrl}/${id}/cancel`, {});
+  }
+
+  /** Deletes an already-live post from the platform itself. Callers should remove it from the
+   *  local list (via `remove`) and refresh the content item on success, since the content item
+   *  resets back to Draft server-side. */
+  takeDown(id: string): Observable<ApiResponse<TakeDownScheduledPostResponse>> {
+    return this.http.post<ApiResponse<TakeDownScheduledPostResponse>>(`${this.baseUrl}/${id}/take-down`, {});
   }
 
   /** Schedules a single approved content item to one connected social account — used by the

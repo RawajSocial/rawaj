@@ -192,6 +192,11 @@
               <i class="fa-regular fa-clock"></i>
               الوقت المقترح: {{ formatSuggestedTime(item.suggestedPostAt!) }}
             </p>
+          } @else if (activeScheduledPost(item); as sp) {
+            <p class="cc-item-suggested-time cc-item-suggested-time--scheduled">
+              <i class="fa-solid fa-clock"></i>
+              مجدول في: {{ formatSuggestedTime(sp.scheduledAt) }}
+            </p>
           }
 
           @if (regeneratingId() === item.contentItemId) {
@@ -265,30 +270,75 @@
                 </button>
               </div>
             </div>
+          } @else if (reschedulingItemId() === item.contentItemId) {
+            <div class="cc-schedule-item-box">
+              <div class="cc-schedule-item-datetime">
+                <label class="cc-schedule-item-field">
+                  التاريخ
+                  <input type="date" [value]="scheduleDate()" (input)="updateScheduleDate($any($event.target).value)" />
+                </label>
+                <label class="cc-schedule-item-field">
+                  الوقت
+                  <input type="time" [value]="scheduleTime()" (input)="updateScheduleTime($any($event.target).value)" />
+                </label>
+              </div>
+              @if (scheduleTimeTooSoon()) {
+                <p class="cc-schedule-item-warn"><i class="fa-solid fa-triangle-exclamation"></i> يجب أن يكون الموعد بعد 10 دقائق على الأقل من الآن.</p>
+              }
+              <div class="cc-regenerate-actions">
+                <button type="button" class="cc-btn cc-btn-ghost" (click)="cancelReschedule()">إلغاء</button>
+                <button type="button" class="cc-btn cc-btn-primary"
+                  [disabled]="!scheduleDate() || !scheduleTime() || scheduleTimeTooSoon() || schedulingItemBusy()"
+                  (click)="submitReschedule(item)">
+                  @if (schedulingItemBusy()) {
+                    <i class="fa-solid fa-circle-notch fa-spin"></i> جاري إعادة الجدولة...
+                  } @else {
+                    تأكيد الموعد الجديد
+                  }
+                </button>
+              </div>
+            </div>
           } @else {
             <div class="cc-item-actions">
-              <button type="button" class="cc-btn cc-btn-accept"
-                [class.is-perm-disabled]="!perms.canEdit()"
-                [attr.aria-disabled]="!perms.canEdit() || null"
-                [appTooltip]="!item.imageUrl ? 'أضف صورة للمنشور أولاً' : perms.editDeniedReason()"
-                [disabled]="busyItemId() === item.contentItemId || !item.imageUrl || !perms.canEdit()"
-                (click)="review(item, true)">
-                <i class="fa-solid fa-check"></i> قبول
-              </button>
-              <button type="button" class="cc-btn cc-btn-reject"
-                [class.is-perm-disabled]="!perms.canEdit()"
-                [attr.aria-disabled]="!perms.canEdit() || null"
-                [appTooltip]="perms.editDeniedReason()"
-                [disabled]="busyItemId() === item.contentItemId || !perms.canEdit()"
-                (click)="review(item, false)">
-                <i class="fa-solid fa-xmark"></i> رفض
-              </button>
-              @if (perms.canEdit()) {
-                <button type="button" class="cc-btn cc-btn-ghost" [disabled]="busyItemId() === item.contentItemId" (click)="startRegenerate(item)">
+              @if (showApprove(item)) {
+                <button type="button" class="cc-btn cc-btn-accept"
+                  [class.is-perm-disabled]="!perms.canEdit()"
+                  [attr.aria-disabled]="!perms.canEdit() || null"
+                  [appTooltip]="!item.imageUrl ? 'أضف صورة للمنشور أولاً' : perms.editDeniedReason()"
+                  [disabled]="busyItemId() === item.contentItemId || !item.imageUrl || !perms.canEdit()"
+                  (click)="review(item, true)">
+                  <i class="fa-solid fa-check"></i> قبول
+                </button>
+              }
+              @if (showDecline(item)) {
+                <button type="button" class="cc-btn cc-btn-reject"
+                  [class.is-perm-disabled]="!perms.canEdit()"
+                  [attr.aria-disabled]="!perms.canEdit() || null"
+                  [appTooltip]="perms.editDeniedReason()"
+                  [disabled]="busyItemId() === item.contentItemId || !perms.canEdit()"
+                  (click)="onDeclineClick(item)">
+                  <i class="fa-solid fa-xmark"></i> {{ declineLabel(item) }}
+                </button>
+              }
+              @if (perms.canEdit() && !isLive(item)) {
+                <button type="button" class="cc-btn cc-btn-regenerate" [disabled]="busyItemId() === item.contentItemId" (click)="startRegenerate(item)">
                   <i class="fa-solid fa-rotate"></i> إعادة توليد
                 </button>
               }
-              @if (item.status === 'Approved' && item.imageUrl && perms.canEdit()) {
+              @if (liveFacebookUrl(item); as fbUrl) {
+                <a class="cc-btn cc-btn-view" [href]="fbUrl" target="_blank" rel="noopener">
+                  <i class="fa-brands fa-facebook"></i> عرض على فيسبوك
+                </a>
+              }
+              @if (isLive(item) && perms.canEdit()) {
+                <button type="button" class="cc-btn cc-btn-takedown"
+                  [class.is-perm-disabled]="!perms.canEdit()"
+                  [disabled]="busyItemId() === item.contentItemId"
+                  (click)="takeDownPost(item)">
+                  <i class="fa-solid fa-trash-can"></i> سحب المنشور
+                </button>
+              }
+              @if (isSchedulable(item) && perms.canEdit()) {
                 <button type="button" class="cc-btn cc-btn-schedule"
                   [class.is-perm-disabled]="accountsForPlatform(item.platform).length === 0"
                   [attr.aria-disabled]="accountsForPlatform(item.platform).length === 0 || null"
@@ -296,6 +346,11 @@
                   [disabled]="accountsForPlatform(item.platform).length === 0"
                   (click)="startSchedulePost(item)">
                   <i class="fa-solid fa-calendar-check"></i> جدولة
+                </button>
+              }
+              @if (isPendingSchedule(item) && perms.canEdit()) {
+                <button type="button" class="cc-btn cc-btn-reschedule" (click)="startReschedule(item)">
+                  <i class="fa-solid fa-calendar-days"></i> إعادة الجدولة
                 </button>
               }
             </div>

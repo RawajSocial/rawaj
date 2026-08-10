@@ -43,6 +43,7 @@ public class GetScheduledPostsQueryHandler(IApplicationDbContext dbContext)
                 s.ErrorMessage,
                 Content = s.ContentItem.Content,
                 ImageUrl = s.VisualAsset != null ? s.VisualAsset.FileUrl : null,
+                s.PostId,
             })
             .ToListAsync(cancellationToken);
 
@@ -75,7 +76,8 @@ public class GetScheduledPostsQueryHandler(IApplicationDbContext dbContext)
                     analytics?.Clicks,
                     analytics?.EngagementRate,
                     p.Content,
-                    p.ImageUrl);
+                    p.ImageUrl,
+                    p.PostId);
             })
             .ToList();
 
