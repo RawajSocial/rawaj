@@ -11,6 +11,7 @@ import { TenantService } from '../../../core/tenant/tenant.service';
 import { ErrorModalService } from '../../../services/error-modal.service';
 import { LoaderService } from '../../../services/loader.service';
 import { extractApiErrorMessage } from '../../../core/auth/api-error.util';
+import { isBrandLimitReached, promptBrandLimitUpgrade } from '../../../shared/utils/upgrade-prompts.util';
 
 interface WizardStep {
   key: 'basics' | 'identity' | 'voice' | 'positioning' | 'logo' | 'review';
@@ -264,12 +265,8 @@ export class BrandProfileCreatePage {
       return;
     }
 
-    if (this.tenantService.brandProfileCount() >= this.tenantService.maxBrands() && !this.tenantService.isAgency()) {
-      this.errorModalService.show(
-        'حسابك الحالي كصاحب علامة تجارية يسمح بملف تعريف واحد فقط. رقِّ حسابك إلى وكالة تسويق لإدارة أكثر من علامة.',
-        { variant: 'warning', title: 'يلزم ترقية الحساب' },
-      );
-      this.router.navigate(['/upgrade-tenant']);
+    if (isBrandLimitReached(this.tenantService)) {
+      promptBrandLimitUpgrade(this.tenantService, this.errorModalService);
       return;
     }
 

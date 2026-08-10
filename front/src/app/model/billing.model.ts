@@ -45,6 +45,12 @@ export interface AiCreditsUsage {
   usedThisMonth: number;
 }
 
+/** GET /subscriptions/campaigns-usage — Rawaj.Application.Common.Policies.CampaignsUsage */
+export interface CampaignsUsage {
+  maxCampaignsMonthly: number;
+  usedThisMonth: number;
+}
+
 /** POST /subscriptions/change-plan request. `agencySize`/`servicesOffered` only need to be sent
  *  the first time a tenant leaves the Free plan. */
 export interface ChangeSubscriptionPlanRequest {

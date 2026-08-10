@@ -4,10 +4,10 @@
       title="ملفات العلامة التجارية"
       [breadcrumbs]="[{ label: 'نظرة عامة', link: '/dashboard' }, { label: 'ملفات العلامة التجارية' }]"
       subtitle="المظلة التي تنضوي تحتها حملاتك وإعلاناتك وكل ما يخص علامتك." />
-    <a routerLink="/dashboard/brand-profiles/new" class="rw-btn rw-btn--primary">
+    <button type="button" (click)="createBrandProfile()" class="rw-btn rw-btn--primary">
       <i class="fa-solid fa-plus"></i>
       إنشاء ملف علامة تجارية
-    </a>
+    </button>
   </div>
 
   @if (profiles().length === 0) {
@@ -15,10 +15,10 @@
       <div class="empty-icon"><i class="fa-solid fa-copyright"></i></div>
       <h3>لا توجد ملفات علامة تجارية بعد</h3>
       <p>أنشئ أول ملف علامة تجارية لتبدأ بربط حملاتك تحت مظلة واحدة.</p>
-      <a routerLink="/dashboard/brand-profiles/new" class="rw-btn rw-btn--dark">
+      <button type="button" (click)="createBrandProfile()" class="rw-btn rw-btn--dark">
         <i class="fa-solid fa-plus"></i>
         إنشاء ملف علامة تجارية
-      </a>
+      </button>
     </div>
   } @else {
     <div class="bp-grid">

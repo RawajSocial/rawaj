@@ -654,7 +654,7 @@ p, span, label, input, button,
   position: relative;
 }
 
-.rw-tooltip-host::after {
+.rw-tooltip-host[data-tooltip]::after {
   content: attr(data-tooltip);
   position: absolute;
   z-index: var(--z-tooltip, 500);

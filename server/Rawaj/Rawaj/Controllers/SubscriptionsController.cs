@@ -5,6 +5,7 @@ using Rawaj.Application.Common.Policies;
 using Rawaj.Application.Features.Billing.ChangeSubscriptionPlan;
 using Rawaj.Application.Features.Billing.GetAiCreditsUsage;
 using Rawaj.Application.Features.Billing.GetBillingHistory;
+using Rawaj.Application.Features.Billing.GetCampaignsUsage;
 using Rawaj.Application.Features.Billing.GetCoinPricing;
 using Rawaj.Application.Features.Billing.GetPublicCoinPricing;
 using Rawaj.Application.Features.Billing.GetSubscription;
@@ -50,6 +51,16 @@ public class SubscriptionsController(ISender sender) : ControllerBase
         return result.Succeeded
             ? Ok(ApiResponse<AiCreditsUsage>.Success(result.Data!))
             : BadRequest(ApiResponse<AiCreditsUsage>.Fail(result.ErrorMessage!));
+    }
+
+    [HttpGet("campaigns-usage")]
+    public async Task<IActionResult> GetCampaignsUsage(CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new GetCampaignsUsageQuery(), cancellationToken);
+
+        return result.Succeeded
+            ? Ok(ApiResponse<CampaignsUsage>.Success(result.Data!))
+            : BadRequest(ApiResponse<CampaignsUsage>.Fail(result.ErrorMessage!));
     }
 
     [HttpPost("change-plan")]

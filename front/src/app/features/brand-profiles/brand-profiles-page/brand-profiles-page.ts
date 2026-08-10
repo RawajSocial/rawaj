@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { PageHeader } from '../../../shared/components/page-header/page-header';
 import { BrandProfileService } from '../../../services/brand-profile.service';
 import { CampaignService } from '../../../services/campaign.service';
@@ -10,6 +10,7 @@ import { TooltipDirective } from '../../../shared/directives/tooltip.directive';
 import { ErrorModalService } from '../../../services/error-modal.service';
 import { LoaderService } from '../../../services/loader.service';
 import { extractApiErrorMessage } from '../../../core/auth/api-error.util';
+import { isBrandLimitReached, promptBrandLimitUpgrade } from '../../../shared/utils/upgrade-prompts.util';
 
 @Component({
   selector: 'app-brand-profiles-page',
@@ -25,6 +26,7 @@ export class BrandProfilesPage {
   private readonly seo = inject(SeoService);
   private readonly errorModalService = inject(ErrorModalService);
   private readonly loaderService = inject(LoaderService);
+  private readonly router = inject(Router);
 
   protected readonly profiles = this.brandProfileService.profiles;
   protected readonly statusLabels = BRAND_PROFILE_STATUS_LABELS;
@@ -53,6 +55,16 @@ export class BrandProfilesPage {
 
   protected campaignCount(brandProfileId: string): number {
     return this.campaignService.byBrandProfile(brandProfileId)().length;
+  }
+
+  /** Gate before entering the wizard, not after — the old behavior let the user fill out every
+   *  step and only found out about the plan limit on final submit. */
+  protected createBrandProfile(): void {
+    if (isBrandLimitReached(this.tenantService)) {
+      promptBrandLimitUpgrade(this.tenantService, this.errorModalService);
+      return;
+    }
+    void this.router.navigate(['/dashboard/brand-profiles/new']);
   }
 
   protected archive(id: string): void {

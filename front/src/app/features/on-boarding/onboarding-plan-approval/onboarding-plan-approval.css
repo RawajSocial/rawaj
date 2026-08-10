@@ -1,3 +1,50 @@
+/* ── Buttons (view-encapsulated component, so the shared .rw-btn rules
+   from dashboard-shared.css must be redefined here too) ── */
+.rw-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 10px;
+  border: none;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-semibold);
+  font-family: inherit;
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), background-color var(--transition-fast);
+}
+
+.rw-btn--primary {
+  background: linear-gradient(135deg, var(--color-secondary), var(--color-primary));
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(124, 58, 237, .28);
+}
+.rw-btn--primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(124, 58, 237, .38);
+  color: #fff;
+}
+
+.rw-btn--dark {
+  background: var(--color-dark);
+  color: #fff;
+}
+.rw-btn--dark:hover { background: #1d2436; color: #fff; }
+
+.rw-btn--outline {
+  background: transparent;
+  border: 1.5px solid var(--color-border);
+  color: var(--color-text-secondary);
+}
+.rw-btn--outline:hover { border-color: var(--color-dark); color: var(--color-dark); }
+
+.is-perm-disabled {
+  opacity: .55;
+  cursor: not-allowed;
+}
+
 /* ════════════════════════════════════════════════════════════
    PLAN WRAPPER
 ════════════════════════════════════════════════════════════ */
@@ -465,7 +512,49 @@
   padding-top: .5rem;
 }
 
-.plan-approve-btn { padding: .85rem 2rem; }
+/* Sizing only — the sparkle animation itself comes from the global .cta-btn class (see the
+   template), matching the homepage hero's "ابدأ مجانًا الآن" button. That class's :hover state
+   drops the background to transparent, meant for the hero's dark cosmic section — invisible
+   against this page's light card background, in every state (hovered, focused, or disabled with
+   its explanatory tooltip open), so the background/text are forced solid unconditionally here
+   rather than chasing each state the global class defines transparency for. */
+.plan-approve-btn {
+  padding: .85rem 2rem;
+  font-size: 1rem;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary)) !important;
+  color: #fff !important;
+}
+.plan-approve-btn:hover:not(:disabled) {
+  box-shadow: 0 0 45px rgba(124, 58, 237, .65);
+  transform: translateY(-2px);
+}
+
+/* The stars rely on negative z-index to stay hidden behind the hero section's own background
+   until hover — that only works there because of that section's stacking context. Here nothing
+   guarantees a stacking context sits between the stars and this page's background, so they can
+   show up at rest. Hiding them with opacity (which the global .star-N rules already transition,
+   via `transition: all`) is stacking-context-independent. */
+.plan-approve-btn .star-1,
+.plan-approve-btn .star-2,
+.plan-approve-btn .star-3,
+.plan-approve-btn .star-4,
+.plan-approve-btn .star-5,
+.plan-approve-btn .star-6 {
+  opacity: 0;
+}
+.plan-approve-btn:hover:not(:disabled) .star-1,
+.plan-approve-btn:hover:not(:disabled) .star-2,
+.plan-approve-btn:hover:not(:disabled) .star-3,
+.plan-approve-btn:hover:not(:disabled) .star-4,
+.plan-approve-btn:hover:not(:disabled) .star-5,
+.plan-approve-btn:hover:not(:disabled) .star-6 {
+  opacity: 1;
+}
+
+.plan-approve-btn:disabled {
+  opacity: .55;
+  cursor: not-allowed;
+}
 
 /* ════════════════════════════════════════════════════════════
    RESPONSIVE
@@ -483,7 +572,8 @@
     flex-direction: column-reverse;
     align-items: stretch;
   }
-  .plan-actions .rw-btn { justify-content: center; }
+  .plan-actions .rw-btn,
+  .plan-actions .cta-btn { justify-content: center; }
 
   .ai-swot-grid { grid-template-columns: 1fr; }
 }

@@ -25,38 +25,28 @@ public class CreateCampaignCommandHandler(
             return Result<CreateCampaignResponse>.Failure("Brand profile not found.");
         }
 
-        // Every plan (including Free) now allows at least one campaign a month — campaign creation
-        // is no longer gated behind a paid subscription.
-        var tenantInfo = await (
-            from tenant in dbContext.Tenants
-            join subscription in dbContext.Subscriptions on tenant.SubscriptionId equals subscription.Id
-            join subscriptionPlan in dbContext.SubscriptionPlans on subscription.SubscriptionPlanId equals subscriptionPlan.Id
-            where tenant.Id == tenantId
-            select new { subscriptionPlan.MaxCampaignsMonthly, tenant.IsActivated }
-        ).FirstAsync(cancellationToken);
-
         // The frontend gates campaign pages behind tenant activation (brandAccessGuard) — this was
         // previously frontend-only; enforce it here too so it isn't just a UX gate an API client
         // could bypass. Only the tenant owner can complete activation (business-profile info).
-        if (!tenantInfo.IsActivated)
+        var isActivated = await dbContext.Tenants
+            .Where(t => t.Id == tenantId)
+            .Select(t => t.IsActivated)
+            .FirstAsync(cancellationToken);
+
+        if (!isActivated)
         {
             return Result<CreateCampaignResponse>.Failure(
                 "This tenant hasn't completed its business profile activation yet. The tenant owner must complete it in Settings first.");
         }
 
-        var maxCampaignsMonthly = tenantInfo.MaxCampaignsMonthly;
+        // Every plan (including Free) now allows at least one campaign a month — campaign creation
+        // is no longer gated behind a paid subscription.
+        var usage = await CampaignsUsagePolicy.GetUsageAsync(dbContext, tenantId, cancellationToken);
 
-        var now = DateTime.UtcNow;
-        var monthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
-
-        var campaignsThisMonth = await dbContext.MarketingCampaigns
-            .Where(c => c.BrandProfile.TenantId == tenantId && c.CreatedAt >= monthStart)
-            .CountAsync(cancellationToken);
-
-        if (campaignsThisMonth >= maxCampaignsMonthly)
+        if (!usage.HasCampaignsRemaining)
         {
             return Result<CreateCampaignResponse>.Failure(
-                $"Your subscription plan allows a maximum of {maxCampaignsMonthly} campaign(s) per month. Upgrade to create more.");
+                $"Your subscription plan allows a maximum of {usage.MaxCampaignsMonthly} campaign(s) per month. Upgrade to create more.");
         }
 
         var targetPlatforms = request.TargetPlatforms
@@ -65,6 +55,7 @@ public class CreateCampaignCommandHandler(
             .ToList();
 
         var userId = currentUserService.UserId!.Value;
+        var now = DateTime.UtcNow;
 
         var campaign = new MarketingCampaign
         {

@@ -606,8 +606,11 @@
          has no AiPlanJson, so offering the button before generation just produced a server error
          the user could do nothing about. The tooltip has to say WHY it's disabled, though — a
          greyed-out primary button with no explanation reads as the app being broken, and the
-         recovery card above is the way out of that state. -->
-    <button type="button" class="rw-btn rw-btn--primary plan-approve-btn"
+         recovery card above is the way out of that state.
+
+         cta-btn/star-N/fil0 are the homepage hero CTA's sparkle-on-hover treatment, defined
+         globally in styles/custom.button.css — reused as-is rather than redefined here. -->
+    <button type="button" class="cta-btn plan-approve-btn d-inline-flex align-items-center justify-content-center gap-2"
       [class.is-perm-disabled]="!perms.canEdit()"
       [attr.aria-disabled]="!perms.canEdit() || null"
       [appTooltip]="approveDisabledReason()"
@@ -619,6 +622,72 @@
       } @else {
         <i class="fa-solid fa-wand-magic-sparkles"></i> اعتمد وابدأ توليد المحتوى
       }
+      <div class="star-1">
+        <svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" version="1.1"
+          style="shape-rendering:geometricPrecision; text-rendering:geometricPrecision; image-rendering:optimizeQuality; fill-rule:evenodd; clip-rule:evenodd"
+          viewBox="0 0 784.11 815.53" xmlns:xlink="http://www.w3.org/1999/xlink">
+          <defs></defs>
+          <g id="Layer_x0020_1">
+            <metadata id="CorelCorpID_0Corel-Layer"></metadata>
+            <path class="fil0" d="M392.05 0c-20.9,210.08 -184.06,378.41 -392.05,407.78 207.96,29.37 371.12,197.68 392.05,407.74 20.93,-210.06 184.09,-378.37 392.05,-407.74 -207.98,-29.38 -371.16,-197.69 -392.06,-407.78z"></path>
+          </g>
+        </svg>
+      </div>
+      <div class="star-2">
+        <svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" version="1.1"
+          style="shape-rendering:geometricPrecision; text-rendering:geometricPrecision; image-rendering:optimizeQuality; fill-rule:evenodd; clip-rule:evenodd"
+          viewBox="0 0 784.11 815.53" xmlns:xlink="http://www.w3.org/1999/xlink">
+          <defs></defs>
+          <g id="Layer_x0020_1">
+            <metadata id="CorelCorpID_0Corel-Layer"></metadata>
+            <path class="fil0" d="M392.05 0c-20.9,210.08 -184.06,378.41 -392.05,407.78 207.96,29.37 371.12,197.68 392.05,407.74 20.93,-210.06 184.09,-378.37 392.05,-407.74 -207.98,-29.38 -371.16,-197.69 -392.06,-407.78z"></path>
+          </g>
+        </svg>
+      </div>
+      <div class="star-3">
+        <svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" version="1.1"
+          style="shape-rendering:geometricPrecision; text-rendering:geometricPrecision; image-rendering:optimizeQuality; fill-rule:evenodd; clip-rule:evenodd"
+          viewBox="0 0 784.11 815.53" xmlns:xlink="http://www.w3.org/1999/xlink">
+          <defs></defs>
+          <g id="Layer_x0020_1">
+            <metadata id="CorelCorpID_0Corel-Layer"></metadata>
+            <path class="fil0" d="M392.05 0c-20.9,210.08 -184.06,378.41 -392.05,407.78 207.96,29.37 371.12,197.68 392.05,407.74 20.93,-210.06 184.09,-378.37 392.05,-407.74 -207.98,-29.38 -371.16,-197.69 -392.06,-407.78z"></path>
+          </g>
+        </svg>
+      </div>
+      <div class="star-4">
+        <svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" version="1.1"
+          style="shape-rendering:geometricPrecision; text-rendering:geometricPrecision; image-rendering:optimizeQuality; fill-rule:evenodd; clip-rule:evenodd"
+          viewBox="0 0 784.11 815.53" xmlns:xlink="http://www.w3.org/1999/xlink">
+          <defs></defs>
+          <g id="Layer_x0020_1">
+            <metadata id="CorelCorpID_0Corel-Layer"></metadata>
+            <path class="fil0" d="M392.05 0c-20.9,210.08 -184.06,378.41 -392.05,407.78 207.96,29.37 371.12,197.68 392.05,407.74 20.93,-210.06 184.09,-378.37 392.05,-407.74 -207.98,-29.38 -371.16,-197.69 -392.06,-407.78z"></path>
+          </g>
+        </svg>
+      </div>
+      <div class="star-5">
+        <svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" version="1.1"
+          style="shape-rendering:geometricPrecision; text-rendering:geometricPrecision; image-rendering:optimizeQuality; fill-rule:evenodd; clip-rule:evenodd"
+          viewBox="0 0 784.11 815.53" xmlns:xlink="http://www.w3.org/1999/xlink">
+          <defs></defs>
+          <g id="Layer_x0020_1">
+            <metadata id="CorelCorpID_0Corel-Layer"></metadata>
+            <path class="fil0" d="M392.05 0c-20.9,210.08 -184.06,378.41 -392.05,407.78 207.96,29.37 371.12,197.68 392.05,407.74 20.93,-210.06 184.09,-378.37 392.05,-407.74 -207.98,-29.38 -371.16,-197.69 -392.06,-407.78z"></path>
+          </g>
+        </svg>
+      </div>
+      <div class="star-6">
+        <svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" version="1.1"
+          style="shape-rendering:geometricPrecision; text-rendering:geometricPrecision; image-rendering:optimizeQuality; fill-rule:evenodd; clip-rule:evenodd"
+          viewBox="0 0 784.11 815.53" xmlns:xlink="http://www.w3.org/1999/xlink">
+          <defs></defs>
+          <g id="Layer_x0020_1">
+            <metadata id="CorelCorpID_0Corel-Layer"></metadata>
+            <path class="fil0" d="M392.05 0c-20.9,210.08 -184.06,378.41 -392.05,407.78 207.96,29.37 371.12,197.68 392.05,407.74 20.93,-210.06 184.09,-378.37 392.05,-407.74 -207.98,-29.38 -371.16,-197.69 -392.06,-407.78z"></path>
+          </g>
+        </svg>
+      </div>
     </button>
   </div>
 

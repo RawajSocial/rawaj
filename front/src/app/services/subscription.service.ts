@@ -6,6 +6,7 @@ import { ApiResponse } from '../model/auth.model';
 import {
   AddOnType,
   AiCreditsUsage,
+  CampaignsUsage,
   ChangeSubscriptionPlanRequest,
   ChangeSubscriptionPlanResponse,
   GetBillingHistoryResponse,
@@ -60,6 +61,12 @@ export class SubscriptionService {
         if (res.data) this._aiCreditsUsage.set(res.data);
       }),
     );
+  }
+
+  /** Not cached as a signal like the others — callers need a fresh count at the exact moment
+   *  they're about to start a new campaign, not a value that may be stale from an earlier page. */
+  getCampaignsUsage(): Observable<ApiResponse<CampaignsUsage>> {
+    return this.http.get<ApiResponse<CampaignsUsage>>(`${this.baseUrl}/campaigns-usage`);
   }
 
   changePlan(request: ChangeSubscriptionPlanRequest): Observable<ApiResponse<ChangeSubscriptionPlanResponse>> {
