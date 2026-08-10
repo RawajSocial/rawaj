@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Rawaj.Application.Common;
 using Rawaj.Application.Features.Content.Common;
 using Rawaj.Domain.Enums;
 
@@ -21,6 +22,10 @@ public sealed record GeneratedPostDraft(
 /// </summary>
 public static class ContentPlanParser
 {
+    /// <param name="baseDate">A Cairo-local calendar date (time-of-day is ignored) that dayOffset 0
+    /// means — NOT a UTC instant. The model's <c>hour</c> is Cairo-local too (see
+    /// <c>ContentPlanPrompt</c>), so the two combine into a Cairo wall-clock moment that's converted
+    /// to true UTC below before being returned.</param>
     public static List<GeneratedPostDraft> Parse(string rawJson, IReadOnlyList<SocialPlatform> allowedPlatforms, DateTime baseDate)
     {
         var drafts = new List<GeneratedPostDraft>();
@@ -66,11 +71,13 @@ public static class ContentPlanParser
                         continue;
                     }
 
-                    var contentType = ContentType.Post;
-                    if (post.TryGetProperty("contentType", out var contentTypeProp))
-                    {
-                        Enum.TryParse(contentTypeProp.GetString(), true, out contentType);
-                    }
+                    // Every campaign post is this platform's one real format — a caption plus one
+                    // AI-generated static image — regardless of what the model returns here. The
+                    // prompt no longer even asks for a contentType (see ContentPlanPrompt), but a
+                    // stray field from an uncooperative model is ignored rather than trusted, since
+                    // anything other than Post has no matching publish path and its ContentType
+                    // string leaks into the image prompt's style instruction (see VisualPrompt).
+                    const ContentType contentType = ContentType.Post;
 
                     var dayOffset = 0;
                     if (post.TryGetProperty("dayOffset", out var dayOffsetProp) && dayOffsetProp.TryGetInt32(out var parsedDayOffset))
@@ -109,9 +116,10 @@ public static class ContentPlanParser
                         imagePrompt = string.IsNullOrWhiteSpace(value) ? null : value;
                     }
 
+                    var cairoLocal = baseDate.AddDays(dayOffset).AddHours(hour);
                     drafts.Add(new GeneratedPostDraft(
                         platform, contentType, contentProp.GetString()!, hashtags, cta,
-                        baseDate.AddDays(dayOffset).AddHours(hour), imagePrompt));
+                        CairoTimeZone.ToUtc(cairoLocal), imagePrompt));
                 }
                 catch (JsonException)
                 {

@@ -134,15 +134,25 @@ export class AiPipelineService {
     if (payload.runId !== this.watchedRunId) return; // an update for a run this tab isn't watching
 
     const { userId: _userId, ...run } = payload;
-    this._run.set(run);
-    if (TERMINAL_RUN_STATUSES.has(run.status)) this.stopPolling();
+    this.applyRunUpdate(run);
   }
 
   private pollOnce(runId: string): void {
     this.getStatus(runId).subscribe(res => {
       if (!res.data) return;
-      this._run.set(res.data);
-      if (TERMINAL_RUN_STATUSES.has(res.data.status)) this.stopPolling();
+      this.applyRunUpdate(res.data);
     });
+  }
+
+  /** The single place either delivery path (SignalR push or HTTP poll) is allowed to update `_run` —
+   *  see `GetRunStatusResponse.version`'s remarks for why blindly trusting whichever one arrives last
+   *  isn't safe. A same-or-newer version is applied normally; an older one is silently dropped, since
+   *  the fresher state this tab already has is strictly more correct than reapplying a stale snapshot. */
+  private applyRunUpdate(run: GetRunStatusResponse): void {
+    const current = this._run();
+    if (current && current.runId === run.runId && run.version < current.version) return;
+
+    this._run.set(run);
+    if (TERMINAL_RUN_STATUSES.has(run.status)) this.stopPolling();
   }
 }

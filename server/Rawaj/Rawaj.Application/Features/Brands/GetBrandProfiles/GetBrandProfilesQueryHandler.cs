@@ -34,7 +34,7 @@ public class GetBrandProfilesQueryHandler(
                 b.Id,
                 b.Name,
                 b.Description,
-                b.BrandVoice,
+                b.BrandInfo?.Tones ?? [],
                 b.Status,
                 b.BrandInfo?.IsDefault ?? false,
                 b.BrandInfo?.Tagline,

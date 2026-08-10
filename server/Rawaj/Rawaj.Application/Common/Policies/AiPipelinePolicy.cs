@@ -61,8 +61,8 @@ public static class AiPipelinePolicy
     private static readonly TimeSpan[] RetryDelays =
     [
         TimeSpan.FromSeconds(30),
-        TimeSpan.FromMinutes(2),
-        TimeSpan.FromMinutes(8)
+        TimeSpan.FromMinutes(1),
+        TimeSpan.FromMinutes(2)
     ];
 
     /// <summary>
@@ -351,6 +351,15 @@ public static class AiPipelinePolicy
         // which reads like a rate limit but isn't one. A rate limit clears if you wait; a single
         // request larger than the whole per-minute budget can never succeed, so it must not be
         // retried or rotated onto another key.
+        // Groq's own JSON-mode validator rejecting the model's output before it's even returned to
+        // us — never reaches AiJsonResponseParser, so without this it was classified as Unknown and
+        // never got ShouldRepairPrompt's "return ONLY valid JSON" nudge on retry, meaning a retry just
+        // resent the identical prompt and had even odds of failing the same way again.
+        if (message.Contains("failed to generate json"))
+        {
+            return AiFailureKind.Parse;
+        }
+
         if (message.Contains("request too large") || message.Contains("reduce your message size") ||
             message.Contains("too many tokens") || message.Contains("context length") ||
             message.Contains("maximum context"))

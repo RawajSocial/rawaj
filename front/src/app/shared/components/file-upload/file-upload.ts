@@ -17,7 +17,7 @@ export class FileUpload {
   readonly previewUrl = input<string | null>(null);
   /** Externally-controlled upload progress (0-100), or null when no upload is in flight. */
   readonly uploadProgress = input<number | null>(null);
-  readonly shape = input<'square' | 'circle'>('square');
+  readonly shape = input<'square' | 'circle' | 'fill'>('square');
   readonly altText = input('');
 
   readonly fileSelected = output<File>();

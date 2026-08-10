@@ -228,7 +228,27 @@ public static class AiPipelineCoinPolicy
         }
 
         stage.CoinsCharged = charge.Cost;
-        run.TotalCoinsSpent += charge.Cost;
+
+        // Atomic, not a tracked-entity `run.TotalCoinsSpent += charge.Cost`: two stages from the same
+        // run's fan-out (e.g. Positioning + Blueprint, dispatched together) can each reach this in
+        // their own isolated scope at nearly the same moment, and a read-then-increment on separately
+        // loaded copies of `run` would lose whichever one saves first. This also keeps `run` itself
+        // out of the caller's next SaveChangesAsync entirely when this is the only thing that would
+        // have touched it — avoiding a spurious DbUpdateConcurrencyException against a RowVersion that
+        // a sibling scope's own Version bump (see AiPipelineRun.Version) may have already advanced.
+        try
+        {
+            await dbContext.AiPipelineRuns
+                .Where(r => r.Id == run.Id)
+                .ExecuteUpdateAsync(r => r.SetProperty(x => x.TotalCoinsSpent, x => x.TotalCoinsSpent + charge.Cost), cancellationToken);
+        }
+        catch (InvalidOperationException)
+        {
+            // EF Core's InMemory provider (test suite only) doesn't translate ExecuteUpdate — see the
+            // identical caveat on PipelineOrchestrator's Version bump. InMemory never runs more than
+            // one writer at a time, so a direct increment is equivalent there.
+            run.TotalCoinsSpent += charge.Cost;
+        }
 
         return new StageChargeResult(charge.Cost, AlreadyCharged: false);
     }

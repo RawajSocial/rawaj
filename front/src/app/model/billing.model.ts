@@ -45,6 +45,12 @@ export interface AiCreditsUsage {
   usedThisMonth: number;
 }
 
+/** GET /subscriptions/campaigns-usage — Rawaj.Application.Common.Policies.CampaignsUsage */
+export interface CampaignsUsage {
+  maxCampaignsMonthly: number;
+  usedThisMonth: number;
+}
+
 /** POST /subscriptions/change-plan request. `agencySize`/`servicesOffered` only need to be sent
  *  the first time a tenant leaves the Free plan. */
 export interface ChangeSubscriptionPlanRequest {
@@ -53,6 +59,10 @@ export interface ChangeSubscriptionPlanRequest {
   servicesOffered?: string[];
 }
 
+/** For the Free plan, `checkoutUrl` is null and every other field reflects the new (already
+ *  applied) state. For a paid plan, `checkoutUrl` is set and the change has NOT happened yet — the
+ *  browser must be redirected there; every other field is a snapshot of the still-current
+ *  subscription until Stripe's webhook confirms the first payment. */
 export interface ChangeSubscriptionPlanResponse {
   subscriptionId: string;
   planName: string;
@@ -63,6 +73,7 @@ export interface ChangeSubscriptionPlanResponse {
   tenantType: 'Business' | 'Agency';
   newCoinBalance: number;
   coinsGranted: number;
+  checkoutUrl: string | null;
 }
 
 export interface CoinPackageSummary {
@@ -78,17 +89,11 @@ export interface PurchaseCoinsRequest {
   customCoins?: number;
 }
 
-export interface PurchaseCoinsResponse {
-  coinsGranted: number;
-  amountUsd: number;
-  newCoinBalance: number;
-}
-
-export interface PurchaseAddOnResponse {
-  type: AddOnType;
-  amountUsd: number;
-  extraBrandsPurchased: number;
-  extraMarketeersPurchased: number;
+/** POST /subscriptions/purchase-coins and /purchase-add-on both start a real Stripe Checkout
+ *  payment and return only its URL — the browser must be redirected there. Coins/add-ons are
+ *  granted by the backend once Stripe's webhook confirms the charge, not from this response. */
+export interface CreateCheckoutSessionResponse {
+  checkoutUrl: string;
 }
 
 export interface BillingTransactionSummary {

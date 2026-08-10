@@ -16,7 +16,10 @@ public class GetDashboardChartsQueryHandler(IApplicationDbContext dbContext)
 {
     public async Task<Result<DashboardChartsResponse>> Handle(GetDashboardChartsQuery request, CancellationToken cancellationToken)
     {
-        var days = Math.Clamp(request.Days, 1, 90);
+        // 730 matches the frontend's largest range chip ("ALL", see FILTER_DAYS in balance-chart.ts) -
+        // this used to cap at 90, silently flattening the 6M/1Y/ALL buttons to the same 90-day
+        // window regardless of how much history actually existed.
+        var days = Math.Clamp(request.Days, 1, 730);
         var since = DateTime.UtcNow.Date.AddDays(-(days - 1));
 
         var rows = await dbContext.PostAnalytics
@@ -27,8 +30,8 @@ public class GetDashboardChartsQueryHandler(IApplicationDbContext dbContext)
             .Select(a => new
             {
                 a.RecordedAt,
-                a.Reach,
-                a.Impressions,
+                a.UniqueViewers,
+                a.Views,
                 a.Likes,
                 a.Comments,
                 a.Shares,
@@ -40,16 +43,27 @@ public class GetDashboardChartsQueryHandler(IApplicationDbContext dbContext)
             .GroupBy(a => DateOnly.FromDateTime(a.RecordedAt.Date))
             .ToDictionary(
                 g => g.Key,
-                g => new DashboardChartPoint(
-                    g.Key,
-                    g.Sum(a => a.Reach ?? 0),
-                    g.Sum(a => a.Impressions ?? 0),
-                    g.Sum(a => a.Likes ?? 0),
-                    g.Sum(a => a.Comments ?? 0),
-                    g.Sum(a => a.Shares ?? 0),
-                    g.Any(a => a.EngagementRate.HasValue)
-                        ? Math.Round(g.Where(a => a.EngagementRate.HasValue).Average(a => a.EngagementRate!.Value), 4)
-                        : null));
+                g =>
+                {
+                    // Weighted SUM(Engagements)/SUM(Views) for the day - the same fix Phase 4 applied
+                    // to Campaign/Brand/Dashboard rollups, applied here to the per-day bucket. Averaging
+                    // each snapshot's own EngagementRate (the prior behavior) let a handful of
+                    // high-rate, low-view snapshots skew the day's figure the same way an unweighted
+                    // per-post average did at the rollup level.
+                    var dayViews = g.Sum(a => a.Views ?? 0);
+                    var dayEngagementRate = dayViews > 0
+                        ? Math.Round((decimal)g.Sum(a => (a.Likes ?? 0) + (a.Comments ?? 0) + (a.Shares ?? 0)) / dayViews, 4)
+                        : (decimal?)null;
+
+                    return new DashboardChartPoint(
+                        g.Key,
+                        g.Sum(a => a.UniqueViewers ?? 0),
+                        dayViews,
+                        g.Sum(a => a.Likes ?? 0),
+                        g.Sum(a => a.Comments ?? 0),
+                        g.Sum(a => a.Shares ?? 0),
+                        dayEngagementRate);
+                });
 
         var points = Enumerable.Range(0, days)
             .Select(offset => DateOnly.FromDateTime(since.AddDays(offset)))

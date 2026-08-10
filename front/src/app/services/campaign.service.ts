@@ -221,9 +221,9 @@ export class CampaignService {
   /** Bulk-schedules every approved, not-yet-scheduled post in the campaign, routing each item to
    *  the brand's connected account matching that item's own platform. Items with no connected
    *  account for their platform come back `skipped` in the response rather than failing the batch. */
-  schedulePosts(campaignId: string): Observable<ApiResponse<ScheduleCampaignPostsResponse>> {
+  schedulePosts(campaignId: string, publishPastDueNow = false): Observable<ApiResponse<ScheduleCampaignPostsResponse>> {
     return this.http.post<ApiResponse<ScheduleCampaignPostsResponse>>(
-      `${this.baseUrl}/${campaignId}/schedule-posts`, {},
+      `${this.baseUrl}/${campaignId}/schedule-posts`, { publishPastDueNow },
     );
   }
 }

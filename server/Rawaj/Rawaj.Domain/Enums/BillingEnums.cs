@@ -14,8 +14,7 @@ public enum SubscriptionStatus
     Trialing
 }
 
-/// <summary>What a <see cref="Rawaj.Domain.Entities.Billing.BillingTransaction"/> row represents —
-/// every one of these is a fake/instant "payment" today (see that entity's doc comment).</summary>
+/// <summary>What a <see cref="Rawaj.Domain.Entities.Billing.BillingTransaction"/> row represents.</summary>
 public enum BillingTransactionType
 {
     CoinPurchase,

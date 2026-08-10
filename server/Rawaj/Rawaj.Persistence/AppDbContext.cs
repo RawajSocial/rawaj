@@ -38,6 +38,7 @@ public class AppDbContext : IdentityUserContext<ApplicationUser, Guid>, IApplica
     public DbSet<SocialAccount> SocialAccounts => Set<SocialAccount>();
     public DbSet<ScheduledPost> ScheduledPosts => Set<ScheduledPost>();
     public DbSet<PostAnalytics> PostAnalytics => Set<PostAnalytics>();
+    public DbSet<FollowerCountSnapshot> FollowerCountSnapshots => Set<FollowerCountSnapshot>();
 
     public DbSet<AiJob> AiJobs => Set<AiJob>();
     public DbSet<AiPipelineRun> AiPipelineRuns => Set<AiPipelineRun>();
@@ -49,6 +50,7 @@ public class AppDbContext : IdentityUserContext<ApplicationUser, Guid>, IApplica
     public DbSet<CoinPackage> CoinPackages => Set<CoinPackage>();
     public DbSet<BillingTransaction> BillingTransactions => Set<BillingTransaction>();
     public DbSet<CoinLedgerEntry> CoinLedgerEntries => Set<CoinLedgerEntry>();
+    public DbSet<PendingCheckoutSession> PendingCheckoutSessions => Set<PendingCheckoutSession>();
 
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();

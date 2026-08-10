@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Rawaj.Application.Common.Interfaces;
 using Rawaj.Application.Common.Models;
 using Rawaj.Application.Features.Analytics.Common;
+using Rawaj.Application.Features.Analytics.GetBrandAnalytics;
 using Rawaj.Domain.Enums;
 
 namespace Rawaj.Application.Features.Analytics.GetCampaignAnalytics;
@@ -39,8 +40,8 @@ public class GetCampaignAnalyticsQueryHandler(IApplicationDbContext dbContext, I
                 p.ScheduledPostId,
                 p.Platform,
                 p.RecordedAt,
-                p.Impressions,
-                p.Reach,
+                p.Views,
+                p.UniqueViewers,
                 p.Likes,
                 p.Comments,
                 p.Shares,
@@ -55,20 +56,58 @@ public class GetCampaignAnalyticsQueryHandler(IApplicationDbContext dbContext, I
         var postsTracked = await dbContext.ScheduledPosts
             .CountAsync(s => s.CampaignId == request.CampaignId && s.Status == ScheduledPostStatus.Published, cancellationToken);
 
+        var engagementRate = PostAnalyticsAggregation.WeightedEngagementRate(latestPerPost);
+        var totalEngagements = latestPerPost.Sum(p => (p.Likes ?? 0) + (p.Comments ?? 0) + (p.Shares ?? 0));
+
+        var topPosts = latestPerPost
+            .OrderByDescending(p => p.UniqueViewers ?? 0)
+            .Take(5)
+            .Select(p => new TopPostItem(
+                p.ScheduledPostId,
+                p.ContentItemId,
+                p.CampaignId,
+                p.Platform,
+                p.Title,
+                p.Content,
+                p.Views ?? 0,
+                p.UniqueViewers ?? 0,
+                p.Likes ?? 0,
+                p.EngagementRate))
+            .ToList();
+
+        var bottomPosts = latestPerPost
+            .OrderBy(p => p.UniqueViewers ?? 0)
+            .Take(5)
+            .Select(p => new TopPostItem(
+                p.ScheduledPostId,
+                p.ContentItemId,
+                p.CampaignId,
+                p.Platform,
+                p.Title,
+                p.Content,
+                p.Views ?? 0,
+                p.UniqueViewers ?? 0,
+                p.Likes ?? 0,
+                p.EngagementRate))
+            .ToList();
+
         var summary = new CampaignAnalyticsSummary(
             request.CampaignId,
             postsTracked,
-            latestPerPost.Sum(p => p.Impressions ?? 0),
-            latestPerPost.Sum(p => p.Reach ?? 0),
+            latestPerPost.Sum(p => p.Views ?? 0),
+            latestPerPost.Sum(p => p.UniqueViewers ?? 0),
             latestPerPost.Sum(p => p.Likes ?? 0),
             latestPerPost.Sum(p => p.Comments ?? 0),
             latestPerPost.Sum(p => p.Shares ?? 0),
             latestPerPost.Sum(p => p.Clicks ?? 0),
-            PostAnalyticsAggregation.AverageEngagementRate(latestPerPost),
+            totalEngagements,
+            engagementRate,
             posts,
-            latestPerPost.Any(p => p.Impressions.HasValue),
-            latestPerPost.Any(p => p.Reach.HasValue),
-            latestPerPost.Any(p => p.EngagementRate.HasValue),
+            topPosts,
+            bottomPosts,
+            latestPerPost.Any(p => p.Views.HasValue),
+            latestPerPost.Any(p => p.UniqueViewers.HasValue),
+            engagementRate.HasValue,
             latestPerPost.Any(p => p.Clicks.HasValue));
 
         return Result<CampaignAnalyticsSummary>.Success(summary);

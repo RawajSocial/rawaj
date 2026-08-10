@@ -10,6 +10,7 @@ using Rawaj.Infrastructure.BackgroundJobs;
 using Rawaj.Infrastructure.Caching;
 using Rawaj.Infrastructure.Email;
 using Rawaj.Infrastructure.Media;
+using Rawaj.Infrastructure.Payments;
 using Rawaj.Infrastructure.RealTime;
 using Rawaj.Infrastructure.Resilience;
 using Rawaj.Infrastructure.Scraping;
@@ -32,7 +33,6 @@ public static class DependencyInjection
         services.Configure<TavilySettings>(configuration.GetSection(TavilySettings.SectionName));
         services.Configure<EncryptionSettings>(configuration.GetSection(EncryptionSettings.SectionName));
         services.Configure<MetaOAuthSettings>(configuration.GetSection(MetaOAuthSettings.SectionName));
-        services.Configure<LinkedInOAuthSettings>(configuration.GetSection(LinkedInOAuthSettings.SectionName));
         services.Configure<PublicImageHostingSettings>(configuration.GetSection(PublicImageHostingSettings.SectionName));
         services.Configure<CloudinarySettings>(configuration.GetSection(CloudinarySettings.SectionName));
         services.Configure<EmailSettings>(configuration.GetSection(EmailSettings.SectionName));
@@ -43,13 +43,14 @@ public static class DependencyInjection
         services.AddScoped<ICoinCostProvider>(sp => sp.GetRequiredService<IOptions<CoinCostSettings>>().Value);
         services.Configure<FeatureFlagsSettings>(configuration.GetSection(FeatureFlagsSettings.SectionName));
         services.AddScoped<IFeatureFlags>(sp => sp.GetRequiredService<IOptions<FeatureFlagsSettings>>().Value);
+        services.Configure<StripeSettings>(configuration.GetSection(StripeSettings.SectionName));
+        services.AddScoped<IPaymentGatewayService, StripeGatewayService>();
 
         services.AddResilientHttpClient("Groq", attemptTimeout: TimeSpan.FromSeconds(45), totalTimeout: TimeSpan.FromSeconds(120));
         services.AddResilientHttpClient("HuggingFace", attemptTimeout: TimeSpan.FromSeconds(60), totalTimeout: TimeSpan.FromSeconds(150));
         services.AddResilientHttpClient("Cloudflare", attemptTimeout: TimeSpan.FromSeconds(60), totalTimeout: TimeSpan.FromSeconds(150));
         services.AddResilientHttpClient("Tavily", attemptTimeout: TimeSpan.FromSeconds(30), totalTimeout: TimeSpan.FromSeconds(60));
         services.AddResilientHttpClient("Meta", attemptTimeout: TimeSpan.FromSeconds(20), totalTimeout: TimeSpan.FromSeconds(45));
-        services.AddResilientHttpClient("LinkedIn", attemptTimeout: TimeSpan.FromSeconds(20), totalTimeout: TimeSpan.FromSeconds(45));
         services.AddResilientHttpClient(
             "WebScraper",
             attemptTimeout: TimeSpan.FromSeconds(20),
@@ -85,11 +86,21 @@ public static class DependencyInjection
                 sp.GetRequiredService<IHttpClientFactory>(),
                 sp.GetRequiredService<IOptions<MetaOAuthSettings>>(),
                 sp.GetRequiredService<ILogger<MetaOAuthProvider>>()));
+
+            services.AddScoped<ISocialFollowerCountProvider>(sp => new MetaFollowerCountProvider(
+                SocialPlatform.Facebook,
+                sp.GetRequiredService<IHttpClientFactory>(),
+                sp.GetRequiredService<IOptions<MetaOAuthSettings>>(),
+                sp.GetRequiredService<ILogger<MetaFollowerCountProvider>>()));
+            services.AddScoped<ISocialFollowerCountProvider>(sp => new MetaFollowerCountProvider(
+                SocialPlatform.Instagram,
+                sp.GetRequiredService<IHttpClientFactory>(),
+                sp.GetRequiredService<IOptions<MetaOAuthSettings>>(),
+                sp.GetRequiredService<ILogger<MetaFollowerCountProvider>>()));
         }
 
-        // LinkedIn (and any other platform beyond Facebook/Instagram) is intentionally deferred -
-        // the provider implementation stays in the codebase for later, but is not registered so it
-        // can never be offered as a connect option, regardless of configuration.
+        // Facebook and Instagram are the only supported platforms - no other provider is
+        // registered, so no other platform can ever be offered as a connect option.
 
         // Publishing only needs a valid stored access token (however it was obtained), not our
         // own app's OAuth client id/secret, so it is registered unconditionally.
@@ -108,6 +119,7 @@ public static class DependencyInjection
         services.AddHostedService<CampaignCleanupHostedService>();
         services.AddHostedService<AiPipelineWorkerHostedService>();
         services.AddHostedService<AiPipelineReaperHostedService>();
+        services.AddHostedService<AnalyticsSyncHostedService>();
 
         return services;
     }

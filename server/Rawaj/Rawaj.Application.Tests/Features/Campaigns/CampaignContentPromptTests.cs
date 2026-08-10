@@ -40,7 +40,7 @@ public class CampaignContentPromptTests
 
     private static string Build(MarketingCampaign campaign) =>
         ContentPromptBuilder.BuildCampaignContentPlanPrompt(
-            Brand(), campaign, competitorInsights: [], postingTimeSummary: "",
+            Brand(), campaign, postingTimeSummary: "",
             postCount: 3, platforms: [SocialPlatform.Instagram], language: Language.Ar,
             strategyJson: campaign.AiPlanJson, briefJson: campaign.BriefJson);
 
@@ -84,10 +84,13 @@ public class CampaignContentPromptTests
     {
         // A campaign with neither (legacy rows, or a brief that was never filled) must still
         // produce a valid prompt rather than a stray "Approved strategy JSON: " with nothing after.
+        // Note: the standalone injection guard sentence (present in every prompt, unconditionally)
+        // happens to say "onboarding answers" too — these checks use phrases specific to the
+        // strategy/brief sections themselves, not that generic guard text.
         var prompt = Build(Campaign());
 
         Assert.DoesNotContain("Approved strategy JSON", prompt);
-        Assert.DoesNotContain("onboarding answers", prompt);
+        Assert.DoesNotContain("audience and tone specifics", prompt);
         Assert.Contains("Create 3 distinct social media posts", prompt);
     }
 

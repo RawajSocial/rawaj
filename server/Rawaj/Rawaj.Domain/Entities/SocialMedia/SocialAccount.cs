@@ -19,6 +19,13 @@ public class SocialAccount : BaseEntity
     public DateTime? LastVerifiedAt { get; set; }
     public DateTime CreatedAt { get; set; }
 
+    /// <summary>Latest known follower count from the platform (Facebook Page's <c>followers_count</c>
+    /// or Instagram Business account's <c>followers_count</c>), refreshed periodically by
+    /// <see cref="Rawaj.Application.Common.Interfaces.ISocialFollowerCountProvider"/>. Null until the
+    /// first successful sync.</summary>
+    public int? FollowerCount { get; set; }
+    public DateTime? FollowerCountSyncedAt { get; set; }
+
     public TenantBrandProfile BrandProfile { get; set; } = null!;
     public ICollection<ScheduledPost> ScheduledPosts { get; set; } = [];
 }

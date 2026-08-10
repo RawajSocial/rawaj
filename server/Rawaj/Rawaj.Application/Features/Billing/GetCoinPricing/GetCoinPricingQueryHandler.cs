@@ -3,8 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Rawaj.Application.Common.Interfaces;
 using Rawaj.Application.Common.Models;
 using Rawaj.Application.Common.Policies;
-using Rawaj.Application.Features.Billing.PurchaseAddOn;
-using Rawaj.Application.Features.Billing.PurchaseCoins;
+using Rawaj.Application.Features.Billing.Common;
 
 namespace Rawaj.Application.Features.Billing.GetCoinPricing;
 
@@ -60,8 +59,8 @@ public class GetCoinPricingQueryHandler(
             tenant.FreeImageGenerationsRemaining,
             tenant.FreeContentGenerationsRemaining,
             coinPackages,
-            PurchaseCoinsCommandHandler.CustomPricePerCoin,
-            PurchaseAddOnCommandHandler.ExtraBrandPriceUsd,
-            PurchaseAddOnCommandHandler.ExtraMarketeerPriceUsd));
+            BillingPricing.CustomCoinPricePerCoin,
+            BillingPricing.ExtraBrandPriceUsd,
+            BillingPricing.ExtraMarketeerPriceUsd));
     }
 }

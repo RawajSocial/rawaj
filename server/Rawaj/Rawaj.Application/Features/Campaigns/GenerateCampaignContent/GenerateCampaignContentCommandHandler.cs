@@ -2,26 +2,29 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Rawaj.Application.Common.Interfaces;
 using Rawaj.Application.Common.Models;
-using Rawaj.Application.Common.Policies;
-using Rawaj.Application.Features.AiPipeline.Common;
 using Rawaj.Application.Features.AiPipeline.Services;
-using Rawaj.Domain.Entities.Campaigns;
-using Rawaj.Domain.Enums;
 
 namespace Rawaj.Application.Features.Campaigns.GenerateCampaignContent;
 
 /// <summary>
-/// C19's follow-up: a shim onto the pipeline orchestrator, request/response contract unchanged —
-/// closes the one endpoint C19 itself deliberately left on its own handler. Unlike the other four
-/// AI campaign actions, this one legitimately gets called more than once per campaign ("generate
-/// another batch"), which the pipeline's single-<c>ContentPlan</c>-row-per-run model can't do by
-/// re-running <see cref="IPipelineOrchestrator.AdvanceAsync"/> alone — <see cref="IPipelineOrchestrator.EnsureContentBatchAsync"/>
+/// C19's follow-up: a shim onto the pipeline orchestrator. Unlike the other four AI campaign
+/// actions, this one legitimately gets called more than once per campaign ("generate another
+/// batch"), which the pipeline's single-<c>ContentPlan</c>-row-per-run model can't do by re-running
+/// <see cref="IPipelineOrchestrator.AdvanceAsync"/> alone — <see cref="IPipelineOrchestrator.EnsureContentBatchAsync"/>
 /// is what makes a second (or a backfilled campaign's first-ever) batch possible, by resetting that
 /// one row rather than creating a second.
+///
+/// <para>Fire-and-track, matching <c>StartRunCommandHandler</c>: this only makes the batch's
+/// <c>ContentPlan</c> stage runnable and returns — <see cref="Rawaj.Infrastructure.BackgroundJobs.AiPipelineWorkerHostedService"/>
+/// (referenced here only in this comment; not linked, to avoid an Application→Infrastructure
+/// reference) picks it up on its next poll and drives content and every image forward from there,
+/// same as every other pipeline action. Previously this awaited <c>AdvanceAsync</c> directly and
+/// blocked the request until the whole batch — text and every image — was done, which is also why
+/// every post used to appear on the page at once: nothing was listening for progress mid-flight
+/// because there was nothing to listen to yet.</para>
 /// </summary>
 public class GenerateCampaignContentCommandHandler(
     IApplicationDbContext dbContext,
-    ICurrentUserService currentUserService,
     ICurrentTenantContext currentTenantContext,
     IPipelineOrchestrator orchestrator)
     : IRequestHandler<GenerateCampaignContentCommand, Result<GenerateCampaignContentResponse>>
@@ -30,8 +33,6 @@ public class GenerateCampaignContentCommandHandler(
         GenerateCampaignContentCommand request, CancellationToken cancellationToken)
     {
         var tenantId = currentTenantContext.TenantId!.Value;
-        var userId = currentUserService.UserId!.Value;
-        var role = currentTenantContext.Role!.Value;
 
         var campaign = await dbContext.MarketingCampaigns
             .FirstOrDefaultAsync(c => c.Id == request.CampaignId && c.BrandProfile.TenantId == tenantId, cancellationToken);
@@ -58,46 +59,15 @@ public class GenerateCampaignContentCommandHandler(
         run.ContentIncludeImages = request.IncludeImages;
         run.ContentTemplateStyle = request.TemplateStyle;
 
-        var stage = await orchestrator.EnsureContentBatchAsync(run, cancellationToken);
-
-        var existingItemIds = await dbContext.ContentItems
-            .Where(c => c.CampaignId == campaign.Id)
-            .Select(c => c.Id)
-            .ToListAsync(cancellationToken);
-
-        await orchestrator.AdvanceAsync(run, role, cancellationToken);
-
-        var newItems = await dbContext.ContentItems
-            .Where(c => c.CampaignId == campaign.Id && !existingItemIds.Contains(c.Id))
-            .ToListAsync(cancellationToken);
-
-        if (newItems.Count == 0)
-        {
-            var reloadedStage = await dbContext.AiPipelineStages.FirstAsync(s => s.Id == stage.Id, cancellationToken);
-            var blockingError = reloadedStage.LastError
-                ?? await LegacyPipelineGateway.BlockingErrorAsync(dbContext, run.Id, cancellationToken);
-            return Result<GenerateCampaignContentResponse>.Failure(
-                blockingError ?? "Campaign content generation failed. Please try again.");
-        }
-
-        var newItemIds = newItems.Select(i => i.Id).ToHashSet();
-        var imagesGenerated = await dbContext.VisualAssets
-            .CountAsync(v => v.ContentItemId != null && newItemIds.Contains(v.ContentItemId.Value)
-                && v.SourceType == VisualAssetSourceType.AiGenerated, cancellationToken);
-
-        NotificationPublisher.Notify(
-            dbContext, userId, campaign.BrandProfileId, NotificationType.Info, NotificationCategory.ReviewNeeded,
-            "Campaign drafts ready for review",
-            $"{newItems.Count} new draft post(s) for \"{campaign.Name}\" are ready for your review.",
-            campaign.Id, "marketing_campaign");
-
-        await dbContext.SaveChangesAsync(cancellationToken);
+        // Sets run.ContentPostCount etc (already assigned above, on the same tracked entity) and the
+        // ContentPlan stage in the same SaveChangesAsync — nothing else for this handler to persist.
+        await orchestrator.EnsureContentBatchAsync(run, cancellationToken);
 
         // AiCreditsPolicy's monthly image quota (and the mid-batch "skip for credits" it used to
         // cause) is retired in favour of coins as the single meter for this path — see C23. Every
         // ContentItem still never ends up with no image at all: ContentImageExecutor exhausting its
         // retries attaches the /text-post.png placeholder, same as before.
         return Result<GenerateCampaignContentResponse>.Success(
-            new GenerateCampaignContentResponse(campaign.Id, newItems.Count, imagesGenerated));
+            new GenerateCampaignContentResponse(campaign.Id, run.Id, run.Status));
     }
 }

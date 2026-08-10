@@ -2,6 +2,7 @@ import { Component, input, output, signal } from '@angular/core';
 import { ScheduledPost, PostStatus } from '../../../model/scheduled-post.model';
 import { CAMPAIGN_PLATFORM_META, CampaignPlatform } from '../../../model/campaign.model';
 import { ModalShell } from '../../../shared/components/modal-shell/modal-shell';
+import { cairoLocalToUtcIso, utcIsoToCairoLocalParts } from '../../../shared/utils/cairo-time.util';
 
 @Component({
   selector: 'app-post-modal',
@@ -41,9 +42,10 @@ export class PostModal {
   get statusInfo() { return this.statusOptions.find(s => s.value === this.post().status) ?? this.statusOptions[0]; }
 
   formatDateTime(iso: string): string {
-    return new Date(iso).toLocaleDateString('ar-SA', {
+    return new Date(iso).toLocaleDateString('ar-EG', {
       weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
       hour: '2-digit', minute: '2-digit', hour12: true,
+      timeZone: 'Africa/Cairo',
     });
   }
 
@@ -51,9 +53,9 @@ export class PostModal {
    *  changed via regenerate (on the campaign content page), and status is server-derived from
    *  what actually happens when the post is published, not something to hand-set. */
   startEdit(): void {
-    const p = this.post();
-    this.editDate.set(p.scheduledAt.substring(0, 10));
-    this.editTime.set(p.scheduledAt.substring(11, 16));
+    const { date, time } = utcIsoToCairoLocalParts(this.post().scheduledAt);
+    this.editDate.set(date);
+    this.editTime.set(time);
     this.editMode.set(true);
     this.showDeleteConfirm.set(false);
   }
@@ -61,7 +63,7 @@ export class PostModal {
   cancelEdit(): void { this.editMode.set(false); this.showDeleteConfirm.set(false); }
 
   submitReschedule(): void {
-    this.reschedule.emit({ id: this.post().id, scheduledAt: `${this.editDate()}T${this.editTime()}:00` });
+    this.reschedule.emit({ id: this.post().id, scheduledAt: cairoLocalToUtcIso(this.editDate(), this.editTime()) });
   }
 
   doPublishNow(): void {

@@ -34,10 +34,10 @@ public class GetRunStatusQueryHandler(IApplicationDbContext dbContext, ICurrentT
         var progress = AiPipelineProgressPolicy.Calculate(stages, run.Status);
 
         var stageSummaries = stages
-            .Select(s => new StageStatusSummary(s.Kind, s.Status, s.Attempts, s.MaxAttempts, s.LastError))
+            .Select(s => new StageStatusSummary(s.Kind, s.Status, s.Attempts, s.MaxAttempts, s.LastError, s.TargetRefId))
             .ToList();
 
         return Result<GetRunStatusResponse>.Success(
-            new GetRunStatusResponse(run.Id, run.Status, progress, run.TotalCoinsSpent, run.LastError, stageSummaries));
+            new GetRunStatusResponse(run.Id, run.Status, progress, run.TotalCoinsSpent, run.LastError, stageSummaries, run.Version));
     }
 }

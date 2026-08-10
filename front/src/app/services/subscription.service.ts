@@ -6,19 +6,20 @@ import { ApiResponse } from '../model/auth.model';
 import {
   AddOnType,
   AiCreditsUsage,
+  CampaignsUsage,
   ChangeSubscriptionPlanRequest,
   ChangeSubscriptionPlanResponse,
+  CreateCheckoutSessionResponse,
   GetBillingHistoryResponse,
   PublicCoinPricing,
-  PurchaseAddOnResponse,
   PurchaseCoinsRequest,
-  PurchaseCoinsResponse,
   SubscriptionPlanSummary,
   SubscriptionSummary,
 } from '../model/billing.model';
 
 /** Real HTTP-backed subscription/billing service — plans, the tenant's current subscription,
- *  fake-payment purchases (coins/add-ons/plan changes), and billing history. */
+ *  real Stripe Checkout purchases (coins/add-ons/plan changes), and billing history. Paid
+ *  purchases return a `checkoutUrl` to redirect the browser to — see `redirectToCheckout`. */
 @Injectable({ providedIn: 'root' })
 export class SubscriptionService {
   private readonly http = inject(HttpClient);
@@ -62,6 +63,12 @@ export class SubscriptionService {
     );
   }
 
+  /** Not cached as a signal like the others — callers need a fresh count at the exact moment
+   *  they're about to start a new campaign, not a value that may be stale from an earlier page. */
+  getCampaignsUsage(): Observable<ApiResponse<CampaignsUsage>> {
+    return this.http.get<ApiResponse<CampaignsUsage>>(`${this.baseUrl}/campaigns-usage`);
+  }
+
   changePlan(request: ChangeSubscriptionPlanRequest): Observable<ApiResponse<ChangeSubscriptionPlanResponse>> {
     return this.http.post<ApiResponse<ChangeSubscriptionPlanResponse>>(`${this.baseUrl}/change-plan`, request).pipe(
       tap(res => {
@@ -70,17 +77,31 @@ export class SubscriptionService {
     );
   }
 
-  purchaseCoins(request: PurchaseCoinsRequest): Observable<ApiResponse<PurchaseCoinsResponse>> {
-    return this.http.post<ApiResponse<PurchaseCoinsResponse>>(`${this.baseUrl}/purchase-coins`, request);
+  purchaseCoins(request: PurchaseCoinsRequest): Observable<ApiResponse<CreateCheckoutSessionResponse>> {
+    return this.http.post<ApiResponse<CreateCheckoutSessionResponse>>(`${this.baseUrl}/purchase-coins`, request);
   }
 
-  purchaseAddOn(type: AddOnType): Observable<ApiResponse<PurchaseAddOnResponse>> {
-    return this.http.post<ApiResponse<PurchaseAddOnResponse>>(`${this.baseUrl}/purchase-add-on`, { type });
+  purchaseAddOn(type: AddOnType): Observable<ApiResponse<CreateCheckoutSessionResponse>> {
+    return this.http.post<ApiResponse<CreateCheckoutSessionResponse>>(`${this.baseUrl}/purchase-add-on`, { type });
   }
 
   getBillingHistory(page = 1, pageSize = 20): Observable<ApiResponse<GetBillingHistoryResponse>> {
     return this.http.get<ApiResponse<GetBillingHistoryResponse>>(
       `${this.baseUrl}/history?page=${page}&pageSize=${pageSize}`,
     );
+  }
+
+  /** The "verify on return" fallback for when no Stripe webhook is configured — call right after
+   *  the browser returns from Checkout with the `session_id` Stripe appended to the success URL.
+   *  Resolves to `true` once fulfilled, `false` if Stripe hasn't confirmed the session yet (safe
+   *  to retry). Not a replacement for the webhook: a user who closes the tab before this fires
+   *  won't be caught by it. */
+  verifyCheckoutSession(sessionId: string): Observable<ApiResponse<boolean>> {
+    return this.http.post<ApiResponse<boolean>>(`${this.baseUrl}/checkout/verify`, { sessionId });
+  }
+
+  /** Leaves the SPA — Stripe's hosted Checkout page takes over from here. */
+  redirectToCheckout(checkoutUrl: string): void {
+    window.location.href = checkoutUrl;
   }
 }

@@ -73,7 +73,7 @@
                 <button type="button" class="dropdown-trigger form-control form-control-sm" (click)="walletOpen.update(v => !v)">
                   <span class="dropdown-label">
                     @if (activeMembership(); as m) {
-                      {{ m.isOwner ? 'حسابي الخاص' : m.name }} — {{ m.myCoinBalance.toLocaleString('ar-SA') }} كوين
+                      {{ m.isOwner ? 'حسابي الخاص' : m.name }} — {{ m.myCoinBalance.toLocaleString('ar-EG') }} كوين
                     }
                   </span>
                   <span class="dropdown-icon"><i class="fa-solid fa-chevron-down"></i></span>
@@ -82,7 +82,7 @@
                   @for (m of tenantService.memberships(); track m.tenantId) {
                     <button type="button" class="dropdown-option" [class.active]="m.tenantId === tenantService.activeTenantId()" (click)="switchWallet(m.tenantId)">
                       {{ m.isOwner ? 'حسابي الخاص' : m.name }}
-                      <span class="text-muted" style="font-size:.75rem"> — {{ m.myCoinBalance.toLocaleString('ar-SA') }} كوين</span>
+                      <span class="text-muted" style="font-size:.75rem"> — {{ m.myCoinBalance.toLocaleString('ar-EG') }} كوين</span>
                     </button>
                   }
                 </div>

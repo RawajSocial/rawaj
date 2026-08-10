@@ -5,6 +5,18 @@
 }
 .cc-error { color: var(--color-danger); }
 
+.cc-generating-placeholder {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .6rem;
+  padding: 3rem 1rem;
+  color: var(--color-text-secondary);
+  font-size: 1.1rem;
+}
+.cc-generating-placeholder i { font-size: 1.6rem; }
+
 .cc-banner {
   display: flex;
   align-items: center;
@@ -51,6 +63,7 @@
 .cc-btn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: .5rem;
   padding: .6rem 1.2rem;
   border-radius: 10px;
@@ -58,6 +71,7 @@
   font-size: .85rem;
   font-weight: 700;
   cursor: pointer;
+  white-space: nowrap;
   transition: opacity .2s, transform .15s;
 }
 .cc-btn:disabled { opacity: .5; cursor: not-allowed; }
@@ -69,6 +83,53 @@
 .cc-btn-accept { background: var(--color-success-light); color: var(--color-success); }
 .cc-btn-reject { background: var(--color-danger-light); color: var(--color-danger); }
 .cc-btn-ghost { background: var(--color-bg-secondary); color: var(--color-text-secondary); }
+
+.cc-btn-reschedule {
+  background: transparent;
+  color: var(--color-secondary);
+  border: 1.5px solid var(--color-secondary-light);
+}
+.cc-btn-reschedule:not(:disabled):hover {
+  background: var(--color-secondary-subtle);
+  border-color: var(--color-secondary);
+}
+
+.cc-btn-regenerate {
+  background: transparent;
+  color: var(--color-yellow-300);
+  border: 1.5px solid var(--color-yellow-100);
+}
+.cc-btn-regenerate:not(:disabled):hover {
+  background: var(--color-yellow-50);
+  border-color: var(--color-yellow-200);
+}
+
+.cc-btn-takedown {
+  background: var(--color-danger);
+  color: #fff;
+}
+.cc-btn-takedown:not(:disabled):hover {
+  background: var(--color-danger-active, #b91c1c);
+}
+
+.cc-btn-publish-now {
+  background: transparent;
+  color: var(--color-success);
+  border: 1.5px solid var(--color-success-light);
+}
+.cc-btn-publish-now:not(:disabled):hover {
+  background: var(--color-success-light);
+  border-color: var(--color-success);
+}
+
+.cc-btn-view {
+  background: var(--color-info-light);
+  color: var(--color-info);
+  text-decoration: none;
+}
+.cc-btn-view:hover {
+  background: var(--color-primary-light);
+}
 
 .cc-items {
   display: grid;
@@ -124,6 +185,11 @@
 }
 
 .cc-item-content {
+  /* Grows to fill whatever space is left under a shorter caption — cards in the same grid row are
+     already stretched to equal height, but without this the date/action row below just floats
+     wherever this card's own (shorter) caption happens to end, instead of lining up with the rest
+     of the row the way it naturally does in the card with the longest caption. */
+  flex: 1;
   font-size: .85rem;
   line-height: 1.7;
   color: var(--color-text-secondary);
@@ -131,10 +197,47 @@
   white-space: pre-wrap;
 }
 
-.cc-item-actions {
+.cc-item-suggested-time {
   display: flex;
+  align-items: center;
+  gap: .35rem;
+  font-size: .75rem;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+.cc-item-suggested-time i { color: var(--color-secondary); font-size: .7rem; }
+
+.cc-item-suggested-time--scheduled {
+  color: var(--color-success);
+  font-weight: var(--font-semibold);
+}
+.cc-item-suggested-time--scheduled i { color: var(--color-success); }
+
+.cc-item-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: .5rem;
-  flex-wrap: wrap;
+  /* Reserves space for two full button rows even when a card only has one action (e.g. a live
+     post's lone "take down" button) — otherwise the shorter actions block lets .cc-item-content's
+     flex:1 grow further and pushes the date/actions block down, so it no longer lines up with
+     cards that have two rows of buttons. */
+  min-height: calc(2 * 2.4rem + .5rem);
+}
+.cc-item-actions .cc-btn {
+  justify-content: center;
+  padding-inline: .5rem;
+  font-size: .78rem;
+  white-space: nowrap;
+}
+/* A lone trailing button (odd count) spans both columns instead of leaving an empty cell next to it. */
+.cc-item-actions > *:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+}
+/* View-on-platform + take-down are each their own full-width row rather than sharing one row side
+   by side — a destructive action and a plain navigation link look mismatched crammed together. */
+.cc-item-actions > .cc-btn-view,
+.cc-item-actions > .cc-btn-takedown {
+  grid-column: 1 / -1;
 }
 
 .cc-regenerate-box {
@@ -151,10 +254,24 @@
   font-size: .82rem;
   font-family: inherit;
 }
+.cc-regenerate-hint {
+  margin: 0;
+  font-size: .72rem;
+  color: var(--color-text-muted);
+}
+
 .cc-regenerate-actions {
   display: flex;
   justify-content: flex-end;
+  align-items: center;
   gap: .5rem;
+  flex-wrap: wrap;
+}
+.cc-regenerate-actions .cc-btn {
+  flex: 1 1 auto;
+}
+.cc-regenerate-actions .cc-regenerate-cost {
+  flex: 1 1 100%;
 }
 
 .cc-schedule h2 {
@@ -315,17 +432,14 @@
 .cc-generating-stage.done   { color: var(--color-success); }
 .cc-generating-stage i      { font-size: .78rem; }
 
-.cc-skeleton-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 1rem;
-}
+/* Sized to match .cc-item-card (padding, border-radius, gap) so a slot doesn't visibly resize the
+   moment its post's image lands and the skeleton is replaced by the real card. */
 .cc-skeleton-card {
   display: flex;
   flex-direction: column;
-  gap: .5rem;
-  padding: .8rem;
-  border-radius: 14px;
+  gap: .7rem;
+  padding: 1rem;
+  border-radius: 16px;
   border: 1.5px solid var(--color-secondary-subtle);
 }
 .cc-sk {
@@ -335,11 +449,12 @@
   background-size: 400% 100%;
   animation: cc-shimmer 1.4s ease infinite;
 }
-.cc-sk-tag   { width: 60px; height: 16px; border-radius: 999px; }
-.cc-sk-image { width: 100%; height: 110px; }
-.cc-sk-line  { height: 10px; }
+.cc-sk-tag     { width: 60px; height: 16px; border-radius: 999px; }
+.cc-sk-image   { width: 100%; height: 200px; border-radius: 12px; }
+.cc-sk-line    { height: 10px; }
 .cc-sk-line--90 { width: 90%; }
 .cc-sk-line--70 { width: 70%; }
+.cc-sk-actions { width: 100%; height: 36px; border-radius: 10px; }
 
 @keyframes cc-shimmer {
   0%   { background-position: 100% 50%; }
@@ -421,15 +536,18 @@
   gap: .3rem;
   font-size: .78rem;
   color: var(--color-text-secondary);
-  flex: 1;
+  flex: 1 1 100%;
+  min-width: 0;
 }
 .cc-schedule-item-field select,
 .cc-schedule-item-field input {
+  width: 100%;
   padding: .5rem .6rem;
   border-radius: 10px;
   border: 1.5px solid var(--color-secondary-light);
   font-size: .82rem;
   font-family: inherit;
+  box-sizing: border-box;
 }
 .cc-schedule-item-datetime {
   display: flex;

@@ -43,6 +43,7 @@ public class GetScheduledPostsQueryHandler(IApplicationDbContext dbContext)
                 s.ErrorMessage,
                 Content = s.ContentItem.Content,
                 ImageUrl = s.VisualAsset != null ? s.VisualAsset.FileUrl : null,
+                s.PostId,
             })
             .ToListAsync(cancellationToken);
 
@@ -67,15 +68,16 @@ public class GetScheduledPostsQueryHandler(IApplicationDbContext dbContext)
                     p.Status,
                     p.PublishedAt,
                     p.ErrorMessage,
-                    analytics?.Impressions,
-                    analytics?.Reach,
+                    analytics?.Views,
+                    analytics?.UniqueViewers,
                     analytics?.Likes,
                     analytics?.Comments,
                     analytics?.Shares,
                     analytics?.Clicks,
                     analytics?.EngagementRate,
                     p.Content,
-                    p.ImageUrl);
+                    p.ImageUrl,
+                    p.PostId);
             })
             .ToList();
 

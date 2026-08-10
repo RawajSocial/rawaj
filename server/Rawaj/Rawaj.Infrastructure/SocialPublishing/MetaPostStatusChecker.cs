@@ -10,8 +10,9 @@ using Rawaj.Infrastructure.SocialOAuth;
 namespace Rawaj.Infrastructure.SocialPublishing;
 
 /// <summary>
-/// Facebook photo/attachment-backed scheduled posts (the kind SchedulePost creates via /photos)
-/// don't expose an is_published field when queried directly by id - confirmed live against the
+/// Facebook photo/attachment-backed scheduled posts (the kind SchedulePost creates via /feed with
+/// attached_media — see MetaPostPublisher.PublishPhotoPostAsync) don't expose an is_published field
+/// when queried directly by id - confirmed live against the
 /// real Graph API, which returns "(#100) Tried accessing nonexisting field (is_published)" for
 /// these objects even though the id itself resolves fine. The only reliable signal available with
 /// our current permission set is the Page's /scheduled_posts edge: while the post is still there,

@@ -1,4 +1,4 @@
-export type PlatformKey = 'all' | 'instagram' | 'facebook' | 'tiktok' | 'youtube' | 'x' | 'linkedin' | 'snapchat';
+export type PlatformKey = 'all' | 'instagram' | 'facebook';
 
 export interface PlatformStat {
   key: Exclude<PlatformKey, 'all'>;
@@ -6,7 +6,7 @@ export interface PlatformStat {
   icon: string;
   color: string;
   followers: number;
-  reach: number;
+  uniqueViewers: number;
   engagementRate: number;
   posts: number;
   change: number;
@@ -18,7 +18,8 @@ export interface KpiData {
   icon: string;
   iconBg: string;
   iconColor: string;
-  change: number;
+  /** null when there's no prior-period value to compare against yet — render as "—", never "0%". */
+  change: number | null;
   accentColor: string;
 }
 
@@ -29,7 +30,7 @@ export interface TopPost {
   campaignId?: string | null;
   platform: Exclude<PlatformKey, 'all'>;
   content: string;
-  reach: number;
+  uniqueViewers: number;
   engagement: number;
 }
 
@@ -47,19 +48,8 @@ export interface ConnectPlatform {
   color: string;
 }
 
-export interface MetaWidgetMetric {
-  label: string;
-  value: string;
-}
-
-export interface MetaWidget {
-  label: string;
-  icon: string;
-  metrics: MetaWidgetMetric[];
-}
-
 /** Compact "1.2K" / "3.4M" formatting shared by every overview widget that
- *  displays a raw follower/reach/engagement count. */
+ *  displays a raw follower/unique-viewer/engagement count. */
 export function compactNumber(n: number): string {
   if (n >= 1_000_000) return (n / 1_000_000).toFixed(1).replace(/\.0$/, '') + 'M';
   if (n >= 1_000) return (n / 1_000).toFixed(1).replace(/\.0$/, '') + 'K';

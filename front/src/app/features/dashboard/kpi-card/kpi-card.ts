@@ -13,7 +13,8 @@ export class KpiCard {
   icon = input('');
   iconBg = input('');
   iconColor = input('');
-  change = input(0);
+  /** null when there's no prior-period value to compare against yet — renders as "—", never "0%". */
+  change = input<number | null>(0);
   changeLabel = input('');
   accentColor = input('#2563EB');
 }

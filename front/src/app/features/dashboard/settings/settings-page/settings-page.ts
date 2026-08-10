@@ -38,10 +38,6 @@ interface ConnectPlatform {
 const CONNECT_PLATFORMS: ConnectPlatform[] = [
   { key: 'instagram', label: 'إنستغرام',  icon: 'fa-brands fa-instagram',   color: 'var(--color-instagram)' },
   { key: 'facebook',  label: 'فيسبوك',    icon: 'fa-brands fa-facebook-f',  color: 'var(--color-facebook)' },
-  { key: 'tiktok',    label: 'تيك توك',   icon: 'fa-brands fa-tiktok',      color: 'var(--gradient-tiktok)' },
-  { key: 'snapchat',  label: 'سناب شات',  icon: 'fa-brands fa-snapchat',    color: 'var(--color-snapchat)' },
-  { key: 'linkedin',  label: 'لينكدإن',   icon: 'fa-brands fa-linkedin-in', color: 'var(--color-linkedin)' },
-  { key: 'youtube',   label: 'يوتيوب',    icon: 'fa-brands fa-youtube',     color: 'var(--color-youtube)' },
 ];
 
 const LANGUAGE_OPTIONS: SelectOption[] = [

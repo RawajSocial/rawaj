@@ -35,19 +35,6 @@
       </div>
     }
     <div class="form-row full">
-      <label>هل هذا لعلامة جديدة أم قائمة؟</label>
-      <div class="chips">
-        <button type="button" class="chip" [class.active]="data()?.brandStatusForLeads === 'new'"
-          (click)="emit({ brandStatusForLeads: 'new' })">
-          <i class="fa-solid fa-star"></i> علامة جديدة
-        </button>
-        <button type="button" class="chip" [class.active]="data()?.brandStatusForLeads === 'existing'"
-          (click)="emit({ brandStatusForLeads: 'existing' })">
-          <i class="fa-solid fa-building"></i> علامة قائمة — جمهور جديد
-        </button>
-      </div>
-    </div>
-    <div class="form-row full">
       <label>ماذا تريد أن يشعر العميل بعد مشاهدة المحتوى؟ <span>(اختياري)</span></label>
       <textarea class="form-control" rows="3"
         placeholder="مثال: أريده أن يثق بعلامتي ويحجز موعدًا..."

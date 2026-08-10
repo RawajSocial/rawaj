@@ -303,9 +303,9 @@ public class AiPipelinePolicyTests
     public void RetryDelay_Escalates_ThenHolds()
     {
         Assert.Equal(TimeSpan.FromSeconds(30), AiPipelinePolicy.GetRetryDelay(1));
-        Assert.Equal(TimeSpan.FromMinutes(2), AiPipelinePolicy.GetRetryDelay(2));
-        Assert.Equal(TimeSpan.FromMinutes(8), AiPipelinePolicy.GetRetryDelay(3));
-        Assert.Equal(TimeSpan.FromMinutes(8), AiPipelinePolicy.GetRetryDelay(9));
+        Assert.Equal(TimeSpan.FromMinutes(1), AiPipelinePolicy.GetRetryDelay(2));
+        Assert.Equal(TimeSpan.FromMinutes(2), AiPipelinePolicy.GetRetryDelay(3));
+        Assert.Equal(TimeSpan.FromMinutes(2), AiPipelinePolicy.GetRetryDelay(9));
     }
 
     [Fact]

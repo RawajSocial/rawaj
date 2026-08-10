@@ -106,6 +106,10 @@ public class SchedulePostCommandHandler(
 
         var now = DateTime.UtcNow;
 
+        // PublishNow bypasses the "at least 10 minutes out" scheduling window entirely (see the
+        // validator) - the row is still created with a real ScheduledAt (now) for record-keeping,
+        // but ExecuteAsync is asked to publish immediately (scheduledAt: null) instead of handing
+        // the time off to the platform's native scheduler.
         var scheduledPost = new ScheduledPost
         {
             Id = Guid.NewGuid(),
@@ -114,8 +118,8 @@ public class SchedulePostCommandHandler(
             SocialAccountId = socialAccount.Id,
             BrandProfileId = contentItem.BrandProfileId ?? socialAccount.BrandProfileId,
             CampaignId = contentItem.CampaignId,
-            ScheduledAt = request.ScheduledAt,
-            AiSuggestedTime = request.AiSuggestedTime,
+            ScheduledAt = request.PublishNow ? now : request.ScheduledAt,
+            AiSuggestedTime = !request.PublishNow && request.AiSuggestedTime,
             Status = ScheduledPostStatus.Pending,
             RetryCount = 0,
             CreatedAt = now,
@@ -125,8 +129,11 @@ public class SchedulePostCommandHandler(
         dbContext.ScheduledPosts.Add(scheduledPost);
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        var handoffResult = await ScheduledPostPublisher.ScheduleNativelyAsync(
-            dbContext, tokenEncryptor, publishers, scheduledPost.Id, scheduledPost.ScheduledAt, cancellationToken);
+        var handoffResult = request.PublishNow
+            ? await ScheduledPostPublisher.PublishNowAsync(
+                dbContext, tokenEncryptor, publishers, scheduledPost.Id, cancellationToken)
+            : await ScheduledPostPublisher.ScheduleNativelyAsync(
+                dbContext, tokenEncryptor, publishers, scheduledPost.Id, scheduledPost.ScheduledAt, cancellationToken);
 
         if (!handoffResult.Succeeded)
         {
@@ -139,7 +146,9 @@ public class SchedulePostCommandHandler(
             await dbContext.SaveChangesAsync(cancellationToken);
 
             return Result<SchedulePostResponse>.Failure(
-                $"Could not schedule with {socialAccount.Platform}: {scheduledPost.ErrorMessage}");
+                request.PublishNow
+                    ? $"Could not publish to {socialAccount.Platform}: {scheduledPost.ErrorMessage}"
+                    : $"Could not schedule with {socialAccount.Platform}: {scheduledPost.ErrorMessage}");
         }
 
         await CoinPolicy.TrySpendAsync(dbContext, tenantId, userId, role, coinCost, cancellationToken, reason: "post_scheduling");

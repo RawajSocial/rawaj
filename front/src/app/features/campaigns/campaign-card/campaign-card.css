@@ -68,13 +68,6 @@
   font-size: 0.85rem;
 }
 
-/* Snapchat's brand yellow has almost no contrast on a white circle — the
-   solid ghost glyph would look hollow, showing only its inner detail
-   lines. Use a dark glyph here instead. */
-.platform-icon--snapchat {
-  color: #111 !important;
-}
-
 /* ── Status badge ── */
 .camp-status-badge {
   position: absolute;

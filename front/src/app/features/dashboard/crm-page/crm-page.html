@@ -2,7 +2,40 @@
   <app-page-header
     title="لوحة التحكم"
     [breadcrumbs]="[{ label: 'نظرة عامة', link: '/dashboard' }, { label: 'لوحة التحكم' }]"
-    subtitle="نظرة شاملة على أداء حساباتك على مواقع التواصل الاجتماعي." />
+    subtitle="نظرة شاملة على أداء حساباتك على مواقع التواصل الاجتماعي.">
+    <div page-header-actions class="crm-header-actions d-flex align-items-center flex-wrap gap-2">
+      <!-- In-page campaign switcher (mirrors the header's global campaign selection, so this
+           widget stays usable without needing to scroll up to the header dropdown). -->
+      @if (brandContextService.campaignsForSelectedBrand().length > 0) {
+        <div class="d-flex align-items-center gap-2 campaign-switcher">
+          <label for="crm-campaign-switch" class="campaign-switcher__label">الحملة:</label>
+          <select
+            id="crm-campaign-switch"
+            class="campaign-switcher__select"
+            [value]="brandContextService.selectedCampaignId()"
+            (change)="brandContextService.setCampaign($any($event.target).value)">
+            <option value="all">كل الحملات</option>
+            @for (c of brandContextService.campaignsForSelectedBrand(); track c.id) {
+              <option [value]="c.id">{{ c.name }}</option>
+            }
+          </select>
+        </div>
+      }
+
+      <!-- Social platform filter -->
+      <div class="platform-filter d-flex align-items-center flex-wrap gap-2">
+        @for (t of filterTabs(); track t.key) {
+          <button type="button" class="platform-chip d-inline-flex align-items-center gap-2 py-2 px-3"
+                  [class.active]="platformFilter() === t.key"
+                  [style.--chip-color]="t.color"
+                  (click)="setFilter(t.key)">
+            <i class="{{ t.icon }}"></i>
+            <span>{{ t.label }}</span>
+          </button>
+        }
+      </div>
+    </div>
+  </app-page-header>
 
   @if (brandProfileCount() === 0) {
     <a routerLink="/dashboard/brand-profiles/new" class="quick-action-card quick-action-card--reward d-flex align-items-center gap-3 p-3">
@@ -17,16 +50,18 @@
 
   <!-- Quick actions -->
   <div class="row row-cols-1 row-cols-md-2 g-3">
-    <div class="col">
-      <a routerLink="/dashboard/social-accounts" class="quick-action-card d-flex align-items-center gap-3 p-3">
-        <span class="quick-action-card__icon"><i class="fa-solid fa-link"></i></span>
-        <div class="quick-action-card__text">
-          <span class="quick-action-card__title">اربط حسابات التواصل الاجتماعي</span>
-          <span class="quick-action-card__desc">اربط علامتك التجارية بمنصات التواصل عبر OAuth</span>
-        </div>
-        <i class="fa-solid fa-arrow-left quick-action-card__arrow"></i>
-      </a>
-    </div>
+    @if (!hasConnectedAccounts()) {
+      <div class="col">
+        <a routerLink="/dashboard/social-accounts" class="quick-action-card d-flex align-items-center gap-3 p-3">
+          <span class="quick-action-card__icon"><i class="fa-solid fa-link"></i></span>
+          <div class="quick-action-card__text">
+            <span class="quick-action-card__title">اربط حسابات التواصل الاجتماعي</span>
+            <span class="quick-action-card__desc">اربط علامتك التجارية بمنصات التواصل عبر OAuth</span>
+          </div>
+          <i class="fa-solid fa-arrow-left quick-action-card__arrow"></i>
+        </a>
+      </div>
+    }
     @if (!isActivated()) {
       <div class="col">
         <a routerLink="/dashboard/settings" [queryParams]="{ tab: 'profile' }" class="quick-action-card quick-action-card--reward d-flex align-items-center gap-3 p-3">
@@ -38,39 +73,6 @@
           <i class="fa-solid fa-arrow-left quick-action-card__arrow"></i>
         </a>
       </div>
-    }
-  </div>
-
-  <!-- In-page campaign switcher (mirrors the header's global campaign selection, so this widget
-       stays usable without needing to scroll up to the header dropdown). -->
-  @if (brandContextService.campaignsForSelectedBrand().length > 0) {
-    <div class="d-flex align-items-center gap-2 campaign-switcher">
-      <label for="crm-campaign-switch" class="campaign-switcher__label">الحملة:</label>
-      <select
-        id="crm-campaign-switch"
-        class="campaign-switcher__select"
-        [value]="brandContextService.selectedCampaignId()"
-        (change)="brandContextService.setCampaign($any($event.target).value)">
-        <option value="all">كل الحملات</option>
-        @for (c of brandContextService.campaignsForSelectedBrand(); track c.id) {
-          <option [value]="c.id">{{ c.name }}</option>
-        }
-      </select>
-    </div>
-  }
-
-  <!-- Social platform filter -->
-  <div class="platform-filter d-flex align-items-center flex-wrap gap-2">
-    @for (t of filterTabs(); track t.key) {
-      <button type="button" class="platform-chip d-inline-flex align-items-center gap-2 py-2 px-3"
-              [class.active]="platformFilter() === t.key"
-              [class.platform-chip--tiktok]="t.key === 'tiktok'"
-              [class.platform-chip--snapchat]="t.key === 'snapchat'"
-              [style.--chip-color]="t.color"
-              (click)="setFilter(t.key)">
-        <i class="{{ t.icon }}"></i>
-        <span>{{ t.label }}</span>
-      </button>
     }
   </div>
 
@@ -106,7 +108,4 @@
       <app-top-posts-card class="flex-grow-1 d-flex flex-column" [posts]="topPostsView()" />
     </div>
   </div>
-
-  <!-- Meta analytics (placeholder — awaiting Meta Business account connection) -->
-  <app-meta-analytics-card [widgets]="metaWidgets()" />
 </div>

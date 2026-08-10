@@ -5,13 +5,13 @@ using Rawaj.Domain.Enums;
 namespace Rawaj.Domain.Entities.Billing;
 
 /// <summary>
-/// A record of money "spent" against a tenant — coin package purchases, plan changes, and add-on
+/// A record of money spent against a tenant — coin package purchases, plan changes, and add-on
 /// purchases. Backs the billing page's real invoice/history list.
 ///
-/// Every transaction here is a FAKE payment: nothing calls a real payment gateway, there's no card
-/// validation, and it always succeeds. This is a placeholder until a real gateway (Stripe fields
-/// already sit unused on <see cref="Subscription"/>) is integrated — at that point a webhook would
-/// need to create these rows instead of the command handlers doing it synchronously and instantly.
+/// Paid transactions (<see cref="StripeEventId"/> set) are created only once Stripe confirms the
+/// charge via webhook, never from the browser's return to the success URL. The Free plan
+/// (<c>SubscriptionPlan.Cost == 0</c>) is the one case that still writes a row synchronously with
+/// no Stripe fields set, since there's nothing to charge.
 /// </summary>
 public class BillingTransaction : BaseEntity
 {
@@ -21,6 +21,13 @@ public class BillingTransaction : BaseEntity
     public decimal AmountUsd { get; set; }
     public int? CoinsGranted { get; set; }
     public DateTime CreatedAt { get; set; }
+
+    /// <summary>The Stripe Checkout Session that produced this transaction, when paid via Stripe.</summary>
+    public string? StripeSessionId { get; set; }
+
+    /// <summary>The Stripe webhook event id that fulfilled this transaction — the idempotency key
+    /// preventing Stripe's at-least-once delivery from double-granting the same purchase.</summary>
+    public string? StripeEventId { get; set; }
 
     public Tenant Tenant { get; set; } = null!;
 }

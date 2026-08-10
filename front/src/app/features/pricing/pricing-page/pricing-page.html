@@ -69,12 +69,12 @@
         @for (pkg of pricing.coinPackages; track pkg.coinPackageId) {
           <div class="rw-card package-card">
             <span class="package-card__name">{{ pkg.name }}</span>
-            <span class="package-card__coins">{{ pkg.coins.toLocaleString('ar-SA') }}</span>
+            <span class="package-card__coins">{{ pkg.coins.toLocaleString('ar-EG') }}</span>
             @if (pkg.bonusCoins > 0) {
-              <span class="package-card__bonus">+ {{ pkg.bonusCoins.toLocaleString('ar-SA') }} مكافأة مجانية</span>
+              <span class="package-card__bonus">+ {{ pkg.bonusCoins.toLocaleString('ar-EG') }} مكافأة مجانية</span>
             }
             <span class="package-card__price">${{ pkg.priceUsd }}</span>
-            <p class="package-card__note">سيُضاف {{ (pkg.coins + pkg.bonusCoins).toLocaleString('ar-SA') }} كوين فورًا مقابل ${{ pkg.priceUsd }}.</p>
+            <p class="package-card__note">سيُضاف {{ (pkg.coins + pkg.bonusCoins).toLocaleString('ar-EG') }} كوين فورًا مقابل ${{ pkg.priceUsd }}.</p>
           </div>
         }
         <div class="rw-card package-card package-card--custom">
@@ -126,7 +126,7 @@
             @for (row of aiFeatureRows(); track row.label) {
               <tr>
                 <td>{{ row.label }}</td>
-                <td class="ai-price-table__cost">{{ row.cost.toLocaleString('ar-SA') }} كوين</td>
+                <td class="ai-price-table__cost">{{ row.cost.toLocaleString('ar-EG') }} كوين</td>
                 <td>
                   @if (row.comingSoon) {
                     <span class="rw-pill rw-pill--warning">قريبًا</span>

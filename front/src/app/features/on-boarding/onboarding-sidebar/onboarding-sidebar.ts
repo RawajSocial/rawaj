@@ -22,12 +22,11 @@ export class OnboardingSidebar {
   protected readonly steps: SidebarStep[] = [
     { index: 1, title: 'نوع الحملة',         subtitle: 'اختر نوع الحملة المناسبة' },
     { index: 2, title: 'موجز الحملة',         subtitle: 'تفاصيل ومعلومات الحملة' },
-    { index: 3, title: 'معلومات العلامة',     subtitle: 'الاسم، القطاع، الموقع' },
-    { index: 4, title: 'المنتج والجمهور',     subtitle: 'ماذا تبيع ومن تستهدف' },
-    { index: 5, title: 'الأهداف والميزانية', subtitle: 'النتائج المطلوبة والإنفاق' },
-    { index: 6, title: 'الهوية والمرجعيات',  subtitle: 'الشخصية البصرية والأسلوب' },
-    { index: 7, title: 'الاستراتيجية الذكية', subtitle: 'أسئلة مخصصة بالذكاء الاصطناعي' },
-    { index: 8, title: 'مراجعة واعتماد الاستراتيجية', subtitle: 'راجع خطة رواج AI واعتمدها' },
+    { index: 3, title: 'الجمهور المستهدف',   subtitle: 'من تستهدف بهذه الحملة' },
+    { index: 4, title: 'الأهداف والميزانية', subtitle: 'النتائج المطلوبة والإنفاق' },
+    { index: 5, title: 'أصول الحملة',        subtitle: 'الصور، الهاشتاجات، الملاحظات' },
+    { index: 6, title: 'الاستراتيجية الذكية', subtitle: 'أسئلة مخصصة بالذكاء الاصطناعي' },
+    { index: 7, title: 'مراجعة واعتماد الاستراتيجية', subtitle: 'راجع خطة رواج AI واعتمدها' },
   ];
 
   /** The wizard's own `currentStep` can run one past `totalSteps` (the review stage isn't counted

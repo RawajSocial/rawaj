@@ -7,7 +7,7 @@
  * page's budget was an unformatted number glued to a currency code.
  */
 
-const DATE_LOCALE = 'ar-SA';
+const DATE_LOCALE = 'ar-EG';
 
 /** A single `DateOnly`/ISO date from the API as a short readable date. Returns `null` — not a
  *  fabricated placeholder — when the value is missing or unparseable, so callers decide what an
@@ -33,7 +33,7 @@ export function formatCampaignDateRange(
   return 'لم تُحدَّد';
 }
 
-/** Budget + currency, thousands-separated. `null`/0 is a genuinely unset budget, not "0 SAR". */
+/** Budget + currency, thousands-separated. `null`/0 is a genuinely unset budget, not "0 EGP". */
 export function formatCampaignBudget(
   amount: number | null | undefined,
   currency: string | null | undefined,

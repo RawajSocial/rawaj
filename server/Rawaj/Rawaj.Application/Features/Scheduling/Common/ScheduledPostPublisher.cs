@@ -74,6 +74,42 @@ public static class ScheduledPostPublisher
             : Result<bool>.Failure($"Could not cancel the post already scheduled on {socialAccount.Platform}: {cancelResult.ErrorMessage}");
     }
 
+    /// <summary>
+    /// Deletes a post that is genuinely already live on the platform. Unlike
+    /// <see cref="CancelNativeAsync"/> (which only revokes a not-yet-fired native-scheduler
+    /// handoff and is a no-op on platforms without native scheduling, since there was nothing to
+    /// revoke there), this always calls the platform's delete API when a <c>PostId</c> is present
+    /// — the post is live regardless of how it got published.
+    /// </summary>
+    public static async Task<Result<bool>> TakeDownAsync(
+        IApplicationDbContext dbContext,
+        ITokenEncryptor tokenEncryptor,
+        IEnumerable<ISocialPublisher> publishers,
+        ScheduledPost scheduledPost,
+        CancellationToken cancellationToken)
+    {
+        if (scheduledPost.PostId is null)
+        {
+            return Result<bool>.Success(true);
+        }
+
+        var socialAccount = await dbContext.SocialAccounts
+            .FirstAsync(s => s.Id == scheduledPost.SocialAccountId, cancellationToken);
+
+        var publisher = publishers.FirstOrDefault(p => p.Platform == socialAccount.Platform);
+        if (publisher is null)
+        {
+            return Result<bool>.Failure($"Taking down posts is not yet supported for {socialAccount.Platform}.");
+        }
+
+        var accessToken = tokenEncryptor.Decrypt(socialAccount.Token);
+        var cancelResult = await publisher.CancelAsync(accessToken, scheduledPost.PostId, cancellationToken);
+
+        return cancelResult.Succeeded
+            ? Result<bool>.Success(true)
+            : Result<bool>.Failure($"Could not remove the post from {socialAccount.Platform}: {cancelResult.ErrorMessage}");
+    }
+
     private static async Task<Result<ScheduledPost>> ExecuteAsync(
         IApplicationDbContext dbContext,
         ITokenEncryptor tokenEncryptor,
@@ -111,6 +147,25 @@ public static class ScheduledPostPublisher
             // PostId so the local background poller recognizes it still needs a local publish
             // once ScheduledAt passes.
             return Result<ScheduledPost>.Success(scheduledPost);
+        }
+
+        // Claim the row before making any live call to the platform - without this, a caller
+        // asking to publish immediately (ScheduledAt == now) races the background poller, which
+        // scans for exactly "Pending, ScheduledAt <= now, PostId == null" every 30s and would see
+        // this same row as due. Both racers would otherwise reach the platform's API concurrently
+        // (a real duplicate post/photo, already observed live), and only conflict afterwards at
+        // the final SaveChangesAsync below - too late, since the external call already happened
+        // twice. RowVersion-based optimistic concurrency (IConcurrencyAware, see AppDbContext)
+        // means only one of two racing SaveChanges on this row can succeed; the loser fails here,
+        // before ever touching the platform.
+        scheduledPost.UpdatedAt = DateTime.UtcNow;
+        try
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return Result<ScheduledPost>.Failure("This post is already being published.");
         }
 
         byte[]? imageBytes = null;

@@ -19,8 +19,8 @@ public static class PostAnalyticsAggregation
         Guid? CampaignId,
         SocialPlatform Platform,
         DateTime RecordedAt,
-        long? Impressions,
-        long? Reach,
+        long? Views,
+        long? UniqueViewers,
         int? Likes,
         int? Comments,
         int? Shares,
@@ -32,16 +32,36 @@ public static class PostAnalyticsAggregation
         DateTime ScheduledAt);
 
     /// <summary>
-    /// Materializes every snapshot matching <paramref name="analyticsQuery"/> and reduces it to the
-    /// most recently recorded snapshot per ScheduledPost. "Latest per group" isn't portably
-    /// translatable to a single SQL query against this table, so the reduction happens in-memory
-    /// after ordering by RecordedAt server-side.
+    /// Reduces every snapshot matching <paramref name="analyticsQuery"/> to the most recently
+    /// recorded snapshot per ScheduledPost, entirely server-side via a correlated <c>MAX(RecordedAt)</c>
+    /// subquery per post (verified via <c>ToQueryString()</c> against SQL Server - the generated SQL
+    /// is a plain correlated subquery, not a window function; a <c>GroupBy(...).Select(g =&gt;
+    /// g.OrderByDescending(...).First())</c> shape does translate to <c>ROW_NUMBER()</c> on SQL Server,
+    /// but the EF Core InMemory provider used by this project's test suite cannot translate that shape
+    /// at all, so this deliberately uses the one formulation both providers execute server-side). Both
+    /// this subquery and the window-function alternative are equally served by the Phase 2
+    /// <c>(ScheduledPostId, RecordedAt DESC)</c> index. No snapshot history is materialized into
+    /// application memory - only one row per post ever leaves the database, regardless of how many
+    /// historical snapshots exist.
+    ///
+    /// <para><paramref name="asOf"/>, when given, reconstructs what this reduction would have
+    /// returned at that past instant - only snapshots recorded at or before it are considered, so a
+    /// post whose only snapshots are all after <paramref name="asOf"/> simply doesn't appear. Used
+    /// for period-over-period comparisons (e.g. "as of the start of this month") without needing a
+    /// second, differently-shaped query.</para>
     /// </summary>
     public static async Task<List<LatestPostSnapshot>> GetLatestPerPostAsync(
-        IQueryable<PostAnalytics> analyticsQuery, CancellationToken cancellationToken)
+        IQueryable<PostAnalytics> analyticsQuery, CancellationToken cancellationToken, DateTime? asOf = null)
     {
-        var snapshots = await analyticsQuery
-            .OrderByDescending(a => a.RecordedAt)
+        if (asOf.HasValue)
+        {
+            analyticsQuery = analyticsQuery.Where(a => a.RecordedAt <= asOf.Value);
+        }
+
+        return await analyticsQuery
+            .Where(a => a.RecordedAt == analyticsQuery
+                .Where(a2 => a2.ScheduledPostId == a.ScheduledPostId)
+                .Max(a2 => a2.RecordedAt))
             .Select(a => new LatestPostSnapshot(
                 a.Id,
                 a.ScheduledPostId,
@@ -49,8 +69,8 @@ public static class PostAnalyticsAggregation
                 a.ScheduledPost.CampaignId,
                 a.Platform,
                 a.RecordedAt,
-                a.Impressions,
-                a.Reach,
+                a.Views,
+                a.UniqueViewers,
                 a.Likes,
                 a.Comments,
                 a.Shares,
@@ -61,16 +81,25 @@ public static class PostAnalyticsAggregation
                 a.ScheduledPost.ContentItem.Content,
                 a.ScheduledPost.ScheduledAt))
             .ToListAsync(cancellationToken);
-
-        return snapshots
-            .GroupBy(a => a.ScheduledPostId)
-            .Select(g => g.First())
-            .ToList();
     }
 
-    public static decimal? AverageEngagementRate(IReadOnlyCollection<LatestPostSnapshot> posts)
+    /// <summary>
+    /// Campaign/Brand/Dashboard-level Engagement Rate: <c>SUM(Engagements) / SUM(Views)</c> across
+    /// every post in the group - never an average of each post's own <see cref="LatestPostSnapshot.EngagementRate"/>.
+    /// Averaging per-post rates was the exact bug this replaces (KPI audit, analytics-spec.md §3): it
+    /// lets a handful of high-rate, low-view posts skew the group figure far more than the actual
+    /// engagement volume justifies. Null (not zero) when no post in the group has any recorded Views,
+    /// keeping "unavailable" distinguishable from a genuine zero.
+    /// </summary>
+    public static decimal? WeightedEngagementRate(IReadOnlyCollection<LatestPostSnapshot> posts)
     {
-        var rates = posts.Where(p => p.EngagementRate.HasValue).Select(p => p.EngagementRate!.Value).ToList();
-        return rates.Count > 0 ? Math.Round(rates.Average(), 4) : null;
+        var totalViews = posts.Sum(p => p.Views ?? 0);
+        if (totalViews <= 0)
+        {
+            return null;
+        }
+
+        var totalEngagements = posts.Sum(p => (p.Likes ?? 0) + (p.Comments ?? 0) + (p.Shares ?? 0));
+        return Math.Round((decimal)totalEngagements / totalViews, 4);
     }
 }

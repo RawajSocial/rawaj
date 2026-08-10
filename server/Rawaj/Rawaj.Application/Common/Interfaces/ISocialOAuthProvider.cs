@@ -14,9 +14,9 @@ public interface ISocialOAuthProvider
     Task<ConnectedAccountProfile> GetAccountProfileAsync(string accessToken, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Extends the lifetime of a still-valid token before it expires. Platforms without a
-    /// refresh mechanism available to this app tier (e.g. LinkedIn without Marketing Developer
-    /// Platform access) return Failure with an explanation rather than silently no-oping.
+    /// Extends the lifetime of a still-valid token before it expires. A provider without a
+    /// refresh mechanism available should return Failure with an explanation rather than
+    /// silently no-oping.
     /// </summary>
     Task<OAuthTokenExchangeResult> RefreshTokenAsync(string currentAccessToken, CancellationToken cancellationToken);
 }

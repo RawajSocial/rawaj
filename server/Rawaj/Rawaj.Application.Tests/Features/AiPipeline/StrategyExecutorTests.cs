@@ -60,8 +60,11 @@ public class StrategyExecutorTests
 
         Assert.True(result.Succeeded);
         Assert.Equal(AiArtifactKind.StrategyPositioning, result.ArtifactKind);
+        // "طلاب" lives in audienceSegments, one of the fields StrategyPrompt.BuildPositioning keeps;
+        // "سوق القهوة" lives only in researchQueries, which is intentionally trimmed out here — that
+        // field is only ever needed by the research stages, not by strategy generation.
         await textService.Received(1).GenerateTextAsync(
-            Arg.Is<string>(p => p != null && p.Contains("سوق القهوة") && p.Contains("treat it as established")),
+            Arg.Is<string>(p => p != null && p.Contains("طلاب") && p.Contains("treat it as established")),
             Arg.Any<CancellationToken>(),
             Arg.Is<AiTextGenerationOptions?>(o => o != null && o.TaskName == "Strategy"));
     }

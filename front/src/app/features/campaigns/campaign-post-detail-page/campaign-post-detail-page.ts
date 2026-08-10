@@ -10,7 +10,11 @@ import { PermissionService } from '../../../core/tenant/permission.service';
 import { TooltipDirective } from '../../../shared/directives/tooltip.directive';
 import { CAMPAIGN_PLATFORM_META, GetCampaignResponse } from '../../../model/campaign.model';
 import { PostStatus } from '../../../model/scheduled-post.model';
-import { PostAnalyticsSnapshot, metricAvailable } from '../../../model/analytics.model';
+import {
+  PostAnalyticsSnapshot, metricAvailable, formatEngagementRate,
+  MetricGrowth, computeMetricGrowth, PostVsCampaignAverage, comparePostToCampaignAverage,
+  CampaignAnalyticsSummary,
+} from '../../../model/analytics.model';
 import { SeoService } from '../../../services/seo.service';
 import { ErrorModalService } from '../../../services/error-modal.service';
 import { ConfirmDialogService } from '../../../services/confirm-dialog.service';
@@ -21,6 +25,7 @@ const STATUS_META: Record<PostStatus, { label: string; color: string }> = {
   published: { label: 'منشور', color: '#10B981' },
   draft:     { label: 'مسودة', color: '#9CA3AF' },
   failed:    { label: 'فشل',   color: '#EF4444' },
+  'taken-down': { label: 'تم السحب', color: '#EF4444' },
 };
 
 @Component({
@@ -64,6 +69,12 @@ export class CampaignPostDetailPage {
 
   protected readonly snapshots = signal<PostAnalyticsSnapshot[]>([]);
   protected readonly analyticsUnsupportedNote = signal<string | null>(null);
+  /** Distinguishes "still fetching analytics" (spinner) from "fetch finished with zero snapshots"
+   *  (empty state) — without this the empty-state copy flashed for a moment on every load. */
+  protected readonly analyticsLoading = signal(true);
+  /** A genuine failure (network/5xx) fetching analytics — kept separate from "no snapshots yet",
+   *  which is a normal 200 with an empty list, not an error. */
+  protected readonly analyticsError = signal<string | null>(null);
   protected readonly syncing = signal(false);
   protected readonly publishing = signal(false);
 
@@ -73,8 +84,49 @@ export class CampaignPostDetailPage {
   protected readonly rescheduling = signal(false);
 
   protected readonly latestSnapshot = computed(() => this.snapshots()[0] ?? null);
-  protected readonly reachAvailable = computed(() => metricAvailable(this.snapshots(), 'reach'));
+  /** The snapshot immediately before the latest one — the "prior" side of Growth/Change-over-time
+   *  (Phase 11). Sourced from the same history array `latestSnapshot` already reads; no new fetch. */
+  protected readonly priorSnapshot = computed(() => this.snapshots()[1] ?? null);
+
+  /** Phase 11 — Growth/Change-over-time: delta between the two most recent snapshots per metric.
+   *  Null (not zero) whenever there isn't yet a prior snapshot to compare against. */
+  protected readonly growth = computed<Record<'views' | 'uniqueViewers' | 'likes' | 'comments' | 'shares' | 'engagementRate', MetricGrowth> | null>(() => {
+    const latest = this.latestSnapshot();
+    const prior = this.priorSnapshot();
+    if (!latest || !prior) return null;
+    return {
+      views: computeMetricGrowth(latest.views, prior.views),
+      uniqueViewers: computeMetricGrowth(latest.uniqueViewers, prior.uniqueViewers),
+      likes: computeMetricGrowth(latest.likes, prior.likes),
+      comments: computeMetricGrowth(latest.comments, prior.comments),
+      shares: computeMetricGrowth(latest.shares, prior.shares),
+      engagementRate: computeMetricGrowth(latest.engagementRate, prior.engagementRate),
+    };
+  });
+
+  /** Phase 11 — Post vs. Campaign Average: fetched once per campaign, alongside the post's own
+   *  analytics, so the comparison below can consume the backend's already-computed campaign-level
+   *  weighted Engagement Rate instead of re-deriving it. */
+  protected readonly campaignAnalytics = signal<CampaignAnalyticsSummary | null>(null);
+  protected readonly campaignAnalyticsLoading = signal(true);
+  protected readonly postVsCampaignAverage = computed<PostVsCampaignAverage | null>(() => {
+    const campaign = this.campaignAnalytics();
+    if (!campaign) return null;
+    return comparePostToCampaignAverage(this.latestSnapshot()?.engagementRate ?? null, campaign.averageEngagementRate);
+  });
+  /** Views/UniqueViewers/EngagementRate/Clicks require extended platform permissions that may not
+   *  be granted yet, so they're gated behind an availability flag. Likes/Comments/Shares are core
+   *  metrics Meta always returns for a *successful* fetch, but the single Graph API call that
+   *  fetches all three together can still fail on its own (expired token, transient error) while
+   *  the separate Insights call succeeds — gating these too means that failure renders as "—"
+   *  instead of an indistinguishable, misleading 0. */
+  protected readonly viewsAvailable = computed(() => metricAvailable(this.snapshots(), 'views'));
+  protected readonly uniqueViewersAvailable = computed(() => metricAvailable(this.snapshots(), 'uniqueViewers'));
+  protected readonly engagementRateAvailable = computed(() => metricAvailable(this.snapshots(), 'engagementRate'));
   protected readonly clicksAvailable = computed(() => metricAvailable(this.snapshots(), 'clicks'));
+  protected readonly likesAvailable = computed(() => metricAvailable(this.snapshots(), 'likes'));
+  protected readonly commentsAvailable = computed(() => metricAvailable(this.snapshots(), 'comments'));
+  protected readonly sharesAvailable = computed(() => metricAvailable(this.snapshots(), 'shares'));
 
   constructor() {
     effect(() => {
@@ -105,7 +157,19 @@ export class CampaignPostDetailPage {
       const postId = this.postId();
       this.snapshots.set([]);
       this.analyticsUnsupportedNote.set(null);
+      this.analyticsError.set(null);
       if (postId) this.loadAnalytics(postId);
+      else this.analyticsLoading.set(false);
+    });
+
+    // Powers Post vs. Campaign Average (Phase 11) — reuses the same campaign analytics endpoint
+    // Phase 8's Campaign Dashboard already calls, keyed on campaignId (not postId) since it's the
+    // same fetch regardless of which of the campaign's posts is open.
+    effect(() => {
+      const id = this.campaignId();
+      this.campaignAnalytics.set(null);
+      if (id) this.loadCampaignAnalytics(id);
+      else this.campaignAnalyticsLoading.set(false);
     });
   }
 
@@ -142,20 +206,56 @@ export class CampaignPostDetailPage {
   }
 
   private loadAnalytics(postId: string): void {
+    this.analyticsLoading.set(true);
+    this.analyticsError.set(null);
     this.analyticsService.getPost(postId).subscribe({
-      next: res => { if (res.data) this.snapshots.set(res.data); },
-      error: () => { /* no analytics yet is a normal state, not an error to surface */ },
+      next: res => {
+        this.analyticsLoading.set(false);
+        // Success with an empty list is the normal "no snapshots synced yet" state, not an error.
+        if (res.data) this.snapshots.set(res.data);
+      },
+      error: err => {
+        this.analyticsLoading.set(false);
+        this.analyticsError.set(extractApiErrorMessage(err, 'تعذّر تحميل إحصاءات المنشور.'));
+      },
     });
   }
 
+  /** Engagements = Likes + Comments + Shares, per the approved KPI definitions — never a metric the
+   *  backend returns directly, always summed from the raw counts already on the snapshot. */
+  protected engagementsOf(snap: PostAnalyticsSnapshot): number {
+    return (snap.likes ?? 0) + (snap.comments ?? 0) + (snap.shares ?? 0);
+  }
+
+  /** Phase 11 — Post vs. Campaign Average: silently leaves `campaignAnalytics` null on failure
+   *  (the comparison widget simply doesn't render, same as "no data yet") rather than surfacing a
+   *  second error banner alongside the post analytics one above. */
+  private loadCampaignAnalytics(campaignId: string): void {
+    this.campaignAnalyticsLoading.set(true);
+    this.analyticsService.getCampaign(campaignId).subscribe({
+      next: res => {
+        this.campaignAnalyticsLoading.set(false);
+        if (res.data) this.campaignAnalytics.set(res.data);
+      },
+      error: () => this.campaignAnalyticsLoading.set(false),
+    });
+  }
+
+  protected retryAnalytics(): void {
+    const postId = this.postId();
+    if (postId) this.loadAnalytics(postId);
+  }
+
+  protected readonly formatEngagementRate = formatEngagementRate;
+
   protected formatDateTime(iso: string): string {
-    return new Date(iso).toLocaleDateString('ar-SA', {
+    return new Date(iso).toLocaleDateString('ar-EG', {
       weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true,
     });
   }
 
   protected formatShortDateTime(iso: string): string {
-    return new Date(iso).toLocaleDateString('ar-SA', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true });
+    return new Date(iso).toLocaleDateString('ar-EG', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true });
   }
 
   protected syncAnalytics(): void {

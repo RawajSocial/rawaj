@@ -170,9 +170,9 @@ public class CampaignsController(ISender sender) : ControllerBase
     }
 
     [HttpPost("{campaignId:guid}/schedule-posts")]
-    public async Task<IActionResult> SchedulePosts(Guid campaignId, CancellationToken cancellationToken)
+    public async Task<IActionResult> SchedulePosts(Guid campaignId, [FromBody] ScheduleCampaignPostsRequest? request, CancellationToken cancellationToken)
     {
-        var result = await sender.Send(new ScheduleCampaignPostsCommand(campaignId), cancellationToken);
+        var result = await sender.Send(new ScheduleCampaignPostsCommand(campaignId, request?.PublishPastDueNow ?? false), cancellationToken);
 
         return result.Succeeded
             ? Ok(ApiResponse<ScheduleCampaignPostsResponse>.Success(result.Data!))
@@ -194,6 +194,8 @@ public class CampaignsController(ISender sender) : ControllerBase
     }
 
     public record GenerateCampaignContentRequest(int PostCount, Language Language, bool IncludeImages = true, ContentTemplateStyle TemplateStyle = ContentTemplateStyle.Auto);
+
+    public record ScheduleCampaignPostsRequest(bool PublishPastDueNow = false);
 
     public record RefineCampaignPlanRequest(string Feedback);
 

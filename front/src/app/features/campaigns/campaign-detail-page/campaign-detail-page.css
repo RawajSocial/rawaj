@@ -129,6 +129,16 @@
   .detail-row { grid-template-columns: 1fr; }
 }
 
+/* Top/Bottom Posts row — two equal-width performance-card siblings, unlike the wide+narrow
+   performance/upcoming-posts split above. */
+.detail-row--split {
+  grid-template-columns: 1fr 1fr;
+}
+
+@media (max-width: 991px) {
+  .detail-row--split { grid-template-columns: 1fr; }
+}
+
 .performance-svg {
   width: 100%;
   height: 220px;

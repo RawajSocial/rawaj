@@ -45,9 +45,7 @@ const STAGES: Stage[] = [
 
 // ──── Platform / content maps ───────────────────────────────────────────────
 const SLUG_TO_AR: Record<string, string> = {
-  instagram: 'إنستغرام', facebook: 'فيسبوك', tiktok: 'تيك توك',
-  snapchat: 'سناب شات', twitter: 'تويتر / X', youtube: 'يوتيوب',
-  linkedin: 'لينكدإن',  whatsapp: 'واتساب',
+  instagram: 'إنستغرام', facebook: 'فيسبوك',
 };
 
 const METRICS_AR: Record<string, string> = {
@@ -59,12 +57,6 @@ const METRICS_AR: Record<string, string> = {
 const PLATFORM_META: Record<string, { icon: string; color: string }> = {
   'إنستغرام':   { icon: 'fa-brands fa-instagram',  color: 'var(--color-instagram)' },
   'فيسبوك':     { icon: 'fa-brands fa-facebook-f', color: 'var(--color-facebook)' },
-  'تيك توك':    { icon: 'fa-brands fa-tiktok',     color: 'var(--color-tiktok)'    },
-  'سناب شات':   { icon: 'fa-brands fa-snapchat',   color: 'var(--color-snapchat)' },
-  'تويتر / X':  { icon: 'fa-brands fa-x-twitter',  color: 'var(--color-x)' },
-  'يوتيوب':     { icon: 'fa-brands fa-youtube',    color: 'var(--color-youtube)' },
-  'لينكدإن':    { icon: 'fa-brands fa-linkedin',   color: 'var(--color-linkedin)' },
-  'واتساب':     { icon: 'fa-brands fa-whatsapp',   color: 'var(--color-whatsapp)' },
 };
 
 const CONTENT_TYPES = [
@@ -626,15 +618,15 @@ export class MarketingPlanPage {
     const fmt = (n: number): string => {
       if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'م';
       if (n >= 1_000)     return (n / 1_000).toFixed(1) + 'ك';
-      return Math.round(n).toLocaleString('ar-SA');
+      return Math.round(n).toLocaleString('ar-EG');
     };
     return [
       { label: 'الوصول الشهري التقديري',  value: fmt(budget * 12),   unit: 'شخص',      icon: 'fa-solid fa-users',         color: '#7C3AED' },
       { label: 'الانطباعات الشهرية',       value: fmt(budget * 42),   unit: 'ظهور',     icon: 'fa-solid fa-eye',           color: '#3b82f6' },
       { label: 'معدل التفاعل المتوقع',     value: '2.8',              unit: '%',        icon: 'fa-solid fa-heart',         color: '#e91e8c' },
       { label: 'النقرات الشهرية',          value: fmt(budget * 0.7),  unit: 'نقرة',     icon: 'fa-solid fa-arrow-pointer', color: '#f97316' },
-      { label: 'تكلفة الألف ظهور (CPM)',   value: '9.5',              unit: 'ريال',     icon: 'fa-solid fa-chart-bar',     color: '#22c55e' },
-      { label: 'الميزانية اليومية',        value: fmt(budget / 30),   unit: 'ريال/يوم', icon: 'fa-solid fa-sack-dollar',   color: '#eab308' },
+      { label: 'تكلفة الألف ظهور (CPM)',   value: '9.5',              unit: 'جنيه',     icon: 'fa-solid fa-chart-bar',     color: '#22c55e' },
+      { label: 'الميزانية اليومية',        value: fmt(budget / 30),   unit: 'جنيه/يوم', icon: 'fa-solid fa-sack-dollar',   color: '#eab308' },
     ];
   }
 }

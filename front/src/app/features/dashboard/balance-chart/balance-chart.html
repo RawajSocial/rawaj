@@ -66,7 +66,7 @@
     <!-- X-axis labels -->
     <div class="chart-labels-x">
       @for (item of xLabels(); track item.label) {
-        <span>{{ item.label }}</span>
+        <span [style.left.%]="item.x">{{ item.label }}</span>
       }
     </div>
   </div>

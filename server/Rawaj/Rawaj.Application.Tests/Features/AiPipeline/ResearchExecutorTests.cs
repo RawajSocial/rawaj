@@ -146,7 +146,7 @@ public class ResearchExecutorTests
             .GetArguments()[0] as string;
 
         Assert.NotNull(prompt);
-        Assert.Contains("not instructions", prompt);
+        Assert.Contains("never instructions", prompt);
 
         var blockStart = prompt.LastIndexOf(UntrustedTextSanitizer.BeginMarker, StringComparison.Ordinal);
         var blockEnd = prompt.LastIndexOf(UntrustedTextSanitizer.EndMarker, StringComparison.Ordinal);

@@ -6,7 +6,7 @@
       <i class="fa-brands fa-openai"></i>
       خطة رواج AI — {{ approved() ? 'معتمدة' : 'جاهزة للمراجعة' }}
     </div>
-    <h2 class="plan-brand-name">{{ data()?.brandName ?? 'علامتك التجارية' }}</h2>
+    <h2 class="plan-brand-name">{{ brandProfile()?.name ?? 'علامتك التجارية' }}</h2>
     <p class="plan-hero-sub">راجع فهمنا لنشاطك واستراتيجية حملتك أدناه، ثم اعتمدها لتبدأ في توليد المحتوى.</p>
   </div>
 
@@ -42,7 +42,7 @@
       <p>
         سيقوم رواج AI بتحليل نشاطك والبحث عن منافسيك وبناء استراتيجية حملة كاملة.
         @if (pipelineCost(); as cost) {
-          تكلفة التوليد {{ cost.toLocaleString('ar-SA') }} كوين تقريبًا (يُضاف بحث المنافسين فقط عند توفّر نتائج).
+          تكلفة التوليد {{ cost.toLocaleString('ar-EG') }} كوين تقريبًا (يُضاف بحث المنافسين فقط عند توفّر نتائج).
         }
       </p>
       @if (perms.canEdit()) {
@@ -106,16 +106,16 @@
       </div>
     </div>
 
-    @if (data(); as d) {
+    @if (brandProfile(); as bp) {
       <div class="plan-chip-row">
-        @if (d.sector) { <span class="plan-chip"><i class="fa-solid fa-industry"></i> {{ d.sector }}</span> }
-        @if (d.businessAge) { <span class="plan-chip"><i class="fa-regular fa-clock"></i> {{ d.businessAge }}</span> }
-        @if (d.stage) { <span class="plan-chip"><i class="fa-solid fa-seedling"></i> {{ d.stage }}</span> }
-        @if (d.pricePositioning) {
-          <span class="plan-chip"><i class="fa-solid fa-tag"></i> {{ pricePositioningLabels[d.pricePositioning] ?? d.pricePositioning }}</span>
+        @if (bp.industry) { <span class="plan-chip"><i class="fa-solid fa-industry"></i> {{ bp.industry }}</span> }
+        @if (bp.businessAge) { <span class="plan-chip"><i class="fa-regular fa-clock"></i> {{ bp.businessAge }}</span> }
+        @if (bp.stage) { <span class="plan-chip"><i class="fa-solid fa-seedling"></i> {{ bp.stage }}</span> }
+        @if (bp.pricePositioning) {
+          <span class="plan-chip"><i class="fa-solid fa-tag"></i> {{ pricePositioningLabels[bp.pricePositioning] ?? bp.pricePositioning }}</span>
         }
       </div>
-      @if (d.productDesc) { <p class="ai-diagnosis-summary">{{ d.productDesc }}</p> }
+      @if (bp.description || bp.uniqueValue) { <p class="ai-diagnosis-summary">{{ bp.description || bp.uniqueValue }}</p> }
     }
 
     @if (!diagnosisDone()) {
@@ -304,39 +304,31 @@
     </div>
 
     @if (hasBrandVoiceData()) {
-      @if (data()?.tagline) {
-        <p class="ai-diagnosis-summary">"{{ data()!.tagline }}"</p>
+      @let bp = brandProfile()!;
+      @if (bp.tagline) {
+        <p class="ai-diagnosis-summary">"{{ bp.tagline }}"</p>
       }
 
-      @if (data()?.brandWord1 || data()?.brandWord2 || data()?.brandWord3) {
-        <p class="blueprint-sub-label">العلامة في 3 كلمات</p>
-        <div class="ct-tags">
-          @if (data()?.brandWord1) { <span class="ct-tag">{{ data()!.brandWord1 }}</span> }
-          @if (data()?.brandWord2) { <span class="ct-tag">{{ data()!.brandWord2 }}</span> }
-          @if (data()?.brandWord3) { <span class="ct-tag">{{ data()!.brandWord3 }}</span> }
-        </div>
-      }
-
-      @if (data()?.brandTone?.length) {
+      @if (bp.tones.length) {
         <p class="blueprint-sub-label">نبرة العلامة</p>
         <div class="ct-tags">
-          @for (t of data()!.brandTone; track t) { <span class="ct-tag ct-tag--accent">{{ t }}</span> }
+          @for (t of bp.tones; track t) { <span class="ct-tag ct-tag--accent">{{ brandVoiceLabels[t] }}</span> }
         </div>
       }
 
-      @if (data()?.brandColors?.length) {
+      @if (bp.colors.length) {
         <p class="blueprint-sub-label">الألوان الأساسية</p>
         <div class="brand-colors-row">
-          @for (c of data()!.brandColors; track c) {
+          @for (c of bp.colors; track c) {
             <span class="brand-color-swatch" [style.background]="c" [title]="c"></span>
           }
         </div>
       }
 
-      @if (data()?.languages?.length) {
+      @if (bp.supportedLanguages.length) {
         <p class="blueprint-sub-label">لغة التواصل</p>
         <div class="ct-tags">
-          @for (l of data()!.languages; track l) { <span class="ct-tag">{{ languageLabels[l] ?? l }}</span> }
+          @for (l of bp.supportedLanguages; track l) { <span class="ct-tag">{{ languageLabels[l] ?? l }}</span> }
         </div>
       }
     } @else {
@@ -614,8 +606,11 @@
          has no AiPlanJson, so offering the button before generation just produced a server error
          the user could do nothing about. The tooltip has to say WHY it's disabled, though — a
          greyed-out primary button with no explanation reads as the app being broken, and the
-         recovery card above is the way out of that state. -->
-    <button type="button" class="rw-btn rw-btn--primary plan-approve-btn"
+         recovery card above is the way out of that state.
+
+         cta-btn/star-N/fil0 are the homepage hero CTA's sparkle-on-hover treatment, defined
+         globally in styles/custom.button.css — reused as-is rather than redefined here. -->
+    <button type="button" class="cta-btn plan-approve-btn d-inline-flex align-items-center justify-content-center gap-2"
       [class.is-perm-disabled]="!perms.canEdit()"
       [attr.aria-disabled]="!perms.canEdit() || null"
       [appTooltip]="approveDisabledReason()"
@@ -627,6 +622,72 @@
       } @else {
         <i class="fa-solid fa-wand-magic-sparkles"></i> اعتمد وابدأ توليد المحتوى
       }
+      <div class="star-1">
+        <svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" version="1.1"
+          style="shape-rendering:geometricPrecision; text-rendering:geometricPrecision; image-rendering:optimizeQuality; fill-rule:evenodd; clip-rule:evenodd"
+          viewBox="0 0 784.11 815.53" xmlns:xlink="http://www.w3.org/1999/xlink">
+          <defs></defs>
+          <g id="Layer_x0020_1">
+            <metadata id="CorelCorpID_0Corel-Layer"></metadata>
+            <path class="fil0" d="M392.05 0c-20.9,210.08 -184.06,378.41 -392.05,407.78 207.96,29.37 371.12,197.68 392.05,407.74 20.93,-210.06 184.09,-378.37 392.05,-407.74 -207.98,-29.38 -371.16,-197.69 -392.06,-407.78z"></path>
+          </g>
+        </svg>
+      </div>
+      <div class="star-2">
+        <svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" version="1.1"
+          style="shape-rendering:geometricPrecision; text-rendering:geometricPrecision; image-rendering:optimizeQuality; fill-rule:evenodd; clip-rule:evenodd"
+          viewBox="0 0 784.11 815.53" xmlns:xlink="http://www.w3.org/1999/xlink">
+          <defs></defs>
+          <g id="Layer_x0020_1">
+            <metadata id="CorelCorpID_0Corel-Layer"></metadata>
+            <path class="fil0" d="M392.05 0c-20.9,210.08 -184.06,378.41 -392.05,407.78 207.96,29.37 371.12,197.68 392.05,407.74 20.93,-210.06 184.09,-378.37 392.05,-407.74 -207.98,-29.38 -371.16,-197.69 -392.06,-407.78z"></path>
+          </g>
+        </svg>
+      </div>
+      <div class="star-3">
+        <svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" version="1.1"
+          style="shape-rendering:geometricPrecision; text-rendering:geometricPrecision; image-rendering:optimizeQuality; fill-rule:evenodd; clip-rule:evenodd"
+          viewBox="0 0 784.11 815.53" xmlns:xlink="http://www.w3.org/1999/xlink">
+          <defs></defs>
+          <g id="Layer_x0020_1">
+            <metadata id="CorelCorpID_0Corel-Layer"></metadata>
+            <path class="fil0" d="M392.05 0c-20.9,210.08 -184.06,378.41 -392.05,407.78 207.96,29.37 371.12,197.68 392.05,407.74 20.93,-210.06 184.09,-378.37 392.05,-407.74 -207.98,-29.38 -371.16,-197.69 -392.06,-407.78z"></path>
+          </g>
+        </svg>
+      </div>
+      <div class="star-4">
+        <svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" version="1.1"
+          style="shape-rendering:geometricPrecision; text-rendering:geometricPrecision; image-rendering:optimizeQuality; fill-rule:evenodd; clip-rule:evenodd"
+          viewBox="0 0 784.11 815.53" xmlns:xlink="http://www.w3.org/1999/xlink">
+          <defs></defs>
+          <g id="Layer_x0020_1">
+            <metadata id="CorelCorpID_0Corel-Layer"></metadata>
+            <path class="fil0" d="M392.05 0c-20.9,210.08 -184.06,378.41 -392.05,407.78 207.96,29.37 371.12,197.68 392.05,407.74 20.93,-210.06 184.09,-378.37 392.05,-407.74 -207.98,-29.38 -371.16,-197.69 -392.06,-407.78z"></path>
+          </g>
+        </svg>
+      </div>
+      <div class="star-5">
+        <svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" version="1.1"
+          style="shape-rendering:geometricPrecision; text-rendering:geometricPrecision; image-rendering:optimizeQuality; fill-rule:evenodd; clip-rule:evenodd"
+          viewBox="0 0 784.11 815.53" xmlns:xlink="http://www.w3.org/1999/xlink">
+          <defs></defs>
+          <g id="Layer_x0020_1">
+            <metadata id="CorelCorpID_0Corel-Layer"></metadata>
+            <path class="fil0" d="M392.05 0c-20.9,210.08 -184.06,378.41 -392.05,407.78 207.96,29.37 371.12,197.68 392.05,407.74 20.93,-210.06 184.09,-378.37 392.05,-407.74 -207.98,-29.38 -371.16,-197.69 -392.06,-407.78z"></path>
+          </g>
+        </svg>
+      </div>
+      <div class="star-6">
+        <svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" version="1.1"
+          style="shape-rendering:geometricPrecision; text-rendering:geometricPrecision; image-rendering:optimizeQuality; fill-rule:evenodd; clip-rule:evenodd"
+          viewBox="0 0 784.11 815.53" xmlns:xlink="http://www.w3.org/1999/xlink">
+          <defs></defs>
+          <g id="Layer_x0020_1">
+            <metadata id="CorelCorpID_0Corel-Layer"></metadata>
+            <path class="fil0" d="M392.05 0c-20.9,210.08 -184.06,378.41 -392.05,407.78 207.96,29.37 371.12,197.68 392.05,407.74 20.93,-210.06 184.09,-378.37 392.05,-407.74 -207.98,-29.38 -371.16,-197.69 -392.06,-407.78z"></path>
+          </g>
+        </svg>
+      </div>
     </button>
   </div>
 

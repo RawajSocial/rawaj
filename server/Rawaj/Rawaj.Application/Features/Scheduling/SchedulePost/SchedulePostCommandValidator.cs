@@ -11,6 +11,7 @@ public class SchedulePostCommandValidator : AbstractValidator<SchedulePostComman
         RuleFor(x => x.SocialAccountId).NotEmpty();
         RuleFor(x => x.ScheduledAt)
             .GreaterThanOrEqualTo(_ => DateTime.UtcNow.Add(SchedulingWindow.MinimumLead))
+            .When(x => !x.PublishNow)
             .WithMessage("Scheduled time must be at least 10 minutes in the future (required for native platform scheduling).");
     }
 }

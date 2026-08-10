@@ -13,7 +13,7 @@ public record UpdateBrandProfileCommand(
     Guid BrandProfileId,
     string? Name,
     string? Description,
-    BrandVoice? BrandVoice,
+    List<BrandVoice>? Tones,
     string? Tagline,
     string? Industry,
     string? TargetAudience,
@@ -21,7 +21,19 @@ public record UpdateBrandProfileCommand(
     string? LogoUrl,
     string? WebsiteUrl,
     List<string>? SupportedLanguages,
-    List<string>? Keywords) : IRequest<Result<UpdateBrandProfileResponse>>, IRequireTenantRole, IRequireBrandAccess
+    List<string>? Keywords,
+    string? Location,
+    string? Instagram,
+    string? BusinessAge,
+    DateTime? BusinessEstablishDate,
+    string? Stage,
+    string? UniqueValue,
+    string? PricePositioning,
+    string? StorePresence,
+    List<string>? ExistingPlatforms,
+    string? AdmiredBrand1,
+    string? AdmiredBrand2,
+    string? AdmiredBrand3) : IRequest<Result<UpdateBrandProfileResponse>>, IRequireTenantRole, IRequireBrandAccess
 {
     // Editor is the role invites use to grant "can edit this brand" access; BrandAccessAuthorizationBehavior
     // still requires a matching TenantMemberBrandAccess row for Editor/Viewer (Owner/Admin bypass it).

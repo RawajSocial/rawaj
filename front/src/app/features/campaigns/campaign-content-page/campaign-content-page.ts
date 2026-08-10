@@ -13,20 +13,24 @@ import { SocialAccountService } from '../../../core/social/social-account.servic
 import { PermissionService } from '../../../core/tenant/permission.service';
 import { SeoService } from '../../../services/seo.service';
 import { ErrorModalService } from '../../../services/error-modal.service';
+import { ConfirmDialogService } from '../../../services/confirm-dialog.service';
 import { extractApiErrorMessage } from '../../../core/auth/api-error.util';
 import { parseInsufficientCoins } from '../../../core/auth/coin-error.util';
 import { CoinCostHint } from '../../../shared/components/coin-cost-hint/coin-cost-hint';
 import { TooltipDirective } from '../../../shared/directives/tooltip.directive';
 import { GetCampaignResponse, ScheduleCampaignPostResult } from '../../../model/campaign.model';
+import { GetRunStatusResponse } from '../../../model/ai-pipeline.model';
 import { ContentItemSummary } from '../../../model/content-item.model';
 import { SocialAccountSummary } from '../../../model/social-account.model';
+import { cairoLocalToUtcIso, formatCairoDate, formatCairoTime, utcIsoToCairoLocalParts } from '../../../shared/utils/cairo-time.util';
+import { facebookPostUrl } from '../../../shared/utils/social-links.util';
 
 const CONTENT_TYPE_LABELS: Record<ContentItemSummary['contentType'], string> = {
   Post: 'بوست', Story: 'قصة', ReelScript: 'ريل', AdCopy: 'إعلان', Blog: 'مقال', Caption: 'كابشن',
 };
 
 const PLATFORM_LABELS: Record<ContentItemSummary['platform'], string> = {
-  Instagram: 'إنستغرام', Facebook: 'فيسبوك', Tiktok: 'تيك توك', Twitter: 'إكس', Youtube: 'يوتيوب', Linkedin: 'لينكدإن',
+  Instagram: 'إنستغرام', Facebook: 'فيسبوك',
 };
 
 const STATUS_LABELS: Record<ContentItemSummary['status'], string> = {
@@ -67,6 +71,7 @@ export class CampaignContentPage {
   private readonly socialAccountService = inject(SocialAccountService);
   protected readonly perms = inject(PermissionService);
   private readonly errorModalService = inject(ErrorModalService);
+  private readonly confirmDialogService = inject(ConfirmDialogService);
   private readonly seo = inject(SeoService);
 
   protected readonly contentTypeLabels = CONTENT_TYPE_LABELS;
@@ -93,17 +98,66 @@ export class CampaignContentPage {
    *  possibly reflect it. */
   private readonly requestInFlight = signal(false);
 
-  /** True while the campaign's pipeline run actually has a `ContentPlan`/`ContentImage` stage
-   *  outstanding (`Pending` or `Running`) — real, server-derived state, not a local guess. This is
-   *  what closes the reload double-spend gap: a reload picks this up from the very first poll tick
-   *  (started in `load()` whenever the campaign has a `currentPipelineRunId`), so a batch already
-   *  running from a previous tab/session disables the button here too, not just in the tab that
-   *  started it. */
+  /** `run().progress.imagesTotal` at the moment the in-flight "توليد المحتوى" request was fired —
+   *  `null` when no request is in flight. A campaign's pipeline run is reused across every "generate
+   *  another batch" click (its `runId` never changes — see currentBatchItemIds' remarks), so a poll
+   *  landing right after this click can be "fresh" (a real, post-click response) while still carrying
+   *  the *previous* batch's totals: the backend only just flipped ContentPlan back to Pending, it
+   *  hasn't actually re-run and fanned out this batch's own ContentImage stages yet. The total only
+   *  becomes trustworthy once it's grown past what it was at click time. */
+  private readonly imagesTotalAtClick = signal<number | null>(null);
+
+  /** `run()`'s exact object reference at click time — `AiPipelineService.applyRunUpdate` always
+   *  assigns a fresh object on every accepted update, so `run() !== runRefAtClick` is a reliable
+   *  "has anything at all arrived since I clicked" check. This is what `imagesTotalAtClick` alone
+   *  can't tell: the run held right at click time is virtually always sitting at a *terminal* status
+   *  already (the previous batch's own finished state — this run is reused, never recreated), so a
+   *  naive "bail out once isTerminal()" check would fire immediately on that same stale object,
+   *  before any request had even reached the server. Checking this first is what lets isTerminal()
+   *  below be trusted only once it's actually describing something new. Plain field, not a signal:
+   *  it only needs to be read inside awaitingFreshBatchStatus, never to trigger it on its own. */
+  private runRefAtClick: GetRunStatusResponse | null = null;
+
+  /** True from the moment "توليد المحتوى" is clicked until a genuinely new run update has arrived
+   *  (see runRefAtClick) AND that update shows either `imagesTotal` grown past imagesTotalAtClick (the
+   *  new batch has actually been planned) or a terminal status (nothing more is coming — a failure
+   *  shouldn't leave this stuck forever). The banner stays up throughout regardless (see
+   *  `generating`/`requestInFlight`), but anything that displays a specific number from `run()` should
+   *  check this first rather than show a total that's about to change. */
+  protected readonly awaitingFreshBatchStatus = computed(() => {
+    const captured = this.imagesTotalAtClick();
+    if (captured === null) return false;
+
+    const run = this.aiPipelineService.run();
+    if (run === this.runRefAtClick) return true; // nothing has arrived yet — definitely still stale
+
+    const total = run?.progress?.imagesTotal ?? 0;
+    return total <= captured && !this.aiPipelineService.isTerminal();
+  });
+
+  /** True while the campaign's pipeline run hasn't reached a terminal status — real, server-derived
+   *  state, not a local guess. This is what closes the reload double-spend gap: a reload picks this up
+   *  from the very first poll tick (started in `load()` whenever the campaign has a
+   *  `currentPipelineRunId`), so a batch already running from a previous tab/session disables the
+   *  button here too, not just in the tab that started it.
+   *
+   *  Deliberately reads `run.status` rather than scanning `run.stages` for a Pending/Running
+   *  ContentPlan/ContentImage entry (an earlier version of this did exactly that): each of a batch's
+   *  ContentImage stages settles in its own isolated backend DB scope and independently re-queries
+   *  every sibling before pushing its own snapshot (see PipelineOrchestrator's own remarks on this),
+   *  so with N images generating concurrently, N of these racy per-stage snapshots land in quick
+   *  succession and can — in an order that doesn't match which one is actually more complete —
+   *  transiently look like nothing is left pending, flickering this false and back on every single
+   *  image. `run.status` itself is untouched by that per-stage race: it's only ever recomputed once,
+   *  authoritatively, after a full dispatch wave finishes (PipelineOrchestrator.AdvanceAsync, after its
+   *  `Task.WhenAll`), so it stays `Running` continuously for the run's entire duration and only
+   *  changes once, for real, at true completion. By the time this page is usable the run has already
+   *  passed its strategy phase (approved and settled), so "not terminal" here always specifically means
+   *  "a content batch is what's in flight". */
   protected readonly contentBatchInFlight = computed(() => {
     const run = this.aiPipelineService.run();
     if (!run) return false;
-    return run.stages.some(s =>
-      (s.kind === 'ContentPlan' || s.kind === 'ContentImage') && (s.status === 'Pending' || s.status === 'Running'));
+    return !this.aiPipelineService.isTerminal();
   });
 
   protected readonly generating = computed(() => this.requestInFlight() || this.contentBatchInFlight());
@@ -112,28 +166,63 @@ export class CampaignContentPage {
    *  once a top-up lands, so there is nothing to click here (same as the strategy page's note). */
   protected readonly awaitingCoins = computed(() => this.aiPipelineService.run()?.status === 'AwaitingCoins');
 
-  /** How many posts are actually ready to render as real cards — has its image, whether generated
-   *  or the exhausted-retries placeholder every post ends up with eventually, same `!!imageUrl`
-   *  gate `approvedItems` below already uses. A post whose text exists but whose image hasn't
-   *  landed yet stays a skeleton rather than a text-only card, so this page keeps the two visual
-   *  states it already had instead of inventing a third. */
-  protected readonly readyItems = computed(() => this.items().filter(i => !!i.imageUrl));
+  /** ContentItem ids that belong to the most recently generated batch — every post in one batch is
+   *  inserted in the same instant (see `batchItems` below), so the batch a post belongs to is exactly
+   *  "shares the newest `createdAt` seen for this campaign." Derived straight off `items()` rather than
+   *  off the pipeline run's `ContentImage` stages: a campaign's `AiPipelineRun` is reused across every
+   *  "generate another batch" click (see `GenerateCampaignContentCommandHandler` — it resets the one
+   *  `ContentPlan` row rather than creating a second run), so `run.stages` keeps every earlier batch's
+   *  `ContentImage` stages forever with nothing marking which ones are from the latest click. Grouping
+   *  by `createdAt` instead sidesteps that entirely — it doesn't matter how many batches share the run,
+   *  only the newest cluster of items is ever "current". */
+  private readonly currentBatchItemIds = computed(() => {
+    const all = this.items();
+    if (all.length === 0) return new Set<string>();
 
-  /** Real per-image progress from the polled run (`AiPipelineProgressPolicy`, server-computed) —
-   *  zero before ContentPlan's fan-out exists, i.e. before individual post identities even exist. */
-  private readonly imagesTotal = computed(() => this.aiPipelineService.run()?.progress.imagesTotal ?? 0);
-  private readonly imagesCompleted = computed(() => this.aiPipelineService.run()?.progress.imagesCompleted ?? 0);
+    let latestCreatedAt = all[0].createdAt;
+    for (const item of all) {
+      if (item.createdAt > latestCreatedAt) latestCreatedAt = item.createdAt;
+    }
 
-  /** Only the posts still missing, not the whole requested batch — this used to be `postCount()`'s
-   *  CURRENT field value (wrong after a reload, or if that field changed) and never shrank as
-   *  individual posts finished, so every slot stayed a skeleton until the entire batch completed
-   *  and the page was reloaded. Falls back to the requested count before the fan-out exists, since
-   *  real post identities aren't known yet at that point. */
-  protected readonly generationSkeletonCards = computed(() => {
-    const total = this.imagesTotal() || this.postCount();
-    const remaining = Math.max(0, total - this.readyItems().length);
-    return Array.from({ length: remaining }, (_, i) => i);
+    return new Set(all.filter(i => i.createdAt === latestCreatedAt).map(i => i.contentItemId));
   });
+
+  /** This run's own posts, in their planned running order (`suggestedPostAt` — the day/hour the
+   *  content plan gave each one — not creation time: the whole batch is inserted in one instant, so
+   *  every post in it shares the same `createdAt` and can't be ordered by that). This is what lets a
+   *  specific post replace a specific skeleton slot instead of skeletons just shrinking from one
+   *  end: slot N is always "the Nth post in this run's plan", whether it's still a skeleton or
+   *  already has its image. Ties (same suggestedPostAt, or neither set) fall back to id order only
+   *  to keep the sort stable across recomputes — not a claim that this order is meaningful. */
+  protected readonly batchItems = computed(() => {
+    const ids = this.currentBatchItemIds();
+    return this.items()
+      .filter(i => ids.has(i.contentItemId))
+      .sort((a, b) => {
+        const at = a.suggestedPostAt ? new Date(a.suggestedPostAt).getTime() : Number.POSITIVE_INFINITY;
+        const bt = b.suggestedPostAt ? new Date(b.suggestedPostAt).getTime() : Number.POSITIVE_INFINITY;
+        return at !== bt ? at - bt : a.contentItemId.localeCompare(b.contentItemId);
+      });
+  });
+
+  /** Everything from an earlier batch — rendered as plain ready cards, unaffected by whatever the
+   *  current run is doing (never shown as a skeleton, even while generating() is true). */
+  protected readonly historyItems = computed(() => {
+    const ids = this.currentBatchItemIds();
+    return this.items().filter(i => !ids.has(i.contentItemId));
+  });
+
+  /** One list to render: this run's own posts (in their planned slot order) first, then everything
+   *  from earlier batches after — "skeletons on top" of already-generated history, not mixed in. */
+  protected readonly displayItems = computed(() => [...this.batchItems(), ...this.historyItems()]);
+
+  /** True only for a post that's both part of the run currently tracked here AND still missing its
+   *  image — the one case that renders as a skeleton instead of the real card. A history item
+   *  without an image (the standalone "generated with no image" case, unrelated to any run) always
+   *  renders as the real card, which already has its own "missing image, retry" state built in. */
+  protected isBatchPending(item: ContentItemSummary): boolean {
+    return !item.imageUrl && this.currentBatchItemIds().has(item.contentItemId);
+  }
 
   protected readonly socialAccounts = signal<SocialAccountSummary[]>([]);
 
@@ -176,6 +265,12 @@ export class CampaignContentPage {
   protected readonly scheduleTime = signal('');
   protected readonly schedulingItemBusy = signal(false);
 
+  /** Reschedule panel for an already-scheduled post — a separate mode from the initial-schedule
+   *  panel above (no account picker; it's changing the time on an existing ScheduledPost, not
+   *  creating a new one), reusing the same scheduleDate/scheduleTime fields since only one of the
+   *  two panels is ever open for a given card at a time. */
+  protected readonly reschedulingItemId = signal<string | null>(null);
+
   /** The backend rejects anything less than 10 minutes out (native platform scheduling needs the
    *  lead time) — checked client-side too so a too-soon pick is caught here, with a plain-language
    *  reason, instead of surfacing the backend's generic "Validation failed." with no detail (the
@@ -186,22 +281,28 @@ export class CampaignContentPage {
     const date = this.scheduleDate();
     const time = this.scheduleTime();
     if (!date || !time) return false;
-    const picked = new Date(`${date}T${time}:00`);
+    const picked = new Date(cairoLocalToUtcIso(date, time));
     if (isNaN(picked.getTime())) return false;
     return picked.getTime() < Date.now() + 10 * 60 * 1000;
   });
 
-  /** Content items with an active (Pending or Published) scheduled post — the backend deliberately
-   *  leaves ContentItem.Status as Approved after scheduling (dedup happens server-side against
-   *  ScheduledPosts, not content status), so without this "approved" would keep including posts
-   *  that are already scheduled, overstating the coin-cost hint and, once nothing new is left to
-   *  schedule, surfacing a generic-looking error for what's actually a no-op. Failed/cancelled
-   *  posts are NOT active, since the backend allows re-scheduling those. */
-  private readonly activelyScheduledContentItemIds = computed(() => new Set(
+  /** Content items with an active (Pending or Published) scheduled post, keyed to the post itself
+   *  (not just a Set of ids) — the backend deliberately leaves ContentItem.Status as Approved after
+   *  scheduling (dedup happens server-side against ScheduledPosts, not content status), so without
+   *  this "approved" would keep including posts that are already scheduled, overstating the
+   *  coin-cost hint and, once nothing new is left to schedule, surfacing a generic-looking error for
+   *  what's actually a no-op. Failed/cancelled posts are NOT active, since the backend allows
+   *  re-scheduling those. Keeping the actual post (not just the id) lets the card show its real
+   *  scheduled time instead of just hiding the AI's suggestion once one exists. */
+  private readonly activeScheduledPostByContentItemId = computed(() => new Map(
     this.scheduledPostService.byCampaign(this.campaignId())()
       .filter(p => p.status === 'scheduled' || p.status === 'published')
-      .map(p => p.contentItemId),
+      .map(p => [p.contentItemId, p] as const),
   ));
+
+  private readonly activelyScheduledContentItemIds = computed(() =>
+    new Set(this.activeScheduledPostByContentItemId().keys()),
+  );
 
   /** Approved AND has an image — a post is never eligible for scheduling (bulk or per-item)
    *  without one, enforcing "no post should exist without an image" at the gate that actually
@@ -224,6 +325,58 @@ export class CampaignContentPage {
 
   protected isSchedulable(item: ContentItemSummary): boolean {
     return item.status === 'Approved' && !!item.imageUrl && !this.activelyScheduledContentItemIds().has(item.contentItemId);
+  }
+
+  /** The AI's suggested time is only meaningful before the post has an actual scheduled time of its
+   *  own — once it's genuinely scheduled, the real ScheduledPost.scheduledAt (below) is what will
+   *  actually happen, not this suggestion. */
+  protected showsSuggestedTime(item: ContentItemSummary): boolean {
+    return !!item.suggestedPostAt && !this.activelyScheduledContentItemIds().has(item.contentItemId);
+  }
+
+  protected activeScheduledPost(item: ContentItemSummary) {
+    return this.activeScheduledPostByContentItemId().get(item.contentItemId) ?? null;
+  }
+
+  /** Scheduled but not yet actually sent/fired — still cancellable/reschedulable. */
+  protected isPendingSchedule(item: ContentItemSummary): boolean {
+    return this.activeScheduledPost(item)?.status === 'scheduled';
+  }
+
+  /** Genuinely already live on the platform — nothing left to approve, decline, or reschedule from
+   *  here; that would just be pretending to undo something that already happened. */
+  protected isLive(item: ContentItemSummary): boolean {
+    return this.activeScheduledPost(item)?.status === 'published';
+  }
+
+  /** Re-approving an already-approved item (scheduled or not) is a no-op that only invites
+   *  confusion — hide the button once there's nothing left for it to do. */
+  protected showApprove(item: ContentItemSummary): boolean {
+    return item.status !== 'Approved' && item.status !== 'Published';
+  }
+
+  /** Hidden only once the post has actually gone out — there's nothing to decline/cancel by then.
+   *  While still schedulable-but-pending, the SAME button cancels the schedule instead of rejecting
+   *  the content (see declineLabel/onDecline). */
+  protected showDecline(item: ContentItemSummary): boolean {
+    return !this.isLive(item);
+  }
+
+  /** Only Facebook post ids are usable directly as a permalink (facebook.com/{id} redirects
+   *  correctly) — Instagram's publish API returns a numeric media id, not the shortcode a real
+   *  instagram.com/p/ link needs, so there's no link offered there. */
+  protected liveFacebookUrl(item: ContentItemSummary): string | null {
+    const scheduledPost = this.activeScheduledPost(item);
+    if (!scheduledPost || !this.isLive(item) || item.platform !== 'Facebook' || !scheduledPost.postId) return null;
+    return facebookPostUrl(scheduledPost.postId);
+  }
+
+  protected declineLabel(item: ContentItemSummary): string {
+    return this.isPendingSchedule(item) ? 'إلغاء الجدولة' : 'رفض';
+  }
+
+  protected formatSuggestedTime(iso: string): string {
+    return `${formatCairoDate(iso, { day: 'numeric', month: 'short' })} · ${formatCairoTime(iso)}`;
   }
 
   protected isSelected(item: ContentItemSummary): boolean {
@@ -294,6 +447,17 @@ export class CampaignContentPage {
       if (campaign) this.contentItemService.refresh(campaign.brandProfileId, this.campaignId()).subscribe();
     });
 
+    // Closes the gap described in generateContent(): once imagesTotal has genuinely grown past what
+    // it was at click time (or the run's hit a terminal status) — not just any update landing, which
+    // can still carry the previous batch's stale total for a moment — requestInFlight can safely drop
+    // and contentBatchInFlight() takes over generating() from here.
+    effect(() => {
+      if (this.requestInFlight() && !this.awaitingFreshBatchStatus()) {
+        this.requestInFlight.set(false);
+        this.imagesTotalAtClick.set(null);
+      }
+    });
+
     this.destroyRef.onDestroy(() => this.aiPipelineService.clear());
   }
 
@@ -345,6 +509,8 @@ export class CampaignContentPage {
     this.busyItemId.set(null);
     this.retryingImageId.set(null);
     this.lastRefreshedImageCount = -1;
+    this.requestInFlight.set(false);
+    this.imagesTotalAtClick.set(null);
   }
 
   /** Fires content generation automatically once, right after the onboarding wizard's approval
@@ -382,20 +548,41 @@ export class CampaignContentPage {
       return;
     }
 
+    // Captured now, before anything async — see imagesTotalAtClick/runRefAtClick's remarks for why
+    // this has to happen at the same instant as requestInFlight rather than once the POST resolves:
+    // whatever the service already holds as of right now is necessarily the *previous* batch's (this
+    // campaign's run gets reused, not recreated, on a second-or-later "generate" click).
+    const runAtClick = this.aiPipelineService.run();
     this.requestInFlight.set(true);
+    this.imagesTotalAtClick.set(runAtClick?.progress?.imagesTotal ?? 0);
+    this.runRefAtClick = runAtClick;
 
     this.campaignService.generateContent(this.campaignId(), {
       postCount: this.postCount(),
       language: 'Ar',
       includeImages: true,
     }).subscribe({
-      next: () => {
-        this.requestInFlight.set(false);
+      // Fire-and-track: the request resolves as soon as the batch is *runnable*, not once it's
+      // done — nothing to refresh yet. Watching the run (poll + SignalR push) is what surfaces
+      // progress and, via the imagesCompleted effect above, each post's card as its image lands.
+      //
+      // requestInFlight deliberately stays true here rather than being cleared immediately: startPolling's
+      // first fetch is itself async, and clearing it now would leave a real gap — generating() would
+      // read false and items() would still be empty, hitting the "no posts yet" empty state for a
+      // moment before the first status arrives. The effect below clears it once imagesTotal actually
+      // grows past imagesTotalAtClick.
+      next: res => {
         this.coinPricingService.refreshAfterSpend();
-        this.contentItemService.refresh(campaign.brandProfileId, this.campaignId()).subscribe();
+        if (res.data) {
+          this.aiPipelineService.startPolling(res.data.runId);
+        } else {
+          this.requestInFlight.set(false);
+          this.imagesTotalAtClick.set(null);
+        }
       },
       error: err => {
         this.requestInFlight.set(false);
+        this.imagesTotalAtClick.set(null);
         this.coinPricingService.refreshAfterSpend();
         this.showSpendError(err, 'تعذّر توليد المحتوى.');
       },
@@ -405,6 +592,7 @@ export class CampaignContentPage {
   protected review(item: ContentItemSummary, approve: boolean): void {
     if (this.busyItemId() || !this.perms.canEdit()) return;
     if (approve && !item.imageUrl) return; // enforced in the template too — no accepting an imageless post
+
     this.busyItemId.set(item.contentItemId);
     this.contentItemService.review(item.contentItemId, approve).subscribe({
       next: () => {
@@ -415,6 +603,103 @@ export class CampaignContentPage {
       error: err => {
         this.busyItemId.set(null);
         this.errorModalService.show(extractApiErrorMessage(err, 'تعذّر تحديث حالة المنشور.'), { variant: 'error' });
+      },
+    });
+  }
+
+  /** The decline button is a single control whose meaning changes with state: while the post is
+   *  still pending (not yet fired), it only cancels the schedule — the content stays Approved and
+   *  the button then reverts to plain "رفض" for a second, separate click to actually reject it.
+   *  Keeping these as two distinct steps (rather than one bundled action) means declining never
+   *  silently does two different things depending on what state it happened to catch the post in. */
+  protected onDeclineClick(item: ContentItemSummary): void {
+    if (this.isPendingSchedule(item)) {
+      void this.cancelSchedule(item);
+    } else {
+      this.review(item, false);
+    }
+  }
+
+  protected async cancelSchedule(item: ContentItemSummary): Promise<void> {
+    const scheduledPost = this.activeScheduledPost(item);
+    if (!scheduledPost || this.busyItemId() || !this.perms.canEdit()) return;
+
+    const confirmed = await this.confirmDialogService.confirm(
+      'سيتم إلغاء جدولة هذا المنشور (وعلى المنصة نفسها إن كان قد أُرسل إليها بالفعل)، ولن تُسترد الكوينات المستخدمة في الجدولة. هل تريد المتابعة؟',
+      { title: 'إلغاء الجدولة', confirmLabel: 'إلغاء الجدولة', cancelLabel: 'تراجع', variant: 'danger' },
+    );
+    if (!confirmed) return;
+
+    this.busyItemId.set(item.contentItemId);
+    this.scheduledPostService.cancel(scheduledPost.id).subscribe({
+      next: () => {
+        this.scheduledPostService.remove(scheduledPost.id);
+        this.busyItemId.set(null);
+      },
+      error: err => {
+        this.busyItemId.set(null);
+        this.errorModalService.show(extractApiErrorMessage(err, 'تعذّر إلغاء جدولة المنشور.'), { variant: 'error' });
+      },
+    });
+  }
+
+  /** Deletes an already-live post from the platform itself — irreversible, unlike cancelSchedule
+   *  which only revokes a not-yet-fired schedule. Resets the content item back to Draft server-side
+   *  (see TakeDownScheduledPostCommandHandler) so it re-refreshes here as an editable draft. */
+  protected async takeDownPost(item: ContentItemSummary): Promise<void> {
+    const scheduledPost = this.activeScheduledPost(item);
+    if (!scheduledPost || this.busyItemId() || !this.perms.canEdit()) return;
+
+    const confirmed = await this.confirmDialogService.confirm(
+      'سيتم حذف هذا المنشور نهائيًا من المنصة، ولا يمكن التراجع عن هذا الإجراء. سيعود المحتوى مسودة يمكنك تعديلها وجدولتها من جديد.',
+      { title: 'سحب المنشور', confirmLabel: 'سحب المنشور', cancelLabel: 'تراجع', variant: 'danger' },
+    );
+    if (!confirmed) return;
+
+    this.busyItemId.set(item.contentItemId);
+    this.scheduledPostService.takeDown(scheduledPost.id).subscribe({
+      next: () => {
+        this.scheduledPostService.remove(scheduledPost.id);
+        this.busyItemId.set(null);
+        const brandProfileId = this.campaign()?.brandProfileId;
+        if (brandProfileId) this.contentItemService.refresh(brandProfileId, this.campaignId()).subscribe();
+      },
+      error: err => {
+        this.busyItemId.set(null);
+        this.errorModalService.show(extractApiErrorMessage(err, 'تعذّر سحب المنشور.'), { variant: 'error' });
+      },
+    });
+  }
+
+  protected startReschedule(item: ContentItemSummary): void {
+    if (!this.perms.canEdit()) return;
+    const scheduledPost = this.activeScheduledPost(item);
+    if (!scheduledPost) return;
+    const { date, time } = utcIsoToCairoLocalParts(scheduledPost.scheduledAt);
+    this.reschedulingItemId.set(item.contentItemId);
+    this.scheduleDate.set(date);
+    this.scheduleTime.set(time);
+  }
+
+  protected cancelReschedule(): void {
+    this.reschedulingItemId.set(null);
+  }
+
+  protected submitReschedule(item: ContentItemSummary): void {
+    const scheduledPost = this.activeScheduledPost(item);
+    if (!scheduledPost || !this.scheduleDate() || !this.scheduleTime() || this.scheduleTimeTooSoon()
+      || this.schedulingItemBusy() || !this.perms.canEdit()) return;
+
+    this.schedulingItemBusy.set(true);
+    const scheduledAt = cairoLocalToUtcIso(this.scheduleDate(), this.scheduleTime());
+    this.scheduledPostService.reschedule(scheduledPost.id, scheduledAt).subscribe({
+      next: () => {
+        this.schedulingItemBusy.set(false);
+        this.reschedulingItemId.set(null);
+      },
+      error: err => {
+        this.schedulingItemBusy.set(false);
+        this.errorModalService.show(extractApiErrorMessage(err, 'تعذّر إعادة جدولة المنشور.'), { variant: 'error' });
       },
     });
   }
@@ -487,16 +772,44 @@ export class CampaignContentPage {
         this.busyItemId.set(null);
         this.coinPricingService.refreshAfterSpend();
         this.showSpendError(err, 'تعذّر إعادة توليد المنشور.');
+        // The text half can succeed and be saved server-side even when the image half then fails
+        // (see RegenerateContentItemCommandHandler) — refresh so the card doesn't keep showing the
+        // stale pre-remake caption after an error that was really only about the photo.
+        const brandProfileId = this.campaign()?.brandProfileId;
+        if (brandProfileId) this.contentItemService.refresh(brandProfileId, this.campaignId()).subscribe();
       },
     });
   }
 
-  protected schedulePosts(): void {
+  /** How many results in a bulk-schedule response were published immediately (past-due AI time,
+   *  "publish now" chosen) rather than handed off to a platform's native scheduler. */
+  protected publishedNowCountIn(results: ScheduleCampaignPostResult[]): number {
+    return results.filter(r => r.succeeded && r.status === 'Published').length;
+  }
+
+  /** Counts posts among `approvedItems()` whose AI-suggested time has already passed (or never
+   *  had one) — the exact set the backend would otherwise silently push forward to "now + 20 min,
+   *  staggered" without telling anyone (see SchedulingWindow.ClampForward). */
+  private pastDueCount(): number {
+    const cutoff = Date.now() + 10 * 60 * 1000;
+    return this.approvedItems().filter(i => !i.suggestedPostAt || new Date(i.suggestedPostAt).getTime() < cutoff).length;
+  }
+
+  protected async schedulePosts(): Promise<void> {
     if (this.scheduling() || this.approvedItems().length === 0 || !this.perms.canEdit()) return;
+
+    const staleCount = this.pastDueCount();
+    let publishPastDueNow = false;
+    if (staleCount > 0) {
+      publishPastDueNow = await this.confirmDialogService.confirm(
+        `الوقت المقترح لـ${staleCount} من المنشورات قد مضى بالفعل. هل تريد نشرها الآن، أم جدولتها تلقائيًا لأقرب وقت متاح؟`,
+        { title: 'وقت منشورات قد مضى', confirmLabel: 'انشرها الآن', cancelLabel: 'جدولة تلقائية' },
+      );
+    }
 
     this.scheduling.set(true);
     this.scheduleResult.set(null);
-    this.campaignService.schedulePosts(this.campaignId()).subscribe({
+    this.campaignService.schedulePosts(this.campaignId(), publishPastDueNow).subscribe({
       next: res => {
         this.scheduling.set(false);
         this.coinPricingService.refreshAfterSpend();
@@ -534,8 +847,9 @@ export class CampaignContentPage {
     this.schedulingItemId.set(item.contentItemId);
     this.scheduleAccountId.set(defaultAccount?.socialAccountId ?? null);
     const soon = new Date(Date.now() + 60 * 60 * 1000); // an hour from now, a sensible default
-    this.scheduleDate.set(soon.toISOString().slice(0, 10));
-    this.scheduleTime.set(soon.toISOString().slice(11, 16));
+    const { date, time } = utcIsoToCairoLocalParts(soon.toISOString());
+    this.scheduleDate.set(date);
+    this.scheduleTime.set(time);
   }
 
   protected cancelSchedulePost(): void {
@@ -555,7 +869,7 @@ export class CampaignContentPage {
       || this.schedulingItemBusy() || !this.perms.canEdit()) return;
 
     this.schedulingItemBusy.set(true);
-    const scheduledAt = `${this.scheduleDate()}T${this.scheduleTime()}:00`;
+    const scheduledAt = cairoLocalToUtcIso(this.scheduleDate(), this.scheduleTime());
     this.scheduledPostService.schedule({
       contentItemId: item.contentItemId,
       visualAssetId: item.visualAssetId ?? undefined,
@@ -580,11 +894,46 @@ export class CampaignContentPage {
     });
   }
 
+  /** Publishes this one post immediately, bypassing the date/time pickers entirely (and the
+   *  "10 minutes out" scheduling window they're subject to) — same account requirement as
+   *  `submitSchedulePost`, but skips straight to a real publish instead of a native-scheduler
+   *  handoff. */
+  protected submitSchedulePostNow(item: ContentItemSummary): void {
+    const accountId = this.scheduleAccountId();
+    if (!accountId || this.schedulingItemBusy() || !this.perms.canEdit()) return;
+
+    this.schedulingItemBusy.set(true);
+    this.scheduledPostService.schedule({
+      contentItemId: item.contentItemId,
+      visualAssetId: item.visualAssetId ?? undefined,
+      socialAccountId: accountId,
+      scheduledAt: new Date().toISOString(),
+      publishNow: true,
+    }).subscribe({
+      next: () => {
+        this.schedulingItemBusy.set(false);
+        this.schedulingItemId.set(null);
+        this.coinPricingService.refreshAfterSpend();
+        const brandProfileId = this.campaign()?.brandProfileId;
+        if (brandProfileId) {
+          this.contentItemService.refresh(brandProfileId, this.campaignId()).subscribe();
+          this.scheduledPostService.refresh(brandProfileId, this.campaignId()).subscribe();
+        }
+      },
+      error: err => {
+        this.schedulingItemBusy.set(false);
+        this.coinPricingService.refreshAfterSpend();
+        this.showSpendError(err, 'تعذّر نشر المنشور.');
+      },
+    });
+  }
+
   protected openSelectedSchedulePanel(): void {
     if (this.selectedCount() === 0) return;
     const soon = new Date(Date.now() + 60 * 60 * 1000);
-    this.scheduleDate.set(soon.toISOString().slice(0, 10));
-    this.scheduleTime.set(soon.toISOString().slice(11, 16));
+    const { date, time } = utcIsoToCairoLocalParts(soon.toISOString());
+    this.scheduleDate.set(date);
+    this.scheduleTime.set(time);
     this.selectedSchedulePanelOpen.set(true);
   }
 
@@ -604,7 +953,7 @@ export class CampaignContentPage {
     if (items.length === 0) return;
 
     this.bulkSelectedScheduling.set(true);
-    const scheduledAt = `${this.scheduleDate()}T${this.scheduleTime()}:00`;
+    const scheduledAt = cairoLocalToUtcIso(this.scheduleDate(), this.scheduleTime());
 
     interface Outcome {
       item: ContentItemSummary; succeeded: boolean; error?: string; scheduledPostId?: string; scheduledAtResult?: string;
@@ -667,7 +1016,7 @@ export class CampaignContentPage {
     const shortfall = parseInsufficientCoins(err);
     if (shortfall) {
       this.errorModalService.show(
-        `تحتاج ${shortfall.required.toLocaleString('ar-SA')} كوين لإتمام هذا الإجراء، ورصيدك الحالي ${shortfall.balance.toLocaleString('ar-SA')} كوين.`,
+        `تحتاج ${shortfall.required.toLocaleString('ar-EG')} كوين لإتمام هذا الإجراء، ورصيدك الحالي ${shortfall.balance.toLocaleString('ar-EG')} كوين.`,
         { variant: 'warning', actionLabel: 'شحن الرصيد', actionLink: ['/dashboard/billing'] },
       );
       return;

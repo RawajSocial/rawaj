@@ -39,13 +39,7 @@
 
 /* ── audience platform chips ── */
 .chip.aud-instagram i { color: #e1306c; }
-.chip.aud-tiktok i    { color: #111827; }
-.chip.aud-snapchat i  { color: #b59800; }
 .chip.aud-facebook i  { color: #1877f2; }
-.chip.aud-youtube i   { color: #ef4444; }
-.chip.aud-twitter i   { color: #111827; }
-.chip.aud-linkedin i  { color: #0077b5; }
-.chip.aud-whatsapp i  { color: #25d366; }
 
 /* ── yes/no chips ── */
 .chip.chip-yes i { color: #22c55e; }
@@ -59,9 +53,7 @@
 .chip.income-luxury.active i, .chip.income-business.active i,
 .chip.beh-impulse.active i, .chip.beh-research.active i, .chip.beh-loyal.active i,
 .chip.beh-deals.active i, .chip.beh-social.active i, .chip.beh-quality.active i,
-.chip.aud-instagram.active i, .chip.aud-tiktok.active i, .chip.aud-snapchat.active i,
-.chip.aud-facebook.active i, .chip.aud-youtube.active i, .chip.aud-twitter.active i,
-.chip.aud-linkedin.active i, .chip.aud-whatsapp.active i,
+.chip.aud-instagram.active i, .chip.aud-facebook.active i,
 .chip.chip-yes.active i, .chip.chip-no.active i {
   color: var(--color-text-inverse);
 }

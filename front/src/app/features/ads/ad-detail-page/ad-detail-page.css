@@ -80,10 +80,6 @@
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
 }
 
-.media-platform-badge--snapchat {
-  color: #111 !important;
-}
-
 /* ── Info card ── */
 .info-card {
   display: flex;

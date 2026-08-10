@@ -55,6 +55,10 @@
   gap: 16px;
 }
 
+.form-row--3 {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
 .field-error {
   font-size: var(--font-size-xs);
   color: var(--color-danger);
@@ -63,6 +67,49 @@
 .field-optional {
   font-weight: 400;
   color: var(--color-text-secondary);
+}
+
+.tone-count {
+  margin-inline-start: 8px;
+  font-weight: var(--font-bold);
+  color: var(--color-text-secondary);
+}
+
+.tone-count.at-limit {
+  color: var(--color-danger);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 16px;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-semibold);
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast);
+}
+
+.chip:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.chip.active {
+  border-color: var(--color-secondary);
+  background: var(--color-secondary);
+  color: #fff;
 }
 
 .detail-actions {

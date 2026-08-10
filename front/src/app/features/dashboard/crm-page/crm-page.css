@@ -116,25 +116,6 @@
   color: #fff;
 }
 
-/* TikTok's real identity is a cyan/pink duotone, not flat black. */
-.platform-chip--tiktok i {
-  background: var(--gradient-tiktok);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-
-.platform-chip--tiktok.active {
-  background: var(--gradient-tiktok);
-  border-color: transparent;
-}
-
-/* Snapchat yellow is too light for white text/icons to stay readable on. */
-.platform-chip--snapchat.active,
-.platform-chip--snapchat.active i {
-  color: #111;
-}
-
 /* ── Charts row ── */
 .chart-col {
   min-height: 360px;

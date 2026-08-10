@@ -14,7 +14,7 @@
 
     <div class="camp-platforms">
       @for (p of platformIcons; track p.key) {
-        <span class="platform-icon" [class.platform-icon--snapchat]="p.key === 'snapchat'" [style.color]="p.color">
+        <span class="platform-icon" [style.color]="p.color">
           <i class="{{ p.icon }}"></i>
         </span>
       }

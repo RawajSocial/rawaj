@@ -12,8 +12,8 @@ namespace Rawaj.Application.Features.SocialAccounts.Common;
 /// long-lived USER token (not the Page token actually used to publish, stored in Token) - see
 /// MetaOAuthProvider.ExchangeCodeAsync. Refreshing means: extend that user token's ~60-day window,
 /// then re-derive a fresh Page token from it via GetAccountProfileAsync, exactly mirroring the
-/// original connect flow. Platforms with no refresh mechanism (LinkedIn on this app tier) fail
-/// here, and the account owner is notified to reconnect manually instead of silently going stale.
+/// original connect flow. If a refresh ever fails, the account owner is notified to reconnect
+/// manually instead of silently going stale.
 /// </summary>
 public static class SocialAccountTokenRefresher
 {

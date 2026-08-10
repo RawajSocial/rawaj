@@ -17,7 +17,8 @@ import { FeatureFlagsService } from '../../../services/feature-flags.service';
 import { extractApiErrorMessage } from '../../../core/auth/api-error.util';
 import { Breadcrumb } from '../../../shared/components/breadcrumb/breadcrumb';
 import { TooltipDirective } from '../../../shared/directives/tooltip.directive';
-import { nextOccurrence, toDateInputValue, toTimeInputValue } from '../../../shared/utils/posting-time.util';
+import { cairoTodayDayOfWeek, nextCairoOccurrence } from '../../../shared/utils/posting-time.util';
+import { cairoLocalToUtcIso } from '../../../shared/utils/cairo-time.util';
 import { ContentItemSummary } from '../../../model/content-item.model';
 import { SocialAccountSummary } from '../../../model/social-account.model';
 import {
@@ -31,21 +32,15 @@ const TEXT_TYPE_TO_CONTENT_TYPE: Record<TextType, ContentItemSummary['contentTyp
   caption: 'Caption', hashtags: 'Caption', 'ad-copy': 'AdCopy', blog: 'Blog',
 };
 
-/** Maps the page's platform picker to the backend's SocialPlatform enum. Every option below has
- *  an entry here — the picker used to also offer Snapchat, which the enum has no member for, so
- *  choosing it silently generated (and charged for) *Instagram* content via the `?? 'Instagram'`
- *  fallback at the call sites. */
+/** Maps the page's platform picker to the backend's SocialPlatform enum, which only models
+ *  Facebook and Instagram — every option below has an entry here. */
 const PLATFORM_TO_BACKEND: Record<string, ContentItemSummary['platform']> = {
-  instagram: 'Instagram', facebook: 'Facebook', tiktok: 'Tiktok', x: 'Twitter', youtube: 'Youtube', linkedin: 'Linkedin',
+  instagram: 'Instagram', facebook: 'Facebook',
 };
 
 const PLATFORM_OPTS = [
   { value: 'instagram', label: 'إنستغرام',  icon: 'fa-brands fa-instagram',  color: 'var(--color-instagram)' },
   { value: 'facebook',  label: 'فيسبوك',    icon: 'fa-brands fa-facebook-f', color: 'var(--color-facebook)' },
-  { value: 'tiktok',    label: 'تيك توك',   icon: 'fa-brands fa-tiktok',     color: 'var(--color-tiktok)' },
-  { value: 'x',         label: 'إكس',        icon: 'fa-brands fa-x-twitter',  color: 'var(--color-x)' },
-  { value: 'youtube',   label: 'يوتيوب',    icon: 'fa-brands fa-youtube',    color: 'var(--color-youtube)' },
-  { value: 'linkedin',  label: 'لينكد إن',  icon: 'fa-brands fa-linkedin-in',color: 'var(--color-linkedin)' },
 ];
 
 const QUALITY_OPTS = [
@@ -220,7 +215,7 @@ export class ContentGenPage {
     }
 
     const cost = isImageType ? pricing.discountedCosts.visualGeneration : pricing.discountedCosts.contentGeneration;
-    return `سيتم خصم ${cost.toLocaleString('ar-SA')} كوين من رصيدك عند التوليد`;
+    return `سيتم خصم ${cost.toLocaleString('ar-EG')} كوين من رصيدك عند التوليد`;
   });
 
   constructor(readonly media: MediaService) {
@@ -477,15 +472,15 @@ export class ContentGenPage {
       next: res => {
         const suggestion = res.data?.[0];
         const target = suggestion
-          ? nextOccurrence(suggestion.dayOfWeek, suggestion.hour)
-          : nextOccurrence(new Date().getDay(), 12); // fallback: same weekday, noon, pushed to next safe slot
-        this.scheduleDate.set(toDateInputValue(target));
-        this.scheduleTime.set(toTimeInputValue(target));
+          ? nextCairoOccurrence(suggestion.dayOfWeek, suggestion.hour)
+          : nextCairoOccurrence(cairoTodayDayOfWeek(), 12); // fallback: same weekday, noon, pushed to next safe slot
+        this.scheduleDate.set(target.date);
+        this.scheduleTime.set(target.time);
       },
       error: () => {
-        const fallback = nextOccurrence(new Date().getDay(), 12);
-        this.scheduleDate.set(toDateInputValue(fallback));
-        this.scheduleTime.set(toTimeInputValue(fallback));
+        const fallback = nextCairoOccurrence(cairoTodayDayOfWeek(), 12);
+        this.scheduleDate.set(fallback.date);
+        this.scheduleTime.set(fallback.time);
       },
     });
   }
@@ -503,7 +498,7 @@ export class ContentGenPage {
     this.scheduledPostService.schedule({
       contentItemId: item.id,
       socialAccountId: accountId,
-      scheduledAt: `${this.scheduleDate()}T${this.scheduleTime()}:00`,
+      scheduledAt: cairoLocalToUtcIso(this.scheduleDate(), this.scheduleTime()),
     }).subscribe({
       next: () => {
         this.scheduling.set(false);
@@ -525,5 +520,5 @@ export class ContentGenPage {
     return { 'static-ad': 'linear-gradient(135deg,#fce4ec,#fce4ec66)', 'video': 'linear-gradient(135deg,#fff3e0,#fff3e066)', 'text': 'linear-gradient(135deg,#ede9fe,#ede9fe66)' }[type];
   }
 
-  formatDateTime(iso: string): string { return new Date(iso).toLocaleString('ar-SA', { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }); }
+  formatDateTime(iso: string): string { return new Date(iso).toLocaleString('ar-EG', { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }); }
 }

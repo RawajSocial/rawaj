@@ -61,7 +61,7 @@ public class BrandAnalysisExecutor(
         PipelineInputHash.Compute(
             brand.Name,
             brand.Description,
-            brand.BrandVoice?.ToString(),
+            brand.BrandInfo?.Tones is { Count: > 0 } tones ? string.Join(",", tones) : null,
             brand.BrandInfo?.Tagline,
             brand.BrandInfo?.Industry,
             brand.BrandInfo?.TargetAudience,

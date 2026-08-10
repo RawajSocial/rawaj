@@ -55,16 +55,6 @@
         }
 
         @case (3) {
-          <app-onboarding-step-three
-            [currentStep]="currentStep()"
-            [totalSteps]="totalSteps"
-            [data]="onboardingData()"
-            (dataChange)="updateOnboardingData($event)"
-            (next)="goToNextStep()"
-            (back)="goToPreviousStep()" />
-        }
-
-        @case (4) {
           <app-onboarding-step-four
             [currentStep]="currentStep()"
             [totalSteps]="totalSteps"
@@ -74,7 +64,7 @@
             (back)="goToPreviousStep()" />
         }
 
-        @case (5) {
+        @case (4) {
           <app-onboarding-step-five
             [currentStep]="currentStep()"
             [totalSteps]="totalSteps"
@@ -84,7 +74,7 @@
             (back)="goToPreviousStep()" />
         }
 
-        @case (6) {
+        @case (5) {
           <app-onboarding-step-six
             [currentStep]="currentStep()"
             [totalSteps]="totalSteps"
@@ -94,22 +84,24 @@
             (back)="goToPreviousStep()" />
         }
 
-        @case (7) {
+        @case (6) {
           <app-onboarding-step-seven
             [currentStep]="currentStep()"
             [totalSteps]="totalSteps"
             [data]="onboardingData()"
             [brandProfileId]="selectedBrandProfileId()"
+            [brandName]="selectedBrandProfile()?.name"
             [submitting]="creatingCampaign()"
             (dataChange)="updateOnboardingData($event)"
             (finish)="finishOnboarding()"
             (back)="goToPreviousStep()" />
         }
 
-        @case (8) {
+        @case (7) {
           <app-onboarding-plan-approval
             [data]="onboardingData()"
             [campaignId]="campaignId()"
+            [brandProfileId]="selectedBrandProfileId()"
             (approve)="approvePlan()"
             (back)="goToPreviousStep()" />
         }

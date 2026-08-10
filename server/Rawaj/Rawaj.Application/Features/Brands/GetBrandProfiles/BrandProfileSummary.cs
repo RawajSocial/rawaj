@@ -6,7 +6,7 @@ public record BrandProfileSummary(
     Guid BrandProfileId,
     string Name,
     string? Description,
-    BrandVoice? BrandVoice,
+    List<BrandVoice> Tones,
     BrandProfileStatus Status,
     bool IsDefault,
     string? Tagline,

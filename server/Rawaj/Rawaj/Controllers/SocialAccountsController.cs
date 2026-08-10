@@ -71,7 +71,7 @@ public class SocialAccountsController(ISender sender, IConfiguration configurati
 
     /// <summary>
     /// The redirect target registered with the platform's OAuth app. The browser lands here
-    /// directly from Meta/LinkedIn's consent screen, so there is no bearer token on this
+    /// directly from Meta's consent screen, so there is no bearer token on this
     /// request — it is secured by the one-time "state" value instead. Not gated by [Authorize].
     /// Since the browser is on this URL directly (not an API caller), the result is a redirect
     /// back into the frontend app rather than a JSON body.

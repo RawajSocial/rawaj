@@ -224,8 +224,7 @@ public class LegacyPipelineShimTests
     {
         var world = await SeedAsync(coinBalance: 100_000);
         var orchestrator = Substitute.For<IPipelineOrchestrator>();
-        var handler = new GenerateCampaignContentCommandHandler(
-            world.DbContext, world.CurrentUserService(), world.CurrentTenantContext(), orchestrator);
+        var handler = new GenerateCampaignContentCommandHandler(world.DbContext, world.CurrentTenantContext(), orchestrator);
 
         var result = await handler.Handle(
             new GenerateCampaignContentCommand(world.Campaign.Id, 2, Language.Ar), CancellationToken.None);
@@ -235,17 +234,19 @@ public class LegacyPipelineShimTests
         await orchestrator.DidNotReceive().EnsureContentBatchAsync(Arg.Any<AiPipelineRun>(), Arg.Any<CancellationToken>());
     }
 
+    /// <summary>Fire-and-track: the handler only makes the batch runnable and returns the run's id —
+    /// AiPipelineWorkerHostedService (not exercised here, see PipelineOrchestratorTests /
+    /// AiPipelineWorkerHostedService's own tests for that) is what actually advances it afterward.
+    /// Returning before anything is generated is deliberate — see GenerateCampaignContentResponse's
+    /// doc comment for why waiting used to make every post in a batch appear at once.</summary>
     [Fact]
-    public async Task GenerateContent_ReportsOnlyTheItemsCreatedByThisCall_NotThePreExistingOnes()
+    public async Task GenerateContent_StartsTheBatch_AndReturnsImmediately_WithoutAdvancingTheRun()
     {
         var world = await SeedAsync(coinBalance: 100_000);
         world.Campaign.PlanApprovedAt = DateTime.UtcNow;
         var run = NewRun(world);
         world.DbContext.AiPipelineRuns.Add(run);
         world.Campaign.CurrentPipelineRunId = run.Id;
-
-        // A post from an earlier batch — must not be counted as part of this call's result.
-        world.DbContext.ContentItems.Add(NewContentItem(world));
         await world.DbContext.SaveChangesAsync(CancellationToken.None);
 
         var stage = new AiPipelineStage
@@ -255,65 +256,24 @@ public class LegacyPipelineShimTests
         };
         var orchestrator = Substitute.For<IPipelineOrchestrator>();
         orchestrator.EnsureContentBatchAsync(run, Arg.Any<CancellationToken>()).Returns(stage);
-        orchestrator.When(o => o.AdvanceAsync(run, Arg.Any<TenantMemberRole>(), Arg.Any<CancellationToken>()))
-            .Do(_ =>
-            {
-                world.DbContext.ContentItems.Add(NewContentItem(world));
-                world.DbContext.ContentItems.Add(NewContentItem(world));
-                world.DbContext.SaveChangesAsync(CancellationToken.None).GetAwaiter().GetResult();
-            });
 
-        var handler = new GenerateCampaignContentCommandHandler(
-            world.DbContext, world.CurrentUserService(), world.CurrentTenantContext(), orchestrator);
+        var handler = new GenerateCampaignContentCommandHandler(world.DbContext, world.CurrentTenantContext(), orchestrator);
 
         var result = await handler.Handle(
             new GenerateCampaignContentCommand(world.Campaign.Id, 2, Language.Ar), CancellationToken.None);
 
         Assert.True(result.Succeeded);
-        Assert.Equal(2, result.Data!.GeneratedCount); // not 3 — the pre-existing post doesn't count
+        Assert.Equal(run.Id, result.Data!.RunId);
+        Assert.Equal(world.Campaign.Id, result.Data.CampaignId);
+
+        await orchestrator.Received(1).EnsureContentBatchAsync(run, Arg.Any<CancellationToken>());
+        await orchestrator.DidNotReceive().AdvanceAsync(
+            Arg.Any<AiPipelineRun>(), Arg.Any<TenantMemberRole>(), Arg.Any<CancellationToken>(), Arg.Any<string>());
 
         var reloadedRun = await world.DbContext.AiPipelineRuns.SingleAsync(r => r.Id == run.Id);
         Assert.Equal(2, reloadedRun.ContentPostCount);
         Assert.Equal(Language.Ar, reloadedRun.ContentLanguage);
     }
-
-    [Fact]
-    public async Task GenerateContent_Fails_WhenNothingNewWasCreated()
-    {
-        var world = await SeedAsync(coinBalance: 100_000);
-        world.Campaign.PlanApprovedAt = DateTime.UtcNow;
-        var run = NewRun(world);
-        world.DbContext.AiPipelineRuns.Add(run);
-        world.Campaign.CurrentPipelineRunId = run.Id;
-        var stage = new AiPipelineStage
-        {
-            Id = Guid.NewGuid(), RunId = run.Id, Kind = AiPipelineStageKind.ContentPlan,
-            Status = AiPipelineStageStatus.Pending, LastError = "The AI provider did not return a response.",
-            MaxAttempts = 3, CreatedAt = DateTime.UtcNow
-        };
-        world.DbContext.AiPipelineStages.Add(stage);
-        await world.DbContext.SaveChangesAsync(CancellationToken.None);
-
-        var orchestrator = Substitute.For<IPipelineOrchestrator>();
-        orchestrator.EnsureContentBatchAsync(run, Arg.Any<CancellationToken>()).Returns(stage);
-        // AdvanceAsync is a no-op — nothing gets created.
-
-        var handler = new GenerateCampaignContentCommandHandler(
-            world.DbContext, world.CurrentUserService(), world.CurrentTenantContext(), orchestrator);
-
-        var result = await handler.Handle(
-            new GenerateCampaignContentCommand(world.Campaign.Id, 2, Language.Ar), CancellationToken.None);
-
-        Assert.False(result.Succeeded);
-        Assert.Equal("The AI provider did not return a response.", result.ErrorMessage);
-    }
-
-    private static ContentItem NewContentItem(World world) => new()
-    {
-        Id = Guid.NewGuid(), CampaignId = world.Campaign.Id, TenantId = world.Tenant.Id, BrandProfileId = world.Brand.Id,
-        CreatedBy = world.UserId, ContentType = ContentType.Post, Platform = SocialPlatform.Instagram, Language = Language.Ar,
-        Content = "post", Status = ContentStatus.Draft, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow
-    };
 
     // ── Helpers ─────────────────────────────────────────────────────────────────────────────
 

@@ -11,7 +11,7 @@ export interface Ad {
   platforms: CampaignPlatform[];
   status: AdStatus;
   format: AdFormat;
-  impressions: number;
+  views: number;
   clicks: number;
   ctr: number;
   spend: number;

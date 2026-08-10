@@ -17,7 +17,7 @@
     }
     <div class="ad-platform-badges">
       @for (p of ad().platforms; track p) {
-        <span class="ad-platform-badge" [class.ad-platform-badge--snapchat]="p === 'snapchat'" [style.color]="platformColor(p)" [title]="platformLabel(p)">
+        <span class="ad-platform-badge" [style.color]="platformColor(p)" [title]="platformLabel(p)">
           <i class="{{ platformIcon(p) }}"></i>
         </span>
       }
@@ -43,8 +43,8 @@
   <div class="ad-metrics">
     <div class="ad-metric">
       <span class="metric-icon"><i class="fa-solid fa-eye"></i></span>
-      <span class="metric-val">{{ formatNumber(ad().impressions) }}</span>
-      <span class="metric-lbl">الظهور</span>
+      <span class="metric-val">{{ formatNumber(ad().views) }}</span>
+      <span class="metric-lbl">المشاهدات</span>
     </div>
     <div class="ad-metric">
       <span class="metric-icon"><i class="fa-solid fa-arrow-pointer"></i></span>

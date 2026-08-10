@@ -14,6 +14,7 @@ import { PermissionService } from '../../../core/tenant/permission.service';
 import { ErrorModalService } from '../../../services/error-modal.service';
 import { extractApiErrorMessage } from '../../../core/auth/api-error.util';
 import { Router, RouterLink } from '@angular/router';
+import { cairoDateKey, formatCairoTime } from '../../../shared/utils/cairo-time.util';
 
 export type ViewMode = 'month' | 'week' | 'day' | 'list';
 
@@ -130,7 +131,10 @@ export class CalendarPage {
   readonly postsByDay = computed<Map<string, ScheduledPost[]>>(() => {
     const map = new Map<string, ScheduledPost[]>();
     for (const p of this.filteredPosts()) {
-      const key = p.scheduledAt.substring(0, 10);
+      // Cairo's calendar date, not the UTC one embedded in the ISO string — the ~2-hour window
+      // where Cairo has already crossed into the next day but UTC hasn't would otherwise bucket a
+      // post under the wrong day cell.
+      const key = cairoDateKey(p.scheduledAt);
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(p);
     }
@@ -179,11 +183,13 @@ export class CalendarPage {
     for (const p of this.filteredPosts()) {
       const pd = new Date(p.scheduledAt);
       if (pd.getTime() < startT || pd.getTime() > endT) continue;
-      const key = p.scheduledAt.substring(0, 10);
+      const key = cairoDateKey(p.scheduledAt);
       if (!map.has(key)) {
         map.set(key, {
           date: pd,
-          dateLabel: pd.toLocaleDateString('ar-SA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }),
+          dateLabel: pd.toLocaleDateString('ar-EG', {
+            weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Africa/Cairo',
+          }),
           posts: [],
         });
       }
@@ -198,14 +204,14 @@ export class CalendarPage {
     const d    = this.currentDate();
     const mode = this.viewMode();
     if (mode === 'month') {
-      return d.toLocaleDateString('ar-SA', { month: 'long', year: 'numeric' });
+      return d.toLocaleDateString('ar-EG', { month: 'long', year: 'numeric' });
     }
     if (mode === 'day') {
-      return d.toLocaleDateString('ar-SA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+      return d.toLocaleDateString('ar-EG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
     }
     const days = this.weekDays();
-    const sf = days[0].toLocaleDateString('ar-SA', { day: 'numeric', month: 'short' });
-    const ef = days[6].toLocaleDateString('ar-SA', { day: 'numeric', month: 'short', year: 'numeric' });
+    const sf = days[0].toLocaleDateString('ar-EG', { day: 'numeric', month: 'short' });
+    const ef = days[6].toLocaleDateString('ar-EG', { day: 'numeric', month: 'short', year: 'numeric' });
     return `${sf} – ${ef}`;
   });
 
@@ -266,11 +272,11 @@ export class CalendarPage {
 
   readonly selectedDayLabel = computed<string>(() => {
     const day = this.selectedDay();
-    return day ? day.toLocaleDateString('ar-SA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : '';
+    return day ? day.toLocaleDateString('ar-EG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : '';
   });
 
   formatTime(iso: string): string {
-    return new Date(iso).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit', hour12: true });
+    return formatCairoTime(iso);
   }
 
   goToDay(date: Date): void {

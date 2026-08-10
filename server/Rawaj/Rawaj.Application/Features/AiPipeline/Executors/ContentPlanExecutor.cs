@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Rawaj.Application.Common;
 using Rawaj.Application.Common.Interfaces;
 using Rawaj.Application.Common.Models;
 using Rawaj.Application.Common.Policies;
@@ -17,7 +18,7 @@ namespace Rawaj.Application.Features.AiPipeline.Executors;
 /// one stage row per post it creates, via <see cref="StageResult.FanOutTargets"/>, which is what
 /// makes a single post's image retryable without regenerating the whole batch.
 ///
-/// <para>Not a <see cref="Common.TextStageExecutor"/>: gathering competitor insights and posting-time
+/// <para>Not a <see cref="Common.TextStageExecutor"/>: resolving the target platforms and posting-time
 /// guidance needs its own database queries before the prompt can even be built, which
 /// <c>TextStageExecutor.BuildPrompt</c>'s synchronous contract has no room for.</para>
 ///
@@ -31,8 +32,6 @@ public class ContentPlanExecutor(
     IAiTextGenerationService textGenerationService,
     IPromptTemplateProvider templates) : IPipelineStageExecutor
 {
-    private const int MaxCompetitorInsights = 5;
-
     public AiPipelineStageKind Kind => AiPipelineStageKind.ContentPlan;
 
     public async Task<StageResult> ExecuteAsync(StageContext context, CancellationToken cancellationToken)
@@ -65,18 +64,11 @@ public class ContentPlanExecutor(
             platforms = [SocialPlatform.Instagram, SocialPlatform.Facebook];
         }
 
-        var competitorInsights = await dbContext.RagDocuments
-            .Where(d => d.BrandProfileId == context.Brand.Id && d.CompetitorsData != null)
-            .OrderByDescending(d => d.CreatedAt)
-            .Take(MaxCompetitorInsights)
-            .Select(d => d.CompetitorsData!)
-            .ToListAsync(cancellationToken);
-
         var timingSuggestions = await PostingTimeIntelligence.GetSuggestionsAsync(dbContext, context.Brand.Id, platforms, cancellationToken);
         var timingSummary = PostingTimeIntelligence.BuildSummary(timingSuggestions);
 
         var prompt = ContentPlanPrompt.Build(
-            context.Brand, campaign, competitorInsights, timingSummary, context.Run.ContentPostCount, platforms,
+            context.Brand, campaign, timingSummary, context.Run.ContentPostCount, platforms,
             context.Run.ContentLanguage, context.Input(AiArtifactKind.Strategy), campaign.BriefJson,
             context.Run.ContentTemplateStyle);
 
@@ -113,10 +105,13 @@ public class ContentPlanExecutor(
 
         // A campaign's StartDate can be in the past by the time content is generated (drafted, then
         // approved days later) — falling back to today keeps suggested post times out of the past,
-        // which the scheduling step can no longer recover from.
+        // which the scheduling step can no longer recover from. "Today" here means Cairo's calendar
+        // date, not UTC's — otherwise the ~22:00-00:00 UTC window (already tomorrow in Cairo) would
+        // silently schedule dayOffset 0 a day early.
         var now = DateTime.UtcNow;
+        var todayCairo = TimeZoneInfo.ConvertTimeFromUtc(now, CairoTimeZone.Instance).Date;
         var startDate = campaign.StartDate?.ToDateTime(TimeOnly.MinValue);
-        var baseDate = startDate is { } sd && sd > now.Date ? sd : now.Date;
+        var baseDate = startDate is { } sd && sd > todayCairo ? sd : todayCairo;
         var drafts = ContentPlanParser.Parse(generation.Text!, platforms, baseDate);
 
         if (drafts.Count == 0)

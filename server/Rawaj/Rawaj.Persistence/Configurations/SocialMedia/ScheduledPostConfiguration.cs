@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Rawaj.Domain.Entities.SocialMedia;
+using Rawaj.Persistence.Common;
 
 namespace Rawaj.Persistence.Configurations.SocialMedia;
 
@@ -15,6 +16,8 @@ public class ScheduledPostConfiguration : IEntityTypeConfiguration<ScheduledPost
         builder.Property(s => s.Status).HasConversion<string>().HasMaxLength(20).IsRequired();
         builder.Property(s => s.PostId).HasMaxLength(255);
         builder.Property(s => s.ErrorMessage).HasColumnType("nvarchar(max)");
+        builder.Property(s => s.ScheduledAt).HasUtcConversion();
+        builder.Property(s => s.PublishedAt).HasUtcConversion();
 
         builder.HasOne(s => s.ContentItem)
             .WithMany()

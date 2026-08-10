@@ -19,6 +19,7 @@ public class AiPipelineRunConfiguration : IEntityTypeConfiguration<AiPipelineRun
         builder.Property(r => r.ContentLanguage).HasConversion<string>().HasMaxLength(5).IsRequired();
         builder.Property(r => r.ContentTemplateStyle).HasConversion<string>().HasMaxLength(20).IsRequired();
         builder.Property(r => r.RowVersion).IsRowVersion();
+        builder.Property(r => r.Version).HasDefaultValue(0).IsRequired();
 
         builder.HasOne(r => r.Tenant)
             .WithMany()
