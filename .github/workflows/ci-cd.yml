@@ -111,6 +111,17 @@ jobs:
           name: rawaj-frontend
           path: artifacts/frontend
 
+      - name: Sanity check downloaded artifacts
+        run: |
+          echo "Backend artifact contents:"
+          find artifacts/backend -maxdepth 2 -printf '%y %p\n' | sort
+
+          echo "Frontend artifact contents:"
+          find artifacts/frontend -maxdepth 2 -printf '%y %p\n' | sort
+
+          test -f artifacts/backend/Rawaj.dll
+          test -f artifacts/frontend/index.html
+
       - name: Prepare staging directory on VM
         uses: appleboy/ssh-action@v1.2.2
         with:
@@ -130,7 +141,7 @@ jobs:
           username: ${{ vars.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           passphrase: ${{ secrets.DEPLOY_SSH_PASSPHRASE }}
-          source: "artifacts/backend/**/*"
+          source: "artifacts/backend/*"
           target: "${{ env.STAGE_DIR }}/backend"
           strip_components: 2
           overwrite: true
@@ -142,7 +153,7 @@ jobs:
           username: ${{ vars.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           passphrase: ${{ secrets.DEPLOY_SSH_PASSPHRASE }}
-          source: "artifacts/frontend/**/*"
+          source: "artifacts/frontend/*"
           target: "${{ env.STAGE_DIR }}/frontend"
           strip_components: 2
           overwrite: true
