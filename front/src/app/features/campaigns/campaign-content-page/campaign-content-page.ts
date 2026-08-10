@@ -739,6 +739,11 @@ export class CampaignContentPage {
         this.busyItemId.set(null);
         this.coinPricingService.refreshAfterSpend();
         this.showSpendError(err, 'تعذّر إعادة توليد المنشور.');
+        // The text half can succeed and be saved server-side even when the image half then fails
+        // (see RegenerateContentItemCommandHandler) — refresh so the card doesn't keep showing the
+        // stale pre-remake caption after an error that was really only about the photo.
+        const brandProfileId = this.campaign()?.brandProfileId;
+        if (brandProfileId) this.contentItemService.refresh(brandProfileId, this.campaignId()).subscribe();
       },
     });
   }

@@ -242,6 +242,12 @@
   font-size: .82rem;
   font-family: inherit;
 }
+.cc-regenerate-hint {
+  margin: 0;
+  font-size: .72rem;
+  color: var(--color-text-muted);
+}
+
 .cc-regenerate-actions {
   display: flex;
   justify-content: flex-end;

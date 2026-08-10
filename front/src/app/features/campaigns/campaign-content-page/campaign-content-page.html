@@ -211,9 +211,10 @@
                 placeholder="ما الذي تريد تغييره في هذا المنشور؟ مثال: اجعله أكثر احترافية"
                 [value]="regenerateFeedback()"
                 (input)="updateRegenerateFeedback($any($event.target).value)"></textarea>
+              <p class="cc-regenerate-hint">سيتم إعادة توليد النص والصورة معًا ليتطابقا.</p>
               <div class="cc-regenerate-actions">
                 @if (pricing(); as pr) {
-                  <app-coin-cost-hint class="cc-regenerate-cost" [cost]="pr.discountedCosts.contentGeneration" />
+                  <app-coin-cost-hint class="cc-regenerate-cost" [cost]="pr.discountedCosts.contentGeneration + pr.discountedCosts.visualGeneration" />
                 }
                 <button type="button" class="cc-btn cc-btn-ghost" (click)="cancelRegenerate()">إلغاء</button>
                 <button type="button" class="cc-btn cc-btn-primary"

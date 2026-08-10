@@ -91,6 +91,91 @@ public static class ContentPromptBuilder
         return string.Join(" ", lines);
     }
 
+    private const int RevisionStrategyMaxLength = 1_200;
+    private const int RevisionBriefMaxLength = 1_200;
+    private static readonly string[] RevisionStrategyFieldsNeeded = ["campaignBlueprint", "brandStrategy", "marketingStrategy"];
+
+    /// <summary>
+    /// Full "remake" of a single post — unlike <see cref="BuildRevisionPrompt"/> (which only ever
+    /// had the current copy and the feedback text to go on), this carries the same grounding a fresh
+    /// campaign post gets: brand identity, campaign objective, and the approved strategy/brief — so a
+    /// remake stays on-theme instead of drifting into something unrelated to the rest of the
+    /// campaign. Also asks for a fresh imagePrompt so the caller can regenerate the photo alongside
+    /// the copy, keeping the two paired the way they were at original generation.
+    /// </summary>
+    public static string BuildFullRevisionPrompt(
+        TenantBrandProfile brand,
+        MarketingCampaign? campaign,
+        ContentItem contentItem,
+        string feedback)
+    {
+        var lines = new List<string> { PromptFragments.InjectionGuardInstruction };
+
+        lines.Add($"Revise the following {contentItem.ContentType} for the {contentItem.Platform} platform in {contentItem.Language}.");
+
+        PromptFragments.AddWrappedBrandIdentity(lines, brand);
+
+        if (campaign is not null)
+        {
+            lines.Add($"Campaign: {campaign.Name}.");
+
+            if (!string.IsNullOrWhiteSpace(campaign.Objective))
+            {
+                var wrappedObjective = UntrustedTextSanitizer.Wrap(
+                    "Campaign objective, typed by the business", [PiiRedactor.Redact(campaign.Objective)]);
+
+                if (wrappedObjective.Length > 0)
+                {
+                    lines.Add(wrappedObjective);
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(campaign.AiPlanJson))
+            {
+                var trimmedStrategy = JsonFieldSelector.KeepFields(campaign.AiPlanJson, RevisionStrategyFieldsNeeded);
+                var wrappedStrategy = UntrustedTextSanitizer.Wrap(
+                    "Approved strategy JSON", [PiiRedactor.Redact(trimmedStrategy!)], RevisionStrategyMaxLength);
+
+                if (wrappedStrategy.Length > 0)
+                {
+                    lines.Add(
+                        "This post belongs to a campaign with an approved marketing strategy — keep the revision on " +
+                        "theme with its campaignBlueprint.pillars/keyThemes and consistent with its brandStrategy " +
+                        "and marketingStrategy.");
+                    lines.Add(wrappedStrategy);
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(campaign.BriefJson))
+            {
+                var wrappedBrief = UntrustedTextSanitizer.Wrap(
+                    "The business's own onboarding answers, for audience and tone specifics", [PiiRedactor.Redact(campaign.BriefJson)], RevisionBriefMaxLength);
+
+                if (wrappedBrief.Length > 0)
+                {
+                    lines.Add(wrappedBrief);
+                }
+            }
+        }
+
+        lines.Add($"Current copy: \"{contentItem.Content}\"");
+        lines.Add($"Requested changes: {feedback}");
+
+        lines.Add(
+            "For each post also write an \"imagePrompt\": a description of the photo or illustration that should " +
+            "accompany the revised copy, for a text-to-image model. The imagePrompt MUST be written in English " +
+            "even when the post copy is in another language, and it must describe what is literally visible in " +
+            "the picture — subject, setting, composition, lighting, mood, style — not the marketing message. Do " +
+            "not put slogans, calls to action, hashtags, prices or any text-to-be-rendered in it. Keep it under " +
+            "60 words.");
+
+        lines.Add(
+            PromptFragments.JsonObjectOnly(
+                "{\"content\":\"...\",\"hashtags\":[\"...\"],\"cta\":\"...\",\"imagePrompt\":\"...\"}"));
+
+        return string.Join(" ", lines);
+    }
+
     private const int OnboardingContextMaxLength = 2_000;
 
     /// <summary>
