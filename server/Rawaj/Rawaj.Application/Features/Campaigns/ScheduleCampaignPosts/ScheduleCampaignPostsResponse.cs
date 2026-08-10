@@ -9,7 +9,8 @@ public record ScheduleCampaignPostResult(
     bool Skipped,
     string? Error,
     Guid? ScheduledPostId,
-    DateTime? ScheduledAt);
+    DateTime? ScheduledAt,
+    ScheduledPostStatus? Status = null);
 
 public record ScheduleCampaignPostsResponse(
     Guid CampaignId,

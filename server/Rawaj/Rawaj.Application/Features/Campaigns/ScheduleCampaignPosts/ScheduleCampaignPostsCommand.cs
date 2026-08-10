@@ -11,7 +11,7 @@ namespace Rawaj.Application.Features.Campaigns.ScheduleCampaignPosts;
 /// the brand's connected active account matching that item's own platform - a campaign spanning
 /// Instagram and Facebook posts to both, rather than forcing a single caller-picked account.
 /// </summary>
-public record ScheduleCampaignPostsCommand(Guid CampaignId)
+public record ScheduleCampaignPostsCommand(Guid CampaignId, bool PublishPastDueNow = false)
     : IRequest<Result<ScheduleCampaignPostsResponse>>, IRequireTenantRole, IRequireResolvedBrandAccess
 {
     public TenantMemberRole MinimumRole => TenantMemberRole.Editor;

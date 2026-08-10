@@ -272,6 +272,15 @@
                   <app-coin-cost-hint class="cc-regenerate-cost" [cost]="pr.discountedCosts.scheduling" />
                 }
                 <button type="button" class="cc-btn cc-btn-ghost" (click)="cancelSchedulePost()">إلغاء</button>
+                <button type="button" class="cc-btn cc-btn-publish-now"
+                  [disabled]="!scheduleAccountId() || schedulingItemBusy()"
+                  (click)="submitSchedulePostNow(item)">
+                  @if (schedulingItemBusy()) {
+                    <i class="fa-solid fa-circle-notch fa-spin"></i> جاري النشر...
+                  } @else {
+                    <i class="fa-solid fa-bolt"></i> انشر الآن
+                  }
+                </button>
                 <button type="button" class="cc-btn cc-btn-primary"
                   [disabled]="!scheduleAccountId() || !scheduleDate() || !scheduleTime() || scheduleTimeTooSoon() || schedulingItemBusy()"
                   (click)="submitSchedulePost(item)">
@@ -445,7 +454,14 @@
 
         @if (scheduleResult(); as r) {
           <p class="cc-schedule-result">
-            تمت جدولة {{ r.succeeded }} منشور بنجاح.
+            @let publishedNowCount = publishedNowCountIn(r.results);
+            @if (publishedNowCount > 0 && publishedNowCount < r.succeeded) {
+              تم نشر {{ publishedNowCount }} منشور فورًا، وجدولة {{ r.succeeded - publishedNowCount }} لوقتها.
+            } @else if (publishedNowCount > 0) {
+              تم نشر {{ publishedNowCount }} منشور فورًا.
+            } @else {
+              تمت جدولة {{ r.succeeded }} منشور بنجاح.
+            }
             @if (r.skipped > 0) { لم يُجدول {{ r.skipped }} بسبب عدم وجود حساب متصل. }
             @if (r.failed > 0) { فشل {{ r.failed }}. }
           </p>

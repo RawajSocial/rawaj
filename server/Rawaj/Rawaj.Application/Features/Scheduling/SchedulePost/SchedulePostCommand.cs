@@ -11,7 +11,8 @@ public record SchedulePostCommand(
     Guid? VisualAssetId,
     Guid SocialAccountId,
     DateTime ScheduledAt,
-    bool AiSuggestedTime = false)
+    bool AiSuggestedTime = false,
+    bool PublishNow = false)
     : IRequest<Result<SchedulePostResponse>>, IRequireTenantRole, IRequireResolvedBrandAccess
 {
     public TenantMemberRole MinimumRole => TenantMemberRole.Editor;

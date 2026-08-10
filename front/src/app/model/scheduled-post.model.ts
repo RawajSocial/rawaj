@@ -90,6 +90,10 @@ export interface SchedulePostRequest {
   socialAccountId: string;
   scheduledAt: string;
   aiSuggestedTime?: boolean;
+  /** Bypasses the "at least 10 minutes out" scheduling window and publishes immediately instead
+   *  of handing the time off to the platform's native scheduler. `scheduledAt` is still required
+   *  by the type but is ignored server-side when this is true. */
+  publishNow?: boolean;
 }
 
 /** POST /api/v1/scheduled-posts — SchedulePostResponse */

@@ -12,9 +12,9 @@ namespace Rawaj.Infrastructure.SocialPublishing;
 
 /// <summary>
 /// Publishes to a Facebook Page's feed using the Page access token obtained during OAuth
-/// connection. Posts with an attached image go through /{page-id}/photos — either by handing
-/// Facebook a public image URL (Cloudinary-hosted assets) or, when only raw bytes are available
-/// (the local base64 fallback), a binary upload; text-only posts go through /{page-id}/feed.
+/// connection. Text-only posts go through /{page-id}/feed directly. A post with an attached image
+/// is a two-step call — see <see cref="PublishPhotoPostAsync"/> for why a single call to
+/// /{page-id}/photos isn't enough to get a real Post out of it.
 /// </summary>
 public class MetaPostPublisher(
     IHttpClientFactory httpClientFactory,
@@ -33,34 +33,78 @@ public class MetaPostPublisher(
 
         try
         {
-            using var response = request.ImageBytes is not null || request.ImageUrl is not null
-                ? await PublishPhotoAsync(client, request, cancellationToken)
-                : await PublishTextAsync(client, request, cancellationToken);
-
-            var body = await response.Content.ReadAsStringAsync(cancellationToken);
-
-            if (!response.IsSuccessStatusCode)
+            if (request.ImageBytes is not null || request.ImageUrl is not null)
             {
-                logger.LogWarning("Meta publish failed with {StatusCode}: {Body}", response.StatusCode, body);
-                return PublishResult.Failure($"Meta publish failed with status {(int)response.StatusCode}: {ExtractErrorMessage(body)}");
+                return await PublishPhotoPostAsync(client, request, cancellationToken);
             }
 
-            var payload = JsonSerializer.Deserialize<MetaPublishResponse>(body);
-            var postId = payload?.PostId ?? payload?.Id;
-
-            if (string.IsNullOrWhiteSpace(postId))
-            {
-                logger.LogWarning("Meta publish returned no post id. Raw body: {Body}", body);
-                return PublishResult.Failure("Meta returned an empty publish response.");
-            }
-
-            return PublishResult.Success(postId);
+            using var response = await PublishTextAsync(client, request, cancellationToken);
+            return await ParsePublishResponseAsync(response, cancellationToken);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             logger.LogWarning(ex, "Meta publish threw an exception.");
             return PublishResult.Failure(ex.Message);
         }
+    }
+
+    /// <summary>
+    /// A single call to /{page-id}/photos only adds a photo to the Page's photo library — it does
+    /// not reliably create a visible Post entry in the Page's own Posts/Timeline tab for anyone who
+    /// isn't a page admin (confirmed live: the photo itself was reachable by direct URL, but the
+    /// Page's Posts tab stayed empty for a non-admin viewer). Meta's documented, reliable way to get
+    /// an actual Post out of one photo is the same two-step flow used for multi-photo posts: upload
+    /// the photo <c>unpublished</c> (nothing visible yet), then create the real post on
+    /// /{page-id}/feed referencing it via <c>attached_media</c> — that second call is what produces
+    /// a genuine Post object. Scheduling belongs on that second call: the photo itself is never
+    /// "scheduled", it just needs to exist (invisible, since <c>published=false</c>) until the post
+    /// referencing it goes live.
+    /// </summary>
+    private async Task<PublishResult> PublishPhotoPostAsync(HttpClient client, SocialPublishRequest request, CancellationToken cancellationToken)
+    {
+        using var photoResponse = await UploadUnpublishedPhotoAsync(client, request, cancellationToken);
+        var photoResult = await ParsePublishResponseAsync(photoResponse, cancellationToken);
+        if (!photoResult.Succeeded)
+        {
+            return PublishResult.Failure($"Photo upload failed: {photoResult.ErrorMessage}");
+        }
+
+        var feedFields = new Dictionary<string, string>
+        {
+            ["message"] = request.Message,
+            ["attached_media[0]"] = $"{{\"media_fbid\":\"{photoResult.ExternalPostId}\"}}",
+            ["access_token"] = request.AccessToken
+        };
+        AddSchedulingFields(feedFields, request.ScheduledAt);
+
+        using var feedResponse = await client.PostAsync(
+            $"https://graph.facebook.com/{_settings.ApiVersion}/{request.AccountIdExternal}/feed",
+            new FormUrlEncodedContent(feedFields), cancellationToken);
+
+        return await ParsePublishResponseAsync(feedResponse, cancellationToken);
+    }
+
+    private async Task<PublishResult> ParsePublishResponseAsync(HttpResponseMessage response, CancellationToken cancellationToken)
+    {
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            logger.LogWarning("Meta publish failed with {StatusCode}: {Body}", response.StatusCode, body);
+            return PublishResult.Failure($"Meta publish failed with status {(int)response.StatusCode}: {ExtractErrorMessage(body)}");
+        }
+
+        var payload = JsonSerializer.Deserialize<MetaPublishResponse>(body);
+        var postId = payload?.PostId ?? payload?.Id;
+
+        if (string.IsNullOrWhiteSpace(postId))
+        {
+            logger.LogWarning("Meta publish returned no post id. Raw body: {Body}", body);
+            return PublishResult.Failure("Meta returned an empty publish response.");
+        }
+
+        logger.LogInformation("Meta publish succeeded. Raw body: {Body}", body);
+        return PublishResult.Success(postId);
     }
 
     public async Task<PublishResult> CancelAsync(string accessToken, string externalPostId, CancellationToken cancellationToken)
@@ -104,7 +148,11 @@ public class MetaPostPublisher(
         return client.PostAsync($"https://graph.facebook.com/{_settings.ApiVersion}/{request.AccountIdExternal}/feed", form, cancellationToken);
     }
 
-    private Task<HttpResponseMessage> PublishPhotoAsync(HttpClient client, SocialPublishRequest request, CancellationToken cancellationToken)
+    /// <summary>Step one of <see cref="PublishPhotoPostAsync"/> — adds the photo to the page's
+    /// library as <c>published=false</c>, so it stays invisible until the /feed call that
+    /// references it actually publishes. No caption here: the caption becomes the post's own
+    /// <c>message</c> on that second call, not this photo's description.</summary>
+    private Task<HttpResponseMessage> UploadUnpublishedPhotoAsync(HttpClient client, SocialPublishRequest request, CancellationToken cancellationToken)
     {
         var url = $"https://graph.facebook.com/{_settings.ApiVersion}/{request.AccountIdExternal}/photos";
 
@@ -115,10 +163,9 @@ public class MetaPostPublisher(
             var fields = new Dictionary<string, string>
             {
                 ["url"] = request.ImageUrl,
-                ["caption"] = request.Message,
+                ["published"] = "false",
                 ["access_token"] = request.AccessToken
             };
-            AddSchedulingFields(fields, request.ScheduledAt);
 
             return client.PostAsync(url, new FormUrlEncodedContent(fields), cancellationToken);
         }
@@ -128,15 +175,8 @@ public class MetaPostPublisher(
         var imageContent = new ByteArrayContent(request.ImageBytes!);
         imageContent.Headers.ContentType = new MediaTypeHeaderValue(request.ImageContentType ?? "image/jpeg");
         content.Add(imageContent, "source", "image.jpg");
-        content.Add(new StringContent(request.Message), "caption");
+        content.Add(new StringContent("false"), "published");
         content.Add(new StringContent(request.AccessToken), "access_token");
-
-        if (request.ScheduledAt.HasValue)
-        {
-            var unixTime = new DateTimeOffset(DateTime.SpecifyKind(request.ScheduledAt.Value, DateTimeKind.Utc)).ToUnixTimeSeconds();
-            content.Add(new StringContent("false"), "published");
-            content.Add(new StringContent(unixTime.ToString()), "scheduled_publish_time");
-        }
 
         return client.PostAsync(url, content, cancellationToken);
     }

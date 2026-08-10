@@ -781,12 +781,35 @@ export class CampaignContentPage {
     });
   }
 
-  protected schedulePosts(): void {
+  /** How many results in a bulk-schedule response were published immediately (past-due AI time,
+   *  "publish now" chosen) rather than handed off to a platform's native scheduler. */
+  protected publishedNowCountIn(results: ScheduleCampaignPostResult[]): number {
+    return results.filter(r => r.succeeded && r.status === 'Published').length;
+  }
+
+  /** Counts posts among `approvedItems()` whose AI-suggested time has already passed (or never
+   *  had one) — the exact set the backend would otherwise silently push forward to "now + 20 min,
+   *  staggered" without telling anyone (see SchedulingWindow.ClampForward). */
+  private pastDueCount(): number {
+    const cutoff = Date.now() + 10 * 60 * 1000;
+    return this.approvedItems().filter(i => !i.suggestedPostAt || new Date(i.suggestedPostAt).getTime() < cutoff).length;
+  }
+
+  protected async schedulePosts(): Promise<void> {
     if (this.scheduling() || this.approvedItems().length === 0 || !this.perms.canEdit()) return;
+
+    const staleCount = this.pastDueCount();
+    let publishPastDueNow = false;
+    if (staleCount > 0) {
+      publishPastDueNow = await this.confirmDialogService.confirm(
+        `الوقت المقترح لـ${staleCount} من المنشورات قد مضى بالفعل. هل تريد نشرها الآن، أم جدولتها تلقائيًا لأقرب وقت متاح؟`,
+        { title: 'وقت منشورات قد مضى', confirmLabel: 'انشرها الآن', cancelLabel: 'جدولة تلقائية' },
+      );
+    }
 
     this.scheduling.set(true);
     this.scheduleResult.set(null);
-    this.campaignService.schedulePosts(this.campaignId()).subscribe({
+    this.campaignService.schedulePosts(this.campaignId(), publishPastDueNow).subscribe({
       next: res => {
         this.scheduling.set(false);
         this.coinPricingService.refreshAfterSpend();
@@ -867,6 +890,40 @@ export class CampaignContentPage {
         this.schedulingItemBusy.set(false);
         this.coinPricingService.refreshAfterSpend();
         this.showSpendError(err, 'تعذّر جدولة المنشور.');
+      },
+    });
+  }
+
+  /** Publishes this one post immediately, bypassing the date/time pickers entirely (and the
+   *  "10 minutes out" scheduling window they're subject to) — same account requirement as
+   *  `submitSchedulePost`, but skips straight to a real publish instead of a native-scheduler
+   *  handoff. */
+  protected submitSchedulePostNow(item: ContentItemSummary): void {
+    const accountId = this.scheduleAccountId();
+    if (!accountId || this.schedulingItemBusy() || !this.perms.canEdit()) return;
+
+    this.schedulingItemBusy.set(true);
+    this.scheduledPostService.schedule({
+      contentItemId: item.contentItemId,
+      visualAssetId: item.visualAssetId ?? undefined,
+      socialAccountId: accountId,
+      scheduledAt: new Date().toISOString(),
+      publishNow: true,
+    }).subscribe({
+      next: () => {
+        this.schedulingItemBusy.set(false);
+        this.schedulingItemId.set(null);
+        this.coinPricingService.refreshAfterSpend();
+        const brandProfileId = this.campaign()?.brandProfileId;
+        if (brandProfileId) {
+          this.contentItemService.refresh(brandProfileId, this.campaignId()).subscribe();
+          this.scheduledPostService.refresh(brandProfileId, this.campaignId()).subscribe();
+        }
+      },
+      error: err => {
+        this.schedulingItemBusy.set(false);
+        this.coinPricingService.refreshAfterSpend();
+        this.showSpendError(err, 'تعذّر نشر المنشور.');
       },
     });
   }

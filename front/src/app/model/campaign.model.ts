@@ -238,6 +238,9 @@ export interface ScheduleCampaignPostResult {
   error?: string | null;
   scheduledPostId?: string | null;
   scheduledAt?: string | null;
+  /** 'Published' means this one was published immediately (past-due AI time, publishPastDueNow
+   *  requested) rather than handed off to the platform's native scheduler. */
+  status?: 'Pending' | 'Published' | 'Failed' | 'Cancelled' | 'TakenDown' | null;
 }
 
 export interface ScheduleCampaignPostsResponse {

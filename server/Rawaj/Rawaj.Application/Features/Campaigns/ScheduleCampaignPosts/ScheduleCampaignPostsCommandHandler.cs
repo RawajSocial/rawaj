@@ -93,7 +93,7 @@ public class ScheduleCampaignPostsCommandHandler(
                 continue;
             }
 
-            results.Add(await ScheduleOneAsync(campaign.Id, item, account, tenantId, userId, role, ordinal, cancellationToken));
+            results.Add(await ScheduleOneAsync(campaign.Id, item, account, tenantId, userId, role, ordinal, request.PublishPastDueNow, cancellationToken));
             ordinal++;
         }
 
@@ -140,6 +140,7 @@ public class ScheduleCampaignPostsCommandHandler(
         Guid userId,
         TenantMemberRole role,
         int ordinal,
+        bool publishPastDueNow,
         CancellationToken cancellationToken)
     {
         var maxScheduledPosts = await (
@@ -175,8 +176,15 @@ public class ScheduleCampaignPostsCommandHandler(
             .FirstOrDefaultAsync(cancellationToken);
 
         var now = DateTime.UtcNow;
-        var scheduledAt = SchedulingWindow.ClampForward(item.SuggestedPostAt, now, ordinal);
-        var aiSuggestedTime = item.SuggestedPostAt.HasValue && scheduledAt == item.SuggestedPostAt.Value;
+
+        // A post is "past due" if the AI never suggested a time, or suggested one that's already
+        // inside (or past) the native-scheduling lead window - i.e. exactly the case ClampForward
+        // below would otherwise silently push forward without telling anyone.
+        var isPastDue = !item.SuggestedPostAt.HasValue || item.SuggestedPostAt.Value <= now.Add(SchedulingWindow.MinimumLead);
+        var publishImmediately = publishPastDueNow && isPastDue;
+
+        var scheduledAt = publishImmediately ? now : SchedulingWindow.ClampForward(item.SuggestedPostAt, now, ordinal);
+        var aiSuggestedTime = !publishImmediately && item.SuggestedPostAt.HasValue && scheduledAt == item.SuggestedPostAt.Value;
 
         var scheduledPost = new ScheduledPost
         {
@@ -197,8 +205,11 @@ public class ScheduleCampaignPostsCommandHandler(
         dbContext.ScheduledPosts.Add(scheduledPost);
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        var handoffResult = await ScheduledPostPublisher.ScheduleNativelyAsync(
-            dbContext, tokenEncryptor, publishers, scheduledPost.Id, scheduledPost.ScheduledAt, cancellationToken);
+        var handoffResult = publishImmediately
+            ? await ScheduledPostPublisher.PublishNowAsync(
+                dbContext, tokenEncryptor, publishers, scheduledPost.Id, cancellationToken)
+            : await ScheduledPostPublisher.ScheduleNativelyAsync(
+                dbContext, tokenEncryptor, publishers, scheduledPost.Id, scheduledPost.ScheduledAt, cancellationToken);
 
         if (!handoffResult.Succeeded)
         {
@@ -211,13 +222,13 @@ public class ScheduleCampaignPostsCommandHandler(
             await dbContext.SaveChangesAsync(cancellationToken);
 
             return new ScheduleCampaignPostResult(item.Id, item.Platform, false, false,
-                $"Could not schedule with {socialAccount.Platform}: {scheduledPost.ErrorMessage}", null, null);
+                $"Could not schedule with {socialAccount.Platform}: {scheduledPost.ErrorMessage}", null, null, scheduledPost.Status);
         }
 
         await CoinPolicy.TrySpendAsync(dbContext, tenantId, userId, role, coinCost, cancellationToken, reason: "scheduling");
         await dbContext.SaveChangesAsync(cancellationToken);
 
         var post = handoffResult.Data!;
-        return new ScheduleCampaignPostResult(item.Id, item.Platform, true, false, null, post.Id, post.ScheduledAt);
+        return new ScheduleCampaignPostResult(item.Id, item.Platform, true, false, null, post.Id, post.ScheduledAt, post.Status);
     }
 }

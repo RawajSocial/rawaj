@@ -149,6 +149,25 @@ public static class ScheduledPostPublisher
             return Result<ScheduledPost>.Success(scheduledPost);
         }
 
+        // Claim the row before making any live call to the platform - without this, a caller
+        // asking to publish immediately (ScheduledAt == now) races the background poller, which
+        // scans for exactly "Pending, ScheduledAt <= now, PostId == null" every 30s and would see
+        // this same row as due. Both racers would otherwise reach the platform's API concurrently
+        // (a real duplicate post/photo, already observed live), and only conflict afterwards at
+        // the final SaveChangesAsync below - too late, since the external call already happened
+        // twice. RowVersion-based optimistic concurrency (IConcurrencyAware, see AppDbContext)
+        // means only one of two racing SaveChanges on this row can succeed; the loser fails here,
+        // before ever touching the platform.
+        scheduledPost.UpdatedAt = DateTime.UtcNow;
+        try
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return Result<ScheduledPost>.Failure("This post is already being published.");
+        }
+
         byte[]? imageBytes = null;
         string? imageContentType = null;
         string? imageUrl = null;

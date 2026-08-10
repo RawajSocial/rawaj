@@ -110,6 +110,16 @@
   background: var(--color-danger-active, #b91c1c);
 }
 
+.cc-btn-publish-now {
+  background: transparent;
+  color: var(--color-success);
+  border: 1.5px solid var(--color-success-light);
+}
+.cc-btn-publish-now:not(:disabled):hover {
+  background: var(--color-success-light);
+  border-color: var(--color-success);
+}
+
 .cc-btn-view {
   background: var(--color-info-light);
   color: var(--color-info);
