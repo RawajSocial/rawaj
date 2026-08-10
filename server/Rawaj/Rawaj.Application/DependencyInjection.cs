@@ -5,6 +5,7 @@ using Rawaj.Application.Common.Behaviors;
 using Rawaj.Application.Common.Interfaces;
 using Rawaj.Application.Common.Services;
 using Rawaj.Application.Features.AiPipeline.Services;
+using Rawaj.Application.Features.Billing.Common;
 
 namespace Rawaj.Application;
 
@@ -18,6 +19,8 @@ public static class DependencyInjection
         services.AddValidatorsFromAssembly(assembly);
 
         services.AddScoped<ICurrentTenantContext, CurrentTenantContext>();
+        services.AddScoped<IBillingFulfillmentService, BillingFulfillmentService>();
+        services.AddScoped<IPendingCheckoutSessionService, PendingCheckoutSessionService>();
         services.AddScoped<TenantProvisioningService>();
         services.AddScoped<IPipelineArtifactStore, PipelineArtifactStore>();
         services.AddSingleton<IPromptTemplateProvider, PromptTemplateProvider>();

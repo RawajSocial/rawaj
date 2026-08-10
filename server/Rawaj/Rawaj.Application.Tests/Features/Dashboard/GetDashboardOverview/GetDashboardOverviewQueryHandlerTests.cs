@@ -129,4 +129,99 @@ public class GetDashboardOverviewQueryHandlerTests
         Assert.False(result.Data!.UniqueViewersAvailable);
         Assert.False(result.Data!.EngagementRateAvailable);
     }
+
+    [Fact]
+    public async Task Handle_ChangePercents_NullWhenAllDataIsFromThisMonth()
+    {
+        var (dbContext, brandProfileId) = await SeedBrandWithPostsAsync(
+            (Views: 10, UniqueViewers: 2, Likes: 3, Comments: 1, Shares: 0));
+        var handler = new GetDashboardOverviewQueryHandler(dbContext);
+
+        var result = await handler.Handle(new GetDashboardOverviewQuery(brandProfileId, null), CancellationToken.None);
+
+        Assert.True(result.Succeeded, result.ErrorMessage);
+        Assert.Null(result.Data!.PostsTrackedChangePercent);
+        Assert.Null(result.Data!.TotalUniqueViewersChangePercent);
+        Assert.Null(result.Data!.AverageEngagementRateChangePercent);
+        Assert.Null(result.Data!.TotalFollowersChangePercent);
+    }
+
+    [Fact]
+    public async Task Handle_ChangePercents_ComputedCorrectlyWhenPriorMonthDataExists()
+    {
+        var dbContext = TestDbContextFactory.Create();
+        var tenantId = Guid.NewGuid();
+        var brandProfileId = Guid.NewGuid();
+        var socialAccountId = Guid.NewGuid();
+        var contentItemId = Guid.NewGuid();
+        var scheduledPostId = Guid.NewGuid();
+        var now = DateTime.UtcNow;
+        var monthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+        // Safely in the previous calendar month regardless of when this test runs.
+        var lastMonth = monthStart.AddDays(-5);
+
+        dbContext.TenantBrandProfiles.Add(new TenantBrandProfile
+        {
+            Id = brandProfileId, TenantId = tenantId, Name = "Test Brand",
+            Status = BrandProfileStatus.Active, CreatedAt = lastMonth, UpdatedAt = now
+        });
+
+        dbContext.SocialAccounts.Add(new SocialAccount
+        {
+            Id = socialAccountId, BrandProfileId = brandProfileId, Platform = SocialPlatform.Facebook,
+            AccountName = "Test Page", AccountIdExternal = "123", Token = "encrypted-token",
+            IsActive = true, CreatedAt = lastMonth, FollowerCount = 150
+        });
+
+        // Last month's follower snapshot (150 now, 100 back then -> +50%).
+        dbContext.FollowerCountSnapshots.Add(new FollowerCountSnapshot
+        {
+            Id = Guid.NewGuid(), SocialAccountId = socialAccountId, Platform = SocialPlatform.Facebook,
+            RecordedAt = lastMonth, FollowerCount = 100
+        });
+
+        dbContext.ContentItems.Add(new ContentItem
+        {
+            Id = contentItemId, TenantId = tenantId, BrandProfileId = brandProfileId, CreatedBy = Guid.NewGuid(),
+            ContentType = ContentType.Post, Platform = SocialPlatform.Facebook, Language = Language.En,
+            Content = "Post body", Status = ContentStatus.Approved, CreatedAt = lastMonth, UpdatedAt = now,
+            RowVersion = new byte[8]
+        });
+
+        dbContext.ScheduledPosts.Add(new ScheduledPost
+        {
+            Id = scheduledPostId, ContentItemId = contentItemId, SocialAccountId = socialAccountId,
+            BrandProfileId = brandProfileId, ScheduledAt = lastMonth, Status = ScheduledPostStatus.Published,
+            PostId = $"meta-post-{scheduledPostId:N}", PublishedAt = lastMonth, CreatedAt = lastMonth, UpdatedAt = now
+        });
+
+        // Same single post, two snapshots: last month's (10 unique viewers, 100 views, 20 likes ->
+        // 0.2 engagement rate) and this month's (20 unique viewers, 200 views, 10 likes -> 0.05).
+        dbContext.PostAnalytics.Add(new PostAnalytics
+        {
+            Id = Guid.NewGuid(), ScheduledPostId = scheduledPostId, Platform = SocialPlatform.Facebook,
+            RecordedAt = lastMonth, Views = 100, UniqueViewers = 10, Likes = 20, Comments = 0, Shares = 0
+        });
+        dbContext.PostAnalytics.Add(new PostAnalytics
+        {
+            Id = Guid.NewGuid(), ScheduledPostId = scheduledPostId, Platform = SocialPlatform.Facebook,
+            RecordedAt = now, Views = 200, UniqueViewers = 20, Likes = 10, Comments = 0, Shares = 0
+        });
+
+        await dbContext.SaveChangesAsync(CancellationToken.None);
+        var handler = new GetDashboardOverviewQueryHandler(dbContext);
+
+        var result = await handler.Handle(new GetDashboardOverviewQuery(brandProfileId, null), CancellationToken.None);
+
+        Assert.True(result.Succeeded, result.ErrorMessage);
+        // Same single post existed both before and after the cutoff -> count unchanged -> a real 0%,
+        // not null (distinct from "no prior data").
+        Assert.Equal(0m, result.Data!.PostsTrackedChangePercent);
+        // Unique viewers: 10 -> 20 = +100%.
+        Assert.Equal(100m, result.Data!.TotalUniqueViewersChangePercent);
+        // Engagement rate: 0.2 -> 0.05 = -75%.
+        Assert.Equal(-75m, result.Data!.AverageEngagementRateChangePercent);
+        // Followers: 100 -> 150 = +50%.
+        Assert.Equal(50m, result.Data!.TotalFollowersChangePercent);
+    }
 }

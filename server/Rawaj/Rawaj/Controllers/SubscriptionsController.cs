@@ -10,8 +10,10 @@ using Rawaj.Application.Features.Billing.GetCoinPricing;
 using Rawaj.Application.Features.Billing.GetPublicCoinPricing;
 using Rawaj.Application.Features.Billing.GetSubscription;
 using Rawaj.Application.Features.Billing.GetSubscriptionPlans;
+using Rawaj.Application.Features.Billing.Common;
 using Rawaj.Application.Features.Billing.PurchaseAddOn;
 using Rawaj.Application.Features.Billing.PurchaseCoins;
+using Rawaj.Application.Features.Billing.Webhooks;
 using Rawaj.Common;
 
 namespace Rawaj.Controllers;
@@ -96,24 +98,42 @@ public class SubscriptionsController(ISender sender) : ControllerBase
             : BadRequest(ApiResponse<GetPublicCoinPricingResponse>.Fail(result.ErrorMessage!));
     }
 
+    /// <summary>Starts a real Stripe Checkout payment and returns its URL — the browser must be
+    /// redirected there; coins are granted only once the webhook confirms payment.</summary>
     [HttpPost("purchase-coins")]
-    public async Task<IActionResult> PurchaseCoins(PurchaseCoinsCommand command, CancellationToken cancellationToken)
+    public async Task<IActionResult> PurchaseCoins(CreatePurchaseCoinsCheckoutSessionCommand command, CancellationToken cancellationToken)
     {
         var result = await sender.Send(command, cancellationToken);
 
         return result.Succeeded
-            ? Ok(ApiResponse<PurchaseCoinsResponse>.Success(result.Data!))
-            : BadRequest(ApiResponse<PurchaseCoinsResponse>.Fail(result.ErrorMessage!));
+            ? Ok(ApiResponse<CreateCheckoutSessionResponse>.Success(result.Data!))
+            : BadRequest(ApiResponse<CreateCheckoutSessionResponse>.Fail(result.ErrorMessage!));
     }
 
+    /// <summary>Starts a real Stripe Checkout payment and returns its URL — the browser must be
+    /// redirected there; the add-on is granted only once the webhook confirms payment.</summary>
     [HttpPost("purchase-add-on")]
-    public async Task<IActionResult> PurchaseAddOn(PurchaseAddOnCommand command, CancellationToken cancellationToken)
+    public async Task<IActionResult> PurchaseAddOn(CreatePurchaseAddOnCheckoutSessionCommand command, CancellationToken cancellationToken)
     {
         var result = await sender.Send(command, cancellationToken);
 
         return result.Succeeded
-            ? Ok(ApiResponse<PurchaseAddOnResponse>.Success(result.Data!))
-            : BadRequest(ApiResponse<PurchaseAddOnResponse>.Fail(result.ErrorMessage!));
+            ? Ok(ApiResponse<CreateCheckoutSessionResponse>.Success(result.Data!))
+            : BadRequest(ApiResponse<CreateCheckoutSessionResponse>.Fail(result.ErrorMessage!));
+    }
+
+    /// <summary>The "verify on return" fallback used when no Stripe webhook is configured — call
+    /// right after the browser returns from Checkout with the <c>session_id</c> Stripe appended to
+    /// the success URL. Returns <c>true</c> once fulfilled, <c>false</c> if not confirmed yet (safe
+    /// to retry).</summary>
+    [HttpPost("checkout/verify")]
+    public async Task<IActionResult> VerifyCheckoutSession(VerifyCheckoutSessionCommand command, CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(command, cancellationToken);
+
+        return result.Succeeded
+            ? Ok(ApiResponse<bool>.Success(result.Data))
+            : BadRequest(ApiResponse<bool>.Fail(result.ErrorMessage!));
     }
 
     [HttpGet("history")]

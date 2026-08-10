@@ -66,18 +66,36 @@ public class MetaAnalyticsProvider(
             // Care) is counted, matching what Facebook's own Post Insights UI reports as
             // "Reactions" - the "likes" edge only counts the literal Like reaction and silently
             // undercounts (often to 0) any post whose reactions are a different type.
-            var url = $"https://graph.facebook.com/{_settings.ApiVersion}/{postId}" +
-                       "?fields=reactions.summary(total_count).limit(0),comments.summary(true).limit(0),shares" +
-                       $"&access_token={Uri.EscapeDataString(accessToken)}";
+            var (status, body) = await FetchFieldsAsync(client, postId, accessToken,
+                "reactions.summary(total_count).limit(0),comments.summary(true).limit(0),shares", cancellationToken);
 
-            using var response = await client.GetAsync(url, cancellationToken);
-            var body = await response.Content.ReadAsStringAsync(cancellationToken);
-
-            if (!response.IsSuccessStatusCode)
+            // The "shares" field is a known Graph API quirk: it's only present in the response at
+            // all once a post has at least one share - requesting it explicitly on a post with zero
+            // shares throws "(#100) Tried accessing nonexisting field (shares)" and fails the WHOLE
+            // combined fields request, taking reactions/comments down with it even though those
+            // would have succeeded on their own. Detected and retried without "shares" (defaulted
+            // to 0) rather than losing likes/comments over a field that's genuinely just empty.
+            if (status is System.Net.HttpStatusCode.BadRequest && IsMissingSharesFieldError(body))
             {
-                logger.LogWarning("Meta engagement fetch failed with {StatusCode}: {Body}", response.StatusCode, body);
+                (status, body) = await FetchFieldsAsync(client, postId, accessToken,
+                    "reactions.summary(total_count).limit(0),comments.summary(true).limit(0)", cancellationToken);
+
+                if (status is System.Net.HttpStatusCode.OK)
+                {
+                    var retryPayload = JsonSerializer.Deserialize<MetaPostFieldsResponse>(body);
+                    return new EngagementFetchResult(
+                        retryPayload?.Reactions?.Summary?.TotalCount,
+                        retryPayload?.Comments?.Summary?.TotalCount,
+                        0,
+                        null);
+                }
+            }
+
+            if (status is not System.Net.HttpStatusCode.OK)
+            {
+                logger.LogWarning("Meta engagement fetch failed with {StatusCode}: {Body}", status, body);
                 return new EngagementFetchResult(null, null, null,
-                    $"Engagement fetch failed with status {(int)response.StatusCode}: {ExtractErrorMessage(body)}");
+                    $"Engagement fetch failed with status {(int)status}: {ExtractErrorMessage(body)}");
             }
 
             var payload = JsonSerializer.Deserialize<MetaPostFieldsResponse>(body);
@@ -91,6 +109,36 @@ public class MetaAnalyticsProvider(
         {
             logger.LogWarning(ex, "Meta engagement fetch threw an exception.");
             return new EngagementFetchResult(null, null, null, ex.Message);
+        }
+    }
+
+    private async Task<(System.Net.HttpStatusCode Status, string Body)> FetchFieldsAsync(
+        HttpClient client, string postId, string accessToken, string fields, CancellationToken cancellationToken)
+    {
+        var url = $"https://graph.facebook.com/{_settings.ApiVersion}/{postId}" +
+                   $"?fields={fields}&access_token={Uri.EscapeDataString(accessToken)}";
+
+        using var response = await client.GetAsync(url, cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        return (response.StatusCode, body);
+    }
+
+    private static bool IsMissingSharesFieldError(string body)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(body);
+            if (!doc.RootElement.TryGetProperty("error", out var error) || !error.TryGetProperty("message", out var message))
+            {
+                return false;
+            }
+
+            var text = message.GetString();
+            return text?.Contains("nonexisting field (shares)", StringComparison.OrdinalIgnoreCase) ?? false;
+        }
+        catch (JsonException)
+        {
+            return false;
         }
     }
 

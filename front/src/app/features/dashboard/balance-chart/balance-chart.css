@@ -100,17 +100,26 @@
 
 /* ── X-axis labels ── */
 .chart-labels-x {
-  display: flex;
-  justify-content: space-between;
+  position: relative;
+  height: 1.1rem;
   padding: 0 4px;
 }
 
 .chart-labels-x span {
+  position: absolute;
+  top: 0;
+  /* Centers the label on its data point ("left" and "transform" are both physical, not
+     direction-aware, so this is correct regardless of the page's RTL layout). */
+  transform: translateX(-50%);
   font-size: 10px;
+  white-space: nowrap;
   color: var(--color-text-muted);
-  text-align: center;
-  flex: 1;
 }
+
+/* The centered transform would push the first/last label half off the chart's edge - pin them
+   to grow inward instead. */
+.chart-labels-x span:first-child { transform: translateX(0); }
+.chart-labels-x span:last-child { transform: translateX(-100%); }
 
 /* ── Legend ── */
 .chart-legend {

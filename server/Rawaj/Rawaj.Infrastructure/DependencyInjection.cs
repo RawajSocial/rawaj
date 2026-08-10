@@ -10,6 +10,7 @@ using Rawaj.Infrastructure.BackgroundJobs;
 using Rawaj.Infrastructure.Caching;
 using Rawaj.Infrastructure.Email;
 using Rawaj.Infrastructure.Media;
+using Rawaj.Infrastructure.Payments;
 using Rawaj.Infrastructure.RealTime;
 using Rawaj.Infrastructure.Resilience;
 using Rawaj.Infrastructure.Scraping;
@@ -42,6 +43,8 @@ public static class DependencyInjection
         services.AddScoped<ICoinCostProvider>(sp => sp.GetRequiredService<IOptions<CoinCostSettings>>().Value);
         services.Configure<FeatureFlagsSettings>(configuration.GetSection(FeatureFlagsSettings.SectionName));
         services.AddScoped<IFeatureFlags>(sp => sp.GetRequiredService<IOptions<FeatureFlagsSettings>>().Value);
+        services.Configure<StripeSettings>(configuration.GetSection(StripeSettings.SectionName));
+        services.AddScoped<IPaymentGatewayService, StripeGatewayService>();
 
         services.AddResilientHttpClient("Groq", attemptTimeout: TimeSpan.FromSeconds(45), totalTimeout: TimeSpan.FromSeconds(120));
         services.AddResilientHttpClient("HuggingFace", attemptTimeout: TimeSpan.FromSeconds(60), totalTimeout: TimeSpan.FromSeconds(150));

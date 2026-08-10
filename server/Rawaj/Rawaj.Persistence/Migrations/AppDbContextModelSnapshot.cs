@@ -500,6 +500,14 @@ namespace Rawaj.Persistence.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<string>("StripeEventId")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("StripeSessionId")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uniqueidentifier");
 
@@ -509,6 +517,14 @@ namespace Rawaj.Persistence.Migrations
                         .HasColumnType("nvarchar(20)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("StripeEventId")
+                        .IsUnique()
+                        .HasFilter("[StripeEventId] IS NOT NULL");
+
+                    b.HasIndex("StripeSessionId")
+                        .IsUnique()
+                        .HasFilter("[StripeSessionId] IS NOT NULL");
 
                     b.HasIndex("TenantId", "CreatedAt");
 
@@ -625,6 +641,44 @@ namespace Rawaj.Persistence.Migrations
                             Name = "Enterprise",
                             PriceUsd = 400m
                         });
+                });
+
+            modelBuilder.Entity("Rawaj.Domain.Entities.Billing.PendingCheckoutSession", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CheckoutUrl")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("IntentKey")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("StripeSessionId")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "IntentKey")
+                        .IsUnique();
+
+                    b.ToTable("pending_checkout_sessions", (string)null);
                 });
 
             modelBuilder.Entity("Rawaj.Domain.Entities.Billing.Subscription", b =>
@@ -1421,6 +1475,34 @@ namespace Rawaj.Persistence.Migrations
                     b.ToTable("outbox_messages", (string)null);
                 });
 
+            modelBuilder.Entity("Rawaj.Domain.Entities.SocialMedia.FollowerCountSnapshot", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("FollowerCount")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Platform")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime>("RecordedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("SocialAccountId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SocialAccountId", "RecordedAt")
+                        .IsDescending(false, true);
+
+                    b.ToTable("follower_count_snapshots", (string)null);
+                });
+
             modelBuilder.Entity("Rawaj.Domain.Entities.SocialMedia.PostAnalytics", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2179,6 +2261,17 @@ namespace Rawaj.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
                 });
 
+            modelBuilder.Entity("Rawaj.Domain.Entities.Billing.PendingCheckoutSession", b =>
+                {
+                    b.HasOne("Rawaj.Domain.Entities.Tenants.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Tenant");
+                });
+
             modelBuilder.Entity("Rawaj.Domain.Entities.Billing.Subscription", b =>
                 {
                     b.HasOne("Rawaj.Domain.Entities.Billing.SubscriptionPlan", "SubscriptionPlan")
@@ -2362,6 +2455,17 @@ namespace Rawaj.Persistence.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("Rawaj.Domain.Entities.SocialMedia.FollowerCountSnapshot", b =>
+                {
+                    b.HasOne("Rawaj.Domain.Entities.SocialMedia.SocialAccount", "SocialAccount")
+                        .WithMany()
+                        .HasForeignKey("SocialAccountId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("SocialAccount");
                 });
 
             modelBuilder.Entity("Rawaj.Domain.Entities.SocialMedia.PostAnalytics", b =>

@@ -5,14 +5,14 @@ import { BalanceChart } from '../balance-chart/balance-chart';
 import { PageHeader } from '../../../shared/components/page-header/page-header';
 import { PlatformPerformanceCard } from './platform-performance-card/platform-performance-card';
 import { TopPostsCard } from './top-posts-card/top-posts-card';
-import { MetaAnalyticsCard } from './meta-analytics-card/meta-analytics-card';
 import { SeoService } from '../../../services/seo.service';
 import { TenantService } from '../../../core/tenant/tenant.service';
 import { BrandContextService } from '../../../services/brand-context.service';
 import { DashboardService } from '../../../services/dashboard.service';
+import { SocialAccountService } from '../../../core/social/social-account.service';
 import { BackendSocialPlatform } from '../../../model/content-item.model';
 import { formatEngagementRate } from '../../../model/analytics.model';
-import { KpiData, MetaWidget, PlatformKey, PlatformStat, TopPostView, compactNumber } from './crm-page.model';
+import { KpiData, PlatformKey, PlatformStat, TopPostView, compactNumber } from './crm-page.model';
 
 const PLATFORM_CFG: Record<Exclude<PlatformKey, 'all'>, { label: string; icon: string; color: string }> = {
   instagram: { label: 'إنستغرام', icon: 'fa-brands fa-instagram',  color: 'var(--color-instagram)' },
@@ -27,7 +27,7 @@ const BACKEND_PLATFORM_TO_KEY: Record<BackendSocialPlatform, Exclude<PlatformKey
 @Component({
   selector: 'app-crm-page',
   standalone: true,
-  imports: [RouterLink, KpiCard, BalanceChart, PageHeader, PlatformPerformanceCard, TopPostsCard, MetaAnalyticsCard],
+  imports: [RouterLink, KpiCard, BalanceChart, PageHeader, PlatformPerformanceCard, TopPostsCard],
   templateUrl: './crm-page.html',
   styleUrl: './crm-page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -37,9 +37,14 @@ export class CrmPage {
   private readonly tenantService = inject(TenantService);
   protected readonly brandContextService = inject(BrandContextService);
   protected readonly dashboardService = inject(DashboardService);
+  private readonly socialAccountService = inject(SocialAccountService);
 
   protected readonly isActivated = this.tenantService.isActivated;
   protected readonly brandProfileCount = this.tenantService.brandProfileCount;
+
+  /** Gates the "connect social accounts" quick-action card — only worth prompting when the brand
+   *  genuinely has none connected yet, rather than showing it unconditionally forever. */
+  protected readonly hasConnectedAccounts = signal(false);
 
   constructor() {
     this.seo.setPageSeo({
@@ -59,6 +64,14 @@ export class CrmPage {
       const campaignId = this.brandContextService.selectedCampaignId();
       if (!brandId) return;
       this.dashboardService.refresh(brandId, campaignId).subscribe();
+    });
+
+    effect(() => {
+      const brandId = this.brandContextService.selectedBrandProfileId();
+      if (!brandId) return;
+      this.socialAccountService.getByBrand(brandId).subscribe(res => {
+        this.hasConnectedAccounts.set((res.data?.length ?? 0) > 0);
+      });
     });
   }
 
@@ -125,31 +138,13 @@ export class CrmPage {
     const overview = this.dashboardService.overview();
     const s = this.activeStats();
     return [
-      { title: 'إجمالي المتابعين', value: compactNumber(s?.followers ?? 0), icon: 'fa-users',       iconBg: 'rgb(94 0 255 / 12%)',  iconColor: '#5e00ff', change: s?.change ?? 0, accentColor: '#5e00ff' },
-      { title: 'المشاهدون الفريدون شهريًا', value: compactNumber(s?.uniqueViewers ?? overview?.totalUniqueViewers ?? 0), icon: 'fa-bullseye', iconBg: 'rgba(37,99,235,0.12)', iconColor: '#0050ff', change: 0, accentColor: '#0050ff' },
-      { title: 'معدل التفاعل',       value: formatEngagementRate(overview?.averageEngagementRate), icon: 'fa-heart',       iconBg: 'rgb(255 0 126 / 12%)', iconColor: '#ff007e', change: 0, accentColor: '#EC4899' },
-      { title: 'المنشورات المنشورة', value: String(overview?.postsTracked ?? 0),           icon: 'fa-paper-plane', iconBg: 'rgb(0 255 94 / 12%)',  iconColor: '#00f85c', change: 0, accentColor: '#00f85c' },
+      { title: 'إجمالي المتابعين', value: compactNumber(s?.followers ?? 0), icon: 'fa-users',       iconBg: 'rgb(94 0 255 / 12%)',  iconColor: '#5e00ff', change: overview?.totalFollowersChangePercent ?? null, accentColor: '#5e00ff' },
+      { title: 'المشاهدون الفريدون شهريًا', value: compactNumber(s?.uniqueViewers ?? overview?.totalUniqueViewers ?? 0), icon: 'fa-bullseye', iconBg: 'rgba(37,99,235,0.12)', iconColor: '#0050ff', change: overview?.totalUniqueViewersChangePercent ?? null, accentColor: '#0050ff' },
+      { title: 'معدل التفاعل',       value: formatEngagementRate(overview?.averageEngagementRate), icon: 'fa-heart',       iconBg: 'rgb(255 0 126 / 12%)', iconColor: '#ff007e', change: overview?.averageEngagementRateChangePercent ?? null, accentColor: '#EC4899' },
+      { title: 'المنشورات المنشورة', value: String(overview?.postsTracked ?? 0),           icon: 'fa-paper-plane', iconBg: 'rgb(0 255 94 / 12%)',  iconColor: '#00f85c', change: overview?.postsTrackedChangePercent ?? null, accentColor: '#00f85c' },
     ];
   });
 
-  /** Placeholder until a real Meta Business connection exists (same intent as the original
-   *  hardcoded widget) — populated with real overview totals instead of fake per-platform numbers. */
-  protected readonly metaWidgets = computed<MetaWidget[]>(() => {
-    const overview = this.dashboardService.overview();
-    if (!overview) return [];
-    return [
-      {
-        label: 'نظرة عامة على الأداء',
-        icon: 'fa-solid fa-chart-line',
-        metrics: [
-          { label: 'المشاهدات (Views)', value: compactNumber(overview.totalViews) },
-          { label: 'الإعجابات', value: compactNumber(overview.totalLikes) },
-          { label: 'التعليقات', value: compactNumber(overview.totalComments) },
-          { label: 'المشاركات', value: compactNumber(overview.totalShares) },
-        ],
-      },
-    ];
-  });
 
   protected readonly topPostsView = computed<TopPostView[]>(() => {
     const overview = this.dashboardService.overview();

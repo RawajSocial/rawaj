@@ -2,9 +2,9 @@ using FluentValidation;
 
 namespace Rawaj.Application.Features.Billing.PurchaseCoins;
 
-public class PurchaseCoinsCommandValidator : AbstractValidator<PurchaseCoinsCommand>
+public class CreatePurchaseCoinsCheckoutSessionCommandValidator : AbstractValidator<CreatePurchaseCoinsCheckoutSessionCommand>
 {
-    public PurchaseCoinsCommandValidator()
+    public CreatePurchaseCoinsCheckoutSessionCommandValidator()
     {
         RuleFor(x => x)
             .Must(x => x.CoinPackageId.HasValue ^ x.CustomCoins.HasValue)

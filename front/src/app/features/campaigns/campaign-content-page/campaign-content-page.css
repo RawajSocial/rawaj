@@ -63,6 +63,7 @@
 .cc-btn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: .5rem;
   padding: .6rem 1.2rem;
   border-radius: 10px;
@@ -70,6 +71,7 @@
   font-size: .85rem;
   font-weight: 700;
   cursor: pointer;
+  white-space: nowrap;
   transition: opacity .2s, transform .15s;
 }
 .cc-btn:disabled { opacity: .5; cursor: not-allowed; }
@@ -261,7 +263,15 @@
 .cc-regenerate-actions {
   display: flex;
   justify-content: flex-end;
+  align-items: center;
   gap: .5rem;
+  flex-wrap: wrap;
+}
+.cc-regenerate-actions .cc-btn {
+  flex: 1 1 auto;
+}
+.cc-regenerate-actions .cc-regenerate-cost {
+  flex: 1 1 100%;
 }
 
 .cc-schedule h2 {
@@ -526,15 +536,18 @@
   gap: .3rem;
   font-size: .78rem;
   color: var(--color-text-secondary);
-  flex: 1;
+  flex: 1 1 100%;
+  min-width: 0;
 }
 .cc-schedule-item-field select,
 .cc-schedule-item-field input {
+  width: 100%;
   padding: .5rem .6rem;
   border-radius: 10px;
   border: 1.5px solid var(--color-secondary-light);
   font-size: .82rem;
   font-family: inherit;
+  box-sizing: border-box;
 }
 .cc-schedule-item-datetime {
   display: flex;

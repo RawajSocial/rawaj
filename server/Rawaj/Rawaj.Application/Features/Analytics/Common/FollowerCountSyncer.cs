@@ -5,10 +5,10 @@ using Rawaj.Domain.Entities.SocialMedia;
 namespace Rawaj.Application.Features.Analytics.Common;
 
 /// <summary>
-/// Refreshes SocialAccount.FollowerCount from the platform. Unlike PostAnalyticsSyncer this
-/// updates the account row in place rather than appending a history row - a follower count is a
-/// current-state fact about the account, not a per-post event, so there is nothing to keep a
-/// snapshot history of yet.
+/// Refreshes SocialAccount.FollowerCount from the platform, updating the account row in place for
+/// cheap "current value" reads, and also appends a FollowerCountSnapshot row so period-over-period
+/// growth (e.g. the dashboard's month-over-month follower comparison) can be reconstructed later
+/// instead of only ever knowing the latest number.
 /// </summary>
 public static class FollowerCountSyncer
 {
@@ -43,8 +43,18 @@ public static class FollowerCountSyncer
             return new SyncOutcome(false, result.ErrorMessage);
         }
 
+        var now = DateTime.UtcNow;
         socialAccount.FollowerCount = result.FollowerCount;
-        socialAccount.FollowerCountSyncedAt = DateTime.UtcNow;
+        socialAccount.FollowerCountSyncedAt = now;
+
+        dbContext.FollowerCountSnapshots.Add(new FollowerCountSnapshot
+        {
+            Id = Guid.NewGuid(),
+            SocialAccountId = socialAccount.Id,
+            Platform = socialAccount.Platform,
+            RecordedAt = now,
+            FollowerCount = result.FollowerCount!.Value,
+        });
 
         return new SyncOutcome(true, null);
     }

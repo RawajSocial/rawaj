@@ -4,12 +4,11 @@ import { ErrorModal } from './shared/components/error-modal/error-modal';
 import { ConfirmDialog } from './shared/components/confirm-dialog/confirm-dialog';
 import { PageLoader } from './shared/components/page-loader/page-loader';
 import { CelebrationModal } from './shared/components/celebration-modal/celebration-modal';
-import { FakePaymentModal } from './shared/components/fake-payment-modal/fake-payment-modal';
 import { LoaderService } from './services/loader.service';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, ErrorModal, ConfirmDialog, PageLoader, CelebrationModal, FakePaymentModal],
+  imports: [RouterOutlet, ErrorModal, ConfirmDialog, PageLoader, CelebrationModal],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })

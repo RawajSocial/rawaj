@@ -38,13 +38,27 @@ export class BalanceChart {
   revenueAreaPath = computed(() => this.buildAreaPath(this.uniqueViewersSeries()));
   expensePath = computed(() => this.buildPath(this.viewsSeries()));
 
+  /** A fixed, small number of evenly-spaced ticks regardless of range - rendering one label per
+   *  data point (up to 730 for "ALL") packed the axis with illegible, overlapping text and forced
+   *  a horizontal scrollbar, since flex items can't shrink below their own text width. `x` is a
+   *  percentage (0-100) of the chart's width, matching each tick's real data-point position, for
+   *  absolute positioning in the template instead of an even flex spread. */
+  private static readonly MAX_LABELS = 6;
+
   xLabels = computed(() => {
     const pts = this.points();
     if (pts.length < 2) return [];
-    return pts.map((p, i) => ({
-      label: new Date(p.date).toLocaleDateString('ar-EG', { day: 'numeric', month: 'short' }),
-      x: this.PAD + (i / (pts.length - 1)) * (this.W - this.PAD * 2),
-    }));
+
+    const tickCount = Math.min(BalanceChart.MAX_LABELS, pts.length);
+    const step = (pts.length - 1) / (tickCount - 1);
+
+    return Array.from({ length: tickCount }, (_, tick) => {
+      const i = Math.round(tick * step);
+      return {
+        label: new Date(pts[i].date).toLocaleDateString('ar-EG', { day: 'numeric', month: 'short' }),
+        x: (i / (pts.length - 1)) * 100,
+      };
+    });
   });
 
   totalRevenue = computed(() => compactNumber(this.uniqueViewersSeries().reduce((a, v) => a + v, 0)));

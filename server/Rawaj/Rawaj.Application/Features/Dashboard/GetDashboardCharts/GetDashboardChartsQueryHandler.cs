@@ -16,7 +16,10 @@ public class GetDashboardChartsQueryHandler(IApplicationDbContext dbContext)
 {
     public async Task<Result<DashboardChartsResponse>> Handle(GetDashboardChartsQuery request, CancellationToken cancellationToken)
     {
-        var days = Math.Clamp(request.Days, 1, 90);
+        // 730 matches the frontend's largest range chip ("ALL", see FILTER_DAYS in balance-chart.ts) -
+        // this used to cap at 90, silently flattening the 6M/1Y/ALL buttons to the same 90-day
+        // window regardless of how much history actually existed.
+        var days = Math.Clamp(request.Days, 1, 730);
         var since = DateTime.UtcNow.Date.AddDays(-(days - 1));
 
         var rows = await dbContext.PostAnalytics

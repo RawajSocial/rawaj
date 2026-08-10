@@ -78,6 +78,13 @@
   text-decoration: none;
   transition: transform var(--transition-fast), box-shadow var(--transition-fast), background-color var(--transition-fast);
 }
+.rw-btn:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+  pointer-events: none;
+  transform: none;
+  box-shadow: none;
+}
 
 .rw-btn--primary {
   background: linear-gradient(135deg, var(--color-secondary), var(--color-primary));

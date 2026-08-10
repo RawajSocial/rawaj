@@ -40,6 +40,13 @@ export interface DashboardOverviewResponse {
   viewsAvailable: boolean;
   uniqueViewersAvailable: boolean;
   engagementRateAvailable: boolean;
+  /** Percent change vs. the value as of the start of the current calendar month ("as of last
+   *  month") — null when there's nothing to compare against yet, not a genuine 0% change. Render
+   *  null as "—", never as "0%". */
+  postsTrackedChangePercent?: number | null;
+  totalUniqueViewersChangePercent?: number | null;
+  averageEngagementRateChangePercent?: number | null;
+  totalFollowersChangePercent?: number | null;
 }
 
 /** GET /api/v1/dashboard/charts */

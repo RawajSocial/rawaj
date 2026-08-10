@@ -18,7 +18,8 @@ export interface KpiData {
   icon: string;
   iconBg: string;
   iconColor: string;
-  change: number;
+  /** null when there's no prior-period value to compare against yet — render as "—", never "0%". */
+  change: number | null;
   accentColor: string;
 }
 
@@ -45,17 +46,6 @@ export interface ConnectPlatform {
   label: string;
   icon: string;
   color: string;
-}
-
-export interface MetaWidgetMetric {
-  label: string;
-  value: string;
-}
-
-export interface MetaWidget {
-  label: string;
-  icon: string;
-  metrics: MetaWidgetMetric[];
 }
 
 /** Compact "1.2K" / "3.4M" formatting shared by every overview widget that

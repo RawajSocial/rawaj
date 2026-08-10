@@ -38,7 +38,7 @@
       <div class="plan-actions">
         <button type="button" class="rw-btn rw-btn--primary" (click)="openPlanPicker()">ترقية الباقة</button>
         @if ((subscription()?.planCost ?? 0) > 0) {
-          <button type="button" class="rw-btn rw-btn--outline" (click)="cancelSubscription()">إلغاء الاشتراك</button>
+          <button type="button" class="rw-btn rw-btn--outline" [disabled]="checkoutPending()" (click)="cancelSubscription()">إلغاء الاشتراك</button>
         }
       </div>
 
@@ -92,7 +92,7 @@
 
           <div class="plan-picker__actions">
             <button type="button" class="rw-btn rw-btn--outline" (click)="planPickerOpen.set(false)">إلغاء</button>
-            <button type="button" class="rw-btn rw-btn--primary" [disabled]="!selectedPlanId()" (click)="confirmPlanChange()">
+            <button type="button" class="rw-btn rw-btn--primary" [disabled]="!selectedPlanId() || checkoutPending()" (click)="confirmPlanChange()">
               متابعة الاشتراك
             </button>
           </div>
@@ -135,7 +135,7 @@
             <span class="addon-name">علامة تجارية إضافية</span>
             <span class="addon-count">لديك {{ tenant()?.extraBrandsPurchased ?? 0 }} إضافية</span>
           </div>
-          <button type="button" class="rw-btn rw-btn--outline rw-btn--sm" (click)="buyAddOn('ExtraBrand', 'علامة تجارية إضافية', 5)">
+          <button type="button" class="rw-btn rw-btn--outline rw-btn--sm" [disabled]="checkoutPending()" (click)="buyAddOn('ExtraBrand')">
             $5/شهر
           </button>
         </div>
@@ -144,7 +144,7 @@
             <span class="addon-name">مسوّق إضافي</span>
             <span class="addon-count">لديك {{ tenant()?.extraMarketeersPurchased ?? 0 }} إضافي</span>
           </div>
-          <button type="button" class="rw-btn rw-btn--outline rw-btn--sm" (click)="buyAddOn('ExtraMarketeer', 'مسوّق إضافي', 3)">
+          <button type="button" class="rw-btn rw-btn--outline rw-btn--sm" [disabled]="checkoutPending()" (click)="buyAddOn('ExtraMarketeer')">
             $3/شهر
           </button>
         </div>
@@ -168,7 +168,7 @@
             <span class="package-bonus">+ {{ pkg.bonusCoins.toLocaleString('ar-EG') }} مكافأة</span>
           }
           <span class="package-price">${{ pkg.priceUsd }}</span>
-          <button type="button" class="rw-btn rw-btn--primary" (click)="buyPackage(pkg.coinPackageId, pkg.name, pkg.priceUsd)">
+          <button type="button" class="rw-btn rw-btn--primary" [disabled]="checkoutPending()" (click)="buyPackage(pkg.coinPackageId)">
             شراء
           </button>
         </div>
@@ -187,7 +187,7 @@
         <span class="package-price">
           @if (customCoins()) { ${{ (customCoins()! * (pricing()?.customCoinPricePerCoin ?? 0.01)).toFixed(2) }} }
         </span>
-        <button type="button" class="rw-btn rw-btn--primary" (click)="buyCustomCoins()">شراء</button>
+        <button type="button" class="rw-btn rw-btn--primary" [disabled]="checkoutPending()" (click)="buyCustomCoins()">شراء</button>
       </div>
     </div>
   </div>

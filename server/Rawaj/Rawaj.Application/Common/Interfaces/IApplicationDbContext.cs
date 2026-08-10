@@ -23,6 +23,7 @@ public interface IApplicationDbContext
     DbSet<CoinPackage> CoinPackages { get; }
     DbSet<BillingTransaction> BillingTransactions { get; }
     DbSet<CoinLedgerEntry> CoinLedgerEntries { get; }
+    DbSet<PendingCheckoutSession> PendingCheckoutSessions { get; }
     DbSet<MarketingCampaign> MarketingCampaigns { get; }
     DbSet<ContentItem> ContentItems { get; }
     DbSet<ContentRevision> ContentRevisions { get; }
@@ -36,6 +37,7 @@ public interface IApplicationDbContext
     DbSet<SocialAccount> SocialAccounts { get; }
     DbSet<ScheduledPost> ScheduledPosts { get; }
     DbSet<PostAnalytics> PostAnalytics { get; }
+    DbSet<FollowerCountSnapshot> FollowerCountSnapshots { get; }
     DbSet<Notification> Notifications { get; }
     DbSet<OutboxMessage> OutboxMessages { get; }
     DbSet<AuditLog> AuditLogs { get; }

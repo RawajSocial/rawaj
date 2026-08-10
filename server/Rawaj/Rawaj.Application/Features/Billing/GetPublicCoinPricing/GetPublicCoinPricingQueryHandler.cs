@@ -2,9 +2,8 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Rawaj.Application.Common.Interfaces;
 using Rawaj.Application.Common.Models;
+using Rawaj.Application.Features.Billing.Common;
 using Rawaj.Application.Features.Billing.GetCoinPricing;
-using Rawaj.Application.Features.Billing.PurchaseAddOn;
-using Rawaj.Application.Features.Billing.PurchaseCoins;
 
 namespace Rawaj.Application.Features.Billing.GetPublicCoinPricing;
 
@@ -37,9 +36,9 @@ public class GetPublicCoinPricingQueryHandler(IApplicationDbContext dbContext, I
             return new GetPublicCoinPricingResponse(
                 baseCosts,
                 coinPackages,
-                PurchaseCoinsCommandHandler.CustomPricePerCoin,
-                PurchaseAddOnCommandHandler.ExtraBrandPriceUsd,
-                PurchaseAddOnCommandHandler.ExtraMarketeerPriceUsd);
+                BillingPricing.CustomCoinPricePerCoin,
+                BillingPricing.ExtraBrandPriceUsd,
+                BillingPricing.ExtraMarketeerPriceUsd);
         });
 
         return Result<GetPublicCoinPricingResponse>.Success(response);

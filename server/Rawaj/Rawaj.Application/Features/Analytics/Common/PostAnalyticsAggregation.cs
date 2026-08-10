@@ -43,10 +43,22 @@ public static class PostAnalyticsAggregation
     /// <c>(ScheduledPostId, RecordedAt DESC)</c> index. No snapshot history is materialized into
     /// application memory - only one row per post ever leaves the database, regardless of how many
     /// historical snapshots exist.
+    ///
+    /// <para><paramref name="asOf"/>, when given, reconstructs what this reduction would have
+    /// returned at that past instant - only snapshots recorded at or before it are considered, so a
+    /// post whose only snapshots are all after <paramref name="asOf"/> simply doesn't appear. Used
+    /// for period-over-period comparisons (e.g. "as of the start of this month") without needing a
+    /// second, differently-shaped query.</para>
     /// </summary>
     public static async Task<List<LatestPostSnapshot>> GetLatestPerPostAsync(
-        IQueryable<PostAnalytics> analyticsQuery, CancellationToken cancellationToken) =>
-        await analyticsQuery
+        IQueryable<PostAnalytics> analyticsQuery, CancellationToken cancellationToken, DateTime? asOf = null)
+    {
+        if (asOf.HasValue)
+        {
+            analyticsQuery = analyticsQuery.Where(a => a.RecordedAt <= asOf.Value);
+        }
+
+        return await analyticsQuery
             .Where(a => a.RecordedAt == analyticsQuery
                 .Where(a2 => a2.ScheduledPostId == a.ScheduledPostId)
                 .Max(a2 => a2.RecordedAt))
@@ -69,6 +81,7 @@ public static class PostAnalyticsAggregation
                 a.ScheduledPost.ContentItem.Content,
                 a.ScheduledPost.ScheduledAt))
             .ToListAsync(cancellationToken);
+    }
 
     /// <summary>
     /// Campaign/Brand/Dashboard-level Engagement Rate: <c>SUM(Engagements) / SUM(Views)</c> across
