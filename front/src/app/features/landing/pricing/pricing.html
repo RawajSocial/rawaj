@@ -40,7 +40,7 @@
               <li><img src="assets/img/icon/check-icon.svg" alt="">خصم {{ plan.coinUsageDiscountPercent }}٪ على استهلاك الكوينز</li>
             }
             @for (f of plan.features; track f) {
-              <li><img src="assets/img/icon/check-icon.svg" alt="">{{ f }}</li>
+              <li><img src="assets/img/icon/check-icon.svg" alt="">{{ planFeatureLabel(f) }}</li>
             }
           </ul>
 

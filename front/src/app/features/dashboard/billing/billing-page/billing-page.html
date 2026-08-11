@@ -30,7 +30,7 @@
             <li><i class="fa-solid fa-check"></i>خصم {{ cp.coinUsageDiscountPercent }}٪ على استهلاك الكوينز</li>
           }
           @for (f of cp.features; track f) {
-            <li><i class="fa-solid fa-check"></i>{{ f }}</li>
+            <li><i class="fa-solid fa-check"></i>{{ planFeatureLabel(f) }}</li>
           }
         </ul>
       }

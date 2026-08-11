@@ -45,7 +45,7 @@
               <li class="plan-card__discount"><i class="fa-solid fa-percent"></i>خصم {{ plan.coinUsageDiscountPercent }}٪ على كل استهلاك كوينز</li>
             }
             @for (f of plan.features; track f) {
-              <li><i class="fa-solid fa-check"></i>{{ f }}</li>
+              <li><i class="fa-solid fa-check"></i>{{ planFeatureLabel(f) }}</li>
             }
           </ul>
 

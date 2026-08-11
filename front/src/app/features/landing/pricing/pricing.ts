@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/c
 import { RouterLink } from '@angular/router';
 import { GsapRevealDirective } from '../../../shared/directives/gsap-reveal.directive';
 import { SubscriptionService } from '../../../services/subscription.service';
+import { planFeatureLabel } from '../../../shared/utils/plan-feature-labels.util';
 
 const PLAN_DESCRIPTIONS: Record<string, string> = {
   Free: 'للأفراد وأصحاب الأعمال الذين يديرون علامة تجارية واحدة بأنفسهم.',
@@ -27,6 +28,8 @@ export class Pricing {
   protected readonly plansWithDescriptions = computed(() =>
     this.plans().map(p => ({ ...p, description: PLAN_DESCRIPTIONS[p.name] ?? '' })),
   );
+
+  protected readonly planFeatureLabel = planFeatureLabel;
 
   constructor() {
     this.subscriptionService.refreshPlans().subscribe();

@@ -4,6 +4,7 @@ import { SeoService } from '../../../services/seo.service';
 import { SubscriptionService } from '../../../services/subscription.service';
 import { AuthService } from '../../../core/auth/auth.service';
 import { PublicCoinPricing } from '../../../model/billing.model';
+import { planFeatureLabel } from '../../../shared/utils/plan-feature-labels.util';
 
 const PLAN_DESCRIPTIONS: Record<string, string> = {
   Free: 'للأفراد وأصحاب الأعمال الذين يديرون علامة تجارية واحدة بأنفسهم — بداية مثالية بلا مخاطرة.',
@@ -37,6 +38,8 @@ export class PricingPage {
   protected readonly plansWithDescriptions = computed(() =>
     this.plans().map(p => ({ ...p, description: PLAN_DESCRIPTIONS[p.name] ?? '' })),
   );
+
+  protected readonly planFeatureLabel = planFeatureLabel;
 
   private readonly _publicPricing = signal<PublicCoinPricing | null>(null);
   protected readonly publicPricing = this._publicPricing.asReadonly();

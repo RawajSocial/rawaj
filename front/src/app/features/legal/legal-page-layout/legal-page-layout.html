@@ -1,0 +1,23 @@
+<div class="legal-page">
+  <header class="legal-page__topbar">
+    <a routerLink="/" class="legal-page__logo">
+      <img class="legal-page__logo-icon" src="assets/icons/logo.png" alt="" />
+      <span><span class="legal-page__logo-accent">ر</span>واج</span>
+    </a>
+    <a routerLink="/" class="legal-page__back">
+      <i class="fa-solid fa-arrow-right"></i>
+      العودة إلى الرئيسية
+    </a>
+  </header>
+
+  <div class="legal-page__content">
+    <h1 class="legal-page__title">{{ title() }}</h1>
+    <p class="legal-page__effective-date">سارٍ اعتبارًا من {{ effectiveDate() }}</p>
+
+    <div class="legal-page__body">
+      <ng-content />
+    </div>
+  </div>
+
+  <app-footer></app-footer>
+</div>

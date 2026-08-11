@@ -18,6 +18,7 @@ import {
   SubscriptionPlanSummary,
 } from '../../../../model/billing.model';
 import { ApiResponse } from '../../../../model/auth.model';
+import { planFeatureLabel } from '../../../../shared/utils/plan-feature-labels.util';
 
 @Component({
   selector: 'app-billing-page',
@@ -49,6 +50,8 @@ export class BillingPage {
   protected readonly currentPlan = computed(() =>
     this.plans().find(p => p.subscriptionPlanId === this.subscription()?.subscriptionPlanId),
   );
+
+  protected readonly planFeatureLabel = planFeatureLabel;
 
   // ── Plan picker ──
   protected readonly planPickerOpen = signal(false);

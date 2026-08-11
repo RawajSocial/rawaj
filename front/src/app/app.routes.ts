@@ -31,6 +31,16 @@ export const routes: Routes = [
       import('./features/pricing/pricing-page/pricing-page').then((m) => m.PricingPage),
   },
   {
+    path: 'privacy-policy',
+    loadComponent: () =>
+      import('./features/legal/privacy-policy-page/privacy-policy-page').then((m) => m.PrivacyPolicyPage),
+  },
+  {
+    path: 'terms-and-conditions',
+    loadComponent: () =>
+      import('./features/legal/terms-page/terms-page').then((m) => m.TermsPage),
+  },
+  {
     path: 'upgrade-tenant',
     canActivate: [authGuard],
     loadComponent: () =>

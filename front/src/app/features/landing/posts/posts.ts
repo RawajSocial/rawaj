@@ -22,12 +22,12 @@ interface Post {
 }
 
 const POSTS: Post[] = [
-  { id: 1, title: 'إعلان عطر رواج الذكي', image: '/post.png' },
-  { id: 2, title: 'تصميم بوست ترويجي متميز لعطورك', image: '/post.png' },
-  { id: 3, title: 'حملة تسويقية إبداعية مخصصة للتفاعل', image: '/post.png' },
-  { id: 4, title: 'منشورات رقمية احترافية لشبكات التواصل', image: '/post.png' },
-  { id: 5, title: 'هوية بصرية استثنائية لصورة علامتك التجارية', image: '/post.png' },
-  { id: 6, title: 'أفكار إعلانية مبتكرة وجاذبة للجمهور', image: '/post.png' },
+  { id: 1, title: 'إعلان عطر رواج الذكي', image: '/1.png' },
+  { id: 2, title: 'تصميم بوست ترويجي متميز لعطورك', image: '/2.png' },
+  { id: 3, title: 'حملة تسويقية إبداعية مخصصة للتفاعل', image: '/3.png' },
+  { id: 4, title: 'منشورات رقمية احترافية لشبكات التواصل', image: '/4.png' },
+  { id: 5, title: 'هوية بصرية استثنائية لصورة علامتك التجارية', image: '/5.png' },
+  { id: 6, title: 'أفكار إعلانية مبتكرة وجاذبة للجمهور', image: '/2.png' },
 ];
 
 const AUTOPLAY_INTERVAL_MS = 3800;

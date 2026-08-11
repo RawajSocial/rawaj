@@ -121,7 +121,11 @@
             <polyline points="1.5 6 4.5 9 10.5 1"></polyline>
           </svg>
         </span>
-        <span class="policy">أوافق على الشروط والأحكام وسياسة الخصوصية</span>
+        <span class="policy">
+          أوافق على
+          <a class="policy-link" routerLink="/terms-and-conditions" target="_blank" rel="noopener" (click)="$event.stopPropagation()">الشروط والأحكام</a>
+          و<a class="policy-link" routerLink="/privacy-policy" target="_blank" rel="noopener" (click)="$event.stopPropagation()">سياسة الخصوصية</a>
+        </span>
       </label>
     </div>
     @if (errorMessage('termsAccepted'); as termsAcceptedError) {
