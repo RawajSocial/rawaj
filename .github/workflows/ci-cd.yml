@@ -338,8 +338,17 @@ jobs:
             fi
             log "Frontend restart complete."
 
-            log "Waiting for services to settle..."
-            sleep 5
+            log "Waiting for backend to become ready..."
+
+            for i in {1..30}; do
+              if sudo -n ss -lntp | grep -q ':5000 '; then
+                log "Backend is listening on port 5000."
+                break
+              fi
+
+              log "Backend not ready yet (${i}/30)..."
+              sleep 2
+            done
 
             log "Starting service verification..."
             BACKEND_ACTIVE="$(systemctl is-active rawaj.service || true)"
