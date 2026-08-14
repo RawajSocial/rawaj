@@ -32,7 +32,7 @@ public class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Exception
         catch (Exception ex)
         {
             logger.LogError(ex, "Unhandled exception occurred while processing {Method} {Path}",
-                context.Request.Method, context.Request.Path);
+                LogSanitizer.Sanitize(context.Request.Method), LogSanitizer.Sanitize(context.Request.Path));
 
             await WriteResponseAsync(context, HttpStatusCode.InternalServerError,
                 ApiResponse<object>.Error("An unexpected error occurred."));

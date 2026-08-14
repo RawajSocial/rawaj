@@ -24,8 +24,8 @@ public class RequestLoggingMiddleware(RequestDelegate next, ILogger<RequestLoggi
         logger.Log(
             context.Response.StatusCode >= 500 ? LogLevel.Error : LogLevel.Information,
             "HTTP {Method} {Path} responded {StatusCode} in {ElapsedMs}ms (user: {UserId})",
-            context.Request.Method,
-            context.Request.Path,
+            LogSanitizer.Sanitize(context.Request.Method),
+            LogSanitizer.Sanitize(context.Request.Path),
             context.Response.StatusCode,
             stopwatch.ElapsedMilliseconds,
             userId ?? "anonymous");
