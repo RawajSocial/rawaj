@@ -38,8 +38,7 @@ public partial class SmtpEmailService(IOptions<EmailSettings> settings, ILogger<
                 || !MailAddress.TryCreate(config.SenderEmail, config.SenderName, out var fromAddress))
             {
                 logger.LogWarning(
-                    "Email to {ToEmail} was not sent — Email:SenderEmail/SenderPassword is not configured (or SenderEmail is still the placeholder value).",
-                    toEmail);
+                    "An email was not sent — Email:SenderEmail/SenderPassword is not configured (or SenderEmail is still the placeholder value).");
                 return;
             }
 
@@ -64,7 +63,7 @@ public partial class SmtpEmailService(IOptions<EmailSettings> settings, ILogger<
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Failed to send email to {ToEmail}.", toEmail);
+            logger.LogError(ex, "Failed to send an email.");
         }
     }
 
