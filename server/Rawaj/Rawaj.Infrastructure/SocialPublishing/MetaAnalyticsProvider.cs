@@ -1,3 +1,4 @@
+using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
@@ -115,10 +116,12 @@ public class MetaAnalyticsProvider(
     private async Task<(System.Net.HttpStatusCode Status, string Body)> FetchFieldsAsync(
         HttpClient client, string postId, string accessToken, string fields, CancellationToken cancellationToken)
     {
-        var url = $"https://graph.facebook.com/{_settings.ApiVersion}/{postId}" +
-                   $"?fields={fields}&access_token={Uri.EscapeDataString(accessToken)}";
+        var url = $"https://graph.facebook.com/{_settings.ApiVersion}/{postId}?fields={fields}";
 
-        using var response = await client.GetAsync(url, cancellationToken);
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
+        using var response = await client.SendAsync(request, cancellationToken);
         var body = await response.Content.ReadAsStringAsync(cancellationToken);
         return (response.StatusCode, body);
     }
@@ -148,10 +151,12 @@ public class MetaAnalyticsProvider(
         try
         {
             var url = $"https://graph.facebook.com/{_settings.ApiVersion}/{postId}/insights" +
-                       "?metric=post_media_view,post_total_media_view_unique" +
-                       $"&access_token={Uri.EscapeDataString(accessToken)}";
+                       "?metric=post_media_view,post_total_media_view_unique";
 
-            using var response = await client.GetAsync(url, cancellationToken);
+            using var request = new HttpRequestMessage(HttpMethod.Get, url);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
+            using var response = await client.SendAsync(request, cancellationToken);
             var body = await response.Content.ReadAsStringAsync(cancellationToken);
 
             if (!response.IsSuccessStatusCode)

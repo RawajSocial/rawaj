@@ -148,27 +148,27 @@ public class AnalyticsSyncHostedService(
 
     private async Task SyncDueFollowerCountsAsync(CancellationToken cancellationToken)
     {
-        List<Guid> dueAccountIds;
+        List<Guid> dueSocialIds;
 
         using (var scope = scopeFactory.CreateScope())
         {
             var dbContext = scope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
             var cutoff = DateTime.UtcNow - FollowerCountSyncWindow;
 
-            dueAccountIds = await FollowerCountSyncer.GetDueAccountIdsAsync(dbContext, cutoff, cancellationToken);
+            dueSocialIds = await FollowerCountSyncer.GetDueSocialIdsAsync(dbContext, cutoff, cancellationToken);
         }
 
-        if (dueAccountIds.Count == 0)
+        if (dueSocialIds.Count == 0)
         {
             return;
         }
 
         using var concurrencyLimiter = new SemaphoreSlim(MaxConcurrentSyncs);
 
-        await Task.WhenAll(dueAccountIds.Select(id => SyncOneFollowerCountAsync(id, concurrencyLimiter, cancellationToken)));
+        await Task.WhenAll(dueSocialIds.Select(id => SyncOneFollowerCountAsync(id, concurrencyLimiter, cancellationToken)));
     }
 
-    private async Task SyncOneFollowerCountAsync(Guid socialAccountId, SemaphoreSlim concurrencyLimiter, CancellationToken cancellationToken)
+    private async Task SyncOneFollowerCountAsync(Guid socialId, SemaphoreSlim concurrencyLimiter, CancellationToken cancellationToken)
     {
         await concurrencyLimiter.WaitAsync(cancellationToken);
 
@@ -179,7 +179,7 @@ public class AnalyticsSyncHostedService(
             var tokenEncryptor = scope.ServiceProvider.GetRequiredService<ITokenEncryptor>();
             var followerCountProviders = scope.ServiceProvider.GetRequiredService<IEnumerable<ISocialFollowerCountProvider>>();
 
-            var socialAccount = await dbContext.SocialAccounts.FirstOrDefaultAsync(a => a.Id == socialAccountId, cancellationToken);
+            var socialAccount = await dbContext.SocialAccounts.FirstOrDefaultAsync(a => a.Id == socialId, cancellationToken);
             if (socialAccount is null)
             {
                 return;
@@ -191,7 +191,7 @@ public class AnalyticsSyncHostedService(
             if (!outcome.Succeeded)
             {
                 logger.LogWarning(
-                    "Follower count sync failed for social account {SocialAccountId}: {Error}", socialAccountId, outcome.ErrorMessage);
+                    "Follower count sync failed for social id {SocialId}: {Error}", socialId, outcome.ErrorMessage);
                 return;
             }
 
@@ -199,7 +199,7 @@ public class AnalyticsSyncHostedService(
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            logger.LogError(ex, "Follower count sync threw an exception for social account {SocialAccountId}.", socialAccountId);
+            logger.LogError(ex, "Follower count sync threw an exception for social id {SocialId}.", socialId);
         }
         finally
         {

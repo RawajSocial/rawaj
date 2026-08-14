@@ -1,3 +1,4 @@
+using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
@@ -35,11 +36,12 @@ public class MetaFollowerCountProvider(
 
         try
         {
-            var url = $"https://graph.facebook.com/{_settings.ApiVersion}/{accountIdExternal}" +
-                       "?fields=followers_count" +
-                       $"&access_token={Uri.EscapeDataString(accessToken)}";
+            var url = $"https://graph.facebook.com/{_settings.ApiVersion}/{accountIdExternal}?fields=followers_count";
 
-            using var response = await client.GetAsync(url, cancellationToken);
+            using var request = new HttpRequestMessage(HttpMethod.Get, url);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
+            using var response = await client.SendAsync(request, cancellationToken);
             var body = await response.Content.ReadAsStringAsync(cancellationToken);
 
             if (!response.IsSuccessStatusCode)

@@ -14,7 +14,7 @@ public static class FollowerCountSyncer
 {
     public record SyncOutcome(bool Succeeded, string? ErrorMessage);
 
-    public static Task<List<Guid>> GetDueAccountIdsAsync(
+    public static Task<List<Guid>> GetDueSocialIdsAsync(
         IApplicationDbContext dbContext, DateTime cutoff, CancellationToken cancellationToken) =>
         dbContext.SocialAccounts
             .Where(a => a.IsActive)
