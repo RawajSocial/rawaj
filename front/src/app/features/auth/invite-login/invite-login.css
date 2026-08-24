@@ -1,0 +1,224 @@
+.login-page {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background:
+    url('/home-cosmic.svg') center/cover no-repeat,
+    radial-gradient(circle at top right, rgba(124, 58, 237, 0.15), transparent 35%),
+    radial-gradient(circle at bottom left, rgba(37, 99, 235, 0.15), transparent 35%),
+    var(--color-dark);
+}
+
+.login-wrapper {
+  width: 100%;
+  max-width: 1300px;
+  position: relative;
+  z-index: var(--z-raised);
+}
+
+.login-page::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+}
+
+.bg-pattern {
+  position: absolute;
+  inset: 0;
+  background: transparent;
+  pointer-events: none;
+}
+
+/* ── Card shell (mirrors login-form/invite-form so the invite page looks consistent with the
+   rest of the auth flow — this component renders its own .login-card wrapper, so these rules
+   must live here too; Angular's per-component style scoping means the near-identical rules in
+   login-form.css/invite-form.css don't apply to elements in this component's own template) ── */
+.login-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-xl);
+  padding: 36px;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.4);
+  margin: 1rem 0px;
+}
+
+.invite-badge-wrap {
+  margin-bottom: 1rem;
+}
+
+.invite-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: var(--radius-full);
+  background: rgba(124, 58, 237, 0.15);
+  border: 1px solid rgba(124, 58, 237, 0.3);
+  color: var(--color-text-inverse);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+}
+
+.login-card h2 {
+  font-size: var(--font-size-2xl);
+  font-weight: 800;
+  color: var(--color-text-inverse);
+}
+
+.login-subtitle {
+  color: var(--color-text-on-dark-secondary);
+  margin-bottom: 1rem;
+  font-size: var(--font-size-base);
+}
+
+.login-btn {
+  min-height: 44px;
+  border: none;
+  border-radius: 12px;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-inverse);
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--color-secondary), var(--color-primary));
+  transition: var(--transition-base);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.login-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 35px rgba(124, 58, 237, 0.35);
+}
+
+.login-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ── Role pill + invite result icons ── */
+.role-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  background: rgba(37, 99, 235, 0.15);
+  border: 1px solid rgba(37, 99, 235, 0.3);
+  color: var(--color-text-inverse);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+}
+
+.invite-result__icon {
+  font-size: 2.5rem;
+  margin-bottom: 12px;
+}
+
+.invite-result__icon--success { color: var(--color-success); }
+.invite-result__icon--muted { color: var(--color-text-muted); }
+
+/* ── Brand summary ── */
+.brand-summary {
+  margin: 20px 0;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.brand-summary__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-text-on-dark-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.brand-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.brand-chip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.brand-chip__logo {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.brand-chip__logo--fallback {
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, var(--color-secondary), var(--color-primary));
+  color: var(--color-text-inverse);
+  font-weight: 800;
+  font-size: var(--font-size-md);
+}
+
+.brand-chip__info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.brand-chip__name {
+  color: var(--color-text-inverse);
+  font-weight: 700;
+  font-size: var(--font-size-sm);
+}
+
+.brand-chip__industry {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+/* ── Actions ── */
+.invite-actions {
+  margin-top: 8px;
+}
+
+.decline-btn {
+  min-height: 44px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--color-text-on-dark-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  transition: var(--transition-base);
+}
+
+.decline-btn:hover:not(:disabled) {
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}
+
+.decline-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

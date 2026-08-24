@@ -1,0 +1,234 @@
+<div class="page-shell">
+  <app-page-header
+    [title]="detail()?.name ?? 'ملف العلامة التجارية'"
+    [breadcrumbs]="[
+      { label: 'نظرة عامة', link: '/dashboard' },
+      { label: 'ملفات العلامة التجارية', link: '/dashboard/brand-profiles' },
+      { label: detail()?.name ?? '...' }
+    ]"
+    [subtitle]="canEdit() ? 'اطّلع على بيانات العلامة التجارية وعدّلها.' : 'اطّلع على بيانات العلامة التجارية (وصول للعرض فقط).'" />
+
+  @if (loading()) {
+    <div class="text-center py-5">
+      <i class="fa-solid fa-spinner fa-spin fa-2x"></i>
+    </div>
+  } @else if (notFound() || !detail()) {
+    <div class="rw-card text-center py-5">
+      <h3>الملف غير موجود</h3>
+      <p class="text-muted">لم يتم العثور على ملف العلامة التجارية، أو ليس لديك صلاحية الوصول إليه.</p>
+      <a routerLink="/dashboard/brand-profiles" class="rw-btn rw-btn--dark mt-2">العودة إلى القائمة</a>
+    </div>
+  } @else {
+    @let d = detail()!;
+
+    @if (!canEdit()) {
+      <div class="viewer-banner">
+        <i class="fa-solid fa-eye"></i>
+        أنت تشاهد هذا الملف بصلاحية "مشاهد" — للتعديل، يلزم صلاحية محرر أو أعلى.
+      </div>
+    }
+
+    <div class="rw-card detail-card">
+      <div class="detail-card__tags">
+        <span class="rw-pill"
+              [class.rw-pill--success]="d.status === 'active'"
+              [class.rw-pill--warning]="d.status === 'draft'"
+              [class.rw-pill--danger]="d.status === 'archived'">
+          {{ statusLabels[d.status] }}
+        </span>
+        @if (d.isDefault) {
+          <span class="rw-pill rw-pill--info">افتراضي</span>
+        }
+      </div>
+
+      <form [formGroup]="form" class="detail-form">
+        <div class="logo-row">
+          @if (canEdit()) {
+            <app-file-upload
+              shape="square"
+              label="تغيير الشعار"
+              icon="fa-solid fa-copyright"
+              accept=".png,.svg,.jpg,.jpeg,.webp"
+              [previewUrl]="logoDataUrl()"
+              [altText]="d.name"
+              (fileSelected)="onLogoSelected($event)"
+              (cleared)="onLogoCleared()" />
+          } @else {
+            <div class="logo-view">
+              @if (d.logoUrl) {
+                <img [src]="d.logoUrl" [alt]="d.name">
+              } @else {
+                <i class="fa-solid fa-copyright"></i>
+              }
+            </div>
+          }
+        </div>
+
+        <div class="rw-field">
+          <label for="bp-name">اسم العلامة التجارية</label>
+          <input id="bp-name" type="text" formControlName="name" [readOnly]="!canEdit()">
+          @if (canEdit() && form.controls.name.touched && form.controls.name.invalid) {
+            <span class="field-error">الرجاء إدخال اسم صحيح</span>
+          }
+        </div>
+
+        <div class="form-row">
+          <div class="rw-field">
+            <label for="bp-tagline">الشعار (Tagline)</label>
+            <input id="bp-tagline" type="text" formControlName="tagline" [readOnly]="!canEdit()">
+          </div>
+          <div class="rw-field">
+            <label for="bp-industry">القطاع</label>
+            <input id="bp-industry" type="text" formControlName="industry" [readOnly]="!canEdit()">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="rw-field">
+            <label for="bp-audience">الجمهور المستهدف</label>
+            <input id="bp-audience" type="text" formControlName="targetAudience" [readOnly]="!canEdit()">
+          </div>
+          <div class="rw-field">
+            <label for="bp-website">الموقع الإلكتروني</label>
+            <input id="bp-website" type="text" formControlName="websiteUrl" [readOnly]="!canEdit()" placeholder="example.com">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="rw-field">
+            <label for="bp-location">الموقع الجغرافي</label>
+            <input id="bp-location" type="text" formControlName="location" [readOnly]="!canEdit()">
+          </div>
+          <div class="rw-field">
+            <label for="bp-instagram">حساب إنستغرام</label>
+            <input id="bp-instagram" type="text" formControlName="instagram" [readOnly]="!canEdit()" placeholder="brand.name@">
+          </div>
+        </div>
+
+        <div class="rw-field">
+          <label for="bp-description">نبذة</label>
+          <textarea id="bp-description" formControlName="description" rows="3" [readOnly]="!canEdit()"></textarea>
+        </div>
+
+        <div class="rw-field">
+          <label>
+            نبرة العلامة <span class="field-optional">(اختر حتى 5)</span>
+            <span class="tone-count" [class.at-limit]="selectedTones().length >= 5">{{ selectedTones().length }} / 5</span>
+          </label>
+          <div class="chips">
+            @for (opt of toneOptions; track opt.value) {
+              <button type="button" class="chip" [disabled]="!canEdit() || (selectedTones().length >= 5 && !selectedTones().includes(opt.value))"
+                [class.active]="selectedTones().includes(opt.value)" (click)="toggleTone(opt.value)">
+                {{ opt.label }}
+              </button>
+            }
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="rw-field">
+            <label for="bp-colors">ألوان العلامة <span class="field-optional">(مفصولة بفواصل)</span></label>
+            <input id="bp-colors" type="text" formControlName="colors" [readOnly]="!canEdit()" placeholder="#7c3aed, #2563eb">
+          </div>
+          <div class="rw-field">
+            <label for="bp-languages">اللغات المدعومة <span class="field-optional">(مفصولة بفواصل)</span></label>
+            <input id="bp-languages" type="text" formControlName="supportedLanguages" [readOnly]="!canEdit()" placeholder="العربية, English">
+          </div>
+        </div>
+
+        <div class="rw-field">
+          <label for="bp-keywords">كلمات مفتاحية <span class="field-optional">(مفصولة بفواصل)</span></label>
+          <input id="bp-keywords" type="text" formControlName="keywords" [readOnly]="!canEdit()">
+        </div>
+
+        <div class="form-row">
+          <div class="rw-field">
+            <label for="bp-business-age">كم مضى على النشاط؟</label>
+            <select id="bp-business-age" formControlName="businessAge">
+              <option value="">اختر المدة</option>
+              @for (opt of businessAgeOptions; track opt) {
+                <option [value]="opt">{{ opt }}</option>
+              }
+            </select>
+          </div>
+          <div class="rw-field">
+            <label for="bp-establish-date">تاريخ تأسيس النشاط</label>
+            <input id="bp-establish-date" type="date" formControlName="businessEstablishDate" [readOnly]="!canEdit()">
+          </div>
+        </div>
+
+        <div class="rw-field">
+          <label>مرحلة النشاط الحالية</label>
+          <div class="chips">
+            @for (opt of stageOptions; track opt.value) {
+              <button type="button" class="chip" [disabled]="!canEdit()" [class.active]="selectedStage() === opt.value" (click)="selectStage(opt.value)">
+                <i [class]="opt.icon"></i> {{ opt.label }}
+              </button>
+            }
+          </div>
+        </div>
+
+        <div class="rw-field">
+          <label for="bp-unique-value">ما الذي يميزك عن المنافسين؟</label>
+          <textarea id="bp-unique-value" formControlName="uniqueValue" rows="3" [readOnly]="!canEdit()"
+            placeholder="مثال: جودة عالية، تصميم حصري، توصيل سريع..."></textarea>
+        </div>
+
+        <div class="rw-field">
+          <label>مستوى التسعير</label>
+          <div class="chips">
+            @for (opt of priceOptions; track opt.value) {
+              <button type="button" class="chip" [disabled]="!canEdit()" [class.active]="selectedPricePositioning() === opt.value" (click)="selectPricePositioning(opt.value)">
+                <i [class]="opt.icon"></i> {{ opt.label }}
+              </button>
+            }
+          </div>
+        </div>
+
+        <div class="rw-field">
+          <label>أين تبيع؟</label>
+          <div class="chips">
+            @for (opt of storeOptions; track opt.value) {
+              <button type="button" class="chip" [disabled]="!canEdit()" [class.active]="selectedStorePresence() === opt.value" (click)="selectStorePresence(opt.value)">
+                <i [class]="opt.icon"></i> {{ opt.label }}
+              </button>
+            }
+          </div>
+        </div>
+
+        <div class="rw-field">
+          <label>محتوى موجود على هذه المنصات <span class="field-optional">(اختر كل ما ينطبق)</span></label>
+          <div class="chips">
+            @for (p of platformOptions; track p.value) {
+              <button type="button" class="chip" [disabled]="!canEdit()" [class.active]="selectedPlatforms().includes(p.value)" (click)="togglePlatform(p.value)">
+                <i [class]="p.icon"></i> {{ p.label }}
+              </button>
+            }
+          </div>
+        </div>
+
+        <div class="rw-field">
+          <label>برندات تُلهمك أو منافسون تتابعهم <span class="field-optional">(اختياري)</span></label>
+          <div class="form-row form-row--3">
+            <input type="text" formControlName="admiredBrand1" [readOnly]="!canEdit()" placeholder="مثال: نايك">
+            <input type="text" formControlName="admiredBrand2" [readOnly]="!canEdit()" placeholder="مثال: أبل">
+            <input type="text" formControlName="admiredBrand3" [readOnly]="!canEdit()" placeholder="مثال: ستاربكس">
+          </div>
+        </div>
+
+        @if (canEdit()) {
+          <div class="detail-actions">
+            <button type="button" class="rw-btn rw-btn--outline" (click)="cancel()">إلغاء</button>
+            <button type="button" class="rw-btn rw-btn--dark" [disabled]="saving()" (click)="save()">
+              @if (saving()) {
+                <i class="fa-solid fa-spinner fa-spin"></i> جارٍ الحفظ...
+              } @else {
+                <i class="fa-solid fa-check"></i> حفظ التغييرات
+              }
+            </button>
+          </div>
+        }
+      </form>
+    </div>
+  }
+</div>

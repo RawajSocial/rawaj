@@ -1,0 +1,39 @@
+<div class="brief-block" appGsapReveal="fade-up-far" [gsapDuration]="900">
+  <div class="brief-block-title">
+    <i class="fa-solid fa-box-open"></i>
+    <span>تفاصيل المنتج الجديد</span>
+  </div>
+  <div class="form-grid">
+    <div class="form-row">
+      <label>اسم المنتج</label>
+      <input type="text" class="form-control" placeholder="مثال: عطر روز جولد"
+        [value]="data()?.productName || ''"
+        (input)="emit({ productName: $any($event.target).value })" />
+    </div>
+    <div class="form-row">
+      <label>فئة المنتج</label>
+      <input type="text" class="form-control" placeholder="مثال: عطور، ملابس، إلكترونيات"
+        [value]="data()?.productCategory || ''"
+        (input)="emit({ productCategory: $any($event.target).value })" />
+    </div>
+    <div class="form-row">
+      <label>نقطة السعر <span>(جنيه)</span></label>
+      <input type="text" class="form-control" placeholder="مثال: 199"
+        [value]="data()?.productPricePoint || ''"
+        (input)="emit({ productPricePoint: $any($event.target).value })" />
+    </div>
+    <div class="form-row">
+      <label>حالة التوفر</label>
+      <div class="chips">
+        <button type="button" class="chip" [class.active]="data()?.productAvailability === 'now'"
+          (click)="emit({ productAvailability: 'now' })">
+          <i class="fa-solid fa-circle-check"></i> متاح الآن
+        </button>
+        <button type="button" class="chip" [class.active]="data()?.productAvailability === 'pre-launch'"
+          (click)="emit({ productAvailability: 'pre-launch' })">
+          <i class="fa-solid fa-clock"></i> قبل الإطلاق
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

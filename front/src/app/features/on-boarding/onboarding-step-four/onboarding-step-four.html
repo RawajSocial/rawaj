@@ -1,0 +1,199 @@
+<section class="step-content-wrap" appGsapReveal="fade-down-far" [gsapDuration]="1200">
+  <app-onboarding-step-header
+    [currentStep]="currentStep()"
+    [totalSteps]="totalSteps()"
+    title="الجمهور المستهدف"
+  />
+
+  <app-step-badge icon="fa-solid fa-users-viewfinder" text="الخطوة الثالثة"
+     />
+  <app-step-heading
+    title="من هو عميلك؟"
+    lead="كلما كنت أكثر دقة، كلما استطعنا استهدافه بشكل أفضل وأقل تكلفة."
+  />
+
+  <!-- ===== SECTION 1: DEMOGRAPHICS ===== -->
+  <div class="section-block">
+    <div class="section-title"><i class="fa-solid fa-person-half-dress"></i> الخصائص الديموغرافية</div>
+    <div class="form-grid">
+
+      <div class="form-row">
+        <label>الجنس المستهدف</label>
+        <div class="chips">
+          @for (opt of genderOptions; track opt.value) {
+            <button type="button"
+              [class]="'chip ' + opt.className"
+              [class.active]="data()?.gender === opt.value"
+              (click)="emit({ gender: $any(opt.value) })">
+              <i [class]="opt.icon"></i> {{ opt.label }}
+            </button>
+          }
+        </div>
+      </div>
+
+      <div class="form-row">
+        <label>نوع العميل</label>
+        <div class="chips">
+          @for (opt of customerTypeOptions; track opt.value) {
+            <button type="button"
+              [class]="'chip ' + opt.className"
+              [class.active]="data()?.customerType === opt.value"
+              (click)="emit({ customerType: opt.value })">
+              <i [class]="opt.icon"></i> {{ opt.label }}
+            </button>
+          }
+        </div>
+      </div>
+
+      <div class="form-row full">
+        <label>الفئات العمرية <span>(اختر كل ما ينطبق)</span></label>
+        <div class="chips">
+          @for (range of ageRangeOptions; track range) {
+            <button type="button" class="chip age-chip"
+              [class.active]="selectedAgeRanges().includes(range)"
+              (click)="toggle('ageRanges', range)">{{ range }}</button>
+          }
+        </div>
+      </div>
+
+      <div class="form-row full">
+        <label>المستوى الدراسي</label>
+        <div class="chips">
+          @for (edu of educationOptions; track edu) {
+            <button type="button" class="chip"
+              [class.active]="data()?.educationLevel === edu"
+              (click)="emit({ educationLevel: edu })">{{ edu }}</button>
+          }
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===== SECTION 2: LOCATION & INCOME ===== -->
+  <div class="section-block">
+    <div class="section-title"><i class="fa-solid fa-location-dot"></i> الموقع ومستوى الدخل</div>
+    <div class="form-grid">
+
+      <div class="form-row full">
+        <label>الموقع الجغرافي للعميل</label>
+        <div class="chips">
+          @for (opt of locationOptions; track opt.value) {
+            <button type="button"
+              [class]="'chip ' + opt.className"
+              [class.active]="data()?.customerLocation === opt.value"
+              (click)="emit({ customerLocation: opt.value })">
+              <i [class]="opt.icon"></i> {{ opt.label }}
+            </button>
+          }
+        </div>
+      </div>
+
+      <div class="form-row full">
+        <label>مستوى الدخل <span>(اختر كل ما ينطبق)</span></label>
+        <div class="chips">
+          @for (opt of incomeLevelOptions; track opt.value) {
+            <button type="button"
+              [class]="'chip ' + opt.className"
+              [class.active]="selectedIncome().includes(opt.value)"
+              (click)="toggle('incomeLevel', opt.value)">
+              <i [class]="opt.icon"></i> {{ opt.label }}
+            </button>
+          }
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===== SECTION 3: PSYCHOGRAPHICS ===== -->
+  <div class="section-block">
+    <div class="section-title"><i class="fa-solid fa-brain"></i> الاهتمامات والسلوك</div>
+    <div class="form-grid">
+
+      <div class="form-row full">
+        <label>صف عميلك المثالي بإيجاز <span>(اختياري)</span></label>
+        <textarea class="form-control" rows="3"
+          placeholder="مثال: أم سعودية تتراوح أعمارها بين 25 و40 عامًا، مهتمة بالموضة المحتشمة والتسوق الإلكتروني..."
+          maxlength="400"
+          [value]="data()?.targetDescription || ''"
+          (input)="emit({ targetDescription: $any($event.target).value })"></textarea>
+        <span class="char-count">{{ (data()?.targetDescription || '').length }} / 400</span>
+      </div>
+
+      <div class="form-row full">
+        <label>الاهتمامات <span>(اختر كل ما ينطبق)</span></label>
+        <div class="chips flex-wrap">
+          @for (opt of interestOptions; track opt) {
+            <button type="button" class="chip"
+              [class.active]="selectedInterests().includes(opt)"
+              (click)="toggle('interests', opt)">{{ opt }}</button>
+          }
+        </div>
+      </div>
+
+      <div class="form-row full">
+        <label>أبرز مشكلة يعاني منها عميلك <span>(اختياري)</span></label>
+        <textarea class="form-control" rows="2"
+          placeholder="مثال: يجد صعوبة في إيجاد ملابس أنيقة ومحتشمة بسعر مناسب..."
+          maxlength="300"
+          [value]="data()?.painPoints || ''"
+          (input)="emit({ painPoints: $any($event.target).value })"></textarea>
+        <span class="char-count">{{ (data()?.painPoints || '').length }} / 300</span>
+      </div>
+
+      <div class="form-row full">
+        <label>طريقة الشراء السائدة <span>(اختر كل ما ينطبق)</span></label>
+        <div class="chips">
+          @for (opt of buyingBehaviorOptions; track opt.value) {
+            <button type="button"
+              [class]="'chip ' + opt.className"
+              [class.active]="selectedBehaviors().includes(opt.value)"
+              (click)="toggle('buyingBehavior', opt.value)">
+              <i [class]="opt.icon"></i> {{ opt.label }}
+            </button>
+          }
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===== SECTION 4: EXISTING CUSTOMERS & PLATFORMS ===== -->
+  <div class="section-block">
+    <div class="section-title"><i class="fa-solid fa-mobile-screen"></i> العملاء والمنصات</div>
+    <div class="form-grid">
+
+      <div class="form-row full">
+        <label>هل لديك عملاء حاليون؟</label>
+        <div class="chips">
+          <button type="button" class="chip chip-yes" [class.active]="data()?.hasExistingCustomers === 'yes'"
+            (click)="emit({ hasExistingCustomers: 'yes' })">
+            <i class="fa-solid fa-check"></i> نعم
+          </button>
+          <button type="button" class="chip chip-no" [class.active]="data()?.hasExistingCustomers === 'no'"
+            (click)="emit({ hasExistingCustomers: 'no' })">
+            <i class="fa-solid fa-xmark"></i> لا، أبدأ من الصفر
+          </button>
+        </div>
+      </div>
+
+      <div class="form-row full">
+        <label>المنصات التي يتواجد عليها جمهورك <span>(اختر كل ما ينطبق)</span></label>
+        <div class="chips">
+          @for (p of platformOptions; track p.value) {
+            <button type="button"
+              [class]="'chip ' + p.className"
+              [class.active]="selectedPlatforms().includes(p.value)"
+              (click)="toggle('audiencePlatforms', p.value)">
+              <i [class]="p.icon"></i> {{ p.label }}
+            </button>
+          }
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <app-onboarding-step-actions (back)="onBack()" (next)="onNext()" />
+</section>

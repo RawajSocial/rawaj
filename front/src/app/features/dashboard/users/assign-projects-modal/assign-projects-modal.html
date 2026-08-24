@@ -1,0 +1,41 @@
+@if (open()) {
+  <div class="rw-modal-backdrop" #backdrop (click)="requestClose()">
+    <div class="rw-modal-panel" #panel (click)="$event.stopPropagation()">
+      <div class="rw-modal-header">
+        <h3>تعيين العلامات التجارية</h3>
+        <button type="button" class="rw-modal-close" (click)="requestClose()" aria-label="إغلاق">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="rw-modal-body">
+        <p class="form-hint">
+          <i class="fa-solid fa-copyright"></i>
+          اختر العلامات التجارية التي يمكن لـ {{ memberName() }} العمل عليها. يمكن اختيار أكثر من علامة.
+        </p>
+
+        @if (brandProfiles().length === 0) {
+          <p class="form-hint">لا توجد علامات تجارية بعد.</p>
+        } @else {
+          <div class="project-list">
+            @for (brand of brandProfiles(); track brand.id) {
+              <label class="project-option" [class.checked]="selectedIds().has(brand.id)">
+                <input
+                  type="checkbox"
+                  [checked]="selectedIds().has(brand.id)"
+                  (change)="toggle(brand.id)">
+                <span class="project-check"><i class="fa-solid fa-check"></i></span>
+                <span class="project-name">{{ brand.name }}</span>
+              </label>
+            }
+          </div>
+        }
+
+        <div class="rw-modal-footer">
+          <button type="button" class="btn-outline" (click)="requestClose()">إلغاء</button>
+          <button type="button" class="btn-brand" (click)="submit()">حفظ التعيينات</button>
+        </div>
+      </div>
+    </div>
+  </div>
+}

@@ -1,0 +1,11 @@
+using MediatR;
+using Rawaj.Application.Common.Interfaces;
+using Rawaj.Application.Common.Models;
+using Rawaj.Domain.Enums;
+
+namespace Rawaj.Application.Features.Brands.GetBrandProfiles;
+
+public record GetBrandProfilesQuery : IRequest<Result<List<BrandProfileSummary>>>, IRequireTenantRole
+{
+    public TenantMemberRole MinimumRole => TenantMemberRole.Viewer;
+}

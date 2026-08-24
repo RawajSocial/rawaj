@@ -1,0 +1,62 @@
+<section class="pricing-section" id="pricing">
+
+  <!-- Ambient cosmic glow (reference assets) -->
+  <div class="pricing-shape" aria-hidden="true">
+    <img src="assets/img/shape/pricing-blur01.png" alt="">
+  </div>
+
+  <div class="container position-relative z-1">
+
+    <!-- Title Section -->
+    <div class="text-center section-header" appGsapReveal="fade-up" [gsapDuration]="2000">
+      <h2 class="title">أسعار قوية تنمو مع نشاطك</h2>
+      <p class="subtitle">ابدأ مجانًا وقم بالترقية مع نمو أعمالك — فوترة شهرية فقط، بدون التزام سنوي.</p>
+    </div>
+
+    <!-- Unified Pricing Panel -->
+    <div class="pricing-panel pricing-panel--grid" appGsapReveal="fade-up" [gsapDuration]="2000">
+      <div class="pricing-panel__blur" aria-hidden="true">
+        <img src="assets/img/shape/pricing-blur02.png" alt="">
+      </div>
+
+      @for (plan of plansWithDescriptions(); track plan.subscriptionPlanId) {
+        <div class="pricing-col" [class.pricing-col--featured]="plan.name === 'Pro'">
+          <p class="plan-sub-title">{{ plan.name }}</p>
+          <div class="plan-price-box">
+            @if (plan.cost > 0) {
+              <h3>${{ plan.cost }}</h3>
+              <p>/ شهريًا</p>
+            } @else {
+              <h3>$0</h3>
+              <p>/ للأبد</p>
+            }
+          </div>
+          <p class="plan-text">{{ plan.description }}</p>
+
+          <ul class="plan-list">
+            <li><img src="assets/img/icon/check-icon.svg" alt="">حتى {{ plan.maxBrands }} علامة تجارية</li>
+            <li><img src="assets/img/icon/check-icon.svg" alt="">حتى {{ plan.maxUsers - 1 }} مسوّق مدعو</li>
+            @if (plan.coinUsageDiscountPercent > 0) {
+              <li><img src="assets/img/icon/check-icon.svg" alt="">خصم {{ plan.coinUsageDiscountPercent }}٪ على استهلاك الكوينز</li>
+            }
+            @for (f of plan.features; track f) {
+              <li><img src="assets/img/icon/check-icon.svg" alt="">{{ planFeatureLabel(f) }}</li>
+            }
+          </ul>
+
+          <div class="plan-btn-wrap">
+            <a routerLink="/pricing" class="plan-btn plan-btn--outline">
+              اطّلع على التفاصيل
+              <img class="plan-btn__star" src="assets/img/icon/multi-star.svg" alt="">
+            </a>
+          </div>
+        </div>
+      }
+    </div>
+
+    <div class="text-center pricing-more-link">
+      <a routerLink="/pricing">مقارنة كاملة بين الباقات وأسعار الذكاء الاصطناعي والكوينز ←</a>
+    </div>
+
+  </div>
+</section>

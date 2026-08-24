@@ -1,0 +1,50 @@
+.connect-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.connect-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.connect-account-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 160px;
+}
+
+@media (max-width: 480px) {
+  .connect-row { align-items: flex-start; }
+  .connect-label { flex-basis: 100%; }
+  .connect-account-name { max-width: none; white-space: normal; }
+}
+
+.connect-icon {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-size: 0.9rem;
+  box-shadow: var(--shadow-tag);
+}
+
+.connect-label {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-dark);
+}
+
+.connect-account-name {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}

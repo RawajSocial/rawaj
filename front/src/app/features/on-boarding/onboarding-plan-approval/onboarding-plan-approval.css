@@ -1,0 +1,579 @@
+/* ── Buttons (view-encapsulated component, so the shared .rw-btn rules
+   from dashboard-shared.css must be redefined here too) ── */
+.rw-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 10px;
+  border: none;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-semibold);
+  font-family: inherit;
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), background-color var(--transition-fast);
+}
+
+.rw-btn--primary {
+  background: linear-gradient(135deg, var(--color-secondary), var(--color-primary));
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(124, 58, 237, .28);
+}
+.rw-btn--primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(124, 58, 237, .38);
+  color: #fff;
+}
+
+.rw-btn--dark {
+  background: var(--color-dark);
+  color: #fff;
+}
+.rw-btn--dark:hover { background: #1d2436; color: #fff; }
+
+.rw-btn--outline {
+  background: transparent;
+  border: 1.5px solid var(--color-border);
+  color: var(--color-text-secondary);
+}
+.rw-btn--outline:hover { border-color: var(--color-dark); color: var(--color-dark); }
+
+.is-perm-disabled {
+  opacity: .55;
+  cursor: not-allowed;
+}
+
+/* ════════════════════════════════════════════════════════════
+   PLAN WRAPPER
+════════════════════════════════════════════════════════════ */
+.plan-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  max-width: 820px;
+  margin: 0 auto;
+  width: 100%;
+  padding-bottom: 2rem;
+}
+
+/* ════════════════════════════════════════════════════════════
+   HERO
+════════════════════════════════════════════════════════════ */
+.plan-hero {
+  background: linear-gradient(135deg, var(--color-dark) 0%, var(--color-secondary) 55%, var(--color-secondary-active) 100%);
+  border-radius: var(--radius-2xl);
+  padding: 2rem 2rem 1.75rem;
+  color: #fff;
+  position: relative;
+  overflow: hidden;
+}
+
+.plan-hero::before {
+  content: '';
+  position: absolute;
+  top: -50px; right: -50px;
+  width: 220px; height: 220px;
+  background: rgba(255,255,255,.05);
+  border-radius: 50%;
+  pointer-events: none;
+}
+.plan-hero::after {
+  content: '';
+  position: absolute;
+  bottom: -60px; left: -30px;
+  width: 200px; height: 200px;
+  background: rgba(255,255,255,.04);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.plan-ai-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .28rem .9rem;
+  background: rgba(255,255,255,.15);
+  border: 1px solid rgba(255,255,255,.25);
+  border-radius: var(--radius-full);
+  font-size: .78rem;
+  font-weight: var(--font-semibold);
+  margin-bottom: .95rem;
+  backdrop-filter: blur(6px);
+}
+
+.plan-brand-name {
+  font-size: 2rem;
+  font-weight: var(--font-bold);
+  margin: 0 0 .4rem;
+  line-height: 1.15;
+  position: relative;
+}
+
+.plan-hero-sub {
+  font-size: .95rem;
+  opacity: .88;
+  margin: 0;
+  line-height: 1.55;
+  max-width: 560px;
+  position: relative;
+}
+
+/* ════════════════════════════════════════════════════════════
+   INLINE "AI STILL WORKING" PROGRESS STRIP — a slim status bar,
+   not a blocking full-page loader; sections render around it.
+════════════════════════════════════════════════════════════ */
+.plan-progress-strip {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  background: var(--color-secondary-subtle);
+  border: 1.5px solid var(--color-secondary-light);
+  border-radius: var(--radius-xl);
+  padding: 1rem 1.25rem;
+}
+
+.progress-strip-icon {
+  width: 34px; height: 34px;
+  border-radius: var(--radius-md);
+  background: var(--color-secondary);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: .9rem;
+}
+
+.progress-strip-body { flex: 1; min-width: 0; }
+
+.progress-strip-title {
+  margin: 0 0 .5rem;
+  font-size: .9rem;
+  font-weight: var(--font-semibold);
+  color: var(--color-dark);
+}
+
+.progress-strip-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+}
+
+.progress-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .3rem .7rem;
+  border-radius: var(--radius-full);
+  font-size: .75rem;
+  font-weight: var(--font-semibold);
+  color: var(--color-text-secondary);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+}
+
+.progress-chip i { font-size: .75rem; color: var(--color-secondary); }
+.progress-chip.done { color: var(--color-success); border-color: var(--color-success); }
+.progress-chip.done i { color: var(--color-success); }
+
+/* ════════════════════════════════════════════════════════════
+   SECTION CARDS (built on the shared .rw-card primitive)
+════════════════════════════════════════════════════════════ */
+.plan-card { display: flex; flex-direction: column; gap: .5rem; }
+
+.card-header-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.section-icon {
+  width: 42px; height: 42px;
+  border-radius: var(--radius-md);
+  background: var(--color-secondary-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  color: var(--color-secondary);
+  flex-shrink: 0;
+}
+
+.section-icon.ai-glow {
+  background: linear-gradient(135deg, var(--color-dark), var(--color-secondary-active));
+  color: #a78bfa;
+}
+
+/* ── Skeleton (loading) ── */
+.section-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: .55rem;
+  padding-top: .25rem;
+}
+.section-skeleton--tight { padding-top: 0; }
+
+.sk-line {
+  display: block;
+  height: 12px;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(90deg, var(--color-bg-secondary) 25%, var(--color-border) 37%, var(--color-bg-secondary) 63%);
+  background-size: 400% 100%;
+  animation: sk-shimmer 1.4s ease infinite;
+}
+.sk-line--40 { width: 40%; }
+.sk-line--50 { width: 50%; }
+.sk-line--60 { width: 60%; }
+.sk-line--70 { width: 70%; }
+.sk-line--80 { width: 80%; }
+.sk-line--90 { width: 90%; }
+
+@keyframes sk-shimmer {
+  0%   { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sk-line { animation: none; }
+}
+
+/* ── Empty state (matches the app's .empty-state pattern, scaled to a card) ── */
+.section-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: .6rem;
+  padding: 1.5rem 1rem;
+}
+
+.section-empty-icon {
+  width: 44px; height: 44px;
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-secondary);
+  color: var(--color-text-muted);
+  display: grid;
+  place-items: center;
+  font-size: 1.1rem;
+}
+
+.section-empty p {
+  margin: 0;
+  font-size: .85rem;
+  color: var(--color-text-secondary);
+  max-width: 340px;
+}
+
+/* ── Chips (data recap rows — objective/audience/business basics) ── */
+.plan-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+}
+
+.plan-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .35rem .75rem;
+  border-radius: var(--radius-full);
+  font-size: .8rem;
+  font-weight: var(--font-semibold);
+  color: var(--color-text-secondary);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+}
+.plan-chip i { color: var(--color-secondary); font-size: .78rem; }
+
+.plan-chip--accent {
+  background: var(--color-secondary-subtle);
+  border-color: var(--color-secondary-light);
+  color: var(--color-secondary);
+}
+
+/* ── Brand color swatches ── */
+.brand-colors-row {
+  display: flex;
+  gap: .5rem;
+}
+.brand-color-swatch {
+  width: 30px; height: 30px;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--color-border);
+  display: inline-block;
+}
+
+/* ── "No strategy generated yet" opt-in prompt (standalone review only — see the component's
+   `autoGenerate` input) ── */
+.plan-generate-prompt {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: .75rem;
+}
+.plan-generate-prompt h3 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+.plan-generate-prompt p {
+  margin: 0;
+  font-size: .9rem;
+  line-height: 1.75;
+  color: var(--color-text-muted);
+}
+.plan-generate-denied {
+  font-style: italic;
+}
+
+/* ════════════════════════════════════════════════════════════
+   SHARED AI CONTENT PRIMITIVES (diagnosis / research / strategy)
+════════════════════════════════════════════════════════════ */
+.pipeline-note {
+  padding: .9rem 1.4rem;
+  background: var(--color-warning-light);
+  border: 1.5px solid var(--color-warning);
+  border-radius: var(--radius-lg);
+}
+.pipeline-note p {
+  margin: 0;
+  font-size: .85rem;
+  color: #92400e;
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+}
+
+.ai-diagnosis-summary {
+  margin: 0;
+  font-size: .9rem;
+  line-height: 1.75;
+  color: var(--color-text-secondary);
+}
+
+.ai-diagnosis-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .6rem;
+}
+.ai-diagnosis-chip {
+  display: flex;
+  flex-direction: column;
+  gap: .15rem;
+  padding: .55rem .9rem;
+  border-radius: var(--radius-md);
+  background: var(--color-secondary-subtle);
+  border: 1.5px solid var(--color-secondary-light);
+}
+.ai-diagnosis-chip span { font-size: .72rem; color: var(--color-text-muted); }
+.ai-diagnosis-chip strong { font-size: .85rem; color: var(--color-dark); }
+
+.ai-swot-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: .75rem;
+}
+.ai-swot-card {
+  padding: .9rem 1rem;
+  border-radius: var(--radius-lg);
+  background: var(--color-secondary-subtle);
+  border: 1.5px solid var(--color-secondary-light);
+}
+.ai-swot-card h4 {
+  margin: 0 0 .5rem;
+  font-size: .82rem;
+  font-weight: var(--font-bold);
+  color: var(--color-secondary);
+}
+.ai-swot-card ul { margin: 0; padding-inline-start: 1.1rem; }
+.ai-swot-card li, .ai-swot-card p { font-size: .8rem; color: var(--color-text-secondary); line-height: 1.6; margin: 0; }
+
+.ai-diagnosis-missing {
+  font-size: .8rem;
+  color: #92400e;
+  background: var(--color-warning-light);
+  border: 1px solid var(--color-warning);
+  border-radius: var(--radius-md);
+  padding: .65rem .9rem;
+  display: flex;
+  align-items: flex-start;
+  gap: .5rem;
+}
+
+.ai-recommendations-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+}
+.ai-recommendations-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: .55rem;
+  font-size: .85rem;
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+}
+.ai-recommendations-list i { color: var(--color-accent); margin-top: .2rem; }
+
+.ai-refine-box {
+  margin-top: .5rem;
+  padding: 1rem;
+  border-radius: var(--radius-lg);
+  background: var(--color-secondary-subtle);
+  border: 1.5px solid var(--color-secondary-light);
+  display: flex;
+  flex-direction: column;
+  gap: .6rem;
+}
+.ai-refine-label { font-size: .82rem; font-weight: var(--font-bold); color: var(--color-dark); }
+.ai-refine-box textarea {
+  resize: vertical;
+  min-height: 60px;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--color-secondary-light);
+  padding: .6rem .8rem;
+  font-size: .85rem;
+  font-family: inherit;
+  background: var(--color-surface);
+  color: var(--color-dark);
+}
+
+.ai-refine-actions {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  flex-wrap: wrap;
+}
+
+.ai-strategy-block {
+  display: flex;
+  flex-direction: column;
+  gap: .4rem;
+}
+.ai-strategy-block h4 {
+  margin: 0;
+  font-size: .85rem;
+  font-weight: var(--font-bold);
+  color: var(--color-dark);
+}
+
+.blueprint-sub-label {
+  margin: .3rem 0 0;
+  font-size: .78rem;
+  font-weight: var(--font-bold);
+  color: var(--color-text-muted);
+}
+
+.ct-tags { display: flex; flex-wrap: wrap; gap: .4rem; }
+.ct-tag {
+  padding: .22rem .65rem;
+  border-radius: var(--radius-full);
+  font-size: .75rem;
+  font-weight: var(--font-semibold);
+  background: var(--color-bg-secondary);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+}
+.ct-tag--accent {
+  background: var(--color-secondary-subtle);
+  border-color: var(--color-secondary-light);
+  color: var(--color-secondary);
+}
+
+.platforms-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+}
+.platform-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .35rem .75rem;
+  border-radius: var(--radius-full);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  font-size: .8rem;
+  font-weight: var(--font-semibold);
+}
+
+/* ════════════════════════════════════════════════════════════
+   ACTIONS
+════════════════════════════════════════════════════════════ */
+.plan-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-top: .5rem;
+}
+
+/* Sizing only — the sparkle animation itself comes from the global .cta-btn class (see the
+   template), matching the homepage hero's "ابدأ مجانًا الآن" button. That class's :hover state
+   drops the background to transparent, meant for the hero's dark cosmic section — invisible
+   against this page's light card background, in every state (hovered, focused, or disabled with
+   its explanatory tooltip open), so the background/text are forced solid unconditionally here
+   rather than chasing each state the global class defines transparency for. */
+.plan-approve-btn {
+  padding: .85rem 2rem;
+  font-size: 1rem;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary)) !important;
+  color: #fff !important;
+}
+.plan-approve-btn:hover:not(:disabled) {
+  box-shadow: 0 0 45px rgba(124, 58, 237, .65);
+  transform: translateY(-2px);
+}
+
+/* The stars rely on negative z-index to stay hidden behind the hero section's own background
+   until hover — that only works there because of that section's stacking context. Here nothing
+   guarantees a stacking context sits between the stars and this page's background, so they can
+   show up at rest. Hiding them with opacity (which the global .star-N rules already transition,
+   via `transition: all`) is stacking-context-independent. */
+.plan-approve-btn .star-1,
+.plan-approve-btn .star-2,
+.plan-approve-btn .star-3,
+.plan-approve-btn .star-4,
+.plan-approve-btn .star-5,
+.plan-approve-btn .star-6 {
+  opacity: 0;
+}
+.plan-approve-btn:hover:not(:disabled) .star-1,
+.plan-approve-btn:hover:not(:disabled) .star-2,
+.plan-approve-btn:hover:not(:disabled) .star-3,
+.plan-approve-btn:hover:not(:disabled) .star-4,
+.plan-approve-btn:hover:not(:disabled) .star-5,
+.plan-approve-btn:hover:not(:disabled) .star-6 {
+  opacity: 1;
+}
+
+.plan-approve-btn:disabled {
+  opacity: .55;
+  cursor: not-allowed;
+}
+
+/* ════════════════════════════════════════════════════════════
+   RESPONSIVE
+════════════════════════════════════════════════════════════ */
+@media (max-width: 600px) {
+  .plan-hero { padding: 1.4rem 1.25rem 1.35rem; }
+  .plan-brand-name { font-size: 1.5rem; }
+
+  .plan-progress-strip { flex-direction: column; }
+  .progress-strip-steps { gap: .4rem; }
+
+  .card-header-row { align-items: flex-start; }
+
+  .plan-actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+  .plan-actions .rw-btn,
+  .plan-actions .cta-btn { justify-content: center; }
+
+  .ai-swot-grid { grid-template-columns: 1fr; }
+}

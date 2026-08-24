@@ -1,0 +1,13 @@
+/* =========================================================
+   Admin theme.
+   Only the sidebar/header (styled directly in their own CSS)
+   use the dark-red palette. The content area keeps the app's
+   normal light theme — white cards, dark contrasting text —
+   so dashboard-shared primitives (.rw-card, .rw-btn, .rw-pill,
+   .page-shell, ...) render exactly as they do everywhere else.
+========================================================= */
+
+.admin-shell {
+  background: var(--color-bg-secondary);
+  min-height: 100vh;
+}

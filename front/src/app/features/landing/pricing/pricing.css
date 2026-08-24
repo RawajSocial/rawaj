@@ -1,0 +1,242 @@
+.pricing-section {
+  position: relative;
+  background-color: var(--color-dark);
+  padding: 8rem 0;
+  overflow: hidden;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pricing-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: url('/home-cosmic.svg');
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
+  opacity: 0.95;
+  z-index: 0;
+  pointer-events: none;
+}
+.pricing-shape {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 480px;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.pricing-shape img {
+  width: 100%;
+  display: block;
+}
+
+.section-header {
+  margin-bottom: 3.5rem;
+  position: relative;
+  z-index: 1;
+}
+
+.section-header .title {
+  font-family: var(--font-serif);
+  font-size: var(--font-size-4xl);
+  font-weight: var(--font-bold);
+  margin-bottom: .75rem;
+  color: #fff;
+}
+
+.section-header .subtitle {
+  color: var(--color-text-on-dark-muted) !important;
+  font-size: 1.1rem;
+}
+
+/* =========================================================
+   PRICING PANEL — equal grid, one card per real plan tier
+========================================================= */
+
+.pricing-panel {
+  position: relative;
+  z-index: 1;
+  padding: 4rem 2.5rem;
+  border-radius: 28px;
+  background: linear-gradient(144deg, var(--color-dark-soft) 0%, #14101f 100%);
+  box-shadow: 0 30px 70px rgba(0, 0, 0, .4);
+  overflow: hidden;
+}
+
+.pricing-panel--grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2rem;
+}
+
+.pricing-panel__blur {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 340px;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.pricing-panel__blur img {
+  width: 100%;
+  display: block;
+}
+
+.pricing-col {
+  position: relative;
+  color: #fff;
+  padding: 1.75rem 1.5rem;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, .1);
+  background: rgba(255, 255, 255, .03);
+  display: flex;
+  flex-direction: column;
+}
+
+.pricing-col--featured {
+  border-color: color-mix(in srgb, var(--color-secondary) 60%, transparent);
+  background: linear-gradient(160deg, color-mix(in srgb, var(--color-secondary) 18%, transparent), rgba(255, 255, 255, .03));
+  box-shadow: 0 20px 45px rgba(124, 58, 237, .25);
+}
+
+.plan-sub-title {
+  color: #fff;
+  font-weight: var(--font-bold);
+  font-size: 1.1rem;
+  margin-bottom: .9rem;
+}
+
+.plan-price-box {
+  display: flex;
+  align-items: flex-end;
+  gap: .5rem;
+  margin-bottom: .3rem;
+}
+
+.plan-price-box h3 {
+  font-size: 2.2rem;
+  font-weight: var(--font-bold);
+  color: #fff;
+  margin: 0;
+  line-height: 1;
+}
+
+.plan-price-box p {
+  font-size: .9rem;
+  color: rgba(255, 255, 255, .65);
+  margin: 0;
+}
+
+.plan-text {
+  color: rgba(255, 255, 255, .6);
+  margin-bottom: 1.5rem;
+  font-size: .9rem;
+  line-height: 1.6;
+  min-height: 3.2em;
+}
+
+.plan-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: .85rem;
+  flex: 1;
+}
+
+.plan-list li {
+  display: flex;
+  align-items: center;
+  gap: .7rem;
+  font-size: .9rem;
+  font-weight: var(--font-medium);
+  color: rgba(255, 255, 255, .88);
+  line-height: 1.4;
+}
+
+.plan-list li img {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+}
+
+/* =========================================================
+   CTA BUTTONS
+========================================================= */
+
+.plan-btn-wrap {
+  position: relative;
+}
+
+.plan-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .6rem;
+  width: 100%;
+  padding: .85rem 1.25rem;
+  border-radius: 999px;
+  font-weight: var(--font-bold);
+  font-size: .95rem;
+  text-decoration: none;
+  transition: transform var(--transition-base), box-shadow var(--transition-base);
+}
+
+.plan-btn--outline {
+  background: linear-gradient(135deg, var(--color-secondary), var(--color-primary));
+  color: #fff;
+  box-shadow: 0 10px 26px rgba(124, 58, 237, .3);
+}
+
+.plan-btn--outline:hover {
+  color: #fff;
+  transform: translateY(-2px);
+  box-shadow: 0 14px 32px rgba(124, 58, 237, .45);
+}
+
+.plan-btn__star {
+  width: 14px;
+  height: 14px;
+}
+
+.pricing-more-link {
+  position: relative;
+  z-index: 1;
+  margin-top: 2rem;
+}
+
+.pricing-more-link a {
+  color: rgba(255, 255, 255, .75);
+  font-size: .95rem;
+  font-weight: var(--font-semibold);
+  text-decoration: none;
+}
+
+.pricing-more-link a:hover {
+  color: #fff;
+}
+
+@media (max-width: 991px) {
+  .pricing-section {
+    padding: 5rem 0;
+  }
+  .pricing-panel--grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 992px) and (max-width: 1200px) {
+  .pricing-panel--grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

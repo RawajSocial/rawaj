@@ -1,0 +1,130 @@
+<div class="camp-card"
+     [attr.data-status]="campaign().status"
+     role="button"
+     tabindex="0"
+     (click)="view.emit(campaign().id)"
+     (keydown.enter)="view.emit(campaign().id)"
+     (keydown.space)="view.emit(campaign().id); $event.preventDefault()">
+
+  <!-- Banner -->
+  <div class="camp-card-banner">
+    <span class="camp-status-badge" [attr.data-status]="campaign().status">
+      <i class="{{ statusIcon }}"></i> {{ statusLabel }}
+    </span>
+
+    <div class="camp-platforms">
+      @for (p of platformIcons; track p.key) {
+        <span class="platform-icon" [style.color]="p.color">
+          <i class="{{ p.icon }}"></i>
+        </span>
+      }
+    </div>
+
+    <img [src]="logoUrl" class="camp-card-logo" alt="">
+
+    <span class="camp-card-dome"></span>
+  </div>
+
+  <!-- Body -->
+  <div class="camp-card-body">
+    <h3 class="camp-name">{{ campaign().name }}</h3>
+    <p class="camp-objective">
+      <i class="fa-solid fa-bullseye"></i> {{ objectiveLabel }}
+    </p>
+
+    <div class="camp-stats">
+      <div class="camp-stat">
+        <span class="stat-icon"><i class="fa-solid fa-wallet"></i></span>
+        <span class="stat-val">{{ budgetLabel }}</span>
+        <span class="stat-lbl">الميزانية</span>
+      </div>
+      <div class="camp-stat">
+        <span class="stat-icon"><i class="fa-regular fa-images"></i></span>
+        <span class="stat-val">{{ campaign().contentItemCount }}</span>
+        <span class="stat-lbl">منشور</span>
+      </div>
+      <div class="camp-stat">
+        <span class="stat-icon"><i class="fa-solid fa-share-nodes"></i></span>
+        <span class="stat-val">{{ campaign().platforms.length }}</span>
+        <span class="stat-lbl">منصة</span>
+      </div>
+    </div>
+
+    <!-- The one action that moves this campaign forward. Before this, the campaigns list had no
+         route to the content review at all: a user who left mid-flow could not get back to their
+         generated posts from anywhere in the campaign UI. An archived campaign has no next step
+         until it's back out of the archive, so it offers that instead. -->
+    @if (campaign().status === 'archived') {
+      <button type="button" class="camp-next-step" data-stage="archived"
+              [class.is-perm-disabled]="!perms.canEdit()"
+              [attr.aria-disabled]="!perms.canEdit() || null"
+              [appTooltip]="perms.canEdit() ? '' : perms.editDeniedReason()"
+              (click)="perms.canEdit() && restore.emit(campaign().id); $event.stopPropagation()">
+        <i class="fa-solid fa-rotate-left"></i>
+        استعادة الحملة
+      </button>
+    } @else {
+      <button type="button" class="camp-next-step" [attr.data-stage]="stage"
+              (click)="openNextStep.emit(campaign().id); $event.stopPropagation()">
+        <i class="{{ nextStepIcon }}"></i>
+        {{ nextStepLabel }}
+      </button>
+    }
+  </div>
+
+  <!-- Footer -->
+  <div class="camp-card-foot">
+    @if (campaign().status === 'active') {
+      <button class="camp-action-btn pause-btn"
+        [class.is-perm-disabled]="!perms.canEdit()"
+        [attr.aria-disabled]="!perms.canEdit() || null"
+        (click)="perms.canEdit() && pause.emit(campaign().id); $event.stopPropagation()"
+        [appTooltip]="perms.canEdit() ? 'إيقاف' : perms.editDeniedReason()" aria-label="إيقاف">
+        <i class="fa-solid fa-pause"></i>
+      </button>
+    } @else if (campaign().status === 'paused') {
+      <button class="camp-action-btn resume-btn"
+        [class.is-perm-disabled]="!perms.canEdit()"
+        [attr.aria-disabled]="!perms.canEdit() || null"
+        (click)="perms.canEdit() && resume.emit(campaign().id); $event.stopPropagation()"
+        [appTooltip]="perms.canEdit() ? 'استئناف' : perms.editDeniedReason()" aria-label="استئناف">
+        <i class="fa-solid fa-play"></i>
+      </button>
+    } @else {
+      <span class="camp-action-btn camp-action-btn--spacer"></span>
+    }
+
+    <div class="camp-dates">
+      <i class="fa-regular fa-calendar"></i>
+      {{ dateRangeLabel }}
+    </div>
+
+    <div class="camp-card-foot-actions">
+      <!-- Archiving was previously only ever done by the onboarding wizard, behind the user's
+           back — there was no way to remove a campaign from your own list. -->
+      @if (campaign().status !== 'archived') {
+        <button type="button" class="camp-action-btn archive-btn"
+          [class.is-perm-disabled]="!perms.canEdit()"
+          [attr.aria-disabled]="!perms.canEdit() || null"
+          (click)="perms.canEdit() && archive.emit(campaign().id); $event.stopPropagation()"
+          [appTooltip]="perms.canEdit() ? 'أرشفة' : perms.editDeniedReason()" aria-label="أرشفة">
+          <i class="fa-solid fa-box-archive"></i>
+        </button>
+      }
+
+      <!-- Permanent delete — offered regardless of archive status, gated stricter (Admin) than
+           every other action here since it cascades to content/images/scheduled posts. -->
+      <button type="button" class="camp-action-btn delete-btn"
+        [class.is-perm-disabled]="!perms.canAdmin()"
+        [attr.aria-disabled]="!perms.canAdmin() || null"
+        (click)="perms.canAdmin() && deleteCampaign.emit(campaign().id); $event.stopPropagation()"
+        [appTooltip]="perms.canAdmin() ? 'حذف نهائي' : deleteDeniedReason" aria-label="حذف نهائي">
+        <i class="fa-solid fa-trash-can"></i>
+      </button>
+
+      <button type="button" class="camp-action-btn view-btn" (click)="view.emit(campaign().id); $event.stopPropagation()" appTooltip="عرض التفاصيل" aria-label="عرض التفاصيل">
+        <i class="fa-solid fa-arrow-up-left-from-square"></i>
+      </button>
+    </div>
+  </div>
+</div>

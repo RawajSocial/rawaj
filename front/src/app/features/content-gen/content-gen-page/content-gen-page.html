@@ -1,0 +1,450 @@
+<div class="page-shell">
+
+  <!-- Page header -->
+  <div class="d-flex align-items-start justify-content-between mb-4 flex-wrap gap-3">
+    <div>
+      <h5 class="page-title">توليد المحتوى</h5>
+      <app-breadcrumb [items]="[{ label: 'نظرة عامة', link: '/dashboard' }, { label: 'توليد المحتوى' }]" />
+    </div>
+    <a routerLink="/dashboard/my-media" class="btn-all-media">
+      <i class="fa-solid fa-photo-film"></i>
+      جميع إعلاناتي
+    </a>
+  </div>
+
+  <!-- ══ Bootstrap 2-column layout ══ -->
+  <div class="row g-4 align-items-start">
+
+    <!-- ═══ COL RIGHT (RTL start): FORM ═══ -->
+    <div class="col-xl-4 col-lg-5">
+      <div class="form-panel">
+
+        <!-- Panel header -->
+        <div class="form-panel-hdr">
+          <div class="form-panel-icon">
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+          </div>
+          <div>
+            <span class="form-panel-title">توليد</span>
+            <span class="form-panel-sub">أنشئ محتوى بالذكاء الاصطناعي</span>
+          </div>
+        </div>
+
+        <div class="p-3">
+
+          <!-- نوع المحتوى -->
+          <div class="mb-3">
+            <label class="form-label-sm">نوع المحتوى <span class="req">*</span></label>
+            <div class="dropdown" [class.open]="typeOpen()" data-dd="type">
+              <button type="button" class="dropdown-trigger form-control type-trigger" (click)="typeOpen.update(v => !v)">
+                <span class="d-flex align-items-center gap-2 flex-1">
+                  <span class="type-icon-sm" [style.background]="typeCfg[genType()].color + '22'">
+                    <i class="{{ typeCfg[genType()].icon }}" [style.color]="typeCfg[genType()].color"></i>
+                  </span>
+                  <span class="dropdown-label">{{ typeLabel() }}</span>
+                </span>
+                <span class="dropdown-icon"><i class="fa-solid fa-chevron-down"></i></span>
+              </button>
+              <div class="dropdown-menu type-menu">
+                @for (t of genTypes(); track t) {
+                  <button type="button" class="dropdown-option type-opt" [class.active]="genType() === t"
+                          (click)="genType.set(t); typeOpen.set(false)">
+                    <span class="type-icon-sm" [style.background]="typeCfg[t].color + '22'">
+                      <i class="{{ typeCfg[t].icon }}" [style.color]="typeCfg[t].color"></i>
+                    </span>
+                    <span>
+                      <span class="d-block fw-semibold" style="font-size:.83rem;color:#1a1a2e">{{ typeCfg[t].label }}</span>
+                      <span class="d-block" style="font-size:.68rem;color:#9ca3af;line-height:1.3">{{ typeCfg[t].desc }}</span>
+                    </span>
+                  </button>
+                }
+              </div>
+            </div>
+          </div>
+
+          <!-- محفظة الكوينز (تظهر فقط لأعضاء ينتمون لأكثر من مؤسسة) -->
+          @if (showWalletSelector()) {
+            <div class="mb-3">
+              <label class="form-label-sm">
+                <i class="fa-solid fa-coins"></i>
+                سيتم توليد المحتوى وخصم الكوينز من حساب
+              </label>
+              <div class="dropdown" [class.open]="walletOpen()" data-dd="wallet">
+                <button type="button" class="dropdown-trigger form-control form-control-sm" (click)="walletOpen.update(v => !v)">
+                  <span class="dropdown-label">
+                    @if (activeMembership(); as m) {
+                      {{ m.isOwner ? 'حسابي الخاص' : m.name }} — {{ m.myCoinBalance.toLocaleString('ar-EG') }} كوين
+                    }
+                  </span>
+                  <span class="dropdown-icon"><i class="fa-solid fa-chevron-down"></i></span>
+                </button>
+                <div class="dropdown-menu">
+                  @for (m of tenantService.memberships(); track m.tenantId) {
+                    <button type="button" class="dropdown-option" [class.active]="m.tenantId === tenantService.activeTenantId()" (click)="switchWallet(m.tenantId)">
+                      {{ m.isOwner ? 'حسابي الخاص' : m.name }}
+                      <span class="text-muted" style="font-size:.75rem"> — {{ m.myCoinBalance.toLocaleString('ar-EG') }} كوين</span>
+                    </button>
+                  }
+                </div>
+              </div>
+            </div>
+          }
+
+          <!-- ملف العلامة التجارية + الحملة -->
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label-sm">ملف العلامة التجارية</label>
+              <div class="dropdown" [class.open]="brandProfileOpen()" data-dd="brandprofile">
+                <button type="button" class="dropdown-trigger form-control form-control-sm" (click)="brandProfileOpen.update(v => !v)">
+                  <span class="dropdown-label">{{ brandProfileLabel() }}</span>
+                  <span class="dropdown-icon"><i class="fa-solid fa-chevron-down"></i></span>
+                </button>
+                <div class="dropdown-menu">
+                  <button type="button" class="dropdown-option" [class.active]="!formBrandProfileId()" (click)="setBrandProfile('')">بدون تحديد</button>
+                  @for (bp of brandProfiles(); track bp.id) {
+                    <button type="button" class="dropdown-option" [class.active]="formBrandProfileId() === bp.id" (click)="setBrandProfile(bp.id)">{{ bp.name }}</button>
+                  }
+                </div>
+              </div>
+            </div>
+            <div class="col-6">
+              <label class="form-label-sm">الحملة</label>
+              <div class="dropdown" [class.open]="campaignOpen()" data-dd="campaign">
+                <button type="button" class="dropdown-trigger form-control form-control-sm" (click)="campaignOpen.update(v => !v)">
+                  <span class="dropdown-label">{{ campaignLabel() }}</span>
+                  <span class="dropdown-icon"><i class="fa-solid fa-chevron-down"></i></span>
+                </button>
+                <div class="dropdown-menu">
+                  <button type="button" class="dropdown-option" [class.active]="!formCampaignId()" (click)="formCampaignId.set(''); campaignOpen.set(false)">بدون تحديد</button>
+                  @for (c of availableCampaigns(); track c.id) {
+                    <button type="button" class="dropdown-option" [class.active]="formCampaignId() === c.id" (click)="formCampaignId.set(c.id); campaignOpen.set(false)">{{ c.name }}</button>
+                  }
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- اسم العلامة التجارية -->
+          <div class="mb-3">
+            <label class="form-label-sm">اسم العلامة التجارية <span class="req">*</span></label>
+            <input type="text" class="form-control form-control-sm"
+                   placeholder="مثال: تاون تيم"
+                   [value]="formBrand()"
+                   (input)="formBrand.set($any($event.target).value)">
+          </div>
+
+          <!-- وصف المحتوى -->
+          <div class="mb-3">
+            <label class="form-label-sm">وصف المحتوى <span class="req">*</span></label>
+            <textarea class="form-control form-control-sm gen-textarea"
+                      placeholder="صف المحتوى المطلوب بتفاصيل..."
+                      [value]="formDesc()"
+                      (input)="formDesc.set($any($event.target).value)"></textarea>
+          </div>
+
+          <!-- الوسائط (assets) -->
+          <div class="mb-3">
+            <label class="form-label-sm">الوسائط <span class="hint-sm">(اختياري — صور مرجعية للتوليد)</span></label>
+            <label class="assets-upload-btn">
+              <i class="fa-solid fa-paperclip"></i>
+              أرفق ملفات...
+              <input type="file" accept="image/*" multiple class="hidden-file" (change)="onAssetsChange($event)">
+            </label>
+            @if (formAssets().length > 0) {
+              <div class="assets-list">
+                @for (asset of formAssets(); track asset.name; let i = $index) {
+                  <div class="asset-chip">
+                    <img [src]="asset.url" [alt]="asset.name" class="asset-chip__thumb">
+                    <span class="asset-chip__name">{{ asset.name }}</span>
+                    <button type="button" class="asset-chip__remove" (click)="removeAsset(i)" aria-label="إزالة">
+                      <i class="fa-solid fa-xmark"></i>
+                    </button>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+
+          <!-- Row: نبرة + منصة -->
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label-sm">نبرة المحتوى</label>
+              <div class="dropdown" [class.open]="toneOpen()" data-dd="tone">
+                <button type="button" class="dropdown-trigger form-control form-control-sm" (click)="toneOpen.update(v => !v)">
+                  <span class="dropdown-label">{{ toneLabel() }}</span>
+                  <span class="dropdown-icon"><i class="fa-solid fa-chevron-down"></i></span>
+                </button>
+                <div class="dropdown-menu">
+                  @for (tone of tones; track tone) {
+                    <button type="button" class="dropdown-option" [class.active]="formTone() === tone"
+                            (click)="formTone.set(tone); toneOpen.set(false)">{{ toneCfg[tone] }}</button>
+                  }
+                </div>
+              </div>
+            </div>
+            <div class="col-6">
+              <label class="form-label-sm">المنصة</label>
+              <div class="dropdown" [class.open]="platformOpen()" data-dd="platform">
+                <button type="button" class="dropdown-trigger form-control form-control-sm" (click)="platformOpen.update(v => !v)">
+                  <span class="d-flex align-items-center gap-1 flex-1">
+                    @for (p of platforms; track p.value) {
+                      @if (p.value === formPlatform()) {
+                        <i class="{{ p.icon }}" [style.color]="p.color" style="font-size:.85rem"></i>
+                      }
+                    }
+                    <span class="dropdown-label">{{ platformLabel() }}</span>
+                  </span>
+                  <span class="dropdown-icon"><i class="fa-solid fa-chevron-down"></i></span>
+                </button>
+                <div class="dropdown-menu">
+                  @for (p of platforms; track p.value) {
+                    <button type="button" class="dropdown-option" [class.active]="formPlatform() === p.value"
+                            (click)="formPlatform.set(p.value); platformOpen.set(false)">
+                      <i class="{{ p.icon }}" [style.color]="p.color" style="font-size:.85rem;width:16px;text-align:center"></i>
+                      {{ p.label }}
+                    </button>
+                  }
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Row: لغة + جودة -->
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label-sm">اللغة</label>
+              <div class="dropdown" [class.open]="langOpen()" data-dd="lang">
+                <button type="button" class="dropdown-trigger form-control form-control-sm" (click)="langOpen.update(v => !v)">
+                  <span class="dropdown-label">{{ langLabel() }}</span>
+                  <span class="dropdown-icon"><i class="fa-solid fa-chevron-down"></i></span>
+                </button>
+                <div class="dropdown-menu">
+                  <button type="button" class="dropdown-option" [class.active]="formLang()==='ar'"    (click)="formLang.set('ar'); langOpen.set(false)">عربي</button>
+                  <button type="button" class="dropdown-option" [class.active]="formLang()==='ar-eg'" (click)="formLang.set('ar-eg'); langOpen.set(false)">عربي مصري</button>
+                  <button type="button" class="dropdown-option" [class.active]="formLang()==='en'"    (click)="formLang.set('en'); langOpen.set(false)">English</button>
+                </div>
+              </div>
+            </div>
+            <div class="col-6">
+              <label class="form-label-sm">الجودة</label>
+              <div class="dropdown" [class.open]="qualityOpen()" data-dd="quality">
+                <button type="button" class="dropdown-trigger form-control form-control-sm" (click)="qualityOpen.update(v => !v)">
+                  <span class="dropdown-label">{{ qualityLabel() }}</span>
+                  <span class="dropdown-icon"><i class="fa-solid fa-chevron-down"></i></span>
+                </button>
+                <div class="dropdown-menu">
+                  @for (q of qualities; track q.value) {
+                    <button type="button" class="dropdown-option quality-opt" [class.active]="formQuality()===q.value"
+                            (click)="formQuality.set(q.value); qualityOpen.set(false)">
+                      <span class="d-block fw-semibold" style="font-size:.82rem">{{ q.label }}</span>
+                      <span class="d-block" style="font-size:.68rem;color:#9ca3af">{{ q.desc }}</span>
+                    </button>
+                  }
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- حجم الإعلان (static-ad) -->
+          @if (genType() === 'static-ad') {
+            <div class="mb-3">
+              <label class="form-label-sm">حجم الإعلان</label>
+              <div class="row g-2">
+                @for (s of sizes; track s) {
+                  <div class="col-6">
+                    <button type="button" class="size-chip w-100" [class.active]="formSize() === s" (click)="formSize.set(s)">
+                      <span class="size-chip-label">{{ sizeCfg[s].label }}</span>
+                      <span class="size-chip-ratio">{{ sizeCfg[s].ratio }}</span>
+                    </button>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+
+          <!-- نوع النص (text) -->
+          @if (genType() === 'text') {
+            <div class="mb-3">
+              <label class="form-label-sm">نوع النص</label>
+              <div class="dropdown" [class.open]="textTypeOpen()" data-dd="texttype">
+                <button type="button" class="dropdown-trigger form-control form-control-sm" (click)="textTypeOpen.update(v => !v)">
+                  <span class="dropdown-label">{{ textTypeLabel() }}</span>
+                  <span class="dropdown-icon"><i class="fa-solid fa-chevron-down"></i></span>
+                </button>
+                <div class="dropdown-menu">
+                  @for (tt of textTypes; track tt) {
+                    <button type="button" class="dropdown-option" [class.active]="formTextType()===tt"
+                            (click)="formTextType.set(tt); textTypeOpen.set(false)">{{ textTypeCfg[tt] }}</button>
+                  }
+                </div>
+              </div>
+            </div>
+          }
+
+          <!-- مدة الفيديو (video) -->
+          @if (genType() === 'video') {
+            <div class="mb-3">
+              <label class="form-label-sm">مدة الفيديو</label>
+              <div class="d-flex gap-2">
+                <button type="button" class="duration-chip active flex-fill">15 ث</button>
+                <button type="button" class="duration-chip flex-fill">30 ث</button>
+                <button type="button" class="duration-chip flex-fill">60 ث</button>
+              </div>
+            </div>
+          }
+
+          <!-- Generate button -->
+          <button type="button" class="btn-generate w-100 mt-2"
+                  [disabled]="!canGenerate()" (click)="generate()">
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+            توليد المحتوى الآن
+          </button>
+          @if (spendPreviewLabel()) {
+            <p class="spend-preview-note">
+              <i class="fa-solid fa-coins"></i>
+              {{ spendPreviewLabel() }}
+            </p>
+          }
+
+        </div><!-- /p-3 -->
+      </div><!-- /form-panel -->
+    </div>
+
+    <!-- ═══ COL LEFT (RTL end): OUTPUT ═══ -->
+    <div class="col-xl-8 col-lg-7">
+      <div class="output-panel">
+        @if (!currentItem()) {
+          <!-- Placeholder (before generation) -->
+          <div class="output-placeholder">
+            <div class="output-placeholder__icon"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+            <h6>لم يتم إنشاء أي محتوى بعد</h6>
+            <p>املأ النموذج واضغط "توليد المحتوى الآن" لمشاهدة النتيجة هنا</p>
+          </div>
+        } @else if (currentItem()!.status === 'generating') {
+          <!-- Animation (during generation) -->
+          <div class="output-generating" [style.background]="thumbnailGradient(currentItem()!.type)">
+            <div class="gen-orbit">
+              <span class="gen-orbit__dot"></span>
+              <span class="gen-orbit__dot"></span>
+              <span class="gen-orbit__dot"></span>
+            </div>
+            <h6>جارِ إنشاء المحتوى...</h6>
+            <p>يستخدم الذكاء الاصطناعي لتوليد {{ typeCfg[currentItem()!.type].label }} عالي الجودة</p>
+          </div>
+        } @else {
+          <!-- Result -->
+          <div class="output-result">
+            <div class="output-result__preview">
+              @if (isImage(currentItem()!)) {
+                <img [src]="currentItem()!.thumbnailUrl" [alt]="currentItem()!.title" class="output-result__img">
+              } @else if (isVideo(currentItem()!)) {
+                <video class="output-result__img" [src]="currentItem()!.videoUrl" controls autoplay muted></video>
+              } @else {
+                <div class="output-result__text" [style.background]="thumbnailGradient(currentItem()!.type)">
+                  <i class="fa-solid fa-quote-right"></i>
+                  <p>{{ currentItem()!.textContent ?? currentItem()!.description }}</p>
+                </div>
+              }
+            </div>
+            <div class="output-result__meta">
+              <div>
+                <span class="output-result__title">{{ currentItem()!.title }}</span>
+                <span class="output-result__sub">{{ currentItem()!.brand }} · {{ formatDateTime(currentItem()!.createdAt) }}</span>
+              </div>
+              <a routerLink="/dashboard/my-media" class="output-result__link">
+                عرض في إعلاناتي <i class="fa-solid fa-arrow-left"></i>
+              </a>
+            </div>
+
+            <!-- Edit with prompt -->
+            <div class="output-edit">
+              <label class="output-edit__label" for="edit-prompt">
+                <i class="fa-solid fa-wand-magic-sparkles"></i>
+                تعديل المحتوى بالذكاء الاصطناعي
+              </label>
+              <div class="output-edit__row">
+                <input
+                  id="edit-prompt"
+                  type="text"
+                  class="output-edit__input"
+                  placeholder="مثال: اجعل الخلفية أكثر إشراقًا، أضف شعار العلامة..."
+                  [value]="editPrompt()"
+                  (input)="editPrompt.set($any($event.target).value)"
+                  (keydown.enter)="applyEdit()">
+                <button type="button" class="output-edit__btn" [disabled]="!canApplyEdit()" (click)="applyEdit()">
+                  <i class="fa-solid fa-paper-plane"></i>
+                  تطبيق التعديل
+                </button>
+              </div>
+            </div>
+
+            <!-- Approve → schedule (text generations only — image-only generations here have no
+                 ContentItem to schedule against) -->
+            @if (canScheduleCurrent()) {
+              <div class="output-schedule">
+                @if (scheduledIds().has(currentItem()!.id)) {
+                  <p class="output-schedule__done"><i class="fa-solid fa-circle-check"></i> تمت جدولة هذا المنشور.</p>
+                } @else if (!isApproved()) {
+                  <button type="button" class="output-edit__btn"
+                    [class.is-perm-disabled]="!perms.canEdit()"
+                    [attr.aria-disabled]="!perms.canEdit() || null"
+                    [appTooltip]="perms.editDeniedReason()"
+                    [disabled]="approving()"
+                    (click)="approveCurrent()">
+                    @if (approving()) {
+                      <i class="fa-solid fa-circle-notch fa-spin"></i> جاري القبول...
+                    } @else {
+                      <i class="fa-solid fa-check"></i> قبول وجدولة
+                    }
+                  </button>
+                } @else if (!schedulePanelOpen()) {
+                  <button type="button" class="output-edit__btn" (click)="openSchedulePanel()">
+                    <i class="fa-solid fa-calendar-check"></i> جدولة هذا المنشور
+                  </button>
+                } @else {
+                  <div class="schedule-fields">
+                    <label>
+                      الحساب
+                      <select [value]="scheduleAccountId()" (change)="updateScheduleAccount($any($event.target).value)">
+                        @if (scheduleAccounts().length === 0) {
+                          <option value="">لا يوجد حساب متصل</option>
+                        }
+                        @for (a of scheduleAccounts(); track a.socialAccountId) {
+                          <option [value]="a.socialAccountId">{{ a.platform }} — {{ a.accountName }}</option>
+                        }
+                      </select>
+                    </label>
+                    <label>
+                      التاريخ
+                      <input type="date" [value]="scheduleDate()" (input)="updateScheduleDate($any($event.target).value)" />
+                    </label>
+                    <label>
+                      الوقت
+                      <input type="time" [value]="scheduleTime()" (input)="updateScheduleTime($any($event.target).value)" />
+                    </label>
+                  </div>
+                  @if (scheduleAccounts().length === 0) {
+                    <p class="output-schedule__hint">لا يوجد حساب متصل لهذه العلامة التجارية — <a routerLink="/dashboard/social-accounts">اربط حسابًا</a> أولاً.</p>
+                  }
+                  <div class="schedule-actions">
+                    <button type="button" class="output-edit__btn output-edit__btn--ghost" (click)="closeSchedulePanel()">إلغاء</button>
+                    <button type="button" class="output-edit__btn"
+                      [disabled]="scheduling() || !scheduleAccountId() || !scheduleDate() || !scheduleTime()"
+                      (click)="submitSchedule()">
+                      @if (scheduling()) {
+                        <i class="fa-solid fa-circle-notch fa-spin"></i> جاري الجدولة...
+                      } @else {
+                        <i class="fa-solid fa-calendar-check"></i> جدولة
+                      }
+                    </button>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+
+  </div><!-- /row -->
+</div><!-- /page-shell -->

@@ -1,0 +1,41 @@
+<section class="step-content-wrap">
+  <app-onboarding-step-header
+    [currentStep]="currentStep()"
+    [totalSteps]="totalSteps()"
+    title="نوع الحملة"
+  />
+
+  <app-step-badge icon="fa-solid fa-flag" text="الخطوة الأولى" appGsapReveal="fade-up-far" [gsapDuration]="1200" />
+  <app-step-heading
+    title="ما نوع الحملة التي تريدها؟"
+    lead="اختر نوع حملتك وسنوجّهك خطوة بخطوة لبناء استراتيجية محكمة ومخصصة لك."
+    appGsapReveal="fade-up-far" [gsapDuration]="1200"
+  />
+
+  <div class="campaign-grid" appGsapReveal="fade-up-far" [gsapDuration]="1200">
+    @for (type of campaignTypes; track type.id) {
+      <article
+        class="campaign-card"
+        role="button"
+        tabindex="0"
+        [class.active]="type.id === selectedType()"
+        (click)="selectType(type)"
+        (keydown.enter)="selectType(type)"
+        (keydown.space)="selectType(type)">
+        <span class="card-dot" aria-hidden="true">
+          <i class="fa-solid fa-check"></i>
+        </span>
+        <div class="campaign-icon" [style.color]="type.color" [style.background]="type.color + '18'">
+          <i [class]="type.icon"></i>
+        </div>
+        <h3>{{ type.title }}</h3>
+        <p>{{ type.description }}</p>
+      </article>
+    }
+  </div>
+
+  <app-onboarding-step-actions
+    [showBack]="false"
+    [nextDisabled]="!canProceed()"
+    (next)="onNext()" />
+</section>

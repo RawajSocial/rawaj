@@ -1,0 +1,32 @@
+<aside class="admin-sidebar" [class.mobile-open]="mobileOpen()">
+  <div class="admin-sidebar-overlay" (click)="mobileClose.emit()"></div>
+
+  <div class="admin-sidebar-inner">
+    <div class="admin-sidebar-logo">
+      <a routerLink="/admin" class="admin-sidebar-logo-link">
+        <img src="assets/icons/logo.png" width="32" alt="" class="admin-sidebar-logo-icon">
+        <span class="admin-sidebar-logo-text">رواج <span class="admin-sidebar-logo-tag">أدمن</span></span>
+      </a>
+    </div>
+
+    <nav class="admin-sidebar-nav">
+      @for (item of navItems; track item.id) {
+        <a class="admin-nav-item"
+           routerLinkActive="active"
+           [routerLinkActiveOptions]="{ exact: item.exact ?? false }"
+           [routerLink]="item.route"
+           (click)="mobileClose.emit()">
+          <i class="fa-solid {{ item.icon }} admin-nav-item-icon"></i>
+          <span class="admin-nav-item-label">{{ item.label }}</span>
+        </a>
+      }
+    </nav>
+
+    <div class="admin-sidebar-footer">
+      <a class="admin-sidebar-back" routerLink="/dashboard">
+        <i class="fa-solid fa-arrow-right-from-bracket"></i>
+        <span>العودة للوحة التحكم</span>
+      </a>
+    </div>
+  </div>
+</aside>

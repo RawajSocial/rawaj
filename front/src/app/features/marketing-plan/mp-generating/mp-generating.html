@@ -1,0 +1,107 @@
+<div class="mp-generating">
+
+  <!-- Left: stages + progress -->
+  <div class="gen-left">
+    <div class="gen-hero">
+      <div class="gen-orbit">
+        <div class="gen-core"><i class="fa-brands fa-openai"></i></div>
+        <div class="orbit-ring r1"></div>
+        <div class="orbit-ring r2"></div>
+        <div class="orbit-ring r3"></div>
+      </div>
+      <div class="gen-hero-text">
+        <h2>رواج AI يولد محتواك</h2>
+        <p>كل منشور يُصاغ الآن بناءً على علامتك وجمهورك</p>
+      </div>
+    </div>
+
+    <!-- Progress ring -->
+    <div class="gen-progress-wrap">
+      <svg class="gen-ring" viewBox="0 0 110 110">
+        <circle class="gen-ring-bg" cx="55" cy="55" r="46"/>
+        <circle class="gen-ring-fg" cx="55" cy="55" r="46"
+                [style.stroke-dashoffset]="289 - (289 * progressPct() / 100)"/>
+      </svg>
+      <div class="gen-ring-center">
+        <span class="gen-pct">{{ progressPct() }}</span>
+        <span class="gen-sym">%</span>
+      </div>
+    </div>
+
+    <!-- Progress bar -->
+    <div class="gen-bar-track">
+      <div class="gen-bar-fill" [style.width]="progressPct() + '%'"></div>
+    </div>
+
+    <!-- Stage list -->
+    <div class="gen-stages">
+      @for (stage of stages(); track stage.id) {
+        <div class="gen-stage"
+             [class.done]="completedCount() > stage.id"
+             [class.active]="completedCount() === stage.id">
+          <div class="gen-stage-dot">
+            @if (completedCount() > stage.id) {
+              <i class="fa-solid fa-check"></i>
+            } @else if (completedCount() === stage.id) {
+              <span class="stage-spinner"></span>
+            } @else {
+              <span>{{ stage.id + 1 }}</span>
+            }
+          </div>
+          <div class="gen-stage-body">
+            <i [class]="stage.icon + ' gen-stage-ico'"></i>
+            <span>{{ stage.label }}</span>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- Right: streamed content cards -->
+  <div class="gen-right">
+    <div class="gen-stream-hdr">
+      <i class="fa-solid fa-wand-magic-sparkles"></i>
+      <span>المحتوى المُولَّد حتى الآن</span>
+      @if (streamedItems().length > 0) {
+        <span class="stream-count">{{ streamedItems().length }} منشور</span>
+      }
+    </div>
+
+    @if (streamedItems().length === 0) {
+      <div class="stream-empty-hint">
+        <div class="stream-dots">
+          <span></span><span></span><span></span>
+        </div>
+        <p>جاري إعداد أول منشوراتك...</p>
+      </div>
+    }
+
+    <div class="stream-list">
+      @for (item of streamedItems(); track item.id) {
+        <div class="stream-card">
+          <div class="stream-card-top">
+            <div class="stream-plat"
+                 [style.background]="item.platformColor + '18'"
+                 [style.color]="item.platformColor">
+              <i [class]="item.platformIcon"></i>
+              <span>{{ item.platform }}</span>
+            </div>
+            <div class="stream-type">
+              <i [class]="item.typeIcon"></i>
+              <span>{{ item.type }}</span>
+            </div>
+            <span class="stream-day">{{ item.day }}</span>
+          </div>
+          <div class="stream-card-title">{{ item.title }}</div>
+          <p class="stream-card-caption">{{ item.caption }}</p>
+          <div class="stream-hashtags">
+            @for (h of item.hashtags; track h) {
+              <span class="stream-tag" [style.color]="item.platformColor">{{ h }}</span>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+
+</div>

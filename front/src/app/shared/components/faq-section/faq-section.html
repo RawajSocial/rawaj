@@ -1,0 +1,13 @@
+<div class="faq2-list">
+  @for (item of items(); track item.q; let i = $index) {
+    <div class="faq2-item" [class.faq2-item--open]="openIndex() === i">
+      <button type="button" class="faq2-q" (click)="toggle(i)" [attr.aria-expanded]="openIndex() === i">
+        <span class="faq2-q__icon"><i class="fa-solid" [class.fa-plus]="openIndex() !== i" [class.fa-minus]="openIndex() === i"></i></span>
+        <span class="faq2-q__text">{{ item.q }}</span>
+      </button>
+      <div class="faq2-a-wrap">
+        <p class="faq2-a">{{ item.a }}</p>
+      </div>
+    </div>
+  }
+</div>

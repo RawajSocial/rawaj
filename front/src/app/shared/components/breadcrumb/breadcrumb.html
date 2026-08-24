@@ -1,0 +1,18 @@
+<nav class="breadcrumb" aria-label="breadcrumb">
+  <ol class="breadcrumb__list">
+    @for (crumb of items(); track crumb.label; let last = $last) {
+      <li class="breadcrumb__item" [class.breadcrumb__item--active]="last || !crumb.link">
+        @if (crumb.link && !last) {
+          <a [routerLink]="crumb.link">{{ crumb.label }}</a>
+        } @else {
+          <span>{{ crumb.label }}</span>
+        }
+      </li>
+      @if (!last) {
+        <li class="breadcrumb__separator" aria-hidden="true">
+          <i class="fa-solid fa-chevron-left"></i>
+        </li>
+      }
+    }
+  </ol>
+</nav>

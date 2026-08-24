@@ -1,0 +1,153 @@
+<div class="page-shell">
+  <!-- Page Header -->
+  <div class="page-top">
+    <app-page-header
+      title="المستخدمون"
+      [breadcrumbs]="[{ label: 'نظرة عامة', link: '/dashboard' }, { label: 'المستخدمون' }]"
+      subtitle="ادعُ أعضاء فريقك، وخصّص لهم كوينز من رصيد مؤسستك، وتابع نشاطهم." />
+    <button type="button" class="btn-new-camp" (click)="openInvite()">
+      <i class="fa-solid fa-user-plus"></i>
+      دعوة عضو جديد
+    </button>
+  </div>
+
+  <!-- Status tabs -->
+  <div class="status-tabs">
+    @for (tab of tabs; track tab.value) {
+      <button
+        type="button"
+        class="status-tab"
+        [class.active]="statusTab() === tab.value"
+        (click)="setTab(tab.value)">
+        {{ tab.label }}
+      </button>
+    }
+  </div>
+
+  @if (statusTab() === 'logs') {
+    <!-- Activity log -->
+    @if (activityItems().length === 0 && !activityLoading()) {
+      <div class="empty-state">
+        <div class="empty-icon"><i class="fa-solid fa-clock-rotate-left"></i></div>
+        <h3>لا يوجد نشاط بعد</h3>
+        <p>سيظهر هنا كل ما يجري في فريقك: دعوات، انضمامات، تعديل أدوار وكوينز.</p>
+      </div>
+    } @else {
+      <div class="activity-list">
+        @for (item of activityItems(); track item.id) {
+          <div class="activity-row">
+            <div class="activity-icon"><i class="fa-solid fa-clock-rotate-left"></i></div>
+            <div class="activity-body">
+              <p class="activity-title">{{ teamActivityLabel(item.action) }}</p>
+              @if (item.message) {
+                <p class="activity-message">{{ item.message }}</p>
+              }
+              <p class="activity-meta">
+                @if (item.userFullName) { {{ item.userFullName }} · }
+                {{ item.createdAt | date: 'medium' }}
+              </p>
+            </div>
+          </div>
+        }
+      </div>
+      @if (activityHasMore()) {
+        <div class="activity-load-more">
+          <button type="button" class="btn-outline" (click)="loadMoreActivity()" [disabled]="activityLoading()">
+            {{ activityLoading() ? 'جارِ التحميل...' : 'عرض المزيد' }}
+          </button>
+        </div>
+      }
+    }
+  } @else {
+    <!-- Filters bar -->
+    <div class="filters-bar">
+      <div class="search-wrap">
+        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+        <input
+          type="text"
+          class="search-input"
+          placeholder="ابحث بالاسم أو البريد الإلكتروني..."
+          [value]="searchQuery()"
+          (input)="onSearch($any($event.target).value)" />
+      </div>
+      <span class="results-count">{{ filtered().length }} عضو</span>
+    </div>
+
+    <!-- Empty states -->
+    @if (!loading() && rows().length === 0) {
+      <div class="empty-state">
+        <div class="empty-icon"><i class="fa-solid fa-users"></i></div>
+        <h3>لا يوجد أعضاء بعد</h3>
+        <p>ادعُ أول عضو في فريقك للبدء بالعمل معك على حساب المؤسسة.</p>
+        <button type="button" class="btn-new-camp" (click)="openInvite()">
+          <i class="fa-solid fa-user-plus"></i>
+          دعوة عضو جديد
+        </button>
+      </div>
+    } @else if (!loading() && filtered().length === 0) {
+      <div class="empty-state empty-state-filter">
+        <div class="empty-icon"><i class="fa-solid fa-filter-circle-xmark"></i></div>
+        <h3>لا توجد نتائج</h3>
+        <p>جرّب تغيير كلمة البحث أو التبويب المحدد.</p>
+      </div>
+    } @else if (!loading()) {
+      <div class="users-table-wrap">
+        <table class="users-table">
+          <thead>
+            <tr>
+              <th>الاسم</th>
+              <th>الدور</th>
+              <th>العلامات التجارية</th>
+              <th>الكوينز (مستخدم/مخصص)</th>
+              <th>الحالة</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of filtered(); track trackById($index, row)) {
+              <tr
+                class="user-row"
+                #row
+                [class.user-row--clickable]="row.kind === 'member'"
+                [routerLink]="row.kind === 'member' ? ['/dashboard/users', row.id] : null">
+                <td>
+                  <div class="user-cell">
+                    <span class="user-avatar">{{ initials(row.displayName) }}</span>
+                    <div class="user-cell__text">
+                      <span class="user-name">{{ row.displayName }}</span>
+                      <span class="user-email">{{ row.email }}</span>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="role-badge" [class]="'role-badge--' + row.role.toLowerCase()">{{ roleLabel(row.role) }}</span></td>
+                <td class="muted-cell">{{ row.brandCount || '—' }}</td>
+                <td class="muted-cell">{{ row.spentCoins.toLocaleString('ar-EG') }} / {{ row.allocatedCoins.toLocaleString('ar-EG') }}</td>
+                <td>
+                  <span class="status-badge" [class]="'status-badge--' + row.status.toLowerCase()">{{ statusLabel(row.status) }}</span>
+                </td>
+                <td class="actions-cell">
+                  <div class="row-actions">
+                    @if (row.kind === 'member') {
+                      <a [routerLink]="['/dashboard/users', row.id]" class="row-action row-action--edit" appTooltip="عرض الملف" aria-label="عرض الملف" (click)="$event.stopPropagation()">
+                        <i class="fa-solid fa-pen"></i>
+                      </a>
+                    }
+                    <button type="button" class="row-action row-action--danger" [appTooltip]="row.kind === 'invitation' ? 'سحب الدعوة' : 'إزالة العضو'" [attr.aria-label]="row.kind === 'invitation' ? 'سحب الدعوة' : 'إزالة العضو'" (click)="removeRow(row, $event)">
+                      <i class="fa-solid fa-trash"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  }
+</div>
+
+<app-user-form-modal
+  [open]="inviteModalOpen()"
+  [brandProfiles]="brandProfiles()"
+  (closed)="inviteModalOpen.set(false)"
+  (save)="onInviteSaved($event)" />

@@ -1,0 +1,196 @@
+.page-shell { padding: 24px 28px; }
+
+/* ── Page top row ── */
+/* ── Dropdown overrides for filter bar context ── */
+.filters-bar .dropdown { min-width: 160px; }
+.filters-bar .dropdown-trigger { padding: 8px 12px; font-size: var(--font-size-sm); }
+.filters-bar .dropdown-menu { top: calc(100% + 6px); }
+
+/* ── Start campaign button ── */
+.btn-new-camp {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--color-secondary), var(--color-primary));
+  color: #fff;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-semibold);
+  font-family: inherit;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 4px 14px rgba(124, 58, 237, 0.28);
+}
+
+.btn-new-camp:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(124, 58, 237, 0.38);
+  color: #fff;
+}
+
+/* ── Filters bar ── */
+.filters-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.search-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 200px;
+}
+
+.search-icon {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+  pointer-events: none;
+}
+
+.search-input {
+  width: 100%;
+  padding: 9px 36px 9px 14px;
+  border: 1.5px solid var(--color-border);
+  border-radius: 10px;
+  font-size: var(--font-size-sm);
+  font-family: inherit;
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  transition: border-color 0.2s;
+  outline: none;
+}
+
+.search-input:focus { border-color: var(--color-secondary); }
+.search-input::placeholder { color: var(--color-text-disabled); }
+
+
+.results-count {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  margin-right: auto;
+}
+
+/* ── Campaigns grid ── */
+.camps-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+/* ── Loading placeholders — same shimmer treatment as the content page's generation skeletons
+   (see campaign-content-page.css) so loading reads the same way across the module. ── */
+.camp-card-skeleton {
+  height: 300px;
+  border-radius: 14px;
+  border: 1.5px solid var(--color-border);
+  background: linear-gradient(90deg, var(--color-bg-secondary) 25%, var(--color-border) 37%, var(--color-bg-secondary) 63%);
+  background-size: 400% 100%;
+  animation: camp-card-shimmer 1.4s ease infinite;
+}
+
+@keyframes camp-card-shimmer {
+  0%   { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .camp-card-skeleton { animation: none; }
+}
+
+/* ── New campaign card ── */
+.new-camp-card {
+  border: 2px dashed var(--color-border);
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 32px 20px;
+  gap: 10px;
+  cursor: pointer;
+  text-decoration: none;
+  background: var(--color-surface);
+  transition: border-color 0.2s, background 0.2s, transform 0.2s;
+  min-height: 220px;
+  height: 100%;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.new-camp-card:hover {
+  border-color: var(--color-secondary);
+  background: var(--color-secondary-subtle);
+  transform: translateY(-2px);
+}
+
+.new-camp-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: var(--color-secondary-subtle);
+  color: var(--color-secondary);
+  display: grid;
+  place-items: center;
+  font-size: 1.4rem;
+  transition: transform 0.2s;
+}
+
+.new-camp-card:hover .new-camp-icon { transform: scale(1.08); }
+
+.new-camp-label {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-bold);
+  color: var(--color-dark);
+}
+
+.new-camp-sub {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
+/* ── Empty states ── */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 80px 24px;
+  gap: 14px;
+}
+
+.empty-icon {
+  width: 72px;
+  height: 72px;
+  border-radius: 20px;
+  background: var(--color-secondary-subtle);
+  color: var(--color-secondary);
+  display: grid;
+  place-items: center;
+  font-size: 1.8rem;
+}
+
+.empty-state h3 { font-size: var(--font-size-xl); color: var(--color-dark); margin: 0; }
+.empty-state p  { color: var(--color-text-secondary); margin: 0; max-width: 380px; }
+
+.empty-state-filter .empty-icon { background: var(--color-bg-secondary); color: var(--color-text-muted); }
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .page-shell { padding: 16px; }
+  .camps-grid { grid-template-columns: 1fr; }
+  .filters-bar { flex-direction: column; align-items: stretch; }
+  .results-count { margin-right: 0; }
+}

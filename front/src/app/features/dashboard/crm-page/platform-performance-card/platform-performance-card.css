@@ -1,0 +1,51 @@
+/* Layout handled by Bootstrap utilities in the template — only values that
+   don't match Bootstrap's scale (or have no utility equivalent) live here. */
+
+.platform-row {
+  gap: 12px;
+}
+
+.platform-badge {
+  width: 38px;
+  height: 38px;
+  font-size: 0.95rem;
+  box-shadow: var(--shadow-tag);
+}
+
+.platform-info {
+  min-width: 0;
+}
+
+.platform-info-top {
+  margin-bottom: 6px;
+}
+
+.platform-name {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-dark);
+}
+
+.platform-unique-viewers {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.platform-bar-track {
+  height: 7px;
+  background: var(--color-bg-secondary);
+}
+
+.platform-bar-fill {
+  transition: width var(--transition-slow);
+}
+
+.platform-change {
+  gap: 3px;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-semibold);
+  min-width: 52px;
+}
+
+.platform-change.up { color: var(--color-success); }
+.platform-change.down { color: var(--color-danger); }

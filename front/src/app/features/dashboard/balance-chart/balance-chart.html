@@ -1,0 +1,84 @@
+<div class="chart-card">
+  <div class="chart-header">
+    <div class="chart-header-start">
+      <h4 class="chart-title">الوصول والانطباعات عبر الزمن</h4>
+    </div>
+    <div class="chart-header-end">
+      <div class="chart-filters">
+        <button [class.active]="activeFilter() === '1Y'" (click)="setFilter('1Y')">1Y</button>
+        <button [class.active]="activeFilter() === '6M'" (click)="setFilter('6M')">6M</button>
+        <button [class.active]="activeFilter() === '1M'" (click)="setFilter('1M')">1M</button>
+        <button [class.active]="activeFilter() === 'ALL'" (click)="setFilter('ALL')">ALL</button>
+      </div>
+      <button class="chart-more-btn">
+        <i class="fa-solid fa-ellipsis-vertical"></i>
+      </button>
+    </div>
+  </div>
+
+  <div class="chart-area">
+    <svg [attr.viewBox]="'0 0 ' + W + ' ' + H" preserveAspectRatio="none" class="chart-svg">
+      <defs>
+        <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#2563EB" stop-opacity="0.25"/>
+          <stop offset="100%" stop-color="#2563EB" stop-opacity="0.01"/>
+        </linearGradient>
+      </defs>
+
+      <!-- Horizontal grid lines -->
+      @for (line of [0.25, 0.5, 0.75, 1]; track line) {
+        <line
+          [attr.x1]="PAD"
+          [attr.y1]="PAD + (1 - line) * (H - PAD * 2)"
+          [attr.x2]="W - PAD"
+          [attr.y2]="PAD + (1 - line) * (H - PAD * 2)"
+          stroke="rgba(0,0,0,0.06)"
+          stroke-width="1"
+          stroke-dasharray="4 4"
+        />
+      }
+
+      <!-- Revenue area fill -->
+      <path
+        [attr.d]="revenueAreaPath()"
+        fill="url(#revenueGradient)"
+      />
+
+      <!-- Expense line -->
+      <path
+        [attr.d]="expensePath()"
+        fill="none"
+        stroke="var(--color-text-muted)"
+        stroke-width="2"
+        stroke-dasharray="6 3"
+        opacity="0.6"
+      />
+
+      <!-- Revenue line -->
+      <path
+        [attr.d]="revenuePath()"
+        fill="none"
+        stroke="#2563EB"
+        stroke-width="2.5"
+      />
+    </svg>
+
+    <!-- X-axis labels -->
+    <div class="chart-labels-x">
+      @for (item of xLabels(); track item.label) {
+        <span [style.left.%]="item.x">{{ item.label }}</span>
+      }
+    </div>
+  </div>
+
+  <div class="chart-legend">
+    <span class="legend-item legend-revenue">
+      <span class="legend-dot"></span>
+      إجمالي الوصول: {{ totalRevenue() }}
+    </span>
+    <span class="legend-item legend-expense">
+      <span class="legend-dot"></span>
+      إجمالي الانطباعات: {{ totalExpenses() }}
+    </span>
+  </div>
+</div>

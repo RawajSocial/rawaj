@@ -1,0 +1,101 @@
+<section class="step-content-wrap">
+  <app-onboarding-step-header
+    [currentStep]="currentStep()"
+    [totalSteps]="totalSteps()"
+    title="الاستراتيج الذكي" />
+
+  <app-step-badge text="الاستراتيج الذكي" variant="ai" />
+  <app-step-heading
+  appGsapReveal="fade-in" [gsapDuration]="1200"
+    title="بضع أسئلة أخيرة، مخصصة لك"
+    lead="بناءً على ما شاركته، نحتاج إجاباتك لنبني استراتيجية دقيقة." />
+
+  <div class="ai-card" appGsapReveal="fade-up-far" [gsapDuration]="700">
+    <div class="ai-card-header">
+      <div class="ai-brand">
+        <span class="ai-brand-badge">Rawaj AI</span>
+        <div>
+          <div class="ai-brand-title">رواج AI - الاستراتيجي</div>
+          <div class="ai-brand-sub">يساعدك في بناء استراتيجيتك</div>
+        </div>
+      </div>
+      <span class="ai-avatar" aria-hidden="true"><i class="fa-brands fa-openai"></i></span>
+    </div>
+
+    <div class="ai-thread">
+      <div class="ai-msg ai-msg-assistant">
+        <div class="ai-bubble">{{ greeting() }}</div>
+      </div>
+
+      @for (item of answers(); track item.question) {
+        <div class="ai-msg ai-msg-assistant">
+          <div class="ai-bubble">{{ item.question }}</div>
+        </div>
+        <div class="ai-msg ai-msg-user">
+          <div class="ai-bubble">{{ item.answer }}</div>
+        </div>
+      }
+
+      @if (!loading() && !done() && currentQuestion()) {
+        <div class="ai-msg ai-msg-assistant">
+          <div class="ai-bubble">{{ currentQuestion()!.question }}</div>
+        </div>
+      }
+
+      @if (loading()) {
+        <div class="ai-msg ai-msg-assistant">
+          <div class="ai-bubble ai-loading">
+            <span class="dot"></span>
+            <span class="dot"></span>
+            <span class="dot"></span>
+          </div>
+        </div>
+      }
+
+      @if (!loading() && loadError()) {
+        <div class="ai-msg ai-msg-assistant">
+          <div class="ai-bubble">{{ loadError() }}</div>
+        </div>
+      }
+    </div>
+
+
+
+    @if (!loading() && !done() && currentQuestion()) {
+      <div class="ai-input-row">
+        <div class="ai-input-wrap">
+          <span class="ai-input-icon" aria-hidden="true"><i class="fa-solid fa-paper-plane"></i></span>
+          <input
+            type="text"
+            placeholder="اكتب إجابتك هنا..."
+            [value]="inputValue()"
+            (input)="updateInput($any($event.target).value)"
+            (keydown.enter)="submitAnswer()" />
+        </div>
+        <button type="button" class="send-btn" (click)="submitAnswer()">إرسال</button>
+      </div>
+
+      <span class="ai-suggestions-label">إجابات مقترحة</span>
+      <div class="ai-suggestions">
+        @for (suggestion of currentQuestion()!.suggestions; track suggestion) {
+          <button type="button" class="chip ai-chip" (click)="submitAnswer(suggestion)">{{ suggestion }}</button>
+        }
+      </div>
+    }
+
+    @if (!loading() && (done() || (questions().length === 0 && loadError()))) {
+      <div class="ai-complete">
+        <p>شكراً! تم استلام إجاباتك ويجري الآن بناء استراتيجيتك.</p>
+      </div>
+    }
+    @if (!loading() && !done() && questions().length > 0) {
+      <div class="ai-question-count">سؤال {{ currentIndex() + 1 }} من {{ totalQuestions() }}</div>
+    }
+  </div>
+
+  <app-onboarding-step-actions
+    (back)="onBack()"
+    (next)="onFinish()"
+    [nextDisabled]="loading() || submitting() || (!done() && questions().length > 0)"
+    [nextLabel]="submitting() ? 'جاري إنشاء الحملة...' : 'ابدأ رحلتك مع رواج'" />
+</section>

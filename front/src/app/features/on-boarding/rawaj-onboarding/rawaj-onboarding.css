@@ -1,0 +1,125 @@
+.onboarding-page {
+  direction: rtl;
+  min-height: 100vh;
+  background: var(--color-bg-secondary);
+}
+
+/* Mobile-only fallback exit — the primary one lives in the sidebar (hidden below 992px, see the
+   `d-lg-block d-none` on app-onboarding-sidebar), so this is what mobile users actually see. */
+.onboarding-exit-btn-mobile {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  margin-bottom: 1.2rem;
+  padding: .5rem .9rem;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-size: .82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color .15s, color .15s, border-color .15s;
+}
+
+.onboarding-exit-btn-mobile:hover {
+  background: var(--color-bg-tertiary);
+  color: var(--color-dark);
+  border-color: var(--color-secondary);
+}
+
+.onboarding-exit-btn-mobile:focus-visible {
+  outline: 2px solid var(--color-secondary);
+  outline-offset: 2px;
+}
+
+.onboarding-layout {
+  display: grid;
+  grid-template-columns: minmax(250px, 330px) minmax(0, 1fr);
+  min-height: 100vh;
+  align-items: stretch;
+}
+
+.onboarding-layout > app-onboarding-sidebar {
+  height: 100%;
+}
+
+.onboarding-main {
+  padding: 2.6rem 3rem;
+}
+
+.onboarding-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: .8rem;
+  min-height: 40vh;
+  color: var(--color-text-secondary);
+  font-size: 1rem;
+}
+
+.onboarding-loading i {
+  font-size: 1.6rem;
+  color: var(--color-primary);
+}
+
+@media (max-width: 1200px) {
+  .onboarding-main {
+    padding: 2rem;
+  }
+}
+
+@media (max-width: 992px) {
+  .onboarding-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .onboarding-main {
+    padding: 1.4rem;
+  }
+}
+
+.onboarding-brand-picker {
+  margin-bottom: 1.5rem;
+  padding: .9rem 1.1rem;
+  border-radius: 14px;
+  background: #faf9ff;
+  border: 1.5px solid #ede9fe;
+}
+
+.onboarding-brand-picker__label {
+  margin: 0 0 .6rem;
+  font-size: .85rem;
+  font-weight: 700;
+  color: #1e1b4b;
+}
+
+.onboarding-brand-picker__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+}
+
+.onboarding-brand-picker__chip {
+  padding: .45rem .95rem;
+  border-radius: 999px;
+  border: 1.5px solid #ede9fe;
+  background: #fff;
+  color: #4b5563;
+  font-size: .82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .15s;
+}
+
+.onboarding-brand-picker__chip.active {
+  background: #7C3AED;
+  border-color: #7C3AED;
+  color: #fff;
+}
+
+.onboarding-brand-picker__chip:not(.active):hover {
+  border-color: #7C3AED;
+  color: #7C3AED;
+}

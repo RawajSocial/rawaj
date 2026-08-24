@@ -1,0 +1,56 @@
+.why-card {
+  background: var(--color-bg-tertiary);
+  border: 1px dashed var(--color-primary-light);
+  border-radius: var(--radius-sm, 12px);
+  padding: 1.35rem 1rem 1.2rem;
+box-shadow: rgba(0, 0, 0, 0.1) 0px 0px 5px 0px, rgba(0, 0, 0, 0.1) 0px 0px 1px 0px;}
+
+.why-icon {
+  width: 52px;
+  height: 52px;
+  margin: 0 auto 1rem;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--color-primary-active);
+  background: linear-gradient(180deg, var(--color-bg-secondary), var(--color-bg-tertiary));
+}
+
+.why-icon i {
+  font-size: 1rem;
+}
+
+.why-card h3 {
+  font-family: var(--font-serif);
+  font-size: var(--font-size-xl);
+  color: var(--color-primary-active);
+  margin-bottom: 0.65rem;
+}
+
+.why-card p {
+  margin: 0;
+  color: var(--color-dark);
+  font-size: var(--font-size-sm);
+  line-height: 1.8;
+  font-weight: var(--font-semibold);
+}
+
+@media (max-width: 992px) {
+  .why-card h3 {
+    font-size: 1.65rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .why-card {
+    padding: 1.15rem 0.85rem 1rem;
+  }
+
+  .why-card h3 {
+    font-size: 1.45rem;
+  }
+
+  .why-card p {
+    font-size: 1.02rem;
+  }
+}

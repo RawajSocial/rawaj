@@ -1,0 +1,30 @@
+<div class="insight-card d-flex flex-column h-100">
+  <div class="insight-head">
+    <h3 class="insight-title">أداء المنصات</h3>
+    <span class="insight-sub">حسب المشاهدين الفريدين</span>
+  </div>
+  <div class="platform-list d-flex flex-column gap-3">
+    @for (p of platforms(); track p.key) {
+      <div class="platform-row d-flex align-items-center">
+        <span class="platform-badge rounded-circle flex-shrink-0 text-white d-flex align-items-center justify-content-center"
+              [style.background]="p.color">
+          <i class="{{ p.icon }}"></i>
+        </span>
+        <div class="platform-info flex-grow-1">
+          <div class="platform-info-top d-flex align-items-center justify-content-between">
+            <span class="platform-name">{{ p.label }}</span>
+            <span class="platform-unique-viewers">{{ compact(p.uniqueViewers) }}</span>
+          </div>
+          <div class="platform-bar-track overflow-hidden rounded-pill">
+            <div class="platform-bar-fill h-100 rounded-pill" [style.width.%]="uniqueViewersShare(p)" [style.background]="p.color"></div>
+          </div>
+        </div>
+        <span class="platform-change d-inline-flex align-items-center justify-content-end flex-shrink-0"
+              [class.up]="p.change >= 0" [class.down]="p.change < 0">
+          <i class="fa-solid" [class.fa-arrow-up]="p.change >= 0" [class.fa-arrow-down]="p.change < 0"></i>
+          {{ p.change >= 0 ? p.change : -p.change }}%
+        </span>
+      </div>
+    }
+  </div>
+</div>

@@ -1,0 +1,146 @@
+﻿<div class="login-card">
+
+  <div class="text-center">
+      <h2>إنشاء حساب جديد</h2>
+  <p class="login-subtitle">ابدأ رحلتك مع Rawaj اليوم</p>
+  </div>
+
+  <form [formGroup]="form" (ngSubmit)="onSubmit()">
+    <div class="name-row mb-3">
+      <div>
+        <label class="form-label" for="firstName">الاسم الأول</label>
+        <input
+          id="firstName"
+          type="text"
+          class="form-control"
+          placeholder="محمد"
+          formControlName="firstName" />
+        @if (errorMessage('firstName'); as firstNameError) {
+          <small class="text-danger d-block mt-2 validation-msg">{{ firstNameError }}</small>
+        }
+      </div>
+
+      <div>
+        <label class="form-label" for="lastName">الاسم الأخير</label>
+        <input
+          id="lastName"
+          type="text"
+          class="form-control"
+          placeholder="أحمد"
+          formControlName="lastName" />
+        @if (errorMessage('lastName'); as lastNameError) {
+          <small class="text-danger d-block mt-2 validation-msg">{{ lastNameError }}</small>
+        }
+      </div>
+    </div>
+    @if (fullNameTooLongMessage(); as fullNameError) {
+      <small class="text-danger d-block mt-2 mb-2 validation-msg">{{ fullNameError }}</small>
+    }
+
+    <div class="mb-3">
+      <label class="form-label" for="username">اسم المستخدم</label>
+      <input
+        id="username"
+        type="text"
+        class="form-control"
+        placeholder="mohamed_ahmed"
+        formControlName="username" />
+      @if (errorMessage('username'); as usernameError) {
+        <small class="text-danger d-block mt-2 validation-msg">{{ usernameError }}</small>
+      }
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label" for="email">البريد الإلكتروني</label>
+      <input
+        id="email"
+        type="email"
+        class="form-control"
+        placeholder="example@email.com"
+        formControlName="email" />
+      @if (errorMessage('email'); as emailError) {
+        <small class="text-danger d-block mt-2 validation-msg">{{ emailError }}</small>
+      }
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label" for="password">كلمة المرور</label>
+      <input
+        id="password"
+        type="password"
+        class="form-control"
+        placeholder="••••••••"
+        formControlName="password" />
+      @if (passwordTouched()) {
+        <ul class="password-checklist mt-2">
+          <li [class.is-valid]="passwordMeetsMinLength()" [class.is-invalid]="!passwordMeetsMinLength()">
+            <i class="fa-solid" [class.fa-circle-check]="passwordMeetsMinLength()" [class.fa-circle-xmark]="!passwordMeetsMinLength()"></i>
+            8 أحرف على الأقل
+          </li>
+          <li [class.is-valid]="passwordHasUppercase()" [class.is-invalid]="!passwordHasUppercase()">
+            <i class="fa-solid" [class.fa-circle-check]="passwordHasUppercase()" [class.fa-circle-xmark]="!passwordHasUppercase()"></i>
+            حرف كبير واحد على الأقل (A-Z)
+          </li>
+          <li [class.is-valid]="passwordHasLowercase()" [class.is-invalid]="!passwordHasLowercase()">
+            <i class="fa-solid" [class.fa-circle-check]="passwordHasLowercase()" [class.fa-circle-xmark]="!passwordHasLowercase()"></i>
+            حرف صغير واحد على الأقل (a-z)
+          </li>
+          <li [class.is-valid]="passwordHasDigit()" [class.is-invalid]="!passwordHasDigit()">
+            <i class="fa-solid" [class.fa-circle-check]="passwordHasDigit()" [class.fa-circle-xmark]="!passwordHasDigit()"></i>
+            رقم واحد على الأقل (0-9)
+          </li>
+          <li [class.is-valid]="passwordHasSpecialChar()" [class.is-invalid]="!passwordHasSpecialChar()">
+            <i class="fa-solid" [class.fa-circle-check]="passwordHasSpecialChar()" [class.fa-circle-xmark]="!passwordHasSpecialChar()"></i>
+            رمز خاص واحد على الأقل (!@#$...)
+          </li>
+        </ul>
+      }
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label" for="confirmPassword">تأكيد كلمة المرور</label>
+      <input
+        id="confirmPassword"
+        type="password"
+        class="form-control"
+        placeholder="••••••••"
+        formControlName="confirmPassword" />
+      @if (errorMessage('confirmPassword'); as confirmPasswordError) {
+        <small class="text-danger d-block mt-2 validation-msg">{{ confirmPasswordError }}</small>
+      }
+      @if (passwordsMismatchMessage(); as passwordMismatchError) {
+        <small class="text-danger d-block mt-2 validation-msg">{{ passwordMismatchError }}</small>
+      }
+    </div>
+
+    <div class="checkbox-wrapper-46 mb-4 terms-row">
+      <input id="termsAccepted" class="inp-cbx" type="checkbox" formControlName="termsAccepted" />
+      <label for="termsAccepted" class="cbx">
+        <span>
+          <svg viewBox="0 0 12 10" height="10px" width="12px">
+            <polyline points="1.5 6 4.5 9 10.5 1"></polyline>
+          </svg>
+        </span>
+        <span class="policy">
+          أوافق على
+          <a class="policy-link" routerLink="/terms-and-conditions" target="_blank" rel="noopener" (click)="$event.stopPropagation()">الشروط والأحكام</a>
+          و<a class="policy-link" routerLink="/privacy-policy" target="_blank" rel="noopener" (click)="$event.stopPropagation()">سياسة الخصوصية</a>
+        </span>
+      </label>
+    </div>
+    @if (errorMessage('termsAccepted'); as termsAcceptedError) {
+      <small class="text-danger d-block mt-2 mb-3 validation-msg">{{ termsAcceptedError }}</small>
+    }
+
+    @if (formError(); as formErrorMessage) {
+      <div class="form-error-banner mb-3">{{ formErrorMessage }}</div>
+    }
+
+    <button class="btn login-btn w-100" type="submit">إنشاء الحساب</button>
+  </form>
+
+  <div class="text-center mt-4 login-switch-text">
+    لديك حساب بالفعل؟
+    <a routerLink="/login" class="signup-link">تسجيل الدخول</a>
+  </div>
+</div>

@@ -1,0 +1,94 @@
+<app-modal-shell [open]="open()" title="تعديل بيانات الحملة" [maxWidth]="560" (closed)="onClose()">
+  <form [formGroup]="form" class="camp-edit-form" (ngSubmit)="save()">
+    @if (formError()) {
+      <p class="camp-edit-error" role="alert">
+        <i class="fa-solid fa-triangle-exclamation"></i> {{ formError() }}
+      </p>
+    }
+
+    <div class="rw-field">
+      <label for="camp-edit-name">اسم الحملة</label>
+      <input id="camp-edit-name" type="text" formControlName="name" placeholder="مثال: حملة الصيف" />
+      @if (errorFor('name'); as message) {
+        <span class="field-error">{{ message }}</span>
+      }
+    </div>
+
+    <div class="rw-field">
+      <label for="camp-edit-objective">هدف الحملة</label>
+      <input id="camp-edit-objective" type="text" formControlName="objective"
+             list="camp-edit-objective-options" placeholder="مثال: رفع المبيعات" />
+      <!-- A datalist, not a fixed dropdown: the backend stores Objective as free text, so
+           restricting this to the five known values would make existing campaigns unsavable. -->
+      <datalist id="camp-edit-objective-options">
+        @for (opt of objectiveOptions; track opt.value) {
+          <option [value]="opt.label"></option>
+        }
+      </datalist>
+    </div>
+
+    <div class="camp-edit-row">
+      <div class="rw-field">
+        <label for="camp-edit-start">تاريخ البداية</label>
+        <input id="camp-edit-start" type="date" formControlName="startDate" />
+      </div>
+      <div class="rw-field">
+        <label for="camp-edit-end">تاريخ النهاية</label>
+        <input id="camp-edit-end" type="date" formControlName="endDate" />
+      </div>
+    </div>
+
+    @if (datesOutOfOrder()) {
+      <p class="field-error">يجب أن يكون تاريخ النهاية في نفس تاريخ البداية أو بعده.</p>
+    }
+
+    <div class="camp-edit-row">
+      <div class="rw-field">
+        <label for="camp-edit-budget">الميزانية</label>
+        <input id="camp-edit-budget" type="number" min="0" step="1" formControlName="budgetAmount" placeholder="0" />
+        @if (errorFor('budgetAmount'); as message) {
+          <span class="field-error">{{ message }}</span>
+        }
+      </div>
+      <div class="rw-field">
+        <label for="camp-edit-currency">العملة</label>
+        <input id="camp-edit-currency" type="text" formControlName="budgetCurrency" placeholder="EGP" dir="ltr" />
+      </div>
+    </div>
+
+    <div class="rw-field">
+      <label id="camp-edit-platforms-label">المنصات المستهدفة</label>
+      <!-- Only Facebook and Instagram are offered: the backend's SocialPlatform enum has no
+           other members, so a campaign targeting anything else could never be saved. -->
+      <div class="camp-edit-platforms" role="group" aria-labelledby="camp-edit-platforms-label">
+        @for (p of platformOptions; track p) {
+          <button type="button" class="camp-edit-platform"
+                  [class.selected]="isPlatformSelected(p)"
+                  [attr.aria-pressed]="isPlatformSelected(p)"
+                  (click)="togglePlatform(p)">
+            <i class="{{ platformMeta[p].icon }}" [style.color]="platformMeta[p].color"></i>
+            {{ platformMeta[p].label }}
+          </button>
+        }
+      </div>
+      @if (submitted() && selectedPlatforms().size === 0) {
+        <span class="field-error">اختر منصة واحدة على الأقل.</span>
+      }
+    </div>
+  </form>
+
+  <div modal-footer class="camp-edit-footer">
+    <button type="button" class="rw-btn rw-btn--outline" [disabled]="saving()" (click)="onClose()">إلغاء</button>
+    <button type="button" class="rw-btn rw-btn--primary"
+      [class.is-perm-disabled]="!perms.canEdit()"
+      [attr.aria-disabled]="!perms.canEdit() || null"
+      [disabled]="saving() || !perms.canEdit()"
+      (click)="save()">
+      @if (saving()) {
+        <i class="fa-solid fa-circle-notch fa-spin"></i> جاري الحفظ...
+      } @else {
+        حفظ التعديلات
+      }
+    </button>
+  </div>
+</app-modal-shell>

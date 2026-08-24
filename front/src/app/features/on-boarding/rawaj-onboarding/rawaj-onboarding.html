@@ -1,0 +1,118 @@
+<main class="onboarding-page" dir="rtl">
+  <div class="onboarding-layout">
+    <app-onboarding-sidebar [currentStep]="currentStep()" (exit)="confirmExit()" class="d-lg-block d-none" />
+    <section class="onboarding-main">
+      <!-- Sidebar (with its own exit control) is hidden below 992px — this is the only exit
+           affordance mobile users get, so it can't be dropped just because the desktop one exists. -->
+      <button type="button" class="onboarding-exit-btn-mobile d-lg-none" (click)="confirmExit()">
+        <i class="fa-solid fa-arrow-right-from-bracket"></i>
+        <span>الخروج والمتابعة لاحقًا</span>
+      </button>
+
+      @if (currentStep() === 1 && brandProfiles().length > 1) {
+        <div class="onboarding-brand-picker" dir="rtl">
+          <p class="onboarding-brand-picker__label">هذه الحملة ستُنشأ لأي علامة تجارية؟</p>
+          <div class="onboarding-brand-picker__list">
+            @for (bp of brandProfiles(); track bp.id) {
+              <button
+                type="button"
+                class="onboarding-brand-picker__chip"
+                [class.active]="bp.id === selectedBrandProfileId()"
+                (click)="selectBrandProfile(bp.id)">
+                {{ bp.name }}
+              </button>
+            }
+          </div>
+        </div>
+      }
+
+      @if (!draftReady()) {
+        <div class="onboarding-loading" dir="rtl">
+          <i class="fa-solid fa-circle-notch fa-spin"></i>
+          <p>جارٍ تجهيز حملتك...</p>
+        </div>
+      } @else {
+
+      @switch (currentStep()) {
+
+        @case (1) {
+          <app-onboarding-step-one
+            [currentStep]="currentStep()"
+            [totalSteps]="totalSteps"
+            [data]="onboardingData()"
+            (dataChange)="updateOnboardingData($event)"
+            (next)="goToNextStep()" />
+        }
+
+        @case (2) {
+          <app-onboarding-step-campaign-brief
+            [currentStep]="currentStep()"
+            [totalSteps]="totalSteps"
+            [data]="onboardingData()"
+            (dataChange)="updateOnboardingData($event)"
+            (next)="goToNextStep()"
+            (back)="goToPreviousStep()" />
+        }
+
+        @case (3) {
+          <app-onboarding-step-four
+            [currentStep]="currentStep()"
+            [totalSteps]="totalSteps"
+            [data]="onboardingData()"
+            (dataChange)="updateOnboardingData($event)"
+            (next)="goToNextStep()"
+            (back)="goToPreviousStep()" />
+        }
+
+        @case (4) {
+          <app-onboarding-step-five
+            [currentStep]="currentStep()"
+            [totalSteps]="totalSteps"
+            [data]="onboardingData()"
+            (dataChange)="updateOnboardingData($event)"
+            (next)="goToNextStep()"
+            (back)="goToPreviousStep()" />
+        }
+
+        @case (5) {
+          <app-onboarding-step-six
+            [currentStep]="currentStep()"
+            [totalSteps]="totalSteps"
+            [data]="onboardingData()"
+            (dataChange)="updateOnboardingData($event)"
+            (next)="goToNextStep()"
+            (back)="goToPreviousStep()" />
+        }
+
+        @case (6) {
+          <app-onboarding-step-seven
+            [currentStep]="currentStep()"
+            [totalSteps]="totalSteps"
+            [data]="onboardingData()"
+            [brandProfileId]="selectedBrandProfileId()"
+            [brandName]="selectedBrandProfile()?.name"
+            [submitting]="creatingCampaign()"
+            (dataChange)="updateOnboardingData($event)"
+            (finish)="finishOnboarding()"
+            (back)="goToPreviousStep()" />
+        }
+
+        @case (7) {
+          <app-onboarding-plan-approval
+            [data]="onboardingData()"
+            [campaignId]="campaignId()"
+            [brandProfileId]="selectedBrandProfileId()"
+            (approve)="approvePlan()"
+            (back)="goToPreviousStep()" />
+        }
+
+        @default {
+          <app-onboarding-success />
+        }
+
+      }
+
+      }
+    </section>
+  </div>
+</main>

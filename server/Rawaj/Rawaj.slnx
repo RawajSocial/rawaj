@@ -1,0 +1,8 @@
+<Solution>
+  <Project Path="Rawaj.Application.Tests/Rawaj.Application.Tests.csproj" />
+  <Project Path="Rawaj.Application/Rawaj.Application.csproj" />
+  <Project Path="Rawaj.Domain/Rawaj.Domain.csproj" />
+  <Project Path="Rawaj.Infrastructure/Rawaj.Infrastructure.csproj" />
+  <Project Path="Rawaj.Persistence/Rawaj.Persistence.csproj" />
+  <Project Path="Rawaj/Rawaj.csproj" />
+</Solution>

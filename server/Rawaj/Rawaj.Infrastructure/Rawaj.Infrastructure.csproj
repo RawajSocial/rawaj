@@ -1,0 +1,30 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Rawaj.Application\Rawaj.Application.csproj" />
+    <ProjectReference Include="..\Rawaj.Domain\Rawaj.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Needed for NotificationsHub/IHubContext (SignalR) — Infrastructure is a class library, not
+         a Web SDK project, so ASP.NET Core's shared framework isn't referenced implicitly. -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Caching.Memory/Hosting/Hosting.Abstractions/Http/Options.ConfigurationExtensions are now
+         provided transitively via the Microsoft.AspNetCore.App FrameworkReference above. -->
+    <PackageReference Include="CloudinaryDotNet" Version="1.29.2" />
+    <PackageReference Include="HtmlAgilityPack" Version="1.12.4" />
+    <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="10.7.0" />
+    <PackageReference Include="Stripe.net" Version="52.2.0" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.19.1" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

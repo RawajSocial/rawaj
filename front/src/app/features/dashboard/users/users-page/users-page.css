@@ -1,0 +1,278 @@
+.page-top {
+  align-items: flex-start !important;
+}
+
+.page-top app-page-header {
+  flex: 1;
+  min-width: 220px;
+}
+.page-top ::ng-deep .page-header {
+  margin-bottom: 0;
+}
+
+/* ── Status tabs ── */
+.status-tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--color-bg-secondary);
+  border-radius: 12px;
+  padding: 4px;
+  width: fit-content;
+  margin-bottom: 18px;
+}
+
+.status-tab {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-semibold);
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.status-tab.active {
+  background: var(--color-surface);
+  color: var(--color-dark);
+  box-shadow: var(--shadow-xs);
+}
+
+/* ── Table ──
+   Horizontal scroll is responsive-only: at desktop width the row-action tooltip `::after` boxes
+   (position:absolute, white-space:nowrap, only visibility:hidden) still inflate scrollWidth, so an
+   unconditional `overflow-x: auto` shows a permanent bar even though nothing actually overflows
+   visually. `overflow: visible` lets tooltips escape the container at desktop width; the scrollbar
+   only comes back under the breakpoint where `min-width: 720px` on the table genuinely overflows. */
+.users-table-wrap {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  overflow: visible;
+}
+
+@media (max-width: 992px) {
+  .users-table-wrap {
+    overflow-x: auto;
+  }
+}
+
+.users-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 720px;
+}
+
+.users-table thead th {
+  text-align: start;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-muted);
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg-secondary);
+}
+
+.user-row {
+  transition: background-color var(--transition-fast);
+}
+
+.user-row--clickable {
+  cursor: pointer;
+}
+
+.user-row--clickable:hover {
+  background: var(--color-bg-secondary);
+}
+
+.user-avatar {
+  background: linear-gradient(135deg, var(--color-secondary), var(--color-primary));
+}
+
+.user-row td {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: middle;
+}
+
+.user-row:last-child td {
+  border-bottom: none;
+}
+
+.user-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-avatar {
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-bold);
+  box-shadow: var(--shadow-tag);
+}
+
+.user-cell__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.user-name {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-dark);
+}
+
+.user-email {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.muted-cell {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+/* ── Role badge ── */
+.role-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-semibold);
+  color: #fff;
+  box-shadow: var(--shadow-tag);
+}
+
+.role-badge--owner    { background: var(--color-dark); }
+.role-badge--admin    { background: var(--color-dark); }
+.role-badge--editor   { background: var(--color-primary); }
+.role-badge--viewer   { background: var(--color-text-secondary); }
+
+/* ── Status badge ── */
+.status-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-semibold);
+  color: #fff;
+  box-shadow: var(--shadow-tag);
+}
+
+.status-badge--accepted { background: var(--color-success); }
+.status-badge--pending  { background: color-mix(in srgb, var(--color-accent) 85%, var(--color-dark-muted)); }
+.status-badge--declined { background: var(--color-danger); }
+
+/* ── Activity log tab ── */
+.activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  padding: 6px 20px;
+}
+
+.activity-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.activity-row:last-child {
+  border-bottom: none;
+}
+
+.activity-icon {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-bg-secondary);
+  color: var(--color-secondary);
+  font-size: .85rem;
+}
+
+.activity-body {
+  min-width: 0;
+}
+
+.activity-title {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-dark);
+  margin: 0 0 2px;
+}
+
+.activity-message {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  margin: 0 0 4px;
+}
+
+.activity-meta {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.activity-load-more {
+  display: flex;
+  justify-content: center;
+  margin-top: 16px;
+}
+
+/* ── Actions ── */
+.actions-cell {
+  white-space: nowrap;
+  text-align: end;
+}
+
+.row-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.row-action {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  text-decoration: none;
+  box-shadow: var(--shadow-tag);
+  transition: opacity var(--transition-fast);
+}
+.row-action:hover {
+  opacity: 0.85;
+}
+
+.row-action--edit    { background: var(--color-primary); }
+.row-action--warning  { background: color-mix(in srgb, var(--color-accent) 85%, var(--color-dark-muted)); }
+.row-action--danger   { background: var(--color-danger); }
+
+@media (max-width: 768px) {
+  .status-tabs { width: 100%; overflow-x: auto; }
+}

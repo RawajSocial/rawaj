@@ -1,0 +1,151 @@
+using System.Text.Json;
+using MediatR;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Rawaj.Application.Features.Brands.ArchiveBrandProfile;
+using Rawaj.Application.Features.Brands.CreateBrandProfile;
+using Rawaj.Application.Features.Brands.GenerateOnboardingQuestions;
+using Rawaj.Application.Features.Brands.GetBrandProfile;
+using Rawaj.Application.Features.Brands.GetBrandProfiles;
+using Rawaj.Application.Features.Brands.UpdateBrandProfile;
+using Rawaj.Application.Features.Brands.UploadBrandLogo;
+using Rawaj.Common;
+using Rawaj.Domain.Enums;
+
+namespace Rawaj.Controllers;
+
+[ApiController]
+[Authorize]
+[Route("api/v1/brand-profiles")]
+public class BrandProfilesController(ISender sender) : ControllerBase
+{
+    [HttpPost]
+    public async Task<IActionResult> Create(CreateBrandProfileCommand command, CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(command, cancellationToken);
+
+        return result.Succeeded
+            ? Ok(ApiResponse<CreateBrandProfileResponse>.Success(result.Data!))
+            : BadRequest(ApiResponse<CreateBrandProfileResponse>.Fail(result.ErrorMessage!));
+    }
+
+    [HttpPost("logo")]
+    public async Task<IActionResult> UploadLogo(IFormFile logo, CancellationToken cancellationToken)
+    {
+        await using var stream = new MemoryStream();
+        await logo.CopyToAsync(stream, cancellationToken);
+
+        var command = new UploadBrandLogoCommand(stream.ToArray(), logo.ContentType, logo.FileName);
+        var result = await sender.Send(command, cancellationToken);
+
+        return result.Succeeded
+            ? Ok(ApiResponse<UploadBrandLogoResponse>.Success(result.Data!))
+            : BadRequest(ApiResponse<UploadBrandLogoResponse>.Fail(result.ErrorMessage!));
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new GetBrandProfilesQuery(), cancellationToken);
+
+        return result.Succeeded
+            ? Ok(ApiResponse<List<BrandProfileSummary>>.Success(result.Data!))
+            : BadRequest(ApiResponse<List<BrandProfileSummary>>.Fail(result.ErrorMessage!));
+    }
+
+    [HttpGet("{brandProfileId:guid}")]
+    public async Task<IActionResult> GetById(Guid brandProfileId, CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new GetBrandProfileQuery(brandProfileId), cancellationToken);
+
+        return result.Succeeded
+            ? Ok(ApiResponse<GetBrandProfileResponse>.Success(result.Data!))
+            : NotFound(ApiResponse<GetBrandProfileResponse>.Fail(result.ErrorMessage!));
+    }
+
+    public record UpdateBrandProfileRequest(
+        string? Name,
+        string? Description,
+        List<BrandVoice>? Tones,
+        string? Tagline,
+        string? Industry,
+        string? TargetAudience,
+        List<string>? Colors,
+        string? LogoUrl,
+        string? WebsiteUrl,
+        List<string>? SupportedLanguages,
+        List<string>? Keywords,
+        string? Location,
+        string? Instagram,
+        string? BusinessAge,
+        DateTime? BusinessEstablishDate,
+        string? Stage,
+        string? UniqueValue,
+        string? PricePositioning,
+        string? StorePresence,
+        List<string>? ExistingPlatforms,
+        string? AdmiredBrand1,
+        string? AdmiredBrand2,
+        string? AdmiredBrand3);
+
+    [HttpPut("{brandProfileId:guid}")]
+    public async Task<IActionResult> Update(Guid brandProfileId, UpdateBrandProfileRequest request, CancellationToken cancellationToken)
+    {
+        var command = new UpdateBrandProfileCommand(
+            brandProfileId,
+            request.Name,
+            request.Description,
+            request.Tones,
+            request.Tagline,
+            request.Industry,
+            request.TargetAudience,
+            request.Colors,
+            request.LogoUrl,
+            request.WebsiteUrl,
+            request.SupportedLanguages,
+            request.Keywords,
+            request.Location,
+            request.Instagram,
+            request.BusinessAge,
+            request.BusinessEstablishDate,
+            request.Stage,
+            request.UniqueValue,
+            request.PricePositioning,
+            request.StorePresence,
+            request.ExistingPlatforms,
+            request.AdmiredBrand1,
+            request.AdmiredBrand2,
+            request.AdmiredBrand3);
+
+        var result = await sender.Send(command, cancellationToken);
+
+        return result.Succeeded
+            ? Ok(ApiResponse<UpdateBrandProfileResponse>.Success(result.Data!))
+            : BadRequest(ApiResponse<UpdateBrandProfileResponse>.Fail(result.ErrorMessage!));
+    }
+
+    [HttpPost("{brandProfileId:guid}/archive")]
+    public async Task<IActionResult> Archive(Guid brandProfileId, CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new ArchiveBrandProfileCommand(brandProfileId), cancellationToken);
+
+        return result.Succeeded
+            ? Ok(ApiResponse<bool>.Success(result.Data))
+            : BadRequest(ApiResponse<bool>.Fail(result.ErrorMessage!));
+    }
+
+    public record GenerateOnboardingQuestionsRequest(JsonElement OnboardingContext);
+
+    [HttpPost("{brandProfileId:guid}/onboarding-questions")]
+    public async Task<IActionResult> GenerateOnboardingQuestions(
+        Guid brandProfileId, GenerateOnboardingQuestionsRequest request, CancellationToken cancellationToken)
+    {
+        var command = new GenerateOnboardingQuestionsCommand(brandProfileId, request.OnboardingContext.GetRawText());
+
+        var result = await sender.Send(command, cancellationToken);
+
+        return result.Succeeded
+            ? Ok(ApiResponse<GenerateOnboardingQuestionsResponse>.Success(result.Data!))
+            : BadRequest(ApiResponse<GenerateOnboardingQuestionsResponse>.Fail(result.ErrorMessage!));
+    }
+}

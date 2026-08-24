@@ -1,0 +1,339 @@
+<div class="page-shell">
+  <app-page-header
+    title="الإعدادات"
+    [breadcrumbs]="[{ label: 'نظرة عامة', link: '/dashboard' }, { label: 'الإعدادات' }]"
+    subtitle="إدارة إعدادات حسابك وتفضيلاتك." />
+
+  <div class="rw-tabs">
+    <button type="button" class="rw-tab" [class.active]="tab() === 'profile'" (click)="setTab('profile')">الملف الشخصي</button>
+    <button type="button" class="rw-tab" [class.active]="tab() === 'preferences'" (click)="setTab('preferences')">التفضيلات</button>
+    <button type="button" class="rw-tab" [class.active]="tab() === 'connections'" (click)="setTab('connections')">ربط الحسابات</button>
+  </div>
+
+  <!-- ── Profile ── -->
+  @if (tab() === 'profile') {
+    <div class="profile-layout">
+    <div class="profile-layout__main">
+    <div class="rw-card">
+      <div class="rw-card__header">
+        <h3 class="rw-card__title">الملف الشخصي</h3>
+        <p class="rw-card__hint">حدّث معلوماتك الشخصية</p>
+      </div>
+
+      @if (profileLoaded()) {
+        <div class="avatar-row">
+          <app-file-upload
+            #avatarUpload
+            shape="circle"
+            label="تغيير الصورة"
+            icon="fa-solid fa-user"
+            accept=".jpg,.jpeg,.png,.webp"
+            [maxSizeMb]="5"
+            [disabled]="avatarUploading() || avatarDeleting()"
+            [uploadProgress]="avatarUploadProgress()"
+            [previewUrl]="currentUser()?.avatarUrl ?? null"
+            [altText]="'صورة الملف الشخصي لـ ' + (currentUser()?.fullName ?? '')"
+            (fileSelected)="onAvatarSelected($event)"
+            (cleared)="onAvatarRemoved()"
+            (validationError)="onAvatarValidationError($event)" />
+
+          <div class="avatar-info">
+            <p class="avatar-info__name">{{ currentUser()?.fullName }}</p>
+            <p class="avatar-info__username">&#64;{{ currentUser()?.username }}</p>
+            <p class="avatar-info__email">{{ currentUser()?.email }}</p>
+
+            <p class="avatar-hint">JPG أو PNG أو WEBP. بحد أقصى 5 ميجابايت.</p>
+            @if (avatarValidationError(); as error) {
+              <small class="text-danger d-block mt-2 validation-msg">{{ error }}</small>
+            }
+            @if (avatarUploading()) {
+              <button type="button" class="avatar-cancel-btn" (click)="cancelAvatarUpload()">إلغاء الرفع</button>
+            }
+            @if (currentUser()?.avatarUrl) {
+              <button
+                type="button"
+                class="avatar-delete-btn"
+                [disabled]="avatarUploading() || avatarDeleting()"
+                (click)="onAvatarRemoved()"
+              >
+                <i class="fa-solid fa-trash-can"></i>
+                {{ avatarDeleting() ? 'جارٍ الحذف...' : 'حذف الصورة' }}
+              </button>
+            }
+          </div>
+        </div>
+
+        <form [formGroup]="profileForm" (ngSubmit)="saveProfile()" class="settings-form">
+          <div class="form-grid">
+            <div class="rw-field">
+              <label for="fullName">الاسم الكامل</label>
+              <input id="fullName" type="text" formControlName="fullName">
+              @if (profileErrorMessage('fullName'); as error) {
+                <small class="text-danger d-block mt-2 validation-msg">{{ error }}</small>
+              }
+            </div>
+            <div class="rw-field">
+              <label for="username">اسم المستخدم</label>
+              <input id="username" type="text" formControlName="username">
+              @if (profileErrorMessage('username'); as error) {
+                <small class="text-danger d-block mt-2 validation-msg">{{ error }}</small>
+              }
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <div class="rw-field">
+              <label for="email">البريد الإلكتروني</label>
+              <input id="email" type="email" formControlName="email">
+              @if (emailConfirmed()) {
+                <small class="email-verify-badge email-verify-badge--verified">
+                  <i class="fa-solid fa-circle-check"></i> بريد موثّق
+                </small>
+              } @else {
+                <small class="email-verify-badge email-verify-badge--unverified">
+                  <i class="fa-solid fa-triangle-exclamation"></i> بريد غير موثّق
+                </small>
+              }
+            </div>
+            <div class="rw-field">
+              <label for="preferredLanguage">اللغة المفضلة</label>
+              <app-select-dropdown id="preferredLanguage" formControlName="preferredLanguage" [options]="languageOptions" />
+            </div>
+          </div>
+
+          @if (!emailConfirmed()) {
+            <div class="otp-panel">
+              @if (otpStep() === 'idle') {
+                <p class="otp-panel__hint">وثّق بريدك الإلكتروني لتأمين حسابك بشكل أفضل.</p>
+                <button type="button" class="rw-btn rw-btn--outline" [disabled]="otpSending()" (click)="requestEmailOtp()">
+                  {{ otpSending() ? 'جارٍ الإرسال...' : 'إرسال رمز التحقق' }}
+                </button>
+              } @else {
+                <form [formGroup]="otpForm" (ngSubmit)="verifyEmailOtp()" class="otp-panel__form">
+                  <div class="rw-field">
+                    <label for="otpCode">رمز التحقق</label>
+                    <input id="otpCode" type="text" inputmode="numeric" maxlength="6" formControlName="code" placeholder="أدخل الرمز المكوّن من 6 أرقام">
+                    @if (otpCodeErrorMessage(); as error) {
+                      <small class="text-danger d-block mt-2 validation-msg">{{ error }}</small>
+                    }
+                  </div>
+                  <div class="otp-panel__actions">
+                    <button type="submit" class="rw-btn rw-btn--primary" [disabled]="otpVerifying()">
+                      {{ otpVerifying() ? 'جارٍ التحقق...' : 'تأكيد الرمز' }}
+                    </button>
+                    <button type="button" class="otp-resend-btn" [disabled]="otpResendCooldown() > 0 || otpSending()" (click)="requestEmailOtp()">
+                      @if (otpResendCooldown() > 0) {
+                        إعادة الإرسال بعد {{ otpResendCooldown() }} ثانية
+                      } @else {
+                        إعادة إرسال الرمز
+                      }
+                    </button>
+                  </div>
+                </form>
+              }
+            </div>
+          }
+
+          <div class="form-actions">
+            <button type="submit" class="rw-btn rw-btn--primary" [disabled]="!canSaveProfile()">حفظ التغييرات</button>
+          </div>
+        </form>
+      } @else {
+        <div class="avatar-row">
+          <div class="skeleton-circle"></div>
+          <div class="avatar-info">
+            <div class="skeleton-line skeleton-line--name"></div>
+            <div class="skeleton-line skeleton-line--username"></div>
+            <div class="skeleton-line skeleton-line--email"></div>
+          </div>
+        </div>
+        <div class="settings-form">
+          <div class="form-grid">
+            <div class="skeleton-line skeleton-line--field"></div>
+            <div class="skeleton-line skeleton-line--field"></div>
+          </div>
+          <div class="form-grid">
+            <div class="skeleton-line skeleton-line--field"></div>
+            <div class="skeleton-line skeleton-line--field"></div>
+          </div>
+        </div>
+      }
+    </div>
+
+    <div class="rw-card mt-4">
+      <div class="rw-card__header">
+        <h3 class="rw-card__title">كلمة المرور</h3>
+        <p class="rw-card__hint">حدّث كلمة مرور حسابك</p>
+      </div>
+
+      <form [formGroup]="passwordForm" (ngSubmit)="changePassword()" class="settings-form">
+        <div class="rw-field">
+          <label for="currentPassword">كلمة المرور الحالية</label>
+          <input id="currentPassword" type="password" formControlName="currentPassword">
+          @if (passwordErrorMessage('currentPassword'); as error) {
+            <small class="text-danger d-block mt-2 validation-msg">{{ error }}</small>
+          }
+        </div>
+
+        <div class="form-grid">
+          <div class="rw-field">
+            <label for="newPassword">كلمة المرور الجديدة</label>
+            <input id="newPassword" type="password" formControlName="newPassword">
+            @if (passwordErrorMessage('newPassword'); as error) {
+              <small class="text-danger d-block mt-2 validation-msg">{{ error }}</small>
+            }
+          </div>
+          <div class="rw-field">
+            <label for="confirmNewPassword">تأكيد كلمة المرور الجديدة</label>
+            <input id="confirmNewPassword" type="password" formControlName="confirmPassword">
+            @if (passwordErrorMessage('confirmPassword'); as error) {
+              <small class="text-danger d-block mt-2 validation-msg">{{ error }}</small>
+            }
+            @if (passwordsMismatchMessage(); as error) {
+              <small class="text-danger d-block mt-2 validation-msg">{{ error }}</small>
+            }
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="rw-btn rw-btn--primary">تغيير كلمة المرور</button>
+        </div>
+      </form>
+    </div>
+    </div>
+
+    <div class="profile-layout__side">
+    <div class="rw-card">
+      <div class="rw-card__header">
+        <h3 class="rw-card__title">بيانات النشاط التجاري</h3>
+        <p class="rw-card__hint">
+          @if (isActivated()) {
+            حسابك مُفعّل — رصيدك الحالي {{ coinBalance() }} كوين.
+          } @else {
+            أكمل هذه البيانات لتفعيل حسابك والحصول على 50 كوين مكافأة.
+          }
+        </p>
+      </div>
+
+      <form [formGroup]="businessForm" (ngSubmit)="saveBusinessProfile()" class="settings-form">
+        <div class="form-grid">
+          <div class="rw-field">
+            <label for="phone">رقم الهاتف</label>
+            <input id="phone" type="tel" formControlName="phone">
+            @if (businessErrorMessage('phone'); as error) {
+              <small class="text-danger d-block mt-2 validation-msg">{{ error }}</small>
+            }
+          </div>
+          <div class="rw-field">
+            <label for="industry">المجال</label>
+            <input id="industry" type="text" formControlName="industry">
+            @if (businessErrorMessage('industry'); as error) {
+              <small class="text-danger d-block mt-2 validation-msg">{{ error }}</small>
+            }
+          </div>
+        </div>
+
+        <div class="form-grid">
+          <div class="rw-field">
+            <label for="country">الدولة</label>
+            <input id="country" type="text" formControlName="country">
+            @if (businessErrorMessage('country'); as error) {
+              <small class="text-danger d-block mt-2 validation-msg">{{ error }}</small>
+            }
+          </div>
+          <div class="rw-field">
+            <label for="city">المدينة</label>
+            <input id="city" type="text" formControlName="city">
+            @if (businessErrorMessage('city'); as error) {
+              <small class="text-danger d-block mt-2 validation-msg">{{ error }}</small>
+            }
+          </div>
+        </div>
+
+        <div class="rw-field">
+          <label for="website">الموقع الإلكتروني</label>
+          <input id="website" type="text" formControlName="website" placeholder="example.com أو https://example.com">
+          @if (businessErrorMessage('website'); as error) {
+            <small class="text-danger d-block mt-2 validation-msg">{{ error }}</small>
+          }
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="rw-btn rw-btn--primary">حفظ بيانات النشاط</button>
+        </div>
+      </form>
+    </div>
+    </div>
+    </div>
+  }
+
+  <!-- ── Preferences ── -->
+  @if (tab() === 'preferences') {
+    <div class="rw-card">
+      <div class="rw-card__header">
+        <h3 class="rw-card__title">التفضيلات</h3>
+        <p class="rw-card__hint">إدارة تفضيلات الإشعارات والتواصل</p>
+      </div>
+
+      <div class="pref-list">
+        @for (p of preferences(); track p.key) {
+          <div class="pref-row">
+            <div class="pref-text">
+              <span class="pref-title">{{ p.title }}</span>
+              <span class="pref-desc">{{ p.desc }}</span>
+            </div>
+            <button type="button" class="rw-switch" [class.on]="p.enabled"
+              (click)="togglePreference(p.key)" [attr.aria-pressed]="p.enabled" [attr.aria-label]="p.title"></button>
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- ── Connected accounts ── -->
+  @if (tab() === 'connections') {
+    <div class="rw-card">
+      <div class="rw-card__header">
+        <h3 class="rw-card__title">ربط حسابات التواصل الاجتماعي</h3>
+        <p class="rw-card__hint">
+          @if (isAgency()) {
+            اختر ملف العلامة التجارية ثم اربط حساباته بشكل مستقل عن باقي العلامات
+          } @else {
+            اربط حسابات علامتك التجارية بمنصات التواصل الاجتماعي
+          }
+        </p>
+      </div>
+
+      @if (isAgency()) {
+        <div class="brand-select-row">
+          @for (bp of brandProfiles(); track bp.id) {
+            <button type="button" class="brand-select-chip" [class.active]="selectedBrandProfileId() === bp.id" (click)="selectBrandProfile(bp.id)">
+              {{ bp.name }}
+            </button>
+          }
+        </div>
+      }
+
+      <div class="connect-list">
+        @for (p of connectPlatforms; track p.key) {
+          <div class="connect-row">
+            <span class="connect-icon" [style.background]="p.color">
+              <i class="{{ p.icon }}"></i>
+            </span>
+            <span class="connect-label">{{ p.label }}</span>
+            <button type="button"
+                    class="connect-btn"
+                    [class.connect-btn--connected]="isConnected(p.key)"
+                    (click)="toggleConnect(p.key)">
+              @if (isConnected(p.key)) {
+                <i class="fa-solid fa-circle-check"></i> متصل
+              } @else {
+                ربط الحساب
+              }
+            </button>
+          </div>
+        }
+      </div>
+    </div>
+  }
+</div>

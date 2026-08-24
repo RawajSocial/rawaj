@@ -1,0 +1,150 @@
+<div class="page-shell">
+  <app-page-header
+    title="حملاتك التسويقية"
+    subtitle="أنشئ حملاتك التسويقية وتابع أداءها وميزانيتها في مكان واحد."
+    [breadcrumbs]="[{ label: 'نظرة عامة', link: '/dashboard' }, { label: 'الحملات' }]">
+    @if (brandProfileCount() > 0) {
+      <button page-header-actions type="button" (click)="startNewCampaign()" class="btn-new-camp"
+        [class.is-perm-disabled]="!perms.canEdit()"
+        [attr.aria-disabled]="!perms.canEdit() || null"
+        [appTooltip]="perms.editDeniedReason()">
+        <i class="fa-solid fa-plus"></i>
+        ابدأ حملة جديدة
+      </button>
+    }
+  </app-page-header>
+
+  <!-- Filters bar -->
+  <div class="filters-bar">
+
+    <!-- Search -->
+    <div class="search-wrap">
+      <i class="fa-solid fa-magnifying-glass search-icon"></i>
+      <input
+        type="text"
+        class="search-input"
+        placeholder="ابحث عن حملة..."
+        [value]="searchQuery()"
+        (input)="searchQuery.set($any($event.target).value)" />
+    </div>
+
+    <!-- Status dropdown (onboarding-shared pattern) -->
+    <div class="dropdown" [class.open]="statusOpen()" data-dd="status">
+      <button type="button" class="dropdown-trigger form-control" (click)="statusOpen.update(v => !v)">
+        <span class="dropdown-label">{{ statusLabel }}</span>
+        <span class="dropdown-icon"><i class="fa-solid fa-chevron-down"></i></span>
+      </button>
+      <div class="dropdown-menu">
+        @for (opt of statusOptions; track opt.value) {
+          <button type="button"
+            class="dropdown-option"
+            [class.active]="statusFilter() === opt.value"
+            (click)="setStatus(opt.value)">
+            {{ opt.label }}
+          </button>
+        }
+      </div>
+    </div>
+
+    <!-- Platform dropdown -->
+    <div class="dropdown" [class.open]="platformOpen()" data-dd="platform">
+      <button type="button" class="dropdown-trigger form-control" (click)="platformOpen.update(v => !v)">
+        <span class="dropdown-label">{{ platformLabel }}</span>
+        <span class="dropdown-icon"><i class="fa-solid fa-chevron-down"></i></span>
+      </button>
+      <div class="dropdown-menu">
+        @for (opt of platformOptions; track opt.value) {
+          <button type="button"
+            class="dropdown-option"
+            [class.active]="platformFilter() === opt.value"
+            (click)="setPlatform(opt.value)">
+            {{ opt.label }}
+          </button>
+        }
+      </div>
+    </div>
+
+    <span class="results-count">{{ filtered().length }} حملة</span>
+  </div>
+
+  <!-- Loading: the campaign list is fetched once by UserLayout, so an empty list before that
+       resolves is "not loaded yet", not "you have no campaigns" — which is exactly what this
+       page used to claim for the first second of every cold load. -->
+  @if (!loaded()) {
+    <div class="camps-grid" aria-busy="true">
+      @for (n of [0, 1, 2]; track n) {
+        <div class="camp-card-skeleton"></div>
+      }
+    </div>
+
+  <!-- Empty archive: distinct from "no campaigns at all", which would wrongly invite the user to
+       create their first campaign while they're looking at the archive. -->
+  } @else if (viewingArchive() && filtered().length === 0) {
+    <div class="empty-state empty-state-filter">
+      <div class="empty-icon"><i class="fa-solid fa-box-archive"></i></div>
+      <h3>الأرشيف فارغ</h3>
+      <p>لم تؤرشف أي حملة بعد.</p>
+    </div>
+
+  <!-- Empty state: no campaigns at all -->
+  } @else if (campaigns().length === 0 && !viewingArchive()) {
+    <div class="empty-state">
+      <div class="empty-icon"><i class="fa-solid fa-bullhorn"></i></div>
+      <h3>لا توجد حملات بعد</h3>
+      <p>ابدأ حملتك التسويقية الأولى وابدأ في الوصول لجمهورك المستهدف.</p>
+      <app-brand-lock [locked]="brandProfileCount() === 0">
+        <button type="button" (click)="startNewCampaign()" class="btn-new-camp"
+          [class.is-perm-disabled]="!perms.canEdit()"
+          [attr.aria-disabled]="!perms.canEdit() || null"
+          [appTooltip]="perms.editDeniedReason()">
+          <i class="fa-solid fa-rocket"></i>
+          ابدأ حملتك الأولى
+        </button>
+      </app-brand-lock>
+    </div>
+
+  } @else if (filtered().length === 0) {
+    <div class="empty-state empty-state-filter">
+      <div class="empty-icon"><i class="fa-solid fa-filter-circle-xmark"></i></div>
+      <h3>لا توجد نتائج</h3>
+      <p>جرّب تغيير معايير البحث أو الفلترة.</p>
+    </div>
+
+  } @else {
+    <div class="camps-grid">
+      <!-- Start new campaign card (always first) — but not while browsing the archive, where
+           "create a campaign" is unrelated to what the user came here to do. -->
+      @if (!viewingArchive()) {
+        <app-brand-lock [locked]="brandProfileCount() === 0">
+          <button type="button" (click)="startNewCampaign()" class="new-camp-card"
+            [class.is-perm-disabled]="!perms.canEdit()"
+            [attr.aria-disabled]="!perms.canEdit() || null"
+            [appTooltip]="perms.editDeniedReason()">
+            <div class="new-camp-icon"><i class="fa-solid fa-plus"></i></div>
+            <span class="new-camp-label">ابدأ حملة جديدة</span>
+            <span class="new-camp-sub">أنشئ حملة احترافية بخطوات بسيطة</span>
+          </button>
+        </app-brand-lock>
+      }
+
+      @for (camp of filtered(); track camp.id) {
+        <app-campaign-card
+          [campaign]="camp"
+          (pause)="pauseCampaign($event)"
+          (resume)="resumeCampaign($event)"
+          (archive)="archiveCampaign($event)"
+          (restore)="restoreCampaign($event)"
+          (deleteCampaign)="requestDeleteCampaign($event)"
+          (view)="viewCampaign($event)"
+          (openNextStep)="openNextStep($event)" />
+      }
+    </div>
+  }
+
+  <app-delete-campaign-modal
+    [open]="deleteModalOpen()"
+    [summary]="deleteSummary()"
+    [deleting]="deleting()"
+    (confirmDelete)="confirmDeleteCampaign()"
+    (cancel)="cancelDeleteCampaign()" />
+</div>

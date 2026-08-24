@@ -1,0 +1,89 @@
+<div class="page-shell">
+  <app-page-header
+    title="المساعدة والدعم"
+    [breadcrumbs]="[{ label: 'نظرة عامة', link: '/dashboard' }, { label: 'المساعدة والدعم' }]"
+    subtitle="احصل على المساعدة وإجابات للأسئلة الشائعة." />
+
+  <!-- Quick cards -->
+  <div class="help-cards">
+    <div class="help-card">
+      <span class="help-card-icon help-card-icon--success"><i class="fa-solid fa-circle-check"></i></span>
+      <div>
+        <span class="help-card-title">حالة النظام</span>
+        <span class="help-card-sub">جميع الأنظمة تعمل بشكل طبيعي</span>
+      </div>
+    </div>
+    <div class="help-card">
+      <span class="help-card-icon help-card-icon--primary"><i class="fa-solid fa-book"></i></span>
+      <div>
+        <span class="help-card-title">التوثيق</span>
+        <span class="help-card-sub">تصفّح الأدلة والشروحات</span>
+      </div>
+    </div>
+    <div class="help-card">
+      <span class="help-card-icon help-card-icon--info"><i class="fa-solid fa-comments"></i></span>
+      <div>
+        <span class="help-card-title">الدردشة المباشرة</span>
+        <span class="rw-pill rw-pill--warning">قريباً</span>
+      </div>
+    </div>
+    <button type="button" class="help-card help-card--action" (click)="showDemoError()">
+      <span class="help-card-icon help-card-icon--danger"><i class="fa-solid fa-triangle-exclamation"></i></span>
+      <div>
+        <span class="help-card-title">تجربة رسالة خطأ</span>
+        <span class="help-card-sub">عرض توضيحي لخدمة رسائل الخطأ</span>
+      </div>
+    </button>
+  </div>
+
+  <div class="help-grid">
+    <!-- FAQ -->
+    <div class="rw-card">
+      <div class="rw-card__header">
+        <h3 class="rw-card__title">الأسئلة الشائعة</h3>
+        <p class="rw-card__hint">إجابات سريعة للأسئلة المتكررة</p>
+      </div>
+
+      <app-faq-section [items]="faqs()" />
+    </div>
+
+    <!-- Contact -->
+    <div class="rw-card">
+      <div class="rw-card__header">
+        <h3 class="rw-card__title">تواصل مع الدعم</h3>
+        <p class="rw-card__hint">أرسل لنا رسالة وسنعود إليك قريباً</p>
+      </div>
+
+      @if (sent()) {
+        <div class="sent-msg">
+          <i class="fa-solid fa-circle-check"></i>
+          تم إرسال رسالتك بنجاح، سنتواصل معك قريباً.
+        </div>
+      }
+
+      <form [formGroup]="contactForm" (ngSubmit)="send()" class="contact-form">
+        <div class="form-grid">
+          <div class="rw-field">
+            <label for="c-name">الاسم</label>
+            <input id="c-name" type="text" formControlName="name" placeholder="اسمك">
+          </div>
+          <div class="rw-field">
+            <label for="c-email">البريد الإلكتروني</label>
+            <input id="c-email" type="email" formControlName="email" placeholder="you@example.com">
+          </div>
+        </div>
+        <div class="rw-field">
+          <label for="c-subject">الموضوع</label>
+          <input id="c-subject" type="text" formControlName="subject" placeholder="ما موضوع رسالتك؟">
+        </div>
+        <div class="rw-field">
+          <label for="c-message">الرسالة</label>
+          <textarea id="c-message" formControlName="message" placeholder="اكتب مشكلتك أو استفسارك..."></textarea>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="rw-btn rw-btn--dark">إرسال الرسالة</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

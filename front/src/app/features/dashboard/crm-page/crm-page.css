@@ -1,0 +1,122 @@
+/* ================================================================= */
+/*  Dashboard Overview                                                */
+/*  Layout (flex/grid/spacing) is handled by Bootstrap utility classes */
+/*  in the template — this file only holds genuinely custom styling   */
+/*  (colors, radii, transitions) that Bootstrap has no utility for.   */
+/* ================================================================= */
+
+/* ── Dashboard quick actions ── */
+.quick-action-card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  text-decoration: none;
+  color: inherit;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.quick-action-card:hover {
+  border-color: var(--color-border-strong);
+  box-shadow: var(--shadow-tag);
+  color: inherit;
+}
+
+.quick-action-card__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-full);
+  background: rgb(94 0 255 / 12%);
+  color: #5e00ff;
+  flex-shrink: 0;
+}
+
+.quick-action-card--reward .quick-action-card__icon {
+  background: rgb(255 176 0 / 14%);
+  color: #ffb000;
+}
+
+.quick-action-card__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.quick-action-card__title {
+  font-weight: var(--font-semibold);
+  font-size: var(--font-size-sm);
+}
+
+.quick-action-card__desc {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
+
+.quick-action-card__arrow {
+  color: var(--color-text-secondary);
+}
+
+/* ── Platform filter chip ── */
+.campaign-switcher__label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-secondary);
+}
+
+.campaign-switcher__select {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-dark);
+  font-size: var(--font-size-sm);
+  font-family: inherit;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+.platform-chip {
+  --chip-color: var(--color-dark);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-semibold);
+  font-family: inherit;
+  cursor: pointer;
+  transition: background-color var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+}
+
+/* Icons always show their real brand color, selected or not. */
+.platform-chip i {
+  font-size: 0.9rem;
+  color: var(--chip-color);
+  transition: color var(--transition-fast);
+}
+
+/* Hover stays neutral — the colored background/border "effect" is reserved
+   for the selected chip only, not hover. */
+.platform-chip:hover {
+  border-color: var(--color-border-strong);
+  color: var(--color-dark);
+}
+
+/* Selected chip: fill the whole button with the platform's real color and
+   flip text/icon to white — not just a tinted border/icon. */
+.platform-chip.active {
+  background: var(--chip-color);
+  border-color: var(--chip-color);
+  color: #fff;
+}
+
+.platform-chip.active i {
+  color: #fff;
+}
+
+/* ── Charts row ── */
+.chart-col {
+  min-height: 360px;
+}

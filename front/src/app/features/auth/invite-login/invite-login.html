@@ -1,0 +1,128 @@
+<section class="login-page">
+  <div class="container login-wrapper">
+    <div class="bg-pattern"></div>
+    <div class="row justify-content-center">
+      <div class="col-lg-5 col-md-7" appGsapReveal="fade-up" [gsapDuration]="1500">
+        <div class="login-card">
+
+          <div class="text-center invite-badge-wrap">
+            <span class="invite-badge"><i class="fa-solid fa-envelope-open-text"></i> دعوة انضمام</span>
+          </div>
+
+          @if (loading()) {
+            <div class="text-center py-4">
+              <i class="fa-solid fa-spinner fa-spin fa-2x"></i>
+            </div>
+          } @else if (notFound() || !details()) {
+            <div class="text-center">
+              <h2>الدعوة غير صالحة</h2>
+              <p class="login-subtitle">
+                رابط الدعوة هذا غير صالح أو انتهت صلاحيته. يرجى التواصل مع من دعاك للحصول على دعوة جديدة.
+              </p>
+              <a routerLink="/login" class="btn login-btn w-100 d-block mt-3">الذهاب لتسجيل الدخول</a>
+            </div>
+          } @else if (accepted()) {
+            <div class="text-center invite-result">
+              <div class="invite-result__icon invite-result__icon--success"><i class="fa-solid fa-circle-check"></i></div>
+              <h2>تم الانضمام بنجاح</h2>
+              <p class="login-subtitle">جارٍ تحويلك إلى لوحة التحكم...</p>
+            </div>
+          } @else if (declined()) {
+            <div class="text-center invite-result">
+              <div class="invite-result__icon invite-result__icon--muted"><i class="fa-solid fa-circle-xmark"></i></div>
+              <h2>تم رفض الدعوة</h2>
+              <p class="login-subtitle">لن تنضم إلى هذا الفريق. يمكنك إغلاق هذه الصفحة.</p>
+            </div>
+          } @else {
+            @let d = details()!;
+            <div class="text-center">
+              <h2>{{ d.inviterName }} دعاك للانضمام إلى {{ d.tenantName }}</h2>
+              <span class="role-pill">{{ roleLabels[d.role] }}</span>
+              <p class="login-subtitle mt-2">
+                ستتمكن من العمل على العلامات التجارية التالية ضمن هذا الفريق.
+              </p>
+            </div>
+
+            <div class="brand-summary">
+              <div class="brand-summary__head">
+                <i class="fa-solid fa-shop"></i>
+                <span>
+                  @if (d.fullTenantAccess) {
+                    وصول كامل لكل العلامات التجارية في {{ d.tenantName }}
+                  } @else if (d.brandProfiles.length > 0) {
+                    العلامات التجارية المتاحة لك
+                  } @else {
+                    لا توجد علامات تجارية محددة لهذه الدعوة بعد
+                  }
+                </span>
+              </div>
+
+              @if (d.brandProfiles.length > 0) {
+                <div class="brand-list">
+                  @for (b of d.brandProfiles; track b.brandProfileId) {
+                    <div class="brand-chip">
+                      @if (b.logoUrl) {
+                        <img class="brand-chip__logo" [src]="b.logoUrl" [alt]="b.name" />
+                      } @else {
+                        <span class="brand-chip__logo brand-chip__logo--fallback">{{ brandInitial(b.name) }}</span>
+                      }
+                      <div class="brand-chip__info">
+                        <span class="brand-chip__name">{{ b.name }}</span>
+                        @if (b.industry) {
+                          <span class="brand-chip__industry">{{ b.industry }}</span>
+                        }
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+
+            @if (d.requiresRegistration) {
+              <app-invite-form [token]="token" [email]="d.email" (registered)="onRegistered()" />
+            } @else if (!authService.isAuthenticated()) {
+              <div class="text-center">
+                <p class="login-subtitle">
+                  لديك حساب على رواج بالفعل ({{ d.email }}) — سجّل الدخول لقبول الدعوة.
+                </p>
+                <a
+                  [routerLink]="['/login']"
+                  [queryParams]="{ returnUrl: '/invite?token=' + token }"
+                  class="btn login-btn w-100 d-block mt-2">
+                  تسجيل الدخول وقبول الدعوة
+                </a>
+              </div>
+            } @else if (emailMismatch()) {
+              <div class="text-center">
+                <p class="login-subtitle text-danger">
+                  هذه الدعوة موجّهة إلى {{ d.email }}، لكنك مسجّل الدخول بحساب مختلف. سجّل الخروج وسجّل الدخول
+                  بالحساب الصحيح لقبول الدعوة.
+                </p>
+              </div>
+            } @else {
+              <div class="text-center invite-actions">
+                @if (acceptError(); as err) {
+                  <small class="text-danger d-block mb-3 validation-msg">{{ err }}</small>
+                }
+                @if (declineError(); as err) {
+                  <small class="text-danger d-block mb-3 validation-msg">{{ err }}</small>
+                }
+                <button type="button" class="btn login-btn w-100" [disabled]="accepting() || declining()" (click)="acceptAsSignedInUser()">
+                  @if (accepting()) {
+                    <i class="fa-solid fa-spinner fa-spin"></i> جارٍ القبول...
+                  } @else {
+                    <i class="fa-solid fa-circle-check"></i> قبول الدعوة والانضمام
+                  }
+                </button>
+                <button type="button" class="btn decline-btn w-100 d-block mt-2" [disabled]="accepting() || declining()" (click)="declineAsSignedInUser()">
+                  {{ declining() ? 'جارٍ الرفض...' : 'رفض الدعوة' }}
+                </button>
+              </div>
+            }
+          }
+
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

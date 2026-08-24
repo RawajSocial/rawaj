@@ -1,0 +1,89 @@
+<div class="page-shell">
+  <div class="page-top">
+    <app-page-header
+      title="ملفات العلامة التجارية"
+      [breadcrumbs]="[{ label: 'نظرة عامة', link: '/dashboard' }, { label: 'ملفات العلامة التجارية' }]"
+      subtitle="المظلة التي تنضوي تحتها حملاتك وإعلاناتك وكل ما يخص علامتك." />
+    <button type="button" (click)="createBrandProfile()" class="rw-btn rw-btn--primary">
+      <i class="fa-solid fa-plus"></i>
+      إنشاء ملف علامة تجارية
+    </button>
+  </div>
+
+  @if (profiles().length === 0) {
+    <div class="empty-state">
+      <div class="empty-icon"><i class="fa-solid fa-copyright"></i></div>
+      <h3>لا توجد ملفات علامة تجارية بعد</h3>
+      <p>أنشئ أول ملف علامة تجارية لتبدأ بربط حملاتك تحت مظلة واحدة.</p>
+      <button type="button" (click)="createBrandProfile()" class="rw-btn rw-btn--dark">
+        <i class="fa-solid fa-plus"></i>
+        إنشاء ملف علامة تجارية
+      </button>
+    </div>
+  } @else {
+    <div class="bp-grid">
+      @for (profile of profiles(); track profile.id) {
+        <div class="rw-card bp-card">
+          <!-- Tags row (top) -->
+          <div class="bp-card__tags">
+            <span class="rw-pill"
+                  [class.rw-pill--success]="profile.status === 'active'"
+                  [class.rw-pill--warning]="profile.status === 'draft'"
+                  [class.rw-pill--danger]="profile.status === 'archived'">
+              {{ statusLabels[profile.status] }}
+            </span>
+            @if (profile.isDefault) {
+              <span class="rw-pill rw-pill--info">افتراضي</span>
+            }
+            @if (profile.tones.length > 0) {
+              <span class="rw-pill bp-card__voice-tag">{{ voiceLabels[profile.tones[0]] }}</span>
+            }
+          </div>
+
+          <!-- Big image (middle) -->
+          <div class="bp-card__image" [style.background]="profile.colors.length ? profile.colors[0] : 'var(--color-secondary)'">
+            @if (profile.logoUrl) {
+              <img [src]="profile.logoUrl" [alt]="profile.name">
+            } @else {
+              <i class="fa-solid fa-copyright"></i>
+            }
+          </div>
+
+          <!-- Data (bottom) -->
+          <div class="bp-card__body">
+            <h3 class="bp-card__title">{{ profile.name }}</h3>
+            @if (profile.tagline) {
+              <p class="bp-card__tagline">{{ profile.tagline }}</p>
+            }
+            @if (profile.description) {
+              <p class="bp-card__desc">{{ profile.description }}</p>
+            }
+
+            <div class="bp-card__meta">
+              @if (profile.industry) {
+                <span class="bp-card__meta-item"><i class="fa-solid fa-industry"></i> {{ profile.industry }}</span>
+              }
+              <span class="bp-card__meta-item"><i class="fa-solid fa-bullhorn"></i> {{ campaignCount(profile.id) }} حملة</span>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="bp-card__actions">
+            <a class="bp-card__action" [routerLink]="['/dashboard/brand-profiles', profile.id]">
+              عرض التفاصيل
+            </a>
+            <a class="bp-card__action bp-card__action--primary" [routerLink]="['/dashboard/campaigns']" [queryParams]="{ brandProfileId: profile.id }">
+              عرض الحملات
+              <i class="fa-solid fa-arrow-left"></i>
+            </a>
+            @if (canArchive()) {
+              <button type="button" class="bp-card__action-icon" appTooltip="أرشفة الملف" aria-label="أرشفة الملف" (click)="archive(profile.id)">
+                <i class="fa-solid fa-box-archive"></i>
+              </button>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

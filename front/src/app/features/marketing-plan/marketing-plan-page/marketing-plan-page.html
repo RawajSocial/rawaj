@@ -1,0 +1,35 @@
+<div class="mp-shell" dir="rtl">
+  @switch (phase()) {
+    @case ('empty') {
+      <app-brand-lock [locked]="brandProfileCount() === 0">
+        <app-mp-empty-state (startPlan)="goToOnboarding()"></app-mp-empty-state>
+      </app-brand-lock>
+    }
+    @case ('generating') {
+      <app-mp-generating
+        [stages]="stages"
+        [completedCount]="completedCount()"
+        [progressPct]="progressPct()"
+        [streamedItems]="streamedItems()">
+      </app-mp-generating>
+    }
+    @case ('plans') {
+      <app-mp-plans-list
+        [plans]="visiblePlans()"
+        (planSelected)="openPlan($event)"
+        (newPlan)="goToOnboarding()">
+      </app-mp-plans-list>
+    }
+    @case ('detail') {
+      <app-mp-plan-detail
+        [plan]="plan()"
+        [initialPosts]="calPosts()"
+        [savedPlansCount]="savedPlans().length"
+        (remakeClicked)="remake()"
+        (approveClicked)="approve()"
+        (backClicked)="backToPlans()"
+        (editSaved)="handleEditSave($event)">
+      </app-mp-plan-detail>
+    }
+  }
+</div>

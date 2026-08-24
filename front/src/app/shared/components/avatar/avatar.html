@@ -1,0 +1,12 @@
+<span
+  class="avatar"
+  [class.avatar--sm]="size() === 'sm'"
+  [class.avatar--md]="size() === 'md'"
+  [class.avatar--lg]="size() === 'lg'"
+>
+  @if (src() && !loadFailed()) {
+    <img [src]="src()!" [alt]="alt()" (error)="onError()" />
+  } @else {
+    <i class="fa-solid fa-user"></i>
+  }
+</span>

@@ -1,0 +1,15 @@
+<div class="brief-block" appGsapReveal="fade-up-far" [gsapDuration]="900">
+  <div class="brief-block-title">
+    <i class="fa-solid fa-bullhorn"></i>
+    <span>تفاصيل حملة الوعي بالعلامة</span>
+  </div>
+  <div class="form-grid">
+    <div class="form-row full">
+      <label>ما الرسالة الرئيسية التي تريد إيصالها؟</label>
+      <textarea class="form-control" rows="3"
+        placeholder="مثال: نحن الخيار الأول للموضة المحتشمة في السعودية..."
+        [value]="data()?.mainMessage || ''"
+        (input)="emit({ mainMessage: $any($event.target).value })"></textarea>
+    </div>
+  </div>
+</div>

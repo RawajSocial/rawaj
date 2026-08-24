@@ -1,0 +1,85 @@
+<div class="page-shell">
+  @if (ad(); as a) {
+    <app-page-header
+      [title]="a.name"
+      [breadcrumbs]="[
+        { label: 'نظرة عامة', link: '/dashboard' },
+        { label: 'المنشورات', link: '/dashboard/ads' },
+        { label: a.name }
+      ]"
+      [subtitle]="postTypeLabels[a.format] + ' · ' + platformNames(a)" />
+
+    <div class="detail-row">
+      <div class="rw-card media-card">
+        @if (mediaSrc; as src) {
+          <img [src]="src" [alt]="a.name" class="media-img" [class.media-img--contain]="a.format === 'text'">
+        } @else {
+          <div class="media-placeholder">
+            <span class="media-placeholder-icon"><i class="fa-solid fa-play"></i></span>
+            <span>معاينة الفيديو</span>
+          </div>
+        }
+        <div class="media-platform-badges">
+          @for (p of a.platforms; track p) {
+            <span class="media-platform-badge" [style.color]="platformMeta[p].color" [title]="platformMeta[p].label">
+              <i class="{{ platformMeta[p].icon }}"></i>
+            </span>
+          }
+        </div>
+      </div>
+
+      <div class="rw-card info-card">
+        <div class="info-head">
+          <span class="rw-pill"
+                [class.rw-pill--success]="a.status === 'active'"
+                [class.rw-pill--warning]="a.status === 'paused'"
+                [class.rw-pill--info]="a.status === 'pending'"
+                [class.rw-pill--danger]="a.status === 'rejected'">
+            {{ statusLabels[a.status] }}
+          </span>
+        </div>
+
+        <div class="info-meta">
+          <div class="meta-item">
+            <span class="meta-label">الحملة</span>
+            <a class="meta-value meta-link" [routerLink]="['/dashboard/campaigns', a.campaignId]">{{ a.campaignName }}</a>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">تاريخ النشر</span>
+            <span class="meta-value">{{ formatDateTime(a.createdAt) }}</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">الإنفاق الإجمالي</span>
+            <span class="meta-value">${{ a.spend }}</span>
+          </div>
+        </div>
+
+        <div class="info-actions">
+          <button type="button" class="rw-btn rw-btn--outline" (click)="toggleStatus()">
+            <i class="fa-solid" [class.fa-pause]="a.status === 'active'" [class.fa-play]="a.status !== 'active'"></i>
+            {{ a.status === 'active' ? 'إيقاف المنشور' : 'تشغيل المنشور' }}
+          </button>
+          @if (a.postUrl) {
+            <a class="rw-btn rw-btn--primary" [href]="a.postUrl" target="_blank" rel="noopener noreferrer">
+              <i class="fa-solid fa-arrow-up-right-from-square"></i>
+              عرض على المنصة
+            </a>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- KPIs -->
+    <div class="kpi-row">
+      <app-kpi-card title="المشاهدات" [value]="formatNumber(a.views)" icon="fa-eye" iconBg="rgba(37,99,235,.12)" iconColor="#2563EB" [change]="12.4" accentColor="#2563EB" />
+      <app-kpi-card title="النقرات" [value]="formatNumber(a.clicks)" icon="fa-arrow-pointer" iconBg="rgba(124,58,237,.12)" iconColor="#7C3AED" [change]="6.8" accentColor="#7C3AED" />
+      <app-kpi-card title="معدل النقر" [value]="a.ctr + '%'" icon="fa-chart-line" iconBg="rgba(236,72,153,.12)" iconColor="#EC4899" [change]="1.5" accentColor="#EC4899" />
+      <app-kpi-card title="تكلفة النقرة" [value]="'$' + a.cpc" icon="fa-sack-dollar" iconBg="rgba(22,163,74,.12)" iconColor="#16A34A" [change]="-1.2" accentColor="#16A34A" />
+    </div>
+  } @else {
+    <div class="not-found">
+      <h3>المنشور غير موجود</h3>
+      <a routerLink="/dashboard/ads">العودة إلى المنشورات</a>
+    </div>
+  }
+</div>

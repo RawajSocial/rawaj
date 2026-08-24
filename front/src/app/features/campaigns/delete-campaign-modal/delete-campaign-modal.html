@@ -1,0 +1,56 @@
+<app-modal-shell [open]="open()" [maxWidth]="440" title="حذف الحملة نهائيًا" (closed)="cancel.emit()">
+  @if (summary(); as s) {
+    <p class="dcm-intro">
+      سيتم حذف حملة <strong>"{{ s.name }}"</strong> وكل ما يخصها نهائيًا:
+    </p>
+
+    <ul class="dcm-list">
+      <li>
+        <i class="fa-regular fa-images"></i>
+        <span>{{ s.contentItemCount }} منشور بمحتواه</span>
+      </li>
+      <li>
+        <i class="fa-regular fa-image"></i>
+        <span>{{ s.imageCount }} صورة</span>
+      </li>
+      @if (s.pendingScheduledCount > 0) {
+        <li>
+          <i class="fa-solid fa-calendar-xmark"></i>
+          <span>{{ s.pendingScheduledCount }} منشور مجدول لم يُنشر بعد — سيُلغى ولن يُنشر</span>
+        </li>
+      }
+      @if (s.publishedScheduledCount > 0) {
+        <li class="dcm-list-note">
+          <i class="fa-solid fa-circle-info"></i>
+          <span>{{ s.publishedScheduledCount }} منشور منشور بالفعل — سيبقى كما هو على المنصة، فقط سجله في رواج سيُحذف</span>
+        </li>
+      }
+    </ul>
+
+    <div class="dcm-warning">
+      <i class="fa-solid fa-triangle-exclamation"></i>
+      <p>
+        الكوينات التي أُنفقت على هذه الحملة غير قابلة للاسترداد.
+        <strong>لا يمكن التراجع عن هذا الإجراء.</strong>
+      </p>
+    </div>
+  } @else {
+    <div class="dcm-loading" role="status" aria-live="polite">
+      <i class="fa-solid fa-circle-notch fa-spin"></i>
+      جاري تحميل تفاصيل الحملة...
+    </div>
+  }
+
+  <div modal-footer class="dcm-footer">
+    <button type="button" class="dcm-btn dcm-btn-cancel" [disabled]="deleting()" (click)="cancel.emit()">
+      إلغاء
+    </button>
+    <button type="button" class="dcm-btn dcm-btn-delete" [disabled]="!summary() || deleting()" (click)="confirmDelete.emit()">
+      @if (deleting()) {
+        <i class="fa-solid fa-circle-notch fa-spin"></i> جاري الحذف...
+      } @else {
+        <i class="fa-solid fa-trash-can"></i> حذف نهائيًا
+      }
+    </button>
+  </div>
+</app-modal-shell>

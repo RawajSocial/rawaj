@@ -1,0 +1,51 @@
+<form class="step-animate" [formGroup]="form" (ngSubmit)="onNext()">
+  <h2 class="step-title">تواجدك الرقمي</h2>
+  <p class="step-subtitle">أضف موقع وكالتك وحساباتها على منصات التواصل. جميع الحقول اختيارية.</p>
+
+  <div class="social-row">
+    <div class="social-icon-badge sib-website"><i class="fa-solid fa-globe"></i></div>
+    <input type="url" class="setup-input" formControlName="website" placeholder="https://youragency.com" dir="ltr" />
+  </div>
+  <div class="social-row">
+    <div class="social-icon-badge sib-facebook"><i class="fa-brands fa-facebook-f"></i></div>
+    <input type="url" class="setup-input" formControlName="facebook" placeholder="facebook.com/youragency" dir="ltr" />
+  </div>
+  <div class="social-row">
+    <div class="social-icon-badge sib-instagram"><i class="fa-brands fa-instagram"></i></div>
+    <input type="url" class="setup-input" formControlName="instagram" placeholder="instagram.com/youragency" dir="ltr" />
+  </div>
+  <div class="social-row">
+    <div class="social-icon-badge sib-youtube"><i class="fa-brands fa-youtube"></i></div>
+    <input type="url" class="setup-input" formControlName="youtube" placeholder="youtube.com/@youragency" dir="ltr" />
+  </div>
+  <div class="social-row">
+    <div class="social-icon-badge sib-tiktok"><i class="fa-brands fa-tiktok"></i></div>
+    <input type="url" class="setup-input" formControlName="tiktok" placeholder="tiktok.com/@youragency" dir="ltr" />
+  </div>
+  <div class="social-row">
+    <div class="social-icon-badge sib-linkedin"><i class="fa-brands fa-linkedin-in"></i></div>
+    <input type="url" class="setup-input" formControlName="linkedin" placeholder="linkedin.com/company/youragency" dir="ltr" />
+  </div>
+  <div class="social-row">
+    <div class="social-icon-badge sib-x"><i class="fa-brands fa-x-twitter"></i></div>
+    <input type="url" class="setup-input" formControlName="x" placeholder="x.com/youragency" dir="ltr" />
+  </div>
+  <div class="social-row">
+    <div class="social-icon-badge sib-snapchat"><i class="fa-brands fa-snapchat"></i></div>
+    <input type="url" class="setup-input" formControlName="snapchat" placeholder="snapchat.com/add/youragency" dir="ltr" />
+  </div>
+
+  <div class="step-actions">
+    <div class="start">
+      <button type="button" class="btn-back" (click)="back.emit()">
+        <i class="fa-solid fa-arrow-right"></i>
+        السابق
+      </button>
+      <button type="submit" class="btn-skip">تخطّ الآن</button>
+    </div>
+    <button type="submit" class="btn-next">
+      التالي
+      <i class="fa-solid fa-arrow-left"></i>
+    </button>
+  </div>
+</form>

@@ -1,0 +1,14 @@
+<div class="actions">
+  @if (showBack()) {
+    <button type="button" class="back-btn d-flex align-items-center gap-2" (click)="back.emit()">
+      <i class="fa-solid fa-arrow-right"></i>
+      {{ backLabel() }}
+    </button>
+  }
+  @if (showNext()) {
+    <button type="button" class="next-btn d-flex align-items-center gap-2" [disabled]="nextDisabled()" (click)="next.emit()">
+      {{ nextLabel() }}
+      <i class="fa-solid fa-arrow-left"></i>
+    </button>
+  }
+</div>

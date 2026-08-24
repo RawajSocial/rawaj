@@ -1,0 +1,43 @@
+<section class="solutions-section" id="solutions">
+  <div class="solutions-shape" aria-hidden="true">
+    <img src="assets/img/shape/line-shape.png" alt="">
+  </div>
+
+  <div class="container position-relative">
+    <div class="section-header text-center" appGsapReveal="fade-up" [gsapDuration]="2000">
+      <p class="section-badge-wrap">
+        <img src="assets/img/shape/sub-vactor.png" alt="" aria-hidden="true">
+        <span class="section-badge">الحلول</span>
+        <img src="assets/img/shape/sub-vactor02.png" alt="" aria-hidden="true">
+      </p>
+      <h2 class="section-title">كيف تُحسّن رواج عملياتك التسويقية؟</h2>
+      <p class="section-subtitle">
+        رواج يجمع كل ما تحتاجه لإدارة تسويقك في مكان واحد: من تحليل نشاطك وبناء خطة تسويقية،
+        إلى توليد المحتوى بالذكاء الاصطناعي ونشره تلقائيًا على منصاتك.
+      </p>
+    </div>
+
+    <div class="solutions-grid" appGsapReveal="fade-up" [gsapDuration]="1500">
+      @for (solution of solutions(); track solution.id) {
+        <article class="solution-card">
+          <div class="solution-card__icon">
+            <i [class]="solution.iconClass" aria-hidden="true"></i>
+          </div>
+          <h3 class="solution-card__title">{{ solution.title }}</h3>
+          <p class="solution-card__desc">{{ solution.description }}</p>
+          <a class="solution-card__link" href="#">
+            تعرف أكثر
+            <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
+          </a>
+        </article>
+      }
+    </div>
+
+    <div class="solutions-cta text-center" appGsapReveal="fade-up" [gsapDuration]="1500">
+      <a class="solutions-btn" href="#">
+        شاهد كيف يعمل
+        <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
+      </a>
+    </div>
+  </div>
+</section>

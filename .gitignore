@@ -3,6 +3,17 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/main/VisualStudio.gitignore
 
+# custom
+graphify-out
+.claude
+CLAUDE.md
+appsettings.Development.json
+server/Rawaj/Rawaj/wwwroot/media/
+
+handoffs
+docs
+progress
+AGENTS.md
 # User-specific files
 *.rsuser
 *.suo

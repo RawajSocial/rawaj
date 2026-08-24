@@ -1,0 +1,424 @@
+.page-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* ── Progress bar ── */
+.wizard-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.wizard-progress__track {
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: var(--color-bg-secondary);
+  overflow: hidden;
+}
+
+.wizard-progress__fill {
+  height: 100%;
+  border-radius: var(--radius-full);
+  background: linear-gradient(90deg, var(--color-secondary), var(--color-primary));
+  transition: width var(--transition-slow);
+}
+
+.wizard-progress__steps {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.wizard-progress__step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.wizard-progress__dot {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-bg-secondary);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-bold);
+  box-shadow: var(--shadow-tag);
+}
+
+.wizard-progress__step.active .wizard-progress__dot {
+  background: var(--color-secondary);
+  color: #fff;
+}
+
+.wizard-progress__step.done .wizard-progress__dot {
+  background: var(--color-success);
+  color: #fff;
+}
+
+.wizard-progress__label {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-secondary);
+}
+
+.wizard-progress__step.active .wizard-progress__label {
+  color: var(--color-dark);
+}
+
+/* ── Wizard card ── */
+.wizard-card {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-height: 360px;
+}
+
+.wizard-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.form-row--3 {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
+/* ── Chips (identity/positioning steps) ── */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 16px;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-semibold);
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast);
+}
+
+.chip:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.chip.active {
+  border-color: var(--color-secondary);
+  background: var(--color-secondary);
+  color: #fff;
+}
+
+/* ── Color fields ── */
+.color-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.color-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1.5px solid var(--color-border);
+  border-radius: 10px;
+  padding: 6px 10px;
+}
+
+.color-dot {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  overflow: hidden;
+  cursor: pointer;
+  box-shadow: var(--shadow-tag);
+  border: 2px solid var(--color-surface);
+  outline: 1.5px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.color-dot-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: none;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.color-field-hex-input {
+  width: 90px;
+  align-self: stretch;
+  padding: 0;
+  border: none;
+  outline: none;
+  font-size: var(--font-size-sm);
+  font-family: monospace;
+  line-height: normal;
+  direction: ltr;
+  text-align: left;
+  background: transparent;
+  color: var(--color-text-primary);
+}
+
+.color-remove-btn {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border: none;
+  border-radius: 50%;
+  background: var(--color-bg-secondary);
+  color: var(--color-text-secondary);
+  font-size: 10px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.color-remove-btn:hover {
+  background: var(--color-danger);
+  color: #fff;
+}
+
+.color-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1.5px dashed var(--color-border);
+  border-radius: 10px;
+  padding: 6px 14px;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-semibold);
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.color-add-btn:hover {
+  border-color: var(--color-secondary);
+  color: var(--color-secondary);
+}
+
+/* ── Voice step (multi-select) ── */
+.voice-step {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.tone-count {
+  margin-inline-start: 8px;
+  font-weight: var(--font-bold);
+  color: var(--color-text-secondary);
+}
+
+.tone-count.at-limit {
+  color: var(--color-danger);
+}
+
+.voice-card:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.field-error {
+  font-size: var(--font-size-xs);
+  color: var(--color-danger);
+}
+
+.field-optional {
+  font-weight: 400;
+  color: var(--color-text-secondary);
+}
+
+.field-hint {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
+
+/* ── Voice step ── */
+.voice-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.voice-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  text-align: start;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.voice-card.active {
+  border-color: var(--color-secondary);
+  box-shadow: var(--shadow-sm);
+}
+
+.voice-card__title {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-bold);
+  color: var(--color-dark);
+}
+
+.voice-card__desc {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
+
+/* ── Logo step ── */
+.logo-step__hint {
+  margin: 0 0 16px;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+/* ── Review step ── */
+.review-step {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.review-step__header {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+
+.review-step__logo {
+  width: 120px;
+  height: 120px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-lg);
+  background: var(--color-secondary-subtle);
+  color: var(--color-secondary);
+  font-size: 2.5rem;
+  box-shadow: var(--shadow-tag);
+  overflow: hidden;
+}
+
+.review-step__logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.review-step__data {
+  flex: 1;
+  min-width: 0;
+}
+
+.review-step__name {
+  margin: 0 0 4px;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-bold);
+  color: var(--color-dark);
+}
+
+.review-step__tagline {
+  margin: 0 0 8px;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.review-step__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-bottom: 8px;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
+
+.review-step__desc {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  line-height: 1.7;
+}
+
+.review-step__section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border);
+}
+
+.review-step__section-title {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-bold);
+  color: var(--color-text-secondary);
+}
+
+.review-colors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.review-color-swatch {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  box-shadow: var(--shadow-tag);
+  border: 2px solid var(--color-surface);
+  outline: 1.5px solid var(--color-border);
+}
+
+/* ── Nav ── */
+.wizard-nav {
+  margin-top: auto;
+  display: flex;
+  justify-content: space-between;
+  padding-top: 20px;
+  border-top: 1px solid var(--color-border);
+}
+
+@media (max-width: 576px) {
+  .form-row { grid-template-columns: 1fr; }
+  .wizard-progress__label { display: none; }
+  .review-step__header { flex-direction: column; text-align: center; }
+  .color-fields { flex-wrap: wrap; }
+}

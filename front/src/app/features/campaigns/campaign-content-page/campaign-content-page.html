@@ -1,0 +1,482 @@
+<div class="page-shell" dir="rtl">
+  <app-page-header
+    title="محتوى الحملة"
+    [subtitle]="campaign()?.name ?? ''"
+    [breadcrumbs]="[
+      { label: 'نظرة عامة', link: '/dashboard' },
+      { label: 'الحملات', link: '/dashboard/campaigns' },
+      { label: campaign()?.name ?? 'الحملة', link: '/dashboard/campaigns/' + campaignId() },
+      { label: 'المحتوى' }
+    ]" />
+
+  @if (loading()) {
+    <div class="cc-state"><i class="fa-solid fa-circle-notch fa-spin"></i> جاري التحميل...</div>
+  } @else if (loadError()) {
+    <div class="cc-state cc-error">{{ loadError() }}</div>
+  } @else {
+
+    @if (!campaign()?.planApprovedAt) {
+      <div class="cc-banner cc-banner-warning">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        لم يتم اعتماد استراتيجية هذه الحملة بعد — راجع الاستراتيجية واعتمدها قبل توليد المحتوى.
+        <a class="cc-link-btn" [routerLink]="['/dashboard/campaigns', campaignId(), 'strategy']">مراجعة الاستراتيجية</a>
+      </div>
+    }
+
+    <section class="cc-card cc-generate">
+      <div class="cc-generate-row">
+        <label>
+          عدد المنشورات
+          <input type="number" [min]="minPostCount" [max]="maxPostCount" [value]="postCount()"
+                 (input)="updatePostCount($any($event.target).value)" [disabled]="generating()" />
+        </label>
+        <button type="button" class="cc-btn cc-btn-primary"
+          [class.is-perm-disabled]="!perms.canEdit()"
+          [attr.aria-disabled]="!perms.canEdit() || null"
+          [appTooltip]="perms.editDeniedReason()"
+          [disabled]="generating() || !campaign()?.planApprovedAt || !perms.canEdit()"
+          (click)="generateContent()">
+          @if (generating()) {
+            <i class="fa-solid fa-circle-notch fa-spin"></i> جاري التوليد...
+          } @else {
+            <i class="fa-solid fa-wand-magic-sparkles"></i> توليد المحتوى
+          }
+        </button>
+        @if (pricing(); as pr) {
+          <app-coin-cost-hint [cost]="pr.discountedCosts.campaignContentGeneration" />
+        }
+      </div>
+      <p class="cc-generate-note">التكلفة ثابتة لكامل الدفعة بغض النظر عن عدد المنشورات المحدد أعلاه. كل منشور يتضمّن صورة تلقائيًا.</p>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════════
+         GENERATION IN PROGRESS — real progress from the pipeline run's
+         stage rows (AiPipelineProgressPolicy, polled via GetRunStatus),
+         not a simulated timer. Shows up here even after a reload, since
+         `load()` starts watching whatever run the campaign is already
+         on — that's what closes the double-spend gap: the button stays
+         disabled and this card keeps rendering instead of the page
+         looking like nothing is happening.
+    ══════════════════════════════════════════════════════ -->
+    @if (generating()) {
+      <section class="cc-card cc-generating" role="status" aria-live="polite">
+        <div class="cc-generating-head">
+          <div class="cc-generating-orbit">
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+          </div>
+          <div class="cc-generating-copy">
+            <h2>رواج AI يولّد منشوراتك...</h2>
+            <p>قد يستغرق توليد منشوراتك وصورها بضع دقائق — لا داعي للقلق، لن تفقد أي تقدم إن بقيت على هذه الصفحة.</p>
+          </div>
+        </div>
+
+        <div class="cc-generating-bar-track">
+          <div class="cc-generating-bar-fill" [style.width.%]="awaitingFreshBatchStatus() ? 0 : (aiPipelineService.run()?.progress?.percent ?? 0)"></div>
+        </div>
+
+        <div class="cc-generating-stages">
+          @if (awaitingFreshBatchStatus()) {
+            <!-- The run this campaign already had (possibly from an earlier, already-finished batch —
+                 its runId gets reused, not recreated, per generate click) can already be sitting in
+                 aiPipelineService before this click. Showing its numbers here would show a stale total
+                 that's about to change (e.g. "20 of 20" before it becomes "20 of 26") — a generic state
+                 until this click's own fresh status actually arrives is preferable to a wrong number. -->
+            <span class="cc-generating-stage active">
+              <i class="fa-solid fa-circle-notch fa-spin"></i>
+              جارٍ تجهيز الدفعة الجديدة…
+            </span>
+          } @else {
+            <span class="cc-generating-stage active">
+              <i class="fa-solid fa-circle-notch fa-spin"></i>
+              {{ aiPipelineService.run()?.progress?.currentStageLabel ?? 'جارٍ العمل…' }}
+            </span>
+            @if ((aiPipelineService.run()?.progress?.imagesTotal ?? 0) > 0) {
+              <span class="cc-generating-stage">
+                <i class="fa-regular fa-image"></i>
+                {{ aiPipelineService.run()?.progress?.imagesCompleted }} من {{ aiPipelineService.run()?.progress?.imagesTotal }} صورة
+              </span>
+            }
+          }
+        </div>
+
+        @if (awaitingCoins()) {
+          <div class="cc-banner cc-banner-warning">
+            <i class="fa-solid fa-coins"></i> رصيدك من الكوينات غير كافٍ لإكمال توليد المحتوى. أضف رصيدًا وستُكمل تلقائيًا.
+          </div>
+        }
+      </section>
+    }
+
+    @if (selectedCount() > 0) {
+      <div class="cc-selection-bar">
+        @if (!selectedSchedulePanelOpen()) {
+          <span class="cc-selection-count">{{ selectedCount() }} منشور محدد</span>
+          <div class="cc-selection-actions">
+            <button type="button" class="cc-btn cc-btn-ghost" (click)="clearSelection()">إلغاء التحديد</button>
+            <button type="button" class="cc-btn cc-btn-primary" (click)="openSelectedSchedulePanel()">
+              <i class="fa-solid fa-calendar-check"></i> جدولة المحدد
+            </button>
+          </div>
+        } @else {
+          <label class="cc-schedule-item-field">
+            التاريخ
+            <input type="date" [value]="scheduleDate()" (input)="updateScheduleDate($any($event.target).value)" />
+          </label>
+          <label class="cc-schedule-item-field">
+            الوقت
+            <input type="time" [value]="scheduleTime()" (input)="updateScheduleTime($any($event.target).value)" />
+          </label>
+          @if (pricing(); as pr) {
+            <app-coin-cost-hint [cost]="pr.discountedCosts.scheduling" [multiplier]="selectedCount()" />
+          }
+          @if (scheduleTimeTooSoon()) {
+            <p class="cc-schedule-item-warn"><i class="fa-solid fa-triangle-exclamation"></i> يجب أن يكون الموعد بعد 10 دقائق على الأقل من الآن.</p>
+          }
+          <div class="cc-selection-actions">
+            <button type="button" class="cc-btn cc-btn-ghost" (click)="cancelSelectedSchedule()">إلغاء</button>
+            <button type="button" class="cc-btn cc-btn-primary"
+              [disabled]="!scheduleDate() || !scheduleTime() || scheduleTimeTooSoon() || bulkSelectedScheduling()"
+              (click)="submitSelectedSchedule()">
+              @if (bulkSelectedScheduling()) {
+                <i class="fa-solid fa-circle-notch fa-spin"></i> جاري الجدولة...
+              } @else {
+                تأكيد جدولة {{ selectedCount() }} منشور
+              }
+            </button>
+          </div>
+        }
+      </div>
+    }
+
+    <section class="cc-items">
+      @if (generating() && batchItems().length === 0) {
+        <!-- Real post count isn't known yet at this point (the content plan hasn't fanned out into
+             this run's own posts) — a generic loading state instead of a guessed number of skeletons,
+             since the backend can still legitimately produce a different count than requested. -->
+        <div class="cc-generating-placeholder">
+          <i class="fa-solid fa-circle-notch fa-spin"></i>
+          <p>جارٍ تجهيز منشوراتك...</p>
+        </div>
+      }
+
+      @for (item of displayItems(); track item.contentItemId) {
+        @if (isBatchPending(item)) {
+          <div class="cc-skeleton-card">
+            <span class="cc-sk cc-sk-tag"></span>
+            <span class="cc-sk cc-sk-image"></span>
+            <span class="cc-sk cc-sk-line cc-sk-line--90"></span>
+            <span class="cc-sk cc-sk-line cc-sk-line--70"></span>
+            <span class="cc-sk cc-sk-actions"></span>
+          </div>
+        } @else {
+          <div class="cc-item-card" [class.cc-item-card--no-image]="!item.imageUrl">
+          <div class="cc-item-head">
+            @if (isSchedulable(item) && perms.canEdit()) {
+              <input type="checkbox" class="cc-item-select" [checked]="isSelected(item)" (change)="toggleSelectItem(item)" aria-label="تحديد للجدولة" />
+            }
+            <span class="cc-tag">{{ platformLabels[item.platform] }}</span>
+            <span class="cc-tag">{{ contentTypeLabels[item.contentType] }}</span>
+            <span class="cc-status" [class]="'cc-status-' + item.status.toLowerCase()">{{ statusLabels[item.status] }}</span>
+          </div>
+
+          @if (item.imageUrl) {
+            <img class="cc-item-image" [src]="item.imageUrl" [alt]="item.content" />
+          } @else {
+            <div class="cc-item-image-missing">
+              <i class="fa-regular fa-image"></i>
+              <p>لا توجد صورة لهذا المنشور — لا يمكن قبوله أو جدولته قبل توليد صورة.</p>
+              @if (perms.canEdit()) {
+                <button type="button" class="cc-btn cc-btn-ghost" [disabled]="retryingImageId() === item.contentItemId" (click)="retryImage(item)">
+                  @if (retryingImageId() === item.contentItemId) {
+                    <i class="fa-solid fa-circle-notch fa-spin"></i> جاري توليد الصورة...
+                  } @else {
+                    <i class="fa-solid fa-arrows-rotate"></i> توليد صورة
+                  }
+                </button>
+              }
+            </div>
+          }
+
+          <p class="cc-item-content">{{ item.content }}</p>
+
+          @if (showsSuggestedTime(item)) {
+            <p class="cc-item-suggested-time">
+              <i class="fa-regular fa-clock"></i>
+              الوقت المقترح: {{ formatSuggestedTime(item.suggestedPostAt!) }}
+            </p>
+          } @else if (activeScheduledPost(item); as sp) {
+            <p class="cc-item-suggested-time cc-item-suggested-time--scheduled">
+              <i class="fa-solid fa-clock"></i>
+              مجدول في: {{ formatSuggestedTime(sp.scheduledAt) }}
+            </p>
+          }
+
+          @if (regeneratingId() === item.contentItemId) {
+            <div class="cc-regenerate-box">
+              <div class="cc-preset-row">
+                @for (preset of regeneratePresets; track preset) {
+                  <button type="button" class="cc-preset-chip" (click)="applyRegeneratePreset(preset)">{{ preset }}</button>
+                }
+              </div>
+              <textarea
+                rows="2"
+                placeholder="ما الذي تريد تغييره في هذا المنشور؟ مثال: اجعله أكثر احترافية"
+                [value]="regenerateFeedback()"
+                (input)="updateRegenerateFeedback($any($event.target).value)"></textarea>
+              <p class="cc-regenerate-hint">سيتم إعادة توليد النص والصورة معًا ليتطابقا.</p>
+              <div class="cc-regenerate-actions">
+                @if (pricing(); as pr) {
+                  <app-coin-cost-hint class="cc-regenerate-cost" [cost]="pr.discountedCosts.contentGeneration + pr.discountedCosts.visualGeneration" />
+                }
+                <button type="button" class="cc-btn cc-btn-ghost" (click)="cancelRegenerate()">إلغاء</button>
+                <button type="button" class="cc-btn cc-btn-primary"
+                  [disabled]="!regenerateFeedback().trim() || busyItemId() === item.contentItemId"
+                  (click)="submitRegenerate(item)">
+                  إعادة التوليد
+                </button>
+              </div>
+            </div>
+          } @else if (schedulingItemId() === item.contentItemId) {
+            <div class="cc-schedule-item-box">
+              @if (accountsForPlatform(item.platform).length === 0) {
+                <p class="cc-schedule-item-warn">
+                  <i class="fa-solid fa-triangle-exclamation"></i>
+                  لا يوجد حساب متصل لـ{{ platformLabels[item.platform] }}.
+                  <button type="button" class="cc-link-btn" (click)="goToConnectSocialAccounts()">ربط الآن</button>
+                </p>
+              } @else {
+                <label class="cc-schedule-item-field">
+                  الحساب
+                  <select [value]="scheduleAccountId()" (change)="updateScheduleAccount($any($event.target).value)">
+                    @for (acc of accountsForPlatform(item.platform); track acc.socialAccountId) {
+                      <option [value]="acc.socialAccountId">{{ acc.accountName }}</option>
+                    }
+                  </select>
+                </label>
+                <div class="cc-schedule-item-datetime">
+                  <label class="cc-schedule-item-field">
+                    التاريخ
+                    <input type="date" [value]="scheduleDate()" (input)="updateScheduleDate($any($event.target).value)" />
+                  </label>
+                  <label class="cc-schedule-item-field">
+                    الوقت
+                    <input type="time" [value]="scheduleTime()" (input)="updateScheduleTime($any($event.target).value)" />
+                  </label>
+                </div>
+              }
+              @if (scheduleTimeTooSoon()) {
+                <p class="cc-schedule-item-warn"><i class="fa-solid fa-triangle-exclamation"></i> يجب أن يكون الموعد بعد 10 دقائق على الأقل من الآن.</p>
+              }
+              <div class="cc-regenerate-actions">
+                @if (pricing(); as pr) {
+                  <app-coin-cost-hint class="cc-regenerate-cost" [cost]="pr.discountedCosts.scheduling" />
+                }
+                <button type="button" class="cc-btn cc-btn-ghost" (click)="cancelSchedulePost()">إلغاء</button>
+                <button type="button" class="cc-btn cc-btn-publish-now"
+                  [disabled]="!scheduleAccountId() || schedulingItemBusy()"
+                  (click)="submitSchedulePostNow(item)">
+                  @if (schedulingItemBusy()) {
+                    <i class="fa-solid fa-circle-notch fa-spin"></i> جاري النشر...
+                  } @else {
+                    <i class="fa-solid fa-bolt"></i> انشر الآن
+                  }
+                </button>
+                <button type="button" class="cc-btn cc-btn-primary"
+                  [disabled]="!scheduleAccountId() || !scheduleDate() || !scheduleTime() || scheduleTimeTooSoon() || schedulingItemBusy()"
+                  (click)="submitSchedulePost(item)">
+                  @if (schedulingItemBusy()) {
+                    <i class="fa-solid fa-circle-notch fa-spin"></i> جاري الجدولة...
+                  } @else {
+                    تأكيد الجدولة
+                  }
+                </button>
+              </div>
+            </div>
+          } @else if (reschedulingItemId() === item.contentItemId) {
+            <div class="cc-schedule-item-box">
+              <div class="cc-schedule-item-datetime">
+                <label class="cc-schedule-item-field">
+                  التاريخ
+                  <input type="date" [value]="scheduleDate()" (input)="updateScheduleDate($any($event.target).value)" />
+                </label>
+                <label class="cc-schedule-item-field">
+                  الوقت
+                  <input type="time" [value]="scheduleTime()" (input)="updateScheduleTime($any($event.target).value)" />
+                </label>
+              </div>
+              @if (scheduleTimeTooSoon()) {
+                <p class="cc-schedule-item-warn"><i class="fa-solid fa-triangle-exclamation"></i> يجب أن يكون الموعد بعد 10 دقائق على الأقل من الآن.</p>
+              }
+              <div class="cc-regenerate-actions">
+                <button type="button" class="cc-btn cc-btn-ghost" (click)="cancelReschedule()">إلغاء</button>
+                <button type="button" class="cc-btn cc-btn-primary"
+                  [disabled]="!scheduleDate() || !scheduleTime() || scheduleTimeTooSoon() || schedulingItemBusy()"
+                  (click)="submitReschedule(item)">
+                  @if (schedulingItemBusy()) {
+                    <i class="fa-solid fa-circle-notch fa-spin"></i> جاري إعادة الجدولة...
+                  } @else {
+                    تأكيد الموعد الجديد
+                  }
+                </button>
+              </div>
+            </div>
+          } @else {
+            <div class="cc-item-actions">
+              @if (showApprove(item)) {
+                <button type="button" class="cc-btn cc-btn-accept"
+                  [class.is-perm-disabled]="!perms.canEdit()"
+                  [attr.aria-disabled]="!perms.canEdit() || null"
+                  [appTooltip]="!item.imageUrl ? 'أضف صورة للمنشور أولاً' : perms.editDeniedReason()"
+                  [disabled]="busyItemId() === item.contentItemId || !item.imageUrl || !perms.canEdit()"
+                  (click)="review(item, true)">
+                  <i class="fa-solid fa-check"></i> قبول
+                </button>
+              }
+              @if (showDecline(item)) {
+                <button type="button" class="cc-btn cc-btn-reject"
+                  [class.is-perm-disabled]="!perms.canEdit()"
+                  [attr.aria-disabled]="!perms.canEdit() || null"
+                  [appTooltip]="perms.editDeniedReason()"
+                  [disabled]="busyItemId() === item.contentItemId || !perms.canEdit()"
+                  (click)="onDeclineClick(item)">
+                  <i class="fa-solid fa-xmark"></i> {{ declineLabel(item) }}
+                </button>
+              }
+              @if (perms.canEdit() && !isLive(item)) {
+                <button type="button" class="cc-btn cc-btn-regenerate" [disabled]="busyItemId() === item.contentItemId" (click)="startRegenerate(item)">
+                  <i class="fa-solid fa-rotate"></i> إعادة توليد
+                </button>
+              }
+              @if (liveFacebookUrl(item); as fbUrl) {
+                <a class="cc-btn cc-btn-view" [href]="fbUrl" target="_blank" rel="noopener">
+                  <i class="fa-brands fa-facebook"></i> عرض على فيسبوك
+                </a>
+              }
+              @if (isLive(item) && perms.canEdit()) {
+                <button type="button" class="cc-btn cc-btn-takedown"
+                  [class.is-perm-disabled]="!perms.canEdit()"
+                  [disabled]="busyItemId() === item.contentItemId"
+                  (click)="takeDownPost(item)">
+                  <i class="fa-solid fa-trash-can"></i> سحب المنشور
+                </button>
+              }
+              @if (isSchedulable(item) && perms.canEdit()) {
+                <button type="button" class="cc-btn cc-btn-schedule"
+                  [class.is-perm-disabled]="accountsForPlatform(item.platform).length === 0"
+                  [attr.aria-disabled]="accountsForPlatform(item.platform).length === 0 || null"
+                  [appTooltip]="accountsForPlatform(item.platform).length === 0 ? 'لا يوجد حساب ' + platformLabels[item.platform] + ' متصل — اربط حسابًا أولاً' : ''"
+                  [disabled]="accountsForPlatform(item.platform).length === 0"
+                  (click)="startSchedulePost(item)">
+                  <i class="fa-solid fa-calendar-check"></i> جدولة
+                </button>
+              }
+              @if (isPendingSchedule(item) && perms.canEdit()) {
+                <button type="button" class="cc-btn cc-btn-reschedule" (click)="startReschedule(item)">
+                  <i class="fa-solid fa-calendar-days"></i> إعادة الجدولة
+                </button>
+              }
+            </div>
+          }
+          </div>
+        }
+      }
+
+      @if (!generating() && items().length === 0) {
+        <div class="cc-state">لا يوجد محتوى بعد — اضغط "توليد المحتوى" للبدء.</div>
+      }
+    </section>
+
+    <section class="cc-card cc-schedule">
+      <h2>جدولة الحملة</h2>
+
+      @if (platformStatuses().length > 0) {
+        <div class="cc-platform-status-list">
+          @for (s of platformStatuses(); track s.platform) {
+            <div class="cc-platform-status" [class.connected]="s.connected">
+              <span class="cc-tag">{{ platformLabels[s.platform] }}</span>
+              @if (s.connected) {
+                <span class="cc-platform-status-text">
+                  <i class="fa-solid fa-circle-check"></i> متصل{{ s.accountName ? ' — ' + s.accountName : '' }}
+                </span>
+              } @else {
+                <span class="cc-platform-status-text cc-platform-status-text--warn">
+                  <i class="fa-solid fa-circle-exclamation"></i> غير متصل
+                </span>
+              }
+            </div>
+          }
+        </div>
+      }
+
+      @if (approvedMissingImageCount() > 0) {
+        <div class="cc-banner cc-banner-warning">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          {{ approvedMissingImageCount() }} منشور مقبول بلا صورة — لن يُجدول حتى تضيف له صورة من البطاقة أعلاه.
+        </div>
+      }
+
+      @if (!hasAnyConnectedAccount()) {
+        <div class="cc-banner cc-banner-warning">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          لا يوجد حساب متصل بعد — اربط حسابك على فيسبوك أو إنستغرام لتتمكن من جدولة هذه المنشورات.
+        </div>
+        <button type="button" class="cc-btn cc-btn-primary" (click)="goToConnectSocialAccounts()">
+          <i class="fa-solid fa-link"></i> ربط حساب تواصل اجتماعي
+        </button>
+      } @else {
+        @if (missingPlatformLabels().length > 0) {
+          <div class="cc-banner cc-banner-warning">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            لا يوجد حساب متصل لـ{{ missingPlatformLabels().join('، ') }} — منشورات هذه المنصات لن تُجدول حتى تربطها.
+            <button type="button" class="cc-link-btn" (click)="goToConnectSocialAccounts()">ربط الآن</button>
+          </div>
+        }
+
+        <p class="cc-schedule-hint">ستتم جدولة كل منشور مقبول إلى الحساب المتصل الذي يطابق منصته تلقائيًا. يمكنك أيضًا جدولة منشور بعينه من بطاقته أعلاه لاختيار حساب أو موعد مختلف.</p>
+
+        <div class="cc-schedule-row">
+          <button type="button" class="cc-btn cc-btn-primary"
+            [class.is-perm-disabled]="!perms.canEdit()"
+            [attr.aria-disabled]="!perms.canEdit() || null"
+            [appTooltip]="perms.editDeniedReason()"
+            [disabled]="scheduling() || approvedItems().length === 0 || !perms.canEdit()"
+            (click)="schedulePosts()">
+            @if (scheduling()) {
+              <i class="fa-solid fa-circle-notch fa-spin"></i> جاري الجدولة...
+            } @else {
+              <i class="fa-solid fa-calendar-check"></i> جدولة كل المنشورات المقبولة ({{ approvedItems().length }})
+            }
+          </button>
+          @if (pricing(); as pr) {
+            <app-coin-cost-hint [cost]="pr.discountedCosts.scheduling" [multiplier]="approvedItems().length || 1" />
+          }
+        </div>
+
+        @if (scheduleResult(); as r) {
+          <p class="cc-schedule-result">
+            @let publishedNowCount = publishedNowCountIn(r.results);
+            @if (publishedNowCount > 0 && publishedNowCount < r.succeeded) {
+              تم نشر {{ publishedNowCount }} منشور فورًا، وجدولة {{ r.succeeded - publishedNowCount }} لوقتها.
+            } @else if (publishedNowCount > 0) {
+              تم نشر {{ publishedNowCount }} منشور فورًا.
+            } @else {
+              تمت جدولة {{ r.succeeded }} منشور بنجاح.
+            }
+            @if (r.skipped > 0) { لم يُجدول {{ r.skipped }} بسبب عدم وجود حساب متصل. }
+            @if (r.failed > 0) { فشل {{ r.failed }}. }
+          </p>
+          @if (r.failed > 0) {
+            <ul class="cc-schedule-errors">
+              @for (item of r.results; track item.contentItemId) {
+                @if (!item.succeeded && !item.skipped) {
+                  <li>{{ item.error }}</li>
+                }
+              }
+            </ul>
+          }
+        }
+      }
+    </section>
+
+  }
+</div>

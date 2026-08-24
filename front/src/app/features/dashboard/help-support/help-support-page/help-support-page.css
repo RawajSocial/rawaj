@@ -1,0 +1,109 @@
+/* ── Quick cards ── */
+.help-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.help-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+}
+
+.help-card--action {
+  width: 100%;
+  text-align: start;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.help-card--action:hover {
+  border-color: var(--color-danger);
+  box-shadow: var(--shadow-sm);
+}
+
+.help-card-icon {
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  font-size: 1rem;
+}
+.help-card-icon--success { background: var(--color-success-light); color: var(--color-success); }
+.help-card-icon--primary { background: var(--color-primary-subtle); color: var(--color-primary); }
+.help-card-icon--info    { background: var(--color-info-light);    color: var(--color-info); }
+.help-card-icon--danger  { background: color-mix(in srgb, var(--color-danger) 12%, var(--color-bg)); color: var(--color-danger); }
+
+.help-card-title {
+  display: block;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-bold);
+  color: var(--color-dark);
+  margin-bottom: 2px;
+}
+
+.help-card-sub {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
+
+/* ── Grid ── */
+.help-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+/* ── Contact ── */
+.contact-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.sent-msg {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  border-radius: 10px;
+  background: var(--color-success-light);
+  color: var(--color-success);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-semibold);
+}
+
+@media (max-width: 992px) {
+  .help-cards { grid-template-columns: repeat(2, 1fr); }
+  .help-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 576px) {
+  .help-cards { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 576px) {
+  .form-grid { grid-template-columns: 1fr; }
+}

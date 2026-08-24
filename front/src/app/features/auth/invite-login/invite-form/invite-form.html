@@ -1,0 +1,36 @@
+<form [formGroup]="form" (ngSubmit)="onSubmit()">
+  <div class="mb-3">
+    <label class="form-label">البريد الإلكتروني</label>
+    <input type="email" class="form-control" [value]="email()" readonly disabled />
+  </div>
+
+  <div class="mb-3">
+    <label class="form-label" for="fullName">الاسم الكامل</label>
+    <input id="fullName" type="text" class="form-control" placeholder="مثال: سارة الأحمد" formControlName="fullName" />
+    @if (errorMessage('fullName'); as e) {
+      <small class="text-danger d-block mt-2 validation-msg">{{ e }}</small>
+    }
+  </div>
+
+  <div class="mb-3">
+    <label class="form-label" for="username">اسم المستخدم</label>
+    <input id="username" type="text" class="form-control" placeholder="username" formControlName="username" />
+    @if (errorMessage('username'); as e) {
+      <small class="text-danger d-block mt-2 validation-msg">{{ e }}</small>
+    }
+  </div>
+
+  <div class="mb-3">
+    <label class="form-label" for="password">كلمة المرور</label>
+    <input id="password" type="password" class="form-control" placeholder="••••••••" formControlName="password" />
+    @if (errorMessage('password'); as e) {
+      <small class="text-danger d-block mt-2 validation-msg">{{ e }}</small>
+    }
+  </div>
+
+  @if (formError(); as err) {
+    <small class="text-danger d-block mb-3 validation-msg">{{ err }}</small>
+  }
+
+  <button class="btn login-btn w-100" type="submit">إنشاء الحساب والانضمام</button>
+</form>

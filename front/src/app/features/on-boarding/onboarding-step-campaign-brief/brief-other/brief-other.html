@@ -1,0 +1,15 @@
+<div class="brief-block" appGsapReveal="fade-up-far" [gsapDuration]="900">
+  <div class="brief-block-title">
+    <i class="fa-solid fa-pen-to-square"></i>
+    <span>صف حملتك</span>
+  </div>
+  <div class="form-grid">
+    <div class="form-row full">
+      <label>اشرح ما تريد تحقيقه من هذه الحملة</label>
+      <textarea class="form-control" rows="4"
+        placeholder="أخبرنا بتفاصيل حملتك وما تريد تحقيقه..."
+        [value]="data()?.campaignDescription || ''"
+        (input)="emit({ campaignDescription: $any($event.target).value })"></textarea>
+    </div>
+  </div>
+</div>

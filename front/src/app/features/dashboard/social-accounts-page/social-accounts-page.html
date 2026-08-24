@@ -1,0 +1,38 @@
+<div class="page-shell">
+  <app-page-header
+    title="ربط حسابات التواصل الاجتماعي"
+    [breadcrumbs]="[{ label: 'نظرة عامة', link: '/dashboard' }, { label: 'ربط الحسابات' }]"
+    subtitle="اربط حسابات علامتك التجارية بمنصات التواصل الاجتماعي عبر OAuth." />
+
+  <div class="rw-card">
+    <div class="connect-list">
+      @for (p of platforms; track p.key) {
+        <div class="connect-row">
+          <span class="connect-icon" [style.background]="p.color">
+            <i class="{{ p.icon }}"></i>
+          </span>
+          <span class="connect-label">{{ p.label }}</span>
+
+          @if (isConnected(p.key); as account) {
+            <span class="connect-account-name">{{ account.accountName }}</span>
+            <button type="button" class="rw-btn rw-btn--outline"
+              [class.is-perm-disabled]="!perms.canAdmin()"
+              [attr.aria-disabled]="!perms.canAdmin() || null"
+              [appTooltip]="perms.adminDeniedReason()"
+              (click)="disconnect(account)">
+              فصل الحساب
+            </button>
+          } @else {
+            <button type="button" class="rw-btn rw-btn--dark"
+              [class.is-perm-disabled]="!perms.canAdmin()"
+              [attr.aria-disabled]="!perms.canAdmin() || null"
+              [appTooltip]="perms.adminDeniedReason()"
+              (click)="connect(p.key)">
+              ربط الحساب
+            </button>
+          }
+        </div>
+      }
+    </div>
+  </div>
+</div>

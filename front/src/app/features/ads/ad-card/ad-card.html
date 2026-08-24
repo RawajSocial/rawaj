@@ -1,0 +1,83 @@
+<div class="ad-card"
+     role="button"
+     tabindex="0"
+     (click)="view.emit(ad().id)"
+     (keydown.enter)="view.emit(ad().id)"
+     (keydown.space)="view.emit(ad().id); $event.preventDefault()">
+
+  <!-- Media -->
+  <div class="ad-media">
+    @if (mediaSrc; as src) {
+      <img [src]="src" [alt]="ad().name" class="media-img" [class.media-img--contain]="ad().format === 'text'">
+    } @else {
+      <div class="media-placeholder">
+        <span class="media-placeholder-icon"><i class="fa-solid fa-play"></i></span>
+        <span>معاينة الفيديو</span>
+      </div>
+    }
+    <div class="ad-platform-badges">
+      @for (p of ad().platforms; track p) {
+        <span class="ad-platform-badge" [style.color]="platformColor(p)" [title]="platformLabel(p)">
+          <i class="{{ platformIcon(p) }}"></i>
+        </span>
+      }
+    </div>
+  </div>
+
+  <!-- Info row -->
+  <div class="ad-info-row">
+    <div class="ad-info-main">
+      <span class="ad-status-dot" [attr.data-status]="ad().status" [title]="statusLabel"></span>
+      <div class="ad-info-text">
+        <p class="ad-type-name">{{ postTypeLabel }}</p>
+        <span class="ad-platform-name">{{ platformNames }}</span>
+      </div>
+    </div>
+    <div class="ad-info-date">
+      <span class="ad-date"><i class="fa-regular fa-calendar"></i> {{ formatDate(ad().createdAt) }}</span>
+      <span class="ad-time">{{ formatTime(ad().createdAt) }}</span>
+    </div>
+  </div>
+
+  <!-- Metrics -->
+  <div class="ad-metrics">
+    <div class="ad-metric">
+      <span class="metric-icon"><i class="fa-solid fa-eye"></i></span>
+      <span class="metric-val">{{ formatNumber(ad().views) }}</span>
+      <span class="metric-lbl">المشاهدات</span>
+    </div>
+    <div class="ad-metric">
+      <span class="metric-icon"><i class="fa-solid fa-arrow-pointer"></i></span>
+      <span class="metric-val">{{ formatNumber(ad().clicks) }}</span>
+      <span class="metric-lbl">النقرات</span>
+    </div>
+    <div class="ad-metric">
+      <span class="metric-icon"><i class="fa-solid fa-arrow-trend-up"></i></span>
+      <span class="metric-val">{{ ad().ctr }}%</span>
+      <span class="metric-lbl">معدل النقر</span>
+    </div>
+    <div class="ad-metric">
+      <span class="metric-icon"><i class="fa-solid fa-dollar-sign"></i></span>
+      <span class="metric-val">${{ ad().cpc }}</span>
+      <span class="metric-lbl">تكلفة النقرة</span>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="ad-foot">
+    <button type="button" class="ad-foot-btn" appTooltip="عرض التفاصيل" aria-label="عرض التفاصيل" (click)="view.emit(ad().id); $event.stopPropagation()">
+      <i class="fa-regular fa-eye"></i>
+    </button>
+    @if (ad().postUrl) {
+      <a class="ad-foot-btn ad-foot-btn--primary"
+         appTooltip="عرض على المنصة"
+         aria-label="عرض على المنصة"
+         [href]="ad().postUrl"
+         target="_blank"
+         rel="noopener noreferrer"
+         (click)="$event.stopPropagation()">
+        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+      </a>
+    }
+  </div>
+</div>

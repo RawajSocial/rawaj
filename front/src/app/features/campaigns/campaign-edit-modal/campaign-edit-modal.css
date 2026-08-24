@@ -1,0 +1,73 @@
+.camp-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Matches .confirm-dialog__footer — ModalShell projects the footer outside its padded body, so
+   each modal supplies its own edge padding. */
+.camp-edit-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 0 22px 22px;
+}
+
+.camp-edit-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.camp-edit-error {
+  margin: 0;
+  padding: .7rem 1rem;
+  border-radius: var(--radius-lg);
+  background: var(--color-danger-light, var(--color-bg-secondary));
+  color: var(--color-danger);
+  font-size: var(--font-size-sm);
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+}
+
+.camp-edit-platforms {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+}
+
+.camp-edit-platform {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .4rem .8rem;
+  border-radius: var(--radius-full);
+  border: 1.5px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-family: inherit;
+  font-size: .8rem;
+  font-weight: var(--font-semibold);
+  cursor: pointer;
+  transition: border-color .15s ease, background .15s ease, color .15s ease;
+}
+
+.camp-edit-platform:hover {
+  border-color: var(--color-secondary);
+}
+
+.camp-edit-platform.selected {
+  border-color: var(--color-secondary);
+  background: var(--color-secondary-subtle);
+  color: var(--color-secondary);
+}
+
+.camp-edit-platform:focus-visible {
+  outline: 2px solid var(--color-secondary);
+  outline-offset: 2px;
+}
+
+@media (max-width: 560px) {
+  .camp-edit-row { grid-template-columns: 1fr; }
+}

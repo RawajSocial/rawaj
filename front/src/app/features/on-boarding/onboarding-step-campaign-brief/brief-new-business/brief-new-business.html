@@ -1,0 +1,14 @@
+<div class="brief-block" appGsapReveal="fade-up-far" [gsapDuration]="900">
+  <div class="brief-block-title">
+    <i class="fa-solid fa-rocket"></i>
+    <span>تفاصيل إطلاق النشاط</span>
+  </div>
+  <div class="form-grid">
+    <div class="form-row full">
+      <label>التاريخ المتوقع للإطلاق</label>
+      <input type="date" class="form-control"
+        [value]="data()?.businessLaunchDate || ''"
+        (input)="emit({ businessLaunchDate: $any($event.target).value })" />
+    </div>
+  </div>
+</div>

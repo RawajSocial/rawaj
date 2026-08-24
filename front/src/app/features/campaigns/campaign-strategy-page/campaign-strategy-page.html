@@ -1,0 +1,28 @@
+<div class="page-shell" dir="rtl">
+  <app-page-header
+    [title]="'استراتيجية الحملة'"
+    [subtitle]="campaign()?.name ?? ''"
+    [breadcrumbs]="[
+      { label: 'نظرة عامة', link: '/dashboard' },
+      { label: 'الحملات', link: '/dashboard/campaigns' },
+      { label: campaign()?.name ?? 'الحملة', link: '/dashboard/campaigns/' + campaignId() },
+      { label: 'الاستراتيجية' }
+    ]" />
+
+  @if (loading()) {
+    <div class="detail-loading"><i class="fa-solid fa-circle-notch fa-spin"></i> جاري التحميل...</div>
+  } @else if (loadError()) {
+    <div class="not-found"><h3>{{ loadError() }}</h3></div>
+  } @else {
+    <!-- autoGenerate=false: this page is reached from a "review the strategy" button, so it must
+         never start the paid research/diagnosis/strategy pipeline without being asked. -->
+    <app-onboarding-plan-approval
+      [campaignId]="campaignId()"
+      [data]="briefData()"
+      [brandProfileId]="campaign()?.brandProfileId ?? null"
+      [autoGenerate]="false"
+      backLabel="رجوع"
+      (approve)="onApprove()"
+      (back)="onBack()" />
+  }
+</div>

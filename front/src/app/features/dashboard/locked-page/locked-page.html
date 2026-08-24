@@ -1,0 +1,33 @@
+<div class="page-shell locked-shell">
+  <div class="rw-card locked-card">
+    <div class="locked-icon">
+      <i class="fa-solid fa-lock"></i>
+    </div>
+    @if (reason() === 'account-setup') {
+      <h2 class="locked-title">قم بإنهاء الحساب</h2>
+      <p class="locked-message">
+        يجب إكمال إعداد حسابك الشخصي أولًا للوصول إلى هذه الصفحة.
+      </p>
+    } @else if (needsActivation() && isInvitedMember()) {
+      <h2 class="locked-title">بانتظار تفعيل الحساب</h2>
+      <p class="locked-message">
+        هذه الصفحة تتطلب إكمال بيانات النشاط التجاري الخاصة بالمؤسسة التي دعتك — يرجى التواصل مع
+        مالك الحساب لإكمالها. يمكنك في هذه الأثناء استخدام صفحتي توليد المحتوى وإعلاناتي.
+      </p>
+    } @else if (needsActivation()) {
+      <h2 class="locked-title">قم بإنهاء بيانات حسابك</h2>
+      <p class="locked-message">
+        هذه الصفحة تتطلب إكمال بيانات النشاط التجاري لحسابك أولًا. أكمل رقم الهاتف والمجال والدولة
+        والمدينة في الإعدادات لتفعيل حسابك والحصول على 50 كوين مكافأة، والوصول إلى جميع صفحات لوحة التحكم.
+      </p>
+      <a routerLink="/dashboard/settings" class="rw-btn rw-btn--primary">أكمل بياناتي الآن</a>
+    } @else {
+      <h2 class="locked-title">أنشئ ملف علامة تجارية</h2>
+      <p class="locked-message">
+        هذه الصفحة تتطلب وجود ملف علامة تجارية أولًا. أنشئ ملف علامة تجارية للوصول إلى هذه الصفحة
+        وجميع صفحات لوحة التحكم.
+      </p>
+      <a routerLink="/dashboard/brand-profiles/new" class="rw-btn rw-btn--primary">أنشئ ملف علامة تجارية</a>
+    }
+  </div>
+</div>

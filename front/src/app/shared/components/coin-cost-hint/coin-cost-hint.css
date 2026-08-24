@@ -1,0 +1,13 @@
+.coin-cost-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.coin-cost-hint__icon {
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+}

@@ -1,0 +1,84 @@
+<div class="page-shell">
+  <div class="admin-page-top">
+    <div>
+      <h1 class="admin-page-title">نظرة عامة على المنصة</h1>
+      <p class="admin-page-sub">إحصائيات عامة عن المستخدمين والوكالات والاشتراكات.</p>
+    </div>
+    <span class="admin-mode-badge"><i class="fa-solid fa-shield-halved"></i> وضع الإدارة</span>
+  </div>
+
+  <!-- Stat cards -->
+  <div class="admin-stats-grid">
+    <div class="rw-card admin-stat-card">
+      <span class="admin-stat-icon admin-stat-icon--tenants"><i class="fa-solid fa-building"></i></span>
+      <div>
+        <span class="admin-stat-value">{{ stats().totalTenants }}</span>
+        <span class="admin-stat-label">إجمالي الوكالات والعلامات</span>
+      </div>
+    </div>
+    <div class="rw-card admin-stat-card">
+      <span class="admin-stat-icon admin-stat-icon--active"><i class="fa-solid fa-circle-check"></i></span>
+      <div>
+        <span class="admin-stat-value">{{ stats().activeTenants }}</span>
+        <span class="admin-stat-label">حسابات نشطة</span>
+      </div>
+    </div>
+    <div class="rw-card admin-stat-card">
+      <span class="admin-stat-icon admin-stat-icon--users"><i class="fa-solid fa-users"></i></span>
+      <div>
+        <span class="admin-stat-value">{{ stats().totalUsers }}</span>
+        <span class="admin-stat-label">إجمالي المستخدمين</span>
+      </div>
+    </div>
+    <div class="rw-card admin-stat-card">
+      <span class="admin-stat-icon admin-stat-icon--revenue"><i class="fa-solid fa-sack-dollar"></i></span>
+      <div>
+        <span class="admin-stat-value">${{ stats().monthlyRevenue }}</span>
+        <span class="admin-stat-label">الإيراد الشهري المقدّر</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent tenants -->
+  <div class="rw-card">
+    <div class="rw-card__header admin-card-header-row">
+      <div>
+        <h3 class="rw-card__title">أحدث الحسابات المسجّلة</h3>
+        <p class="rw-card__hint">آخر الوكالات وأصحاب العلامات التجارية الذين انضموا للمنصة</p>
+      </div>
+      <a routerLink="/admin/tenants" class="admin-link">عرض الكل <i class="fa-solid fa-arrow-left"></i></a>
+    </div>
+
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>الاسم</th>
+            <th>النوع</th>
+            <th>المالك</th>
+            <th>الباقة</th>
+            <th>الحالة</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (t of recentTenants(); track t.id) {
+            <tr>
+              <td class="admin-cell-strong">{{ t.name }}</td>
+              <td class="admin-cell-muted">{{ kindLabels[t.kind] }}</td>
+              <td class="admin-cell-muted">{{ t.ownerEmail }}</td>
+              <td class="admin-cell-muted">{{ t.plan }}</td>
+              <td>
+                <span class="rw-pill"
+                      [class.rw-pill--success]="t.status === 'active'"
+                      [class.rw-pill--warning]="t.status === 'trial'"
+                      [class.rw-pill--danger]="t.status === 'suspended'">
+                  {{ statusLabels[t.status] }}
+                </span>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
